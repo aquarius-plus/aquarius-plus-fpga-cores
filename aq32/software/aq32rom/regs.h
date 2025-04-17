@@ -10,12 +10,13 @@ struct regs {
     volatile uint32_t VSCRY;
     volatile uint32_t VLINE;
     volatile uint32_t VIRQLINE;
+    volatile uint32_t KEYBUF;
 };
 
 #define TRAM     ((uint16_t *)0xFF000000)
 #define CHRAM    ((uint8_t *)0xFF100000)
 #define IO_VIDEO ((uint8_t *)0xFF300000)
-#define PALETTE  ((uint16_t *)0xFF400000)
+#define PALETTE  ((volatile uint16_t *)0xFF400000)
 #define REGS     ((struct regs *)0xFF500000)
 
 enum {
