@@ -1,5 +1,5 @@
 MEMORY {
-    ram (rwx) : ORIGIN = 0x80000000, LENGTH = 0x00080000  /* 512k */
+    ram (rwx) : ORIGIN = 0x80000, LENGTH = 0x80000  /* 512k */
 }
 
 PROVIDE(__ram_end = ORIGIN(ram) + LENGTH(ram));

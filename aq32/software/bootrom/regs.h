@@ -10,12 +10,13 @@ struct regs {
     volatile uint32_t VSCRY;
     volatile uint32_t VLINE;
     volatile uint32_t VIRQLINE;
+    volatile uint32_t KEYBUF;
 };
 
-#define TRAM    ((volatile uint16_t *)0xFF000000)
-#define CHRAM   ((volatile uint8_t *)0xFF100000)
-#define PALETTE ((volatile uint16_t *)0xFF400000)
-#define REGS    ((volatile struct regs *)0xFF500000)
+#define REGS    ((struct regs *)0x2000)
+#define PALETTE ((volatile uint16_t *)0x04000)
+#define CHRAM   ((uint8_t *)0x05000)
+#define TRAM    ((uint16_t *)0x06000)
 
 enum {
     ESPCMD_RESET       = 0x01, // Reset ESP
@@ -68,3 +69,14 @@ enum {
     FO_TRUNC  = 0x10, // Truncate to zero length
     FO_EXCL   = 0x20, // Error if already exists
 };
+
+#define VCTRL_TEXT_EN         (1 << 0)
+#define VCTRL_GFXMODE_OFF     (0 << 1)
+#define VCTRL_GFXMODE_TILE    (1 << 1)
+#define VCTRL_GFXMODE_BM1BPP  (2 << 1)
+#define VCTRL_GFXMODE_BM4BPP  (3 << 1)
+#define VCTRL_SPR_EN          (1 << 3)
+#define VCTRL_TEXT_PRIO       (1 << 4)
+#define VCTRL_REMAP_BORDER_CH (1 << 5)
+#define VCTRL_80COLUMNS       (1 << 6)
+#define VCTRL_TEXTPAGE2       (1 << 7)

@@ -13,11 +13,10 @@ struct regs {
     volatile uint32_t KEYBUF;
 };
 
-#define TRAM     ((uint16_t *)0xFF000000)
-#define CHRAM    ((uint8_t *)0xFF100000)
-#define IO_VIDEO ((uint8_t *)0xFF300000)
-#define PALETTE  ((volatile uint16_t *)0xFF400000)
-#define REGS     ((struct regs *)0xFF500000)
+#define REGS    ((struct regs *)0x2000)
+#define PALETTE ((volatile uint16_t *)0x04000)
+#define CHRAM   ((uint8_t *)0x05000)
+#define TRAM    ((uint16_t *)0x06000)
 
 enum {
     ESPCMD_RESET       = 0x01, // Reset ESP

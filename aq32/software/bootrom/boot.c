@@ -68,7 +68,7 @@ void boot(void) {
     esp_cmd(ESPCMD_RESET);
     int fd = esp_open("aq32.rom", FO_RDONLY);
     if (fd >= 0) {
-        uint8_t *addr = (uint8_t *)0x80000000;
+        uint8_t *addr = (uint8_t *)0x80000;
         while (1) {
             int count = esp_read(fd, addr, 0x8000);
             if (count <= 0)
@@ -76,7 +76,7 @@ void boot(void) {
             addr += count;
         }
         esp_close(fd);
-        ((void (*)())0x80000000)();
+        ((void (*)())0x80000)();
     }
     while (1);
 }

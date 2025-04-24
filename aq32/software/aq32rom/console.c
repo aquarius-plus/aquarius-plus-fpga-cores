@@ -1,8 +1,9 @@
 #include "console.h"
 #include "lib.h"
 
-#define DEF_FGCOL (7)
-#define DEF_BGCOL (4)
+#define DEF_FGCOL    (0)
+#define DEF_BGCOL    (6)
+#define CURSOR_COLOR (0x08)
 
 struct terminal_data {
     uint16_t *buffer;
@@ -238,7 +239,7 @@ static void show_cursor(struct terminal_data *td) {
 
     uint16_t *p     = &td->buffer[td->cursor_row * td->columns + td->cursor_col];
     td->saved_color = *p >> 8;
-    *p              = (*p & 0xFF) | (0x7000);
+    *p              = (*p & 0xFF) | (CURSOR_COLOR << 8);
 }
 
 static inline int imin(int a, int b) { return a < b ? a : b; }
