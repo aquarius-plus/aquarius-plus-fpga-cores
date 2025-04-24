@@ -21,7 +21,7 @@ void main(void) {
 
     console_init();
 
-    printf("Aquarius32\n\nSD:/>");
+    printf("\nAquarius32 System V0.1\n\nSD:/>");
 
     while (1) {
         unsigned ch = REGS->KEYBUF;

@@ -118,7 +118,7 @@ module aq32_top(
 
     wire [15:0] cpu_irq = {16'b0};
 
-    cpu #(.VEC_RESET(32'hFFFFF800)) cpu(
+    cpu #(.VEC_RESET(32'h00000000)) cpu(
         .clk(clk),
         .reset(reset),
 
@@ -307,6 +307,9 @@ module aq32_top(
         .esp_notify(esp_notify));
 
 
+    //////////////////////////////////////////////////////////////////////////
+    // SPI interface
+    //////////////////////////////////////////////////////////////////////////
     wire [63:0] keys;
 
     wire  [7:0] kbbuf_data;
@@ -328,6 +331,24 @@ module aq32_top(
 
         .kbbuf_data(kbbuf_data),
         .kbbuf_wren(kbbuf_wren));
+
+    //////////////////////////////////////////////////////////////////////////
+    // Keyboard buffer
+    //////////////////////////////////////////////////////////////////////////
+    wire       kbbuf_rst;
+    wire [7:0] kbbuf_rddata;
+    wire       kbbuf_rden;
+
+    kbbuf kbbuf(
+        .clk(clk),
+        .rst(kbbuf_rst),
+
+        .wrdata(kbbuf_data),
+        .wr_en(kbbuf_wren),
+
+        .rddata(kbbuf_rddata),
+        .rd_en(kbbuf_rden)
+    );
 
     //////////////////////////////////////////////////////////////////////////
     // PWM DAC
@@ -488,13 +509,13 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     // CPU bus interconnect
     //////////////////////////////////////////////////////////////////////////
-    assign sram_ctrl_strobe = cpu_strobe && cpu_addr[31:19] == {12'h800, 1'b0};
-    assign tram_strobe      = cpu_strobe && cpu_addr[31:12] == {20'hFF000};
-    assign chram_strobe     = cpu_strobe && cpu_addr[31:11] == {20'hFF100, 1'b0};
-    assign vram_strobe      = cpu_strobe && cpu_addr[31:14] == {16'hFF20, 2'b00};
-    assign pal_strobe       = cpu_strobe && cpu_addr[31:14] == {16'hFF40, 2'b00};
-    wire   regs_strobe      = cpu_strobe && cpu_addr[31:14] == {16'hFF50, 2'b00};
-    wire   bootrom_strobe   = cpu_strobe && cpu_addr[31:11] == {20'hFFFFF, 1'b1};
+    wire   bootrom_strobe   = cpu_strobe && cpu_addr[31:12] == 20'h00000;
+    wire   regs_strobe      = cpu_strobe && cpu_addr[31:12] == 20'h00002;
+    assign pal_strobe       = cpu_strobe && cpu_addr[31:12] == 20'h00004;
+    assign chram_strobe     = cpu_strobe && cpu_addr[31:12] == 20'h00005;
+    assign tram_strobe      = cpu_strobe && cpu_addr[31:12] == 20'h00006;
+    assign vram_strobe      = cpu_strobe && cpu_addr[31:15] == {16'h0000, 1'b1};
+    assign sram_ctrl_strobe = cpu_strobe && cpu_addr[31:19] == {12'h000, 1'b1};
 
     reg [31:0] regs_rddata;
 
@@ -503,34 +524,35 @@ module aq32_top(
 
     always @* begin
         cpu_wait = 0;
-        if (sram_ctrl_strobe) cpu_wait = sram_ctrl_wait;
+        if (bootrom_strobe)   cpu_wait = !cpu_wren && q_cpu_addr[11:2] != cpu_addr[11:2];
+        if (chram_strobe)     cpu_wait = !cpu_wren && q_cpu_addr[11:0] != cpu_addr[11:0];
         if (tram_strobe)      cpu_wait = !cpu_wren && q_cpu_addr[11:0] != cpu_addr[11:0];
-        if (chram_strobe)     cpu_wait = !cpu_wren && q_cpu_addr[10:0] != cpu_addr[10:0];
-        if (vram_strobe)      cpu_wait = !cpu_wren && q_cpu_addr[13:0] != cpu_addr[13:0];
-        if (bootrom_strobe)   cpu_wait = !cpu_wren && q_cpu_addr[10:2] != cpu_addr[10:2];
+        if (vram_strobe)      cpu_wait = !cpu_wren && q_cpu_addr[14:0] != cpu_addr[14:0];
+        if (sram_ctrl_strobe) cpu_wait = sram_ctrl_wait;
     end
 
     always @* begin
         cpu_rddata = 0;
-        if (sram_ctrl_strobe) cpu_rddata = sram_ctrl_rddata;
-        if (tram_strobe)      cpu_rddata = {rddata_tram,     rddata_tram};
-        if (chram_strobe)     cpu_rddata = {rddata_chram,    rddata_chram,    rddata_chram,    rddata_chram};
-        if (vram_strobe)      cpu_rddata = rddata_vram;
-        if (pal_strobe)       cpu_rddata = {rddata_pal,      rddata_pal};
         if (bootrom_strobe)   cpu_rddata = bootrom_rddata;
         if (regs_strobe)      cpu_rddata = regs_rddata;
+        if (pal_strobe)       cpu_rddata = {rddata_pal,      rddata_pal};
+        if (chram_strobe)     cpu_rddata = {rddata_chram,    rddata_chram,    rddata_chram,    rddata_chram};
+        if (tram_strobe)      cpu_rddata = {rddata_tram,     rddata_tram};
+        if (vram_strobe)      cpu_rddata = rddata_vram;
+        if (sram_ctrl_strobe) cpu_rddata = sram_ctrl_rddata;
     end
 
     //////////////////////////////////////////////////////////////////////////
     // Registers
     //////////////////////////////////////////////////////////////////////////
-    wire sel_reg_espctrl  = regs_strobe && (cpu_addr[7:2] == 6'h00);
-    wire sel_reg_espdata  = regs_strobe && (cpu_addr[7:2] == 6'h01);
-    wire sel_reg_vctrl    = regs_strobe && (cpu_addr[7:2] == 6'h02);
-    wire sel_reg_vscrx    = regs_strobe && (cpu_addr[7:2] == 6'h03);
-    wire sel_reg_vscry    = regs_strobe && (cpu_addr[7:2] == 6'h04);
-    wire sel_reg_vline    = regs_strobe && (cpu_addr[7:2] == 6'h05);
-    wire sel_reg_virqline = regs_strobe && (cpu_addr[7:2] == 6'h06);
+    wire sel_reg_espctrl  = regs_strobe && (cpu_addr[7:2] == 6'h00);    // 0x02000
+    wire sel_reg_espdata  = regs_strobe && (cpu_addr[7:2] == 6'h01);    // 0x02004
+    wire sel_reg_vctrl    = regs_strobe && (cpu_addr[7:2] == 6'h02);    // 0x02008
+    wire sel_reg_vscrx    = regs_strobe && (cpu_addr[7:2] == 6'h03);    // 0x0200C
+    wire sel_reg_vscry    = regs_strobe && (cpu_addr[7:2] == 6'h04);    // 0x02010
+    wire sel_reg_vline    = regs_strobe && (cpu_addr[7:2] == 6'h05);    // 0x02014
+    wire sel_reg_virqline = regs_strobe && (cpu_addr[7:2] == 6'h06);    // 0x02018
+    wire sel_reg_keybuf   = regs_strobe && (cpu_addr[7:2] == 6'h07);    // 0x0201C
 
     reg q_esp_rx_fifo_overflow, q_esp_rx_framing_error;
 
@@ -543,11 +565,15 @@ module aq32_top(
         if (sel_reg_vscry)    regs_rddata = {24'b0, q_vscry};
         if (sel_reg_vline)    regs_rddata = {24'b0, vline};
         if (sel_reg_virqline) regs_rddata = {24'b0, q_virqline};
+        if (sel_reg_keybuf)   regs_rddata = {24'b0, kbbuf_rddata};
     end
 
     assign esp_tx_data = cpu_wrdata[8:0];
     assign esp_tx_wr   =  cpu_wren && sel_reg_espdata;
     assign esp_rx_rd   = !cpu_wren && sel_reg_espdata;
+
+    assign kbbuf_rst  = (cpu_wren && sel_reg_keybuf) || reset;
+    assign kbbuf_rden = !cpu_wren && sel_reg_keybuf;
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin

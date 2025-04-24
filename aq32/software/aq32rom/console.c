@@ -3,7 +3,7 @@
 
 #define DEF_FGCOL    (0)
 #define DEF_BGCOL    (6)
-#define CURSOR_COLOR (0x08)
+#define CURSOR_COLOR (0x80)
 
 struct terminal_data {
     uint16_t *buffer;
@@ -331,12 +331,12 @@ static void handle_sgr(struct terminal_data *td) {
     }
 
     if (td->attributes & 2) {
-        td->text_color = (td->bg_col << 4) | td->fg_col;
+        td->text_color = (td->fg_col << 4) | td->bg_col;
         if (td->attributes & 1) {
             td->text_color |= 0x80;
         }
     } else {
-        td->text_color = (td->fg_col << 4) | td->bg_col;
+        td->text_color = (td->bg_col << 4) | td->fg_col;
         if (td->attributes & 1) {
             td->text_color |= 0x80;
         }
@@ -525,7 +525,7 @@ static struct terminal_data terminal = {
     .buffer     = (uint16_t *)TRAM,
     .rows       = 25,
     .columns    = 80,
-    .text_color = (DEF_BGCOL << 4) | DEF_FGCOL,
+    .text_color = (DEF_FGCOL << 4) | DEF_BGCOL,
     .fg_col     = DEF_FGCOL,
     .bg_col     = DEF_BGCOL,
 };
