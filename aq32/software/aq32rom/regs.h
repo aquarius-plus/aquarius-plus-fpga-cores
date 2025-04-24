@@ -15,8 +15,8 @@ struct regs {
 
 #define REGS    ((struct regs *)0x2000)
 #define PALETTE ((volatile uint16_t *)0x04000)
-#define CHRAM   ((uint8_t *)0x05000)
-#define TRAM    ((uint16_t *)0x06000)
+#define CHRAM   ((volatile uint8_t *)0x05000)
+#define TRAM    ((volatile uint16_t *)0x06000)
 
 enum {
     ESPCMD_RESET       = 0x01, // Reset ESP

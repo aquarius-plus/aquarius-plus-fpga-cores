@@ -1,8 +1,7 @@
 #include "console.h"
-#include "lib.h"
 
 #define DEF_FGCOL    (0)
-#define DEF_BGCOL    (6)
+#define DEF_BGCOL    (3)
 #define CURSOR_COLOR (0x80)
 
 struct terminal_data {
@@ -331,12 +330,12 @@ static void handle_sgr(struct terminal_data *td) {
     }
 
     if (td->attributes & 2) {
-        td->text_color = (td->fg_col << 4) | td->bg_col;
+        td->text_color = (td->bg_col << 4) | td->fg_col;
         if (td->attributes & 1) {
             td->text_color |= 0x80;
         }
     } else {
-        td->text_color = (td->bg_col << 4) | td->fg_col;
+        td->text_color = (td->fg_col << 4) | td->bg_col;
         if (td->attributes & 1) {
             td->text_color |= 0x80;
         }
