@@ -1,6 +1,6 @@
     .section ".text.init"
-    .global reset_handler
-reset_handler:
+    .global _start
+_start:
     // Initialize GP
 .option push
 .option norelax
@@ -9,5 +9,14 @@ reset_handler:
 
     // Initialize SP
     la      sp, __ram_end
-    la      t0, _start
-    jr      t0
+
+    // Initialize BSS
+    la      t0, __bss_start
+    la      t1, __bss_end
+    j       2f
+1:  sw      zero, (t0)
+    add     t0, t0, 4
+2:  bltu    t0, t1, 1b
+
+    call    __libc_init_array
+    j       main

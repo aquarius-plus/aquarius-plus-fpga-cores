@@ -7,9 +7,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(EXECNAME aq32rom)
 
 set(APPLE FALSE)
-set(CMAKE_C_COMPILER riscv64-elf-gcc)
-set(CMAKE_CXX_COMPILER riscv64-elf-g++)
-set(CMAKE_ASM_COMPILER riscv64-elf-gcc)
+set(CMAKE_C_COMPILER riscv-none-elf-gcc)
+set(CMAKE_CXX_COMPILER riscv-none-elf-g++)
+set(CMAKE_ASM_COMPILER riscv-none-elf-gcc)
 set(CMAKE_C_STANDARD 17)
 
 # Get git version
@@ -28,12 +28,12 @@ set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${EXECNAME}.elf")
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND riscv64-elf-objcopy -O binary ${EXECNAME}.elf ${EXECNAME}.bin
-    COMMAND riscv64-elf-objdump -d ${EXECNAME}.elf > dump.txt
-    COMMAND riscv64-elf-objdump -x ${EXECNAME}.elf > dump_x.txt
-    COMMAND riscv64-elf-objdump -t ${EXECNAME}.elf | expand -t36 | tail -n +5 | sort > dump_symbols.txt
-    COMMAND riscv64-elf-size -A ${EXECNAME}.elf
-    COMMAND riscv64-elf-size -G ${EXECNAME}.elf
+    COMMAND riscv-none-elf-objcopy -O binary ${EXECNAME}.elf ${EXECNAME}.bin
+    COMMAND riscv-none-elf-objdump -d ${EXECNAME}.elf > dump.txt
+    COMMAND riscv-none-elf-objdump -x ${EXECNAME}.elf > dump_x.txt
+    COMMAND riscv-none-elf-objdump -t ${EXECNAME}.elf | expand -t36 | tail -n +5 | sort > dump_symbols.txt
+    COMMAND riscv-none-elf-size -A ${EXECNAME}.elf
+    # COMMAND riscv-none-elf-size -G ${EXECNAME}.elf
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Os -g)
@@ -41,19 +41,13 @@ target_compile_options(${PROJECT_NAME} PRIVATE -Os -g)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wshadow -Winit-self -Wfloat-conversion -Wdouble-promotion -Wmissing-include-dirs -Wlogical-op)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wno-unused-parameter -Wno-shadow)
 target_compile_options(${PROJECT_NAME} PRIVATE -fdata-sections -ffunction-sections)
-target_compile_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestanding)
+target_compile_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestanding -specs=nano.specs)
 
-target_link_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestanding)
-target_link_options(${PROJECT_NAME} PRIVATE -nostdlib)
+target_link_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestanding -specs=nano.specs)
+target_link_options(${PROJECT_NAME} PRIVATE -nostartfiles)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--gc-sections)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--print-memory-usage)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/default.ld)
-
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE /usr/riscv32-elf/include)
-target_link_directories(${PROJECT_NAME} PRIVATE /usr/riscv32-elf/lib/rv32im/ilp32)
-
-target_link_directories(${PROJECT_NAME} PRIVATE /usr/lib/gcc/riscv64-elf/14.1.0/rv32im/ilp32)
-target_link_libraries(${PROJECT_NAME} c_nano gcc)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     .
