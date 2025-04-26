@@ -147,6 +147,8 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     // SRAM controller
     //////////////////////////////////////////////////////////////////////////
+// `define USE_CACHE
+`ifdef USE_CACHE
     wire        sram_ctrl_strobe;
     wire        sram_ctrl_wait;
     wire [31:0] sram_ctrl_rddata;
@@ -202,6 +204,37 @@ module aq32_top(
         .sram_oe_n(ebus_rd_n),
         .sram_we_n(ebus_ram_we_n),
         .sram_dq(ebus_d));
+`else
+
+    wire [18:0] sram_a;
+    wire        sram_ctrl_strobe;
+    wire        sram_ctrl_wait;
+    wire [31:0] sram_ctrl_rddata;
+
+    assign ebus_a[13:0]  = sram_a[13:0];
+    assign ebus_ba       = sram_a[18:14];
+
+    sram_ctrl sram_ctrl(
+        .clk(clk),
+        .reset(reset),
+
+        // Command interface
+        .bus_addr(cpu_addr[18:2]),
+        .bus_wrdata(cpu_wrdata),
+        .bus_bytesel(cpu_bytesel),
+        .bus_wren(cpu_wren),
+        .bus_strobe(sram_ctrl_strobe),
+        .bus_wait(sram_ctrl_wait),
+        .bus_rddata(sram_ctrl_rddata),
+
+        // SRAM interface
+        .sram_a(sram_a),
+        .sram_ce_n(ebus_ram_ce_n),
+        .sram_oe_n(ebus_rd_n),
+        .sram_we_n(ebus_ram_we_n),
+        .sram_dq(ebus_d));
+
+`endif
 
     //////////////////////////////////////////////////////////////////////////
     // ESP32 UART

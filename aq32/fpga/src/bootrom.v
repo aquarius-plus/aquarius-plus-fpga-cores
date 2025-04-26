@@ -91,7 +91,7 @@ module bootrom(
         9'h050:  rddata <= 32'hF29FF0EF;
         9'h051:  rddata <= 32'h00000513;
         9'h052:  rddata <= 32'hF21FF0EF;
-        9'h053:  rddata <= 32'h08000513;
+        9'h053:  rddata <= 32'h04000513;
         9'h054:  rddata <= 32'hF19FF0EF;
         9'h055:  rddata <= 32'hF2DFF0EF;
         9'h056:  rddata <= 32'h01851513;
