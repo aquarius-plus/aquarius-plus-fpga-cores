@@ -1,39 +1,20 @@
 #include "regs.h"
+#include "esp.h"
+#include <stddef.h>
 
-static void esp_send_byte(uint8_t val) {
-    while (REGS->ESP_CTRL & 2) {
+static size_t strlen(const char *s) {
+    size_t result = 0;
+    while (*s) {
+        s++;
+        result++;
     }
-    REGS->ESP_DATA = val;
-}
-
-static uint8_t esp_get_byte(void) {
-    while ((REGS->ESP_CTRL & 1) == 0) {
-    }
-    return REGS->ESP_DATA;
-}
-
-static void esp_cmd(uint8_t cmd) {
-    while (REGS->ESP_CTRL & 1) {
-        (void)REGS->ESP_DATA;
-    }
-
-    while (REGS->ESP_CTRL & 2) {
-    }
-    REGS->ESP_DATA = 0x100;
-    esp_send_byte(cmd);
+    return result;
 }
 
 static int esp_open(const char *path, uint8_t flags) {
     esp_cmd(ESPCMD_OPEN);
     esp_send_byte(flags);
-
-    const uint8_t *p = (const uint8_t *)path;
-    while (1) {
-        uint8_t val = *(p++);
-        esp_send_byte(val);
-        if (val == 0)
-            break;
-    }
+    esp_send_bytes(path, strlen(path) + 1);
     return (int8_t)esp_get_byte();
 }
 
@@ -42,18 +23,13 @@ static int esp_read(int fd, void *buf, uint16_t length) {
     esp_send_byte(fd);
     esp_send_byte(length & 0xFF);
     esp_send_byte(length >> 8);
-    int16_t result = (int8_t)esp_get_byte();
-    if (result < 0) {
+    int result = (int8_t)esp_get_byte();
+    if (result < 0)
         return result;
-    }
+
     result = esp_get_byte();
     result |= esp_get_byte() << 8;
-
-    uint16_t count = result;
-    uint8_t *p     = buf;
-    while (count--) {
-        *(p++) = esp_get_byte();
-    }
+    esp_get_bytes(buf, result);
     return result;
 }
 
@@ -70,7 +46,7 @@ void boot(void) {
     if (fd >= 0) {
         uint8_t *addr = (uint8_t *)0x80000;
         while (1) {
-            int count = esp_read(fd, addr, 0x4000);
+            int count = esp_read(fd, addr, 0x8000);
             if (count <= 0)
                 break;
             addr += count;

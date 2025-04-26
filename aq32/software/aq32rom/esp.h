@@ -15,18 +15,24 @@ static inline uint8_t esp_get_byte(void) {
 }
 
 static inline void esp_cmd(uint8_t cmd) {
-    REGS->ESP_CTRL = 0x83;
+    while (REGS->ESP_CTRL & 1) {
+        (void)REGS->ESP_DATA;
+    }
+
+    while (REGS->ESP_CTRL & 2) {
+    }
+    REGS->ESP_DATA = 0x100;
     esp_send_byte(cmd);
 }
 
-static inline void esp_send_bytes(const void *buf, uint16_t length) {
+static inline void esp_send_bytes(const void *buf, unsigned length) {
     const uint8_t *p = buf;
     while (length--) {
         esp_send_byte(*(p++));
     }
 }
 
-static inline void esp_get_bytes(void *buf, uint16_t length) {
+static inline void esp_get_bytes(void *buf, unsigned length) {
     uint8_t *p = buf;
     while (length--) {
         *(p++) = esp_get_byte();

@@ -35,7 +35,10 @@ add_custom_command(
     COMMAND riscv-none-elf-size -A ${EXECNAME}.elf
     COMMAND riscv-none-elf-size -G ${EXECNAME}.elf
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/genrom.py ${EXECNAME}.bin ${CMAKE_CURRENT_SOURCE_DIR}/../../fpga/src/bootrom.v
-)
+    COMMAND echo -n "static const " > ${CMAKE_CURRENT_SOURCE_DIR}/../../../../emulator/fpga_cores/aq32/bootrom.h
+    COMMAND xxd -i ${EXECNAME}.bin >> ${CMAKE_CURRENT_SOURCE_DIR}/../../../../emulator/fpga_cores/aq32/bootrom.h
+
+    )
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Os -g)
 

@@ -90,10 +90,11 @@ void main(void) {
         esp_close(fd);
     }
 
-#if 0
+#if 1
     console_init();
 
     printf("\nAquarius32 System V0.1\n\nSD:/>");
+    printf("%lg", 50.123);
     fflush(stdout);
 
     while (1) {
