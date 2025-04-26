@@ -43,7 +43,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE -Wno-unused-parameter -Wno-shadow
 target_compile_options(${PROJECT_NAME} PRIVATE -fdata-sections -ffunction-sections)
 target_compile_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestanding -specs=nano.specs)
 
-target_link_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestanding -specs=nano.specs)
+target_link_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestanding -specs=nano.specs -u _printf_float)
 target_link_options(${PROJECT_NAME} PRIVATE -nostartfiles)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--gc-sections)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--print-memory-usage)

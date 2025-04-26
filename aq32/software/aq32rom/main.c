@@ -106,20 +106,3 @@ void main(void) {
     editor();
 #endif
 }
-
-typedef void (*function_t)(void);
-
-extern uint8_t    _bss_target_start;
-extern uint8_t    _bss_target_end;
-extern function_t __init_array_start;
-extern function_t __init_array_end;
-
-void _start(void) {
-    memset(&_bss_target_start, 0, &_bss_target_end - &_bss_target_start);
-
-    for (const function_t *entry = &__init_array_start; entry < &__init_array_end; entry++) {
-        (*entry)();
-    }
-
-    main();
-}

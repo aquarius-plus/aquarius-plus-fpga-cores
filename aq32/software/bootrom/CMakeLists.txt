@@ -7,9 +7,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(EXECNAME bootrom)
 
 set(APPLE FALSE)
-set(CMAKE_C_COMPILER riscv64-elf-gcc)
-set(CMAKE_CXX_COMPILER riscv64-elf-g++)
-set(CMAKE_ASM_COMPILER riscv64-elf-gcc)
+set(CMAKE_C_COMPILER riscv-none-elf-gcc)
+set(CMAKE_CXX_COMPILER riscv-none-elf-g++)
+set(CMAKE_ASM_COMPILER riscv-none-elf-gcc)
 set(CMAKE_C_STANDARD 17)
 
 # Get git version
@@ -28,12 +28,12 @@ set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${EXECNAME}.elf")
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND riscv64-elf-objcopy -O binary ${EXECNAME}.elf ${EXECNAME}.bin
-    COMMAND riscv64-elf-objdump -d ${EXECNAME}.elf > dump.txt
-    COMMAND riscv64-elf-objdump -x ${EXECNAME}.elf > dump_x.txt
-    COMMAND riscv64-elf-objdump -t ${EXECNAME}.elf | expand -t36 | tail -n +5 | sort > dump_symbols.txt
-    COMMAND riscv64-elf-size -A ${EXECNAME}.elf
-    COMMAND riscv64-elf-size -G ${EXECNAME}.elf
+    COMMAND riscv-none-elf-objcopy -O binary ${EXECNAME}.elf ${EXECNAME}.bin
+    COMMAND riscv-none-elf-objdump -d ${EXECNAME}.elf > dump.txt
+    COMMAND riscv-none-elf-objdump -x ${EXECNAME}.elf > dump_x.txt
+    COMMAND riscv-none-elf-objdump -t ${EXECNAME}.elf | expand -t36 | tail -n +5 | sort > dump_symbols.txt
+    COMMAND riscv-none-elf-size -A ${EXECNAME}.elf
+    COMMAND riscv-none-elf-size -G ${EXECNAME}.elf
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/genrom.py ${EXECNAME}.bin ${CMAKE_CURRENT_SOURCE_DIR}/../../fpga/src/bootrom.v
 )
 
@@ -49,9 +49,6 @@ target_link_options(${PROJECT_NAME} PRIVATE -nostdlib)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--gc-sections)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--print-memory-usage)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/default.ld)
-
-target_link_directories(${PROJECT_NAME} PRIVATE /usr/lib/gcc/riscv64-elf/14.1.0/rv32im/ilp32)
-target_link_libraries(${PROJECT_NAME} gcc)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     .

@@ -63,6 +63,7 @@ SECTIONS {
         PROVIDE( __global_pointer$ = . + 0x800 );
         *(.sdata .sdata.* .sdata2.*)
         *(.gnu.linkonce.s.*)
+        . = ALIGN(16);
     } > ram
 
     .tdata : ALIGN(16) {

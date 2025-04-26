@@ -19,4 +19,5 @@ _start:
 2:  bltu    t0, t1, 1b
 
     call    __libc_init_array
-    j       main
+    jal     main
+    j       exit

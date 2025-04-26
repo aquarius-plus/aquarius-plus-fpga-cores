@@ -70,7 +70,7 @@ void boot(void) {
     if (fd >= 0) {
         uint8_t *addr = (uint8_t *)0x80000;
         while (1) {
-            int count = esp_read(fd, addr, 0x8000);
+            int count = esp_read(fd, addr, 0x4000);
             if (count <= 0)
                 break;
             addr += count;
