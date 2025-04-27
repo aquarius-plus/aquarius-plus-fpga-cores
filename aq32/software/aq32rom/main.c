@@ -2,6 +2,7 @@
 #include "file_io.h"
 #include <string.h>
 #include <stdio.h>
+#include "esp.h"
 
 void editor(void);
 
@@ -20,10 +21,18 @@ void main(void) {
     for (int i = 0; i < 64; i++)
         PALETTE[i] = palette[i & 15];
 
-    int fd = esp_open("esp:latin1b.chr", 0);
-    if (fd >= 0) {
-        esp_read(fd, (void *)CHRAM, 2048);
-        esp_close(fd);
+    FILE *f = fopen("esp:latin1b.chr", "rb");
+    if (f) {
+        fread((void *)CHRAM, 2048, 1, f);
+        fclose(f);
+    }
+
+    {
+        esp_cmd(ESPCMD_KEYMODE);
+        esp_send_byte(7);
+        int result = (int8_t)esp_get_byte();
+
+        // printf("Keymode result=%d\n", result);
     }
 
 #if 0
@@ -47,6 +56,14 @@ void main(void) {
     //         puts(linebuf);
     //     }
     //     fclose(f);
+    // }
+
+    // {
+    //     esp_cmd(ESPCMD_KEYMODE);
+    //     esp_send_byte(5);
+    //     int result = (int8_t)esp_get_byte();
+
+    //     printf("Keymode result=%d\n", result);
     // }
 
     while (1) {

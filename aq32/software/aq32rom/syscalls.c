@@ -4,6 +4,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/timeb.h>
+#include <sys/time.h>
 #include "esp.h"
 
 #define FD_ESP_START 10
@@ -236,6 +238,57 @@ void *_sbrk(intptr_t incr) {
 }
 
 int _lstat(const char *path, struct stat *st) {
+    errno = ENOENT;
+    return -1;
+}
+
+int _ftime(struct timeb *tp) {
+    errno = EIO;
+    return -1;
+}
+
+int _unlink(const char *name) {
+    esp_cmd(ESPCMD_DELETE);
+    esp_send_bytes(name, strlen(name) + 1);
+
+    int result = (int8_t)esp_get_byte();
+    if (result < 0)
+        return set_errno(result);
+
+    return 0;
+}
+
+int _access(const char *file, int mode) {
+    errno = ENOENT;
+    return -1;
+}
+
+int _faccessat(int dirfd, const char *file, int mode, int flags) {
+    errno = ENOENT;
+    return -1;
+}
+
+int _fstatat(int dirfd, const char *file, struct stat *st, int flags) {
+    errno = ENOENT;
+    return -1;
+}
+
+int _gettimeofday(struct timeval *tp, void *tzp) {
+    errno = EIO;
+    return -1;
+}
+
+int _link(const char *old_name, const char *new_name) {
+    errno = ENOENT;
+    return -1;
+}
+
+int _openat(int dirfd, const char *name, int flags, int mode) {
+    errno = ENOENT;
+    return -1;
+}
+
+int _stat(const char *file, struct stat *st) {
     errno = ENOENT;
     return -1;
 }
