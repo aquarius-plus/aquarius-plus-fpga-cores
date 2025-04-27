@@ -22,6 +22,35 @@ static int                num_lines      = 0;
 #define COLOR_STATUS   0xF3
 #define COLOR_STATUS2  0x03
 
+#define EDITOR_ROWS    22
+#define EDITOR_COLUMNS 78
+
+#define CH_BACKSPACE   '\b'
+#define CH_F1          0x80
+#define CH_F2          0x81
+#define CH_F3          0x82
+#define CH_F4          0x83
+#define CH_F5          0x84
+#define CH_F6          0x85
+#define CH_F7          0x86
+#define CH_F8          0x87
+#define CH_F9          0x90
+#define CH_F10         0x91
+#define CH_F11         0x92
+#define CH_F12         0x93
+#define CH_PRINTSCREEN 0x88
+#define CH_PAUSE       0x89
+#define CH_INSERT      0x9D
+#define CH_HOME        0x9B
+#define CH_PAGEUP      0x8A
+#define CH_DELETE      0x7F
+#define CH_END         0x9A
+#define CH_PAGEDOWN    0x8B
+#define CH_RIGHT       0x8E
+#define CH_LEFT        0x9E
+#define CH_DOWN        0x9F
+#define CH_UP          0x8F
+
 static inline void scr_locate(int row, int column) {
     p_scr = TRAM + 80 * row + column;
 }
@@ -74,7 +103,7 @@ static void render_screen(void) {
         scr_setcolor(COLOR_EDITOR);
         scr_putchar(16);
 
-        int count = (78 - (filename_len + 2)) / 2;
+        int count = (EDITOR_COLUMNS - (filename_len + 2)) / 2;
         for (int i = 0; i < count; i++)
             scr_putchar(25);
 
@@ -85,7 +114,7 @@ static void render_screen(void) {
         scr_putchar(' ');
 
         scr_setcolor(COLOR_EDITOR);
-        count = 78 - count - (filename_len + 2);
+        count = EDITOR_COLUMNS - count - (filename_len + 2);
         for (int i = 0; i < count; i++)
             scr_putchar(25);
         scr_putchar(18);
@@ -94,7 +123,7 @@ static void render_screen(void) {
     const uint8_t *ps = getline_addr(scr_first_line);
 
     int line = 0;
-    for (int j = 2; j <= 23; j++) {
+    for (int j = 2; j < 2 + EDITOR_ROWS; j++) {
         int            pos     = 0;
         int            buf_len = *ps;
         const uint8_t *p_next  = ps + 1 + buf_len;
@@ -109,16 +138,16 @@ static void render_screen(void) {
         if (line_len < 0)
             line_len = 0;
 
-        if (line_len > 78)
-            line_len = 78;
-        int fill_size = 78 - line_len;
+        if (line_len > EDITOR_COLUMNS)
+            line_len = EDITOR_COLUMNS;
+        int fill_size = EDITOR_COLUMNS - line_len;
 
         scr_locate(j, 0);
         scr_setcolor(COLOR_EDITOR);
         scr_putchar(26);
 
         if (line == cursor_line - scr_first_line) {
-            for (int i = 0; i < 78; i++) {
+            for (int i = 0; i < EDITOR_COLUMNS; i++) {
                 scr_setcolor(pos == cursor_pos2 - scr_first_pos ? COLOR_CURSOR : COLOR_EDITOR);
 
                 if (i < line_len)
@@ -201,50 +230,42 @@ void editor(void) {
         render_screen();
 
         int ch = getchar();
-        if (ch == 0x8F) {
-            // Up
+        if (ch == CH_UP) {
             cursor_line--;
-        } else if (ch == 0x9F) {
-            // Down
+        } else if (ch == CH_DOWN) {
             cursor_line++;
-        } else if (ch == 0x9E) {
-            // Left
+        } else if (ch == CH_LEFT) {
             cursor_pos = cursor_pos2 - 1;
-        } else if (ch == 0x8E) {
-            // Right
+            if (cursor_pos < 0 && cursor_line > 0) {
+                cursor_line--;
+                cursor_pos = getline_length(cursor_line);
+            }
+
+        } else if (ch == CH_RIGHT) {
             cursor_pos = cursor_pos2 + 1;
             if (cursor_pos > getline_length(cursor_line)) {
                 cursor_line++;
                 cursor_pos = 0;
             }
-
-        } else if (ch == 0x9B) {
-            // Home
+        } else if (ch == CH_HOME) {
             cursor_pos = 0;
-        } else if (ch == 0x9A) {
-            // End
-            cursor_pos = 255;
-        } else if (ch == 0x8A) {
-            // Page up
-            cursor_line -= 21;
-        } else if (ch == 0x8B) {
-            // Page down
-            cursor_line += 21;
+        } else if (ch == CH_END) {
+            cursor_pos = getline_length(cursor_line);
+        } else if (ch == CH_PAGEUP) {
+            cursor_line -= (EDITOR_ROWS - 1);
+        } else if (ch == CH_PAGEDOWN) {
+            cursor_line += (EDITOR_ROWS - 1);
+        } else if (ch == CH_DELETE) {
+        } else if (ch == CH_BACKSPACE) {
+        } else if (ch >= ' ' && ch < 127) {
         }
 
         if (cursor_line < 0)
             cursor_line = 0;
         if (cursor_line > num_lines)
             cursor_line = num_lines;
-
-        if (cursor_pos < 0) {
+        if (cursor_pos < 0)
             cursor_pos = 0;
-
-            if (cursor_line > 0) {
-                cursor_line--;
-                cursor_pos = getline_length(cursor_line);
-            }
-        }
 
         cursor_pos2 = cursor_pos;
         {
@@ -255,11 +276,11 @@ void editor(void) {
 
         if (cursor_line < scr_first_line)
             scr_first_line = cursor_line;
-        if (cursor_line > scr_first_line + 21)
-            scr_first_line = cursor_line - 21;
+        if (cursor_line > scr_first_line + (EDITOR_ROWS - 1))
+            scr_first_line = cursor_line - (EDITOR_ROWS - 1);
         if (cursor_pos2 < scr_first_pos)
             scr_first_pos = cursor_pos2;
-        if (cursor_pos2 > scr_first_pos + 77)
-            scr_first_pos = cursor_pos2 - 77;
+        if (cursor_pos2 > scr_first_pos + (EDITOR_COLUMNS - 1))
+            scr_first_pos = cursor_pos2 - (EDITOR_COLUMNS - 1);
     }
 }
