@@ -6,8 +6,7 @@
         "wrappers",
         "cpu",
         "mem",
-        "core_common",
-        "core_common/video"
+        "video"
     ],
     "verilog.linting.verilator.arguments": "-Wall verilator.vlt"
 }

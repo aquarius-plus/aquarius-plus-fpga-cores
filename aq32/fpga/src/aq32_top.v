@@ -345,7 +345,7 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     wire [63:0] keys;
 
-    wire  [7:0] kbbuf_data;
+    wire [15:0] kbbuf_data;
     wire        kbbuf_wren;
 
     spiregs spiregs(
@@ -368,9 +368,10 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     // Keyboard buffer
     //////////////////////////////////////////////////////////////////////////
-    wire       kbbuf_rst;
-    wire [7:0] kbbuf_rddata;
-    wire       kbbuf_rden;
+    wire        kbbuf_rst;
+    wire [15:0] kbbuf_rddata;
+    wire        kbbuf_rden;
+    wire        kbbuf_empty;
 
     kbbuf kbbuf(
         .clk(clk),
@@ -380,7 +381,8 @@ module aq32_top(
         .wr_en(kbbuf_wren),
 
         .rddata(kbbuf_rddata),
-        .rd_en(kbbuf_rden)
+        .rd_en(kbbuf_rden),
+        .empty(kbbuf_empty)
     );
 
     //////////////////////////////////////////////////////////////////////////
@@ -598,7 +600,7 @@ module aq32_top(
         if (sel_reg_vscry)    regs_rddata = {24'b0, q_vscry};
         if (sel_reg_vline)    regs_rddata = {24'b0, vline};
         if (sel_reg_virqline) regs_rddata = {24'b0, q_virqline};
-        if (sel_reg_keybuf)   regs_rddata = {24'b0, kbbuf_rddata};
+        if (sel_reg_keybuf)   regs_rddata = {kbbuf_empty, 15'b0, kbbuf_rddata};
     end
 
     assign esp_tx_data = cpu_wrdata[8:0];

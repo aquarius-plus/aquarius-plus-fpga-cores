@@ -1,4 +1,5 @@
 `default_nettype none
+`timescale 1 ns / 1 ps
 
 module dpram_tag(
     input  wire        a_clk,

@@ -27,15 +27,15 @@ void main(void) {
         fclose(f);
     }
 
-    {
-        esp_cmd(ESPCMD_KEYMODE);
-        esp_send_byte(7);
-        int result = (int8_t)esp_get_byte();
+    // {
+    //     esp_cmd(ESPCMD_KEYMODE);
+    //     esp_send_byte(7);
+    //     int result = (int8_t)esp_get_byte();
 
-        // printf("Keymode result=%d\n", result);
-    }
+    //     // printf("Keymode result=%d\n", result);
+    // }
 
-#if 0
+#if 1
     console_init();
 
     printf("\nAquarius32 System V0.1\n\nSD:/>\n");
@@ -67,10 +67,10 @@ void main(void) {
     // }
 
     while (1) {
-        int ch = getchar();
-        if (ch > 0) {
-            console_putc(ch);
-        }
+        int ch = REGS->KEYBUF;
+        if (ch < 0)
+            continue;
+        printf("%04X\n", ch);
     }
 #else
     editor();

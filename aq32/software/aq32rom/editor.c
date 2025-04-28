@@ -51,6 +51,9 @@ static int                num_lines      = 0;
 #define CH_DOWN        0x9F
 #define CH_UP          0x8F
 
+#define MAX_BUFSZ  255
+#define MAX_LINESZ (MAX_BUFSZ - 1)
+
 static inline void scr_locate(int row, int column) {
     p_scr = TRAM + 80 * row + column;
 }
@@ -194,7 +197,7 @@ void load_file(const char *path) {
 
     FILE *f = fopen(path, "rt");
     if (f != NULL) {
-        size_t linebuf_size = 256;
+        size_t linebuf_size = MAX_BUFSZ;
         char  *linebuf      = malloc(linebuf_size);
         int    line_size    = 0;
         while ((line_size = __getline(&linebuf, &linebuf_size, f)) >= 0) {
@@ -204,8 +207,8 @@ void load_file(const char *path) {
             linebuf[line_size] = 0;
 
             // Limit line to 254 characters
-            if (line_size > 254)
-                line_size = 254;
+            if (line_size > MAX_LINESZ)
+                line_size = MAX_LINESZ;
 
             *(pd++) = line_size + 1; // Buf length
             *(pd++) = line_size;     // Line length
@@ -216,11 +219,70 @@ void load_file(const char *path) {
 
         // Buf length = 0: last line
         *(pd++) = 0;
+        *(pd++) = 0;
 
         fclose(f);
         free(linebuf);
     }
 }
+
+static void resize_linebuffer(uint8_t *p, uint8_t new_size) {
+    uint8_t cur_size = p[0];
+    if (new_size == cur_size)
+        return;
+
+    uint8_t *p_next = p + 1 + p[0];
+    uint8_t *p_end  = getline_addr(999999) + 2;
+    memmove(p + 1 + new_size, p_next, p_end - p_next);
+    p[0] = new_size;
+}
+
+static void insert_char(uint8_t ch) {
+    uint8_t *p             = getline_addr(cursor_line);
+    uint8_t  cur_line_size = p[0] == 0 ? 0 : p[1];
+
+    if (cur_line_size >= MAX_LINESZ) {
+        // Line full
+        return;
+    }
+
+    // Enough room in buffer to increase line size?
+    if (p[0] < 1 + cur_line_size + 1) {
+        int new_size = 1 + cur_line_size + 16;
+        if (new_size > MAX_BUFSZ)
+            new_size = MAX_BUFSZ;
+
+        resize_linebuffer(p, new_size);
+    }
+
+    uint8_t *p_cursor = p + 2 + cursor_pos2;
+    memmove(p_cursor + 1, p_cursor, cur_line_size - cursor_pos2);
+    *p_cursor = ch;
+    p[1]++;
+    cursor_pos = cursor_pos2 + 1;
+}
+
+static void delete_char(void) {
+    uint8_t *p = getline_addr(cursor_line);
+    if (p[0] == 0 || p[1] == 0)
+        return;
+
+    uint8_t cur_line_size = p[1];
+
+    uint8_t *p_cursor = p + 2 + cursor_pos2;
+    memmove(p_cursor, p_cursor + 1, cur_line_size - cursor_pos2 - 1);
+    p[1]--;
+}
+
+// static void delete_line(void) {
+//     uint8_t *p = getline_addr(cursor_line);
+//     if (p[0] == 0)
+//         return;
+
+//     uint8_t *p_next = p + 1 + p[0];
+//     uint8_t *p_end  = getline_addr(999999) + 2;
+//     memmove(p, p_next, p_end - p_next);
+// }
 
 void editor(void) {
     // load_file("/Bluetooth.cpp");
@@ -256,8 +318,16 @@ void editor(void) {
         } else if (ch == CH_PAGEDOWN) {
             cursor_line += (EDITOR_ROWS - 1);
         } else if (ch == CH_DELETE) {
+            delete_char();
         } else if (ch == CH_BACKSPACE) {
+            if (cursor_pos2 > 0) {
+                cursor_pos2 = cursor_pos2 - 1;
+                cursor_pos  = cursor_pos2;
+                delete_char();
+            }
+
         } else if (ch >= ' ' && ch < 127) {
+            insert_char(ch);
         }
 
         if (cursor_line < 0)

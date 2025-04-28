@@ -15,7 +15,7 @@ module spiregs(
     output reg         reset_req_cold,
     output reg  [63:0] keys,
 
-    output reg   [7:0] kbbuf_data,
+    output reg  [15:0] kbbuf_data,
     output reg         kbbuf_wren);
 
     assign spi_txdata       = 64'b0;
@@ -27,7 +27,7 @@ module spiregs(
     localparam
         CMD_RESET           = 8'h01,
         CMD_SET_KEYB_MATRIX = 8'h10,
-        CMD_WRITE_KBBUF     = 8'h12;
+        CMD_WRITE_KBBUF16   = 8'h13;
 
     // 01h: Reset command
     always @(posedge clk) begin
@@ -47,16 +47,16 @@ module spiregs(
         else if (spi_cmd == CMD_SET_KEYB_MATRIX && spi_msg_end)
             keys <= spi_rxdata;
 
-    // 12h: Write keyboard buffer
+    // 13h: Write keyboard buffer (16-bit)
     always @(posedge clk or posedge reset)
         if (reset) begin
-            kbbuf_data <= 8'h00;
-            kbbuf_wren <= 1'b0;
+            kbbuf_data <= 0;
+            kbbuf_wren <= 0;
         end else begin
-            kbbuf_wren <= 1'b0;
-            if (spi_cmd == CMD_WRITE_KBBUF && spi_msg_end) begin
-                kbbuf_data <= spi_rxdata[63:56];
-                kbbuf_wren <= 1'b1;
+            kbbuf_wren <= 0;
+            if (spi_cmd == CMD_WRITE_KBBUF16 && spi_msg_end) begin
+                kbbuf_data <= spi_rxdata[63:48];
+                kbbuf_wren <= 1;
             end
         end
 
