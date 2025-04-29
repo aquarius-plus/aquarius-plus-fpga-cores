@@ -7,6 +7,12 @@
 #include "menu.h"
 #include "screen.h"
 
+#define EDITOR_ROWS    22
+#define EDITOR_COLUMNS 78
+
+#define MAX_BUFSZ  255
+#define MAX_LINESZ (MAX_BUFSZ - 1)
+
 static char    filename[64];
 static uint8_t edit_buf[256 * 1024];
 static int     cursor_line    = 0;
@@ -16,49 +22,25 @@ static int     scr_first_line = 0;
 static int     scr_first_pos  = 0;
 static int     num_lines      = 0;
 
-#define EDITOR_ROWS    22
-#define EDITOR_COLUMNS 78
-
-#define MAX_BUFSZ  255
-#define MAX_LINESZ (MAX_BUFSZ - 1)
-
-static uint8_t *getline_addr(int line) {
-    if (line < 0)
-        line = 0;
-
-    uint8_t *p = edit_buf;
-    while (line--) {
-        int buf_len = *p;
-        if (buf_len == 0)
-            break;
-        p += 1 + buf_len;
-    }
-    return p;
-}
-
-static int getline_length(int line) {
-    const uint8_t *p = getline_addr(line);
-    if (p[0] == 0)
-        return 0;
-    return p[1];
-}
-
 static const struct menu_item menu_file_items[] = {
     {.title = "&New          Ctrl+N"},
     {.title = "&Open...      Ctrl+O"},
     {.title = "&Save         Ctrl+S"},
-    {.title = "&Save As..."},
+    {.title = "Save &As..."},
     {.title = "-"},
     {.title = "E&xit         Ctrl+Q"},
     {.title = NULL},
 };
 
 static const struct menu_item menu_edit_items[] = {
-    {.title = "Cu&t     Ctrl+X"},
-    {.title = "&Copy    Ctrl+C"},
-    {.title = "&Paste   Ctrl+V"},
+    {.title = "Cu&t         Ctrl+X"},
+    {.title = "&Copy        Ctrl+C"},
+    {.title = "&Paste       Ctrl+V"},
     {.title = "-"},
-    {.title = "&Find    Ctrl+F"},
+    {.title = "&Find        Ctrl+F"},
+    {.title = "&Replace     Ctrl+H"},
+    {.title = "-"},
+    {.title = "&Select all  Ctrl+A"},
     {.title = NULL},
 };
 
@@ -89,6 +71,27 @@ static const struct menu menubar_menus[] = {
     {.title = "&Help", .items = menu_help_items},
     {.title = NULL},
 };
+
+static uint8_t *getline_addr(int line) {
+    if (line < 0)
+        line = 0;
+
+    uint8_t *p = edit_buf;
+    while (line--) {
+        int buf_len = *p;
+        if (buf_len == 0)
+            break;
+        p += 1 + buf_len;
+    }
+    return p;
+}
+
+static int getline_length(int line) {
+    const uint8_t *p = getline_addr(line);
+    if (p[0] == 0)
+        return 0;
+    return p[1];
+}
 
 static void render_title(void) {
     int filename_len = strlen(filename);

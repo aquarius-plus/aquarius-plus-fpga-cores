@@ -4,6 +4,7 @@
 
 struct menu_item {
     const char *title;
+    void (*handler)(void);
 };
 
 struct menu {

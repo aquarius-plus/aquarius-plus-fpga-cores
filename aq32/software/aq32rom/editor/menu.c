@@ -68,8 +68,7 @@ void render_menubar(const struct menu *menus, bool show_accel, const struct menu
     }
 }
 
-static void render_menu(const struct menu *menus, const struct menu *active_menu, int active_idx) {
-    // Determine horizontal offset of active menu
+static int get_menu_offset(const struct menu *menus, const struct menu *active_menu) {
     int                x = 1;
     const struct menu *m = menus;
     while (m != active_menu && m->title) {
@@ -84,11 +83,64 @@ static void render_menu(const struct menu *menus, const struct menu *active_menu
         x++;
         m++;
     }
+    return x;
+}
 
+static const struct menu_item *get_menu_item_by_idx(const struct menu *menu, int idx) {
+    int                     count = 0;
+    const struct menu_item *mi    = menu->items;
+    while (mi && mi->title) {
+        if (mi->title[0] != '-')
+            count++;
+
+        if (count == idx)
+            return mi;
+        mi++;
+    }
+    return NULL;
+}
+
+static const struct menu_item *get_menu_item_by_accel(const struct menu *menu, char ch) {
+    const struct menu_item *mi = menu->items;
+    while (mi && mi->title) {
+        const char *p = mi->title;
+        while (*p) {
+            if (p[0] == '&') {
+                if (toupper(p[1]) == toupper(ch))
+                    return mi;
+                break;
+            }
+            p++;
+        }
+        mi++;
+    }
+    return NULL;
+}
+
+static const struct menu *get_menu_by_accel(const struct menu *menus, char ch) {
+    const struct menu *m = menus;
+    while (m && m->title) {
+        const char *p = m->title;
+        while (*p) {
+            if (p[0] == '&') {
+                if (toupper(p[1]) == toupper(ch))
+                    return m;
+                break;
+            }
+            p++;
+        }
+        m++;
+    }
+    return NULL;
+}
+
+static void render_menu(const struct menu *menus, const struct menu *active_menu, int active_idx) {
+    int x   = get_menu_offset(menus, active_menu);
     int y   = 1;
     int w   = 1 + get_menu_width(active_menu);
     int idx = 0;
 
+    // Draw top border
     scr_locate(y, x);
     scr_setcolor(COLOR_MENU);
     scr_putchar(16);
@@ -97,6 +149,7 @@ static void render_menu(const struct menu *menus, const struct menu *active_menu
     scr_putchar(18);
     y++;
 
+    // Draw items
     const struct menu_item *mi = active_menu->items;
     while (mi && mi->title) {
         scr_locate(y, x);
@@ -132,7 +185,6 @@ static void render_menu(const struct menu *menus, const struct menu *active_menu
 
             scr_setcolor(COLOR_MENU);
             scr_putchar(26);
-
             idx++;
         }
 
@@ -140,6 +192,7 @@ static void render_menu(const struct menu *menus, const struct menu *active_menu
         y++;
     }
 
+    // Draw bottom border
     scr_locate(y, x);
     scr_setcolor(COLOR_MENU);
     scr_putchar(22);
@@ -196,7 +249,10 @@ void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {
     int  active_idx   = 0;
     bool needs_redraw = true;
 
-    while (1) {
+    const struct menu_item *selected_mi = NULL;
+
+    // Menu interaction
+    while (selected_mi == NULL) {
         if (needs_redraw) {
             active_idx = 0;
             redraw_screen();
@@ -215,8 +271,8 @@ void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {
             if (((key & KEY_KEYDOWN) && (scancode == 0xE2 || scancode == 0xE6)) ||
                 ((key & KEY_KEYDOWN) && scancode == 0x29))
                 return;
-        } else {
 
+        } else {
             uint8_t ch = key & 0xFF;
             if (ch == CH_RIGHT) {
                 active_menu++;
@@ -250,8 +306,28 @@ void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {
             } else if (ch == '\r') {
                 if (!menu_open) {
                     menu_open = true;
+                } else {
+                    selected_mi = get_menu_item_by_idx(active_menu, active_idx);
+                }
+            } else {
+                if (!menu_open) {
+                    const struct menu *m = get_menu_by_accel(menus, ch);
+                    if (m) {
+                        active_menu = m;
+                        menu_open   = true;
+                    }
+                } else {
+                    selected_mi = get_menu_item_by_accel(active_menu, ch);
                 }
             }
         }
+        if (selected_mi != NULL)
+            break;
+    }
+
+    redraw_screen();
+
+    if (selected_mi && selected_mi->handler) {
+        selected_mi->handler();
     }
 }
