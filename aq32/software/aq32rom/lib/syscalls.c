@@ -49,52 +49,27 @@ int _open(const char *path, int flags) {
     if (flags & O_EXCL)
         esp_flags |= 0x20;
 
-    esp_cmd(ESPCMD_OPEN);
-    esp_send_byte(esp_flags);
-    esp_send_bytes(path, strlen(path) + 1);
-    int result = (int8_t)esp_get_byte();
-    if (result < 0) {
+    int result = esp_open(path, esp_flags);
+    if (result < 0)
         return set_errno(result);
-    }
+
     return FD_ESP_START + result;
 }
 
 ssize_t _read(int fd, void *buf, size_t count) {
-    uint8_t *p = buf;
-
     if (fd >= FD_ESP_START) {
-        unsigned remaining = count;
+        int result = esp_read(fd - FD_ESP_START, buf, count);
+        if (result == ERR_EOF)
+            result = 0;
 
-        while (remaining > 0) {
-            uint16_t length;
-            if (remaining > XFER_MAX) {
-                length = XFER_MAX;
-            } else {
-                length = remaining;
-            }
+        if (result < 0 && result != ERR_EOF)
+            return set_errno(result);
 
-            esp_cmd(ESPCMD_READ);
-            esp_send_byte(fd - FD_ESP_START);
-            esp_send_byte(length & 0xFF);
-            esp_send_byte(length >> 8);
-            int result = (int8_t)esp_get_byte();
-            if (result < 0) {
-                if (result == ERR_EOF)
-                    break;
-                return set_errno(result);
-            }
-
-            uint16_t rx_len = esp_get_byte();
-            rx_len |= esp_get_byte() << 8;
-            while (rx_len--)
-                *(p++) = esp_get_byte();
-
-            if (length != rx_len)
-                break;
-            remaining -= length;
-        }
+        return result;
 
     } else if (fd == STDIN_FILENO) {
+        uint8_t *p = buf;
+
         while (count) {
             int ch = REGS->KEYBUF;
             if (ch < 0) {
@@ -110,47 +85,23 @@ ssize_t _read(int fd, void *buf, size_t count) {
                 }
             }
         }
+        return p - (uint8_t *)buf;
 
     } else {
         errno = EINVAL;
         return -1;
     }
-    return p - (uint8_t *)buf;
 }
 
 int _write(int fd, const void *buf, size_t count) {
-    const uint8_t *p = buf;
-
     if (fd >= FD_ESP_START) {
-        unsigned remaining = count;
-
-        while (remaining > 0) {
-            uint16_t length;
-            if (remaining > XFER_MAX) {
-                length = XFER_MAX;
-            } else {
-                length = remaining;
-            }
-
-            esp_cmd(ESPCMD_WRITE);
-            esp_send_byte(fd - FD_ESP_START);
-            esp_send_byte(length & 0xFF);
-            esp_send_byte(length >> 8);
-            uint16_t tx_len = length;
-            while (tx_len--)
-                esp_send_byte(*(p++));
-
-            int result = (int8_t)esp_get_byte();
-            if (result < 0)
-                return set_errno(result);
-
-            uint16_t written = esp_get_byte();
-            if (length != written)
-                break;
-            remaining -= length;
-        }
+        int result = esp_write(fd - FD_ESP_START, buf, count);
+        if (result < 0)
+            return set_errno(result);
+        return result;
 
     } else if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
+        const uint8_t *p = buf;
         while (count--) {
             uint8_t ch = *(p++);
             if (ch == '\n') {
@@ -158,13 +109,12 @@ int _write(int fd, const void *buf, size_t count) {
             }
             console_putc(ch);
         }
+        return p - (uint8_t *)buf;
 
     } else {
         errno = EINVAL;
         return -1;
     }
-
-    return p - (uint8_t *)buf;
 }
 
 off_t _lseek(int fd, off_t offset, int whence) {
@@ -174,19 +124,10 @@ off_t _lseek(int fd, off_t offset, int whence) {
     }
 
     if (fd >= FD_ESP_START) {
-        esp_cmd(ESPCMD_LSEEK);
-        esp_send_byte(fd - FD_ESP_START);
-        esp_send_byte(offset & 0xFF);
-        esp_send_byte(offset >> 8);
-        esp_send_byte(offset >> 8);
-        esp_send_byte(offset >> 8);
-        esp_send_byte(whence);
-
-        int32_t result = (int8_t)esp_get_byte();
+        int result = esp_lseek(fd - FD_ESP_START, offset, whence);
         if (result < 0)
             return set_errno(result);
 
-        esp_get_bytes(&result, sizeof(result));
         return result;
 
     } else {
@@ -198,9 +139,7 @@ off_t _lseek(int fd, off_t offset, int whence) {
 
 int _close(int fd) {
     if (fd >= FD_ESP_START) {
-        esp_cmd(ESPCMD_CLOSE);
-        esp_send_byte(fd - FD_ESP_START);
-        int result = (int8_t)esp_get_byte();
+        int result = esp_close(fd - FD_ESP_START);
         if (result < 0)
             return set_errno(result);
         return 0;
@@ -251,13 +190,9 @@ int _ftime(struct timeb *tp) {
 }
 
 int _unlink(const char *name) {
-    esp_cmd(ESPCMD_DELETE);
-    esp_send_bytes(name, strlen(name) + 1);
-
-    int result = (int8_t)esp_get_byte();
+    int result = esp_delete(name);
     if (result < 0)
         return set_errno(result);
-
     return 0;
 }
 

@@ -7,6 +7,7 @@
 #include "regs.h"
 #include "menu.h"
 #include "screen.h"
+#include "dialog.h"
 
 #define EDITOR_ROWS    22
 #define EDITOR_COLUMNS 78
@@ -22,8 +23,6 @@ static int     cursor_pos2    = 0; // Actual position due to line length
 static int     scr_first_line = 0;
 static int     scr_first_pos  = 0;
 static int     num_lines      = 0;
-
-static void dialog_open(void);
 
 #pragma region Menus
 static const struct menu_item menu_file_items[] = {
@@ -76,54 +75,6 @@ static const struct menu menubar_menus[] = {
     {.title = NULL},
 };
 #pragma endregion
-
-static char tmp_buf[256];
-
-static void dialog_open(void) {
-    int w = 80 - 12;
-    int h = 25 - 6;
-    int x = (80 - w) / 2;
-    int y = (25 - h) / 2;
-
-    // Draw window border
-    scr_draw_border(x, y, w, h, COLOR_MENU, true, "Open");
-    y++;
-    x++;
-    w -= 2;
-
-    // Draw current directory
-    getcwd((char *)tmp_buf, sizeof(tmp_buf));
-    scr_locate(y, x);
-    scr_setcolor(COLOR_MENU);
-    scr_puttext(" Current dir: ");
-
-    int path_len = strlen(tmp_buf);
-    if (path_len > w - 14) {
-        scr_puttext("...");
-        scr_puttext(tmp_buf + path_len - (w - 3 - 14));
-    } else {
-        scr_puttext(tmp_buf);
-        scr_fillchar(' ', w - 14 - path_len);
-    }
-    y++;
-
-    // Draw separator
-    scr_locate(y, x - 1);
-    scr_putchar(19);
-    for (int i = 0; i < w; i++)
-        scr_putchar(25);
-    scr_putchar(21);
-
-    int key;
-    while (1) {
-        while ((key = REGS->KEYBUF) < 0);
-        if (key & KEY_IS_SCANCODE) {
-            uint8_t scancode = key & 0xFF;
-            if (((key & KEY_KEYDOWN) && scancode == 0x29))
-                return;
-        }
-    }
-}
 
 static uint8_t *getline_addr(int line) {
     if (line < 0)

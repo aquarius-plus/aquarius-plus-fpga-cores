@@ -51,15 +51,19 @@ target_link_options(${PROJECT_NAME} PRIVATE -Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/de
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     .
+    lib
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
-    start.S
-    syscalls.c
     main.c
     console.c
-    screen.c
+
+    lib/start.S
+    lib/syscalls.c
+    lib/screen.c
+    lib/esp.c
 
     editor/editor.c
     editor/menu.c
+    editor/dialog.c
 )
