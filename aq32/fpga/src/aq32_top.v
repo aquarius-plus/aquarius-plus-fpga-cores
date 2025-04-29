@@ -382,7 +382,7 @@ module aq32_top(
 
         .rddata(kbbuf_rddata),
         .rd_en(kbbuf_rden),
-        .empty(kbbuf_empty)
+        .rd_empty(kbbuf_empty)
     );
 
     //////////////////////////////////////////////////////////////////////////
