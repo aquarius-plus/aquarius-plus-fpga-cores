@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <ctype.h>
 #include "regs.h"
 #include "menu.h"
@@ -22,9 +23,12 @@ static int     scr_first_line = 0;
 static int     scr_first_pos  = 0;
 static int     num_lines      = 0;
 
+static void dialog_open(void);
+
+#pragma region Menus
 static const struct menu_item menu_file_items[] = {
     {.title = "&New          Ctrl+N"},
-    {.title = "&Open...      Ctrl+O"},
+    {.title = "&Open...      Ctrl+O", .handler = dialog_open},
     {.title = "&Save         Ctrl+S"},
     {.title = "Save &As..."},
     {.title = "-"},
@@ -71,6 +75,55 @@ static const struct menu menubar_menus[] = {
     {.title = "&Help", .items = menu_help_items},
     {.title = NULL},
 };
+#pragma endregion
+
+static char tmp_buf[256];
+
+static void dialog_open(void) {
+    int w = 80 - 12;
+    int h = 25 - 6;
+    int x = (80 - w) / 2;
+    int y = (25 - h) / 2;
+
+    // Draw window border
+    scr_draw_border(x, y, w, h, COLOR_MENU, true, "Open");
+    y++;
+    x++;
+    w -= 2;
+
+    // Draw current directory
+    getcwd((char *)tmp_buf, sizeof(tmp_buf));
+    scr_locate(y, x);
+    scr_setcolor(COLOR_MENU);
+    scr_puttext(" Current dir: ");
+
+    int path_len = strlen(tmp_buf);
+    if (path_len > w - 14) {
+        scr_puttext("...");
+        scr_puttext(tmp_buf + path_len - (w - 3 - 14));
+    } else {
+        scr_puttext(tmp_buf);
+        scr_fillchar(' ', w - 14 - path_len);
+    }
+    y++;
+
+    // Draw separator
+    scr_locate(y, x - 1);
+    scr_putchar(19);
+    for (int i = 0; i < w; i++)
+        scr_putchar(25);
+    scr_putchar(21);
+
+    int key;
+    while (1) {
+        while ((key = REGS->KEYBUF) < 0);
+        if (key & KEY_IS_SCANCODE) {
+            uint8_t scancode = key & 0xFF;
+            if (((key & KEY_KEYDOWN) && scancode == 0x29))
+                return;
+        }
+    }
+}
 
 static uint8_t *getline_addr(int line) {
     if (line < 0)
@@ -161,10 +214,11 @@ static void render_editor(void) {
             for (int i = 0; i < EDITOR_COLUMNS; i++) {
                 scr_setcolor(pos == cursor_pos2 - scr_first_pos ? COLOR_CURSOR : COLOR_EDITOR);
 
-                if (i < line_len)
+                if (i < line_len) {
                     scr_putchar(*(ps++));
-                else
+                } else {
                     scr_putchar(' ');
+                }
                 pos++;
             }
 
@@ -174,8 +228,7 @@ static void render_editor(void) {
                 scr_putchar(*(ps++));
 
             scr_setcolor(COLOR_EDITOR);
-            while (fill_size--)
-                scr_putchar(' ');
+            scr_fillchar(' ', fill_size);
         }
 
         scr_setcolor(COLOR_EDITOR);

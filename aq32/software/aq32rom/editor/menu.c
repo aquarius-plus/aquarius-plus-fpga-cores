@@ -90,11 +90,12 @@ static const struct menu_item *get_menu_item_by_idx(const struct menu *menu, int
     int                     count = 0;
     const struct menu_item *mi    = menu->items;
     while (mi && mi->title) {
+        if (count == idx)
+            return mi;
+
         if (mi->title[0] != '-')
             count++;
 
-        if (count == idx)
-            return mi;
         mi++;
     }
     return NULL;
@@ -179,9 +180,7 @@ static void render_menu(const struct menu *menus, const struct menu *active_menu
                 scr_putchar(*(p++));
                 w2--;
             }
-            while (--w2 > 0) {
-                scr_putchar(' ');
-            }
+            scr_fillchar(' ', w2 - 1);
 
             scr_setcolor(COLOR_MENU);
             scr_putchar(26);
@@ -212,8 +211,7 @@ static void render_menu(const struct menu *menus, const struct menu *active_menu
 
     y++;
     scr_locate(y, x + 2);
-    for (int i = 0; i < w + 2; i++)
-        scr_putchar(' ');
+    scr_fillchar(' ', w + 2);
 }
 
 void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {

@@ -7,6 +7,7 @@
 #include <sys/timeb.h>
 #include <sys/time.h>
 #include "esp.h"
+#include <unistd.h>
 
 #define FD_ESP_START 10
 #define XFER_MAX     0xF000
@@ -293,4 +294,27 @@ int _openat(int dirfd, const char *name, int flags, int mode) {
 int _stat(const char *file, struct stat *st) {
     errno = ENOENT;
     return -1;
+}
+
+char *getcwd(char *buf, size_t size) {
+    esp_cmd(ESPCMD_GETCWD);
+    int result = (int8_t)esp_get_byte();
+    if (result < 0) {
+        set_errno(result);
+        return NULL;
+    }
+
+    char *p  = buf;
+    char *p2 = buf + size - 1;
+    while (1) {
+        uint8_t ch = esp_get_byte();
+        if (p < p2) {
+            *(p++) = ch;
+            if (ch == 0)
+                break;
+        } else {
+            buf = NULL;
+        }
+    }
+    return buf;
 }
