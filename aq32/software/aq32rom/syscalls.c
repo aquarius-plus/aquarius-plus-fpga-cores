@@ -95,16 +95,18 @@ ssize_t _read(int fd, void *buf, size_t count) {
 
     } else if (fd == STDIN_FILENO) {
         while (count) {
-            unsigned ch = REGS->KEYBUF;
-            if (ch == 0) {
+            int ch = REGS->KEYBUF;
+            if (ch < 0) {
                 // No data
                 if (p > (uint8_t *)buf) {
                     // Return what we got so far
                     break;
                 }
             } else {
-                *(p++) = ch;
-                count--;
+                if ((ch & KEY_IS_SCANCODE) == 0) {
+                    *(p++) = ch & 0xFF;
+                    count--;
+                }
             }
         }
 

@@ -2,6 +2,27 @@
 
 #include <stdint.h>
 
+// KEYBUF
+// | Bit | Description                  |
+// | --: | ---------------------------- |
+// |  31 | Empty(1)                     |
+// |  14 | Scancode(1) / Character(0)   |
+// |  13 | Scancode key up(0) / down(1) |
+// |  12 | Repeated                     |
+// |  11 | Modifier: Gui                |
+// |  10 | Modifier: Alt                |
+// |   9 | Modifier: Shift              |
+// |   8 | Modifier: Ctrl               |
+// | 7:0 | Character / Scancode         |
+
+#define KEY_IS_SCANCODE (1 << 14)
+#define KEY_KEYDOWN     (1 << 13)
+#define KEY_IS_REPEATED (1 << 12)
+#define KEY_MOD_GUI     (1 << 11)
+#define KEY_MOD_ALT     (1 << 10)
+#define KEY_MOD_SHIFT   (1 << 9)
+#define KEY_MOD_CTRL    (1 << 8)
+
 struct regs {
     volatile uint32_t ESP_CTRL;
     volatile uint32_t ESP_DATA;
@@ -10,7 +31,7 @@ struct regs {
     volatile uint32_t VSCRY;
     volatile uint32_t VLINE;
     volatile uint32_t VIRQLINE;
-    volatile uint32_t KEYBUF;
+    volatile int32_t  KEYBUF;
 };
 
 #define REGS    ((struct regs *)0x2000)

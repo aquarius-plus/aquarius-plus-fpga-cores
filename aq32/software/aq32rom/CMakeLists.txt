@@ -58,5 +58,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     syscalls.c
     main.c
     console.c
-    editor.c
+    screen.c
+
+    editor/editor.c
+    editor/menu.c
 )

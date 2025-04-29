@@ -296,7 +296,7 @@ module aq32_top(
         .reset(reset),
 
         // System information
-        .sysinfo_core_type(8'h01),
+        .sysinfo_core_type(8'h02),
         .sysinfo_flags({
             1'b0,       // Core type 01 specific: unused
             1'b0,       // Core type 01 specific: unused

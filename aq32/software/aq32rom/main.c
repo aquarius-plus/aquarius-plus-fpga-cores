@@ -1,5 +1,4 @@
 #include "console.h"
-#include "file_io.h"
 #include <string.h>
 #include <stdio.h>
 #include "esp.h"
@@ -35,7 +34,7 @@ void main(void) {
     //     // printf("Keymode result=%d\n", result);
     // }
 
-#if 1
+#if 0
     console_init();
 
     printf("\nAquarius32 System V0.1\n\nSD:/>\n");
