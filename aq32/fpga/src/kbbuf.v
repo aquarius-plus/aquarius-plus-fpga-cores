@@ -26,7 +26,7 @@ module kbbuf(
             q_wridx  <= 0;
             q_rdidx  <= 0;
             rddata   <= 0;
-            rd_empty <= 0;
+            rd_empty <= 1;
 
         end else begin
             if (wr_en && !full) begin
@@ -34,10 +34,10 @@ module kbbuf(
                 q_wridx      <= d_wridx;
             end
 
-            rddata   <= empty ? 16'h0000 : mem[q_rdidx];
-            rd_empty <= empty;
-
             if (rd_en) begin
+                rddata   <= empty ? 16'h0000 : mem[q_rdidx];
+                rd_empty <= empty;
+
                 if (!empty)
                     q_rdidx <= d_rdidx;
             end
