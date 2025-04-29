@@ -33,14 +33,14 @@ static const struct menu_item menu_file_items[] = {
 };
 
 static const struct menu_item menu_edit_items[] = {
-    {.title = "Cu&t         Ctrl+X"},
-    {.title = "&Copy        Ctrl+C"},
-    {.title = "&Paste       Ctrl+V"},
+    {.title = "Cu&t          Ctrl+X"},
+    {.title = "&Copy         Ctrl+C"},
+    {.title = "&Paste        Ctrl+V"},
     {.title = "-"},
-    {.title = "&Find        Ctrl+F"},
-    {.title = "&Replace     Ctrl+H"},
+    {.title = "&Find         Ctrl+F"},
+    {.title = "&Replace      Ctrl+H"},
     {.title = "-"},
-    {.title = "&Select all  Ctrl+A"},
+    {.title = "&Select all   Ctrl+A"},
     {.title = NULL},
 };
 

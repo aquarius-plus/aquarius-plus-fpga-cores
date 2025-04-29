@@ -188,6 +188,11 @@ static void render_menu(const struct menu *menus, const struct menu *active_menu
             idx++;
         }
 
+        // Shadow
+        scr_setcolor(0);
+        scr_putchar(' ');
+        scr_putchar(' ');
+
         mi++;
         y++;
     }
@@ -199,6 +204,16 @@ static void render_menu(const struct menu *menus, const struct menu *active_menu
     for (int i = 0; i < w; i++)
         scr_putchar(25);
     scr_putchar(24);
+
+    // Shadow
+    scr_setcolor(0);
+    scr_putchar(' ');
+    scr_putchar(' ');
+
+    y++;
+    scr_locate(y, x + 2);
+    for (int i = 0; i < w + 2; i++)
+        scr_putchar(' ');
 }
 
 void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {
