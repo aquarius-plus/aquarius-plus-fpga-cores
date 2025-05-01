@@ -24,10 +24,14 @@ static int     scr_first_line = 0;
 static int     scr_first_pos  = 0;
 static int     num_lines      = 0;
 
+static void load_file(const char *path);
+static void cmd_newfile(void);
+static void cmd_openfile(void);
+
 #pragma region Menus
 static const struct menu_item menu_file_items[] = {
-    {.title = "&New          Ctrl+N"},
-    {.title = "&Open...      Ctrl+O", .handler = dialog_open},
+    {.title = "&New          Ctrl+N", .handler = cmd_newfile},
+    {.title = "&Open...      Ctrl+O", .handler = cmd_openfile},
     {.title = "&Save         Ctrl+S"},
     {.title = "Save &As..."},
     {.title = "-"},
@@ -44,6 +48,10 @@ static const struct menu_item menu_edit_items[] = {
     {.title = "&Replace      Ctrl+H"},
     {.title = "-"},
     {.title = "&Select all   Ctrl+A"},
+    {.title = "-"},
+    {.title = "Format selection    "},
+    {.title = "Format document     "},
+    {.title = "Trim trailing whitespace"},
     {.title = NULL},
 };
 
@@ -76,6 +84,25 @@ static const struct menu menubar_menus[] = {
 };
 #pragma endregion
 
+static void cmd_newfile(void) {
+    *filename      = 0;
+    edit_buf[0]    = 0;
+    edit_buf[1]    = 0;
+    cursor_line    = 0;
+    cursor_pos     = 0; // Wanted position
+    cursor_pos2    = 0; // Actual position due to line length
+    scr_first_line = 0;
+    scr_first_pos  = 0;
+    num_lines      = 0;
+}
+
+static void cmd_openfile(void) {
+    char tmp[256];
+    if (dialog_open(tmp, sizeof(tmp))) {
+        load_file(tmp);
+    }
+}
+
 static uint8_t *getline_addr(int line) {
     if (line < 0)
         line = 0;
@@ -97,54 +124,21 @@ static int getline_length(int line) {
     return p[1];
 }
 
-static void render_title(void) {
-    int filename_len = strlen(filename);
-
-    scr_locate(1, 0);
-    scr_setcolor(COLOR_EDITOR);
-    scr_putchar(16);
-
-    int count = (EDITOR_COLUMNS - (filename_len + 2)) / 2;
-    for (int i = 0; i < count; i++)
-        scr_putchar(25);
-
-    scr_setcolor(COLOR_FILENAME);
-    scr_putchar(' ');
-    for (int i = 0; i < filename_len; i++)
-        scr_putchar(filename[i]);
-    scr_putchar(' ');
-
-    scr_setcolor(COLOR_EDITOR);
-    count = EDITOR_COLUMNS - count - (filename_len + 2);
-    for (int i = 0; i < count; i++)
-        scr_putchar(25);
-    scr_putchar(18);
-}
-
-static void render_statusbar(void) {
-    scr_locate(24, 0);
-    scr_setcolor(COLOR_STATUS);
-    // scr_puttext(" <Shift+F1=Help> <F5=Run>                                           ");
-    scr_puttext("                                                                    ");
-    scr_setcolor(COLOR_STATUS2);
-    scr_putchar(26);
-
-    char tmp[32];
-    snprintf(tmp, sizeof(tmp), " %05d:%03d ", cursor_line + 1, cursor_pos2 + 1);
-    scr_puttext(tmp);
-}
-
 static void render_editor(void) {
     const uint8_t *ps = getline_addr(scr_first_line);
 
     int line = 0;
     for (int j = 2; j < 2 + EDITOR_ROWS; j++) {
-        int            pos     = 0;
-        int            buf_len = *ps;
-        const uint8_t *p_next  = ps + 1 + buf_len;
+        int            pos      = 0;
+        int            buf_len  = *ps;
+        const uint8_t *p_next   = ps;
+        int            line_len = 0;
 
-        ps++;
-        int line_len = *(ps++);
+        if (buf_len > 0) {
+            p_next = ps + 1 + buf_len;
+            ps++;
+            line_len = *(ps++);
+        }
 
         if (line_len > scr_first_pos) {
             ps += scr_first_pos;
@@ -157,9 +151,8 @@ static void render_editor(void) {
             line_len = EDITOR_COLUMNS;
         int fill_size = EDITOR_COLUMNS - line_len;
 
-        scr_locate(j, 0);
+        scr_locate(j, 1);
         scr_setcolor(COLOR_EDITOR);
-        scr_putchar(26);
 
         if (line == cursor_line - scr_first_line) {
             for (int i = 0; i < EDITOR_COLUMNS; i++) {
@@ -182,30 +175,22 @@ static void render_editor(void) {
             scr_fillchar(' ', fill_size);
         }
 
-        scr_setcolor(COLOR_EDITOR);
-        scr_putchar(26);
-
         ps = p_next;
         line++;
     }
-
-    scr_locate(24, 0);
-    scr_setcolor(COLOR_STATUS);
-    // scr_puttext(" <Shift+F1=Help> <F5=Run>                                           ");
-    scr_puttext("                                                                    ");
-    scr_setcolor(COLOR_STATUS2);
-    scr_putchar(26);
-
-    char tmp[32];
-    snprintf(tmp, sizeof(tmp), " %05d:%03d ", cursor_line + 1, cursor_pos2 + 1);
-    scr_puttext(tmp);
 }
 
-void load_file(const char *path) {
+static void load_file(const char *path) {
+    cursor_line    = 0;
+    cursor_pos     = 0; // Wanted position
+    cursor_pos2    = 0; // Actual position due to line length
+    scr_first_line = 0;
+    scr_first_pos  = 0;
+    num_lines      = 0;
+
     snprintf(filename, sizeof(filename), "%s", path);
 
     uint8_t *pd = edit_buf;
-    num_lines   = 0;
 
     FILE *f = fopen(path, "rt");
     if (f != NULL) {
@@ -296,20 +281,35 @@ static void delete_char(void) {
 //     memmove(p, p_next, p_end - p_next);
 // }
 
+static void render_editor_border(void) {
+    scr_draw_border(1, 0, 80, 24, COLOR_EDITOR, BORDER_FLAG_NO_BOTTOM | BORDER_FLAG_NO_SHADOW | BORDER_FLAG_TITLE_INVERSE, *filename ? filename : "Untitled");
+}
+
+static void render_statusbar(void) {
+    scr_locate(24, 0);
+    scr_setcolor(COLOR_STATUS);
+    scr_fillchar(' ', 68);
+    scr_setcolor(COLOR_STATUS2);
+    scr_putchar(26);
+
+    char tmp[32];
+    snprintf(tmp, sizeof(tmp), " %05d:%03d ", cursor_line + 1, cursor_pos2 + 1);
+    scr_puttext(tmp);
+}
+
 static void menu_redraw_screen(void) {
-    render_title();
+    render_editor_border();
     render_editor();
 }
 
 void editor(void) {
-    // load_file("/Bluetooth.cpp");
-    load_file("/demos/Mandelbrot/run-me.bas");
+    cmd_newfile();
 
     TRAM[2047] = 0;
 
     while (1) {
         render_menubar(menubar_menus, false, NULL);
-        render_title();
+        render_editor_border();
         render_editor();
         render_statusbar();
 

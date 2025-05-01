@@ -117,7 +117,7 @@ int esp_read(int fd, void *buf, size_t count) {
     return p - (uint8_t *)buf;
 }
 
-int esp_readdir(int dd, struct esp_stat *st, char *fn, uint8_t fn_buflen) {
+int esp_readdir(int dd, struct esp_stat *st, char *fn, size_t fn_buflen) {
     if (fn == NULL || fn_buflen < 1)
         return ERR_PARAM;
 
@@ -128,7 +128,10 @@ int esp_readdir(int dd, struct esp_stat *st, char *fn, uint8_t fn_buflen) {
     if (result < 0)
         return result;
 
-    esp_get_bytes(st, sizeof(*st));
+    esp_get_bytes(&st->date, sizeof(st->date));
+    esp_get_bytes(&st->time, sizeof(st->time));
+    esp_get_bytes(&st->attr, sizeof(st->attr));
+    esp_get_bytes(&st->size, sizeof(st->size));
 
     while (1) {
         uint8_t val = esp_get_byte();

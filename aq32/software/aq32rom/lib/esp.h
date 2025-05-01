@@ -78,7 +78,7 @@ int esp_tell(int fd);
 int esp_opendir(const char *path);
 int esp_opendirext(const char *path, uint8_t flags, uint16_t skip_cnt);
 int esp_closedir(int dd);
-int esp_readdir(int dd, struct esp_stat *st, char *fn, uint8_t fn_buflen);
+int esp_readdir(int dd, struct esp_stat *st, char *fn, size_t fn_buflen);
 int esp_delete(const char *path);
 int esp_rename(const char *path_old, const char *path_new);
 int esp_mkdir(const char *path);

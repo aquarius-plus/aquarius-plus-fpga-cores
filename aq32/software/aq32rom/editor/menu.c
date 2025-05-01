@@ -2,11 +2,11 @@
 #include "screen.h"
 #include <ctype.h>
 
-static int get_menuitem_count(const struct menu *menu) {
+static int get_menuitem_count(const struct menu *menu, bool include_separator) {
     int                     count = 0;
     const struct menu_item *mi    = menu->items;
     while (mi && mi->title) {
-        if (mi->title[0] != '-')
+        if (include_separator || mi->title[0] != '-')
             count++;
         mi++;
     }
@@ -20,10 +20,10 @@ static int get_menu_width(const struct menu *menu) {
         if (mi->title[0] != '-') {
             const char *p = mi->title;
             int         w = 0;
-            while (*(p++)) {
-                if (p[0] == '&')
-                    continue;
-                w++;
+            while (*p) {
+                if (p[0] != '&')
+                    w++;
+                p++;
             }
             if (w > width)
                 width = w;
@@ -37,35 +37,21 @@ void render_menubar(const struct menu *menus, bool show_accel, const struct menu
     scr_locate(0, 0);
     scr_setcolor(COLOR_MENU);
 
-    const struct menu *m = menus;
     scr_putchar(' ');
     scr_putchar(' ');
 
+    const struct menu *m = menus;
     while (m->title) {
         uint8_t col = (m == active_menu) ? COLOR_MENU_SEL : COLOR_MENU;
         scr_setcolor(col);
         scr_putchar(' ');
-
-        const char *p = m->title;
-        while (*p) {
-            if (*p == '&') {
-                p++;
-                if (show_accel)
-                    color = (color & 0x0F00) | (0xF000);
-            }
-            scr_putchar(*(p++));
-
-            scr_setcolor(col);
-        }
-
+        scr_puttext_accel(m->title, show_accel);
         scr_putchar(' ');
         m++;
     }
 
     scr_setcolor(COLOR_MENU);
-    while (p_scr < TRAM + 80) {
-        scr_putchar(' ');
-    }
+    scr_fillchar(' ', TRAM + 80 - p_scr);
 }
 
 static int get_menu_offset(const struct menu *menus, const struct menu *active_menu) {
@@ -75,10 +61,9 @@ static int get_menu_offset(const struct menu *menus, const struct menu *active_m
         const char *p = m->title;
         x++;
         while (*p) {
-            if (*p == '&')
-                p++;
+            if (p[0] != '&')
+                x++;
             p++;
-            x++;
         }
         x++;
         m++;
@@ -135,83 +120,44 @@ static const struct menu *get_menu_by_accel(const struct menu *menus, char ch) {
     return NULL;
 }
 
-static void render_menu(const struct menu *menus, const struct menu *active_menu, int active_idx) {
-    int x   = get_menu_offset(menus, active_menu);
-    int y   = 1;
-    int w   = 1 + get_menu_width(active_menu);
-    int idx = 0;
+static void render_menu(const struct menu *menus, const struct menu *active_menu, int active_idx, bool render_border) {
+    int x    = get_menu_offset(menus, active_menu);
+    int y    = 1;
+    int w    = 4 + get_menu_width(active_menu);
+    int idx  = 0;
+    int rows = get_menuitem_count(active_menu, true);
 
-    // Draw top border
-    scr_locate(y, x);
-    scr_setcolor(COLOR_MENU);
-    scr_putchar(16);
-    for (int i = 0; i < w; i++)
-        scr_putchar(25);
-    scr_putchar(18);
+    if (render_border)
+        scr_draw_border(y, x, w, 2 + rows, COLOR_MENU, 0, NULL);
     y++;
+
+    char bla[16];
+    snprintf(bla, sizeof(bla), "%d", get_menu_width(active_menu));
+    scr_locate(24, 1);
+    scr_setcolor(COLOR_STATUS);
+    scr_puttext(bla);
 
     // Draw items
     const struct menu_item *mi = active_menu->items;
     while (mi && mi->title) {
-        scr_locate(y, x);
-        scr_setcolor(COLOR_MENU);
-        int w2 = w;
-
         if (mi->title[0] == '-') {
-            // Separator
-            scr_putchar(19);
-            for (int i = 0; i < w; i++)
-                scr_putchar(25);
-            scr_putchar(21);
-        } else {
-            scr_putchar(26);
+            if (render_border)
+                scr_draw_separator(y, x, w, COLOR_MENU);
 
+        } else {
             uint8_t col = (idx == active_idx) ? COLOR_MENU_SEL : COLOR_MENU;
             scr_setcolor(col);
+
+            scr_locate(y, x + 1);
             scr_putchar(' ');
-
-            const char *p = mi->title;
-            while (*p) {
-                scr_setcolor(col);
-                if (*p == '&') {
-                    p++;
-                    scr_setcolor(col | 0xF0);
-                }
-                scr_putchar(*(p++));
-                w2--;
-            }
-            scr_fillchar(' ', w2 - 1);
-
-            scr_setcolor(COLOR_MENU);
-            scr_putchar(26);
+            int miw = scr_puttext_accel(mi->title, true);
+            scr_fillchar(' ', w - 3 - miw);
             idx++;
         }
-
-        // Shadow
-        scr_setcolor(0);
-        scr_putchar(' ');
-        scr_putchar(' ');
 
         mi++;
         y++;
     }
-
-    // Draw bottom border
-    scr_locate(y, x);
-    scr_setcolor(COLOR_MENU);
-    scr_putchar(22);
-    for (int i = 0; i < w; i++)
-        scr_putchar(25);
-    scr_putchar(24);
-
-    // Shadow
-    scr_setcolor(0);
-    scr_putchar(' ');
-    scr_putchar(' ');
-
-    y++;
-    scr_locate(y, x + 2);
-    scr_fillchar(' ', w + 2);
 }
 
 void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {
@@ -263,6 +209,7 @@ void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {
     bool needs_redraw = true;
 
     const struct menu_item *selected_mi = NULL;
+    const struct menu      *prev_menu   = NULL;
 
     // Menu interaction
     while (selected_mi == NULL) {
@@ -273,8 +220,10 @@ void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {
         }
         render_menubar(menus, !menu_open, active_menu);
 
-        if (menu_open)
-            render_menu(menus, active_menu, active_idx);
+        if (menu_open) {
+            render_menu(menus, active_menu, active_idx, active_menu != prev_menu);
+            prev_menu = active_menu;
+        }
 
         while ((key = REGS->KEYBUF) < 0);
 
@@ -305,7 +254,7 @@ void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {
                     menu_open = true;
                 } else {
                     active_idx++;
-                    if (active_idx >= get_menuitem_count(active_menu)) {
+                    if (active_idx >= get_menuitem_count(active_menu, false)) {
                         active_idx = 0;
                     }
                 }
@@ -313,7 +262,7 @@ void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {
                 if (menu_open) {
                     active_idx--;
                     if (active_idx < 0) {
-                        active_idx = get_menuitem_count(active_menu) - 1;
+                        active_idx = get_menuitem_count(active_menu, false) - 1;
                     }
                 }
             } else if (ch == '\r') {
