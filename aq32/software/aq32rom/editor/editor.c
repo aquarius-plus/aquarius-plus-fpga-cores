@@ -138,7 +138,7 @@ static void cmd_file_save(void) {
 }
 
 static void cmd_file_save_as(void) {
-    char tmp[256];
+    char tmp[64];
     strcpy(tmp, state.filename);
     dialog_save(tmp, sizeof(tmp));
 }
@@ -171,7 +171,6 @@ static void render_editor(void) {
     const uint8_t *ps = getline_addr(state.scr_first_line);
 
     for (int line = 0; line < EDITOR_ROWS; line++) {
-        int            pos      = 0;
         int            buf_len  = *ps;
         const uint8_t *p_next   = ps;
         int            line_len = 0;
@@ -194,14 +193,13 @@ static void render_editor(void) {
 
         if (line == state.cursor_line - state.scr_first_line) {
             for (int i = 0; i < EDITOR_COLUMNS; i++) {
-                scr_setcolor(pos == state.cursor_pos2 - state.scr_first_pos ? COLOR_CURSOR : COLOR_EDITOR);
+                scr_setcolor(i == state.cursor_pos2 - state.scr_first_pos ? COLOR_CURSOR : COLOR_EDITOR);
 
                 if (i < line_len) {
                     scr_putchar(*(ps++));
                 } else {
                     scr_putchar(' ');
                 }
-                pos++;
             }
 
         } else {
