@@ -58,6 +58,43 @@ bool dialog_open(char *fn_buf, size_t fn_bufsize) {
     return false;
 }
 
+static bool normalize_filename(char *fn_buf, size_t fn_bufsize) {
+    bool changed_dir = false;
+
+    // Replace all backslashes with forward slashes
+    {
+        char *p = fn_buf;
+        while (*p) {
+            if (*p == '\\')
+                *p = '/';
+            p++;
+        }
+    }
+
+    // Resolve directory names
+    while (1) {
+        char *p = strchr(fn_buf, '/');
+        if (p == NULL)
+            break;
+
+        *p = 0;
+        esp_chdir(*fn_buf == 0 ? "/" : fn_buf);
+        changed_dir = true;
+        memmove(fn_buf, p + 1, strlen(p + 1) + 1);
+    }
+
+    // Change directory if remaining part is directory name
+    struct esp_stat st;
+    if (*fn_buf && esp_stat(fn_buf, &st) == 0 && (st.attr & DE_ATTR_DIR)) {
+        esp_chdir(fn_buf);
+        changed_dir = true;
+
+        *fn_buf = 0;
+    }
+
+    return !changed_dir;
+}
+
 bool dialog_save(char *fn_buf, size_t fn_bufsize) {
     struct file_list_ctx  flctx;
     struct edit_field_ctx efctx;
@@ -117,7 +154,12 @@ bool dialog_save(char *fn_buf, size_t fn_bufsize) {
                     }
 
                 } else if (cur_field == 1) {
-                    return true;
+                    if (normalize_filename(fn_buf, fn_bufsize) && strlen(fn_buf) > 0)
+                        return true;
+
+                    draw_current_dir(y + 1, x + 1, w - 2);
+                    file_list_reset(&flctx);
+                    file_list_draw(&flctx, false);
                 }
 
             } else if (ch == '\t') {

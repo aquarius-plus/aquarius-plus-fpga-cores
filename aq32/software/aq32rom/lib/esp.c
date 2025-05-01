@@ -207,7 +207,10 @@ int esp_stat(const char *path, struct esp_stat *st) {
     if (result < 0)
         return result;
 
-    esp_get_bytes(st, sizeof(*st));
+    esp_get_bytes(&st->date, sizeof(st->date));
+    esp_get_bytes(&st->time, sizeof(st->time));
+    esp_get_bytes(&st->attr, sizeof(st->attr));
+    esp_get_bytes(&st->size, sizeof(st->size));
     return result;
 }
 
