@@ -127,9 +127,7 @@ bool dialog_open(char *fn_buf, size_t fn_bufsize) {
     int selection = 0;
     int total     = get_num_entries();
 
-    scr_setcolor(COLOR_STATUS);
-    scr_locate(24, 1);
-    scr_puttext("Enter=Select   Esc=Cancel   Up/Down/PgUp/PgDn=Change Selection");
+    scr_status_msg("Enter=Select   Esc=Cancel   Up/Down/PgUp/PgDn=Change Selection");
 
     // Draw window border
     scr_draw_border(y, x, w, h, COLOR_MENU, 0, "Open");
@@ -201,6 +199,8 @@ bool dialog_open(char *fn_buf, size_t fn_bufsize) {
 
 int dialog_confirm(const char *text) {
     const char *choices_str = "<&Yes>  <&No>  <&Cancel>";
+
+    scr_status_msg("Y=Yes   N=No   C/Esc=Cancel");
 
     int text_len    = strlen(text);
     int choices_len = strlen(choices_str);

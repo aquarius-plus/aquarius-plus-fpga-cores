@@ -110,15 +110,22 @@ void scr_puttext_centered(int w, const char *text, bool has_accel) {
 }
 
 void scr_puttext_filled(int w, const char *text, bool has_accel, bool pad) {
-    int text_len = has_accel ? strlen_accel(text) : strlen(text);
-
+    int text_len = 0;
     if (pad)
         scr_putchar(' ');
 
-    if (has_accel)
-        scr_puttext_accel(text, true);
-    else
-        scr_puttext(text);
-
+    if (text) {
+        text_len = has_accel ? strlen_accel(text) : strlen(text);
+        if (has_accel)
+            scr_puttext_accel(text, true);
+        else
+            scr_puttext(text);
+    }
     scr_fillchar(' ', w - (pad ? 1 : 0) - text_len);
+}
+
+void scr_status_msg(const char *s) {
+    scr_setcolor(COLOR_STATUS);
+    scr_locate(24, 0);
+    scr_puttext_filled(68, s, false, true);
 }

@@ -36,12 +36,12 @@ static void cmd_file_exit(void);
 
 #pragma region Menus
 static const struct menu_item menu_file_items[] = {
-    {.title = "&New          Ctrl+N", .handler = cmd_file_new},
-    {.title = "&Open...      Ctrl+O", .handler = cmd_file_open},
-    {.title = "&Save         Ctrl+S", .handler = cmd_file_save},
-    {.title = "Save &As...", .handler = cmd_file_save_as},
+    {.title = "&New          Ctrl+N", .status = "Removes currently loaded file from memory", .handler = cmd_file_new},
+    {.title = "&Open...      Ctrl+O", .status = "Loads new file into memory", .handler = cmd_file_open},
+    {.title = "&Save         Ctrl+S", .status = "Saves current file", .handler = cmd_file_save},
+    {.title = "Save &As...", .status = "Saves current file with specified name", .handler = cmd_file_save_as},
     {.title = "-"},
-    {.title = "E&xit         Ctrl+Q", .handler = cmd_file_exit},
+    {.title = "E&xit         Ctrl+Q", .status = "Exits editor and returns to system", .handler = cmd_file_exit},
     {.title = NULL},
 };
 
@@ -122,8 +122,10 @@ static void cmd_file_open(void) {
     char tmp[256];
     if (dialog_open(tmp, sizeof(tmp))) {
         render_editor();
-        if (check_modified())
+        if (check_modified()) {
+            scr_status_msg("Loading file...");
             load_file(tmp);
+        }
     }
 }
 
@@ -310,9 +312,7 @@ static void render_editor_border(void) {
 }
 
 static void render_statusbar(void) {
-    scr_locate(24, 0);
-    scr_setcolor(COLOR_STATUS);
-    scr_fillchar(' ', 68);
+    scr_status_msg("");
     scr_setcolor(COLOR_STATUS2);
     scr_putchar(26);
 

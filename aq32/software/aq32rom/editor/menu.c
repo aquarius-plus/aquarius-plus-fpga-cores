@@ -122,10 +122,14 @@ static void render_menu(const struct menu *menus, const struct menu *active_menu
                 scr_draw_separator(y, x, w, COLOR_MENU);
 
         } else {
-            uint8_t col = (idx == active_idx) ? COLOR_MENU_SEL : COLOR_MENU;
-            scr_setcolor(col);
+            bool selected = (idx == active_idx);
+            scr_setcolor(selected ? COLOR_MENU_SEL : COLOR_MENU);
             scr_locate(y, x + 1);
             scr_puttext_filled(w - 2, mi->title, true, true);
+
+            if (selected)
+                scr_status_msg(mi->status);
+
             idx++;
         }
 

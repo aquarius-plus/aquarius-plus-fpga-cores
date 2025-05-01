@@ -64,3 +64,5 @@ static inline void scr_center_text(int y, int x, int w, const char *text, bool h
     scr_locate(y, x);
     scr_puttext_centered(w, text, has_accel);
 }
+
+void scr_status_msg(const char *s);
