@@ -152,7 +152,7 @@ void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {
 
         if (key & KEY_IS_SCANCODE) {
             uint8_t scancode = key & 0xFF;
-            if ((key & KEY_KEYDOWN) == 0 && (scancode == 0xE2 || scancode == 0xE6)) {
+            if ((key & KEY_KEYDOWN) == 0 && (scancode == SCANCODE_LALT || scancode == SCANCODE_RALT)) {
                 break;
             }
         } else {
@@ -206,8 +206,8 @@ void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {
         if (key & KEY_IS_SCANCODE) {
             uint8_t scancode = key & 0xFF;
             // Dismiss menu on pressing and releasing alt again or pressing ESC
-            if (((key & KEY_KEYDOWN) && (scancode == 0xE2 || scancode == 0xE6)) ||
-                ((key & KEY_KEYDOWN) && scancode == 0x29))
+            if (((key & KEY_KEYDOWN) && (scancode == SCANCODE_LALT || scancode == SCANCODE_RALT)) ||
+                ((key & KEY_KEYDOWN) && scancode == SCANCODE_ESC))
                 return;
 
         } else {

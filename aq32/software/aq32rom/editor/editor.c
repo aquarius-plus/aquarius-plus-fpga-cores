@@ -3,6 +3,7 @@
 #include "menu.h"
 #include "screen.h"
 #include "dialog.h"
+#include "esp.h"
 
 #define EDITOR_ROWS    22
 #define EDITOR_COLUMNS 78
@@ -26,6 +27,7 @@ struct editor_state {
 struct editor_state state;
 
 static void load_file(const char *path);
+static void save_file(const char *path);
 static void render_editor(void);
 
 static void cmd_file_new(void);
@@ -135,12 +137,26 @@ static void cmd_file_save(void) {
         cmd_file_save_as();
         return;
     }
+    if (!state.modified)
+        return;
+
+    save_file(state.filename);
 }
 
 static void cmd_file_save_as(void) {
     char tmp[64];
     strcpy(tmp, state.filename);
-    dialog_save(tmp, sizeof(tmp));
+    if (!dialog_save(tmp, sizeof(tmp)))
+        return;
+
+    struct esp_stat st;
+    if (esp_stat(tmp, &st) == 0) {
+        // File exists
+        render_editor();
+        if (dialog_confirm("Overwrite existing file?") > 0) {
+            save_file(tmp);
+        }
+    }
 }
 
 static void cmd_file_exit(void) {
@@ -251,6 +267,16 @@ static void load_file(const char *path) {
     }
 }
 
+static void save_file(const char *path) {
+    FILE *f = fopen(path, "wb");
+    if (!f)
+        return;
+    fclose(f);
+
+    snprintf(state.filename, sizeof(state.filename), "%s", path);
+    state.modified = false;
+}
+
 static void resize_linebuffer(uint8_t *p, uint8_t new_size) {
     uint8_t cur_size = p[0];
     if (new_size == cur_size)
@@ -341,14 +367,9 @@ void editor(void) {
 
         if (key & KEY_IS_SCANCODE) {
             uint8_t scancode = key & 0xFF;
-            if ((key & KEY_KEYDOWN) && (scancode == 0xE2 || scancode == 0xE6)) {
+            if ((key & KEY_KEYDOWN) && (scancode == SCANCODE_LALT || scancode == SCANCODE_RALT)) {
                 handle_menu(menubar_menus, menu_redraw_screen);
             }
-
-            // Left alt pressed   -> 64E2
-            // Left alt released  -> 40E2
-            // Right alt pressed  -> 64E6
-            // Right alt released -> 40E6
 
         } else {
             uint8_t ch = key & 0xFF;

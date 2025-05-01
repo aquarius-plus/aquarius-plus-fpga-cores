@@ -40,7 +40,7 @@ bool dialog_open(char *fn_buf, size_t fn_bufsize) {
         if (key & KEY_IS_SCANCODE) {
             uint8_t scancode = key & 0xFF;
             // Escape?
-            if (((key & KEY_KEYDOWN) && scancode == 0x29))
+            if (((key & KEY_KEYDOWN) && scancode == SCANCODE_ESC))
                 return false;
         } else {
             uint8_t ch = key & 0xFF;
@@ -136,7 +136,7 @@ bool dialog_save(char *fn_buf, size_t fn_bufsize) {
         if (key & KEY_IS_SCANCODE) {
             uint8_t scancode = key & 0xFF;
             // Escape?
-            if (((key & KEY_KEYDOWN) && scancode == 0x29))
+            if (((key & KEY_KEYDOWN) && scancode == SCANCODE_ESC))
                 return false;
         } else {
             uint8_t ch = key & 0xFF;
@@ -177,7 +177,7 @@ bool dialog_save(char *fn_buf, size_t fn_bufsize) {
 }
 
 int dialog_confirm(const char *text) {
-    const char *choices_str = "<&Yes>  <&No>  <&Cancel>";
+    const char *choices_str = "<&Yes>   <&No>   <&Cancel>";
 
     scr_status_msg("Y=Yes   N=No   C/Esc=Cancel");
 
@@ -204,7 +204,7 @@ int dialog_confirm(const char *text) {
         if (key & KEY_IS_SCANCODE) {
             uint8_t scancode = key & 0xFF;
             // Escape?
-            if (((key & KEY_KEYDOWN) && scancode == 0x29))
+            if (((key & KEY_KEYDOWN) && scancode == SCANCODE_ESC))
                 return -1;
         } else {
             uint8_t ch = key & 0xFF;

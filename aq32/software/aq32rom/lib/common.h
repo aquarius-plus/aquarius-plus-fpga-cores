@@ -52,6 +52,10 @@
 #define CH_DOWN        0x9F
 #define CH_UP          0x8F
 
+#define SCANCODE_LALT 0xE2
+#define SCANCODE_RALT 0xE6
+#define SCANCODE_ESC  0x29
+
 static inline int min(int a, int b) { return a < b ? a : b; }
 static inline int max(int a, int b) { return a > b ? a : b; }
 static inline int clamp(int val, int _min, int _max) {
