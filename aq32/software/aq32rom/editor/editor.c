@@ -149,13 +149,18 @@ static void cmd_file_save_as(void) {
     if (!dialog_save(tmp, sizeof(tmp)))
         return;
 
+    bool do_save = true;
+
     struct esp_stat st;
     if (esp_stat(tmp, &st) == 0) {
         // File exists
         render_editor();
-        if (dialog_confirm("Overwrite existing file?") > 0) {
-            save_file(tmp);
-        }
+        if (dialog_confirm("Overwrite existing file?") <= 0)
+            do_save = false;
+    }
+
+    if (do_save) {
+        save_file(tmp);
     }
 }
 
@@ -268,9 +273,21 @@ static void load_file(const char *path) {
 }
 
 static void save_file(const char *path) {
+    scr_status_msg("Saving file...");
+
     FILE *f = fopen(path, "wb");
     if (!f)
         return;
+
+    uint8_t *p = edit_buf;
+    while (1) {
+        if (p[0] == 0)
+            break;
+
+        fwrite(p + 2, p[1], 1, f);
+        fputc('\n', f);
+        p += 1 + p[0];
+    }
     fclose(f);
 
     snprintf(state.filename, sizeof(state.filename), "%s", path);
