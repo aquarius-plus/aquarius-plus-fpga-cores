@@ -138,6 +138,9 @@ static void cmd_file_save(void) {
 }
 
 static void cmd_file_save_as(void) {
+    char tmp[256];
+    strcpy(tmp, state.filename);
+    dialog_save(tmp, sizeof(tmp));
 }
 
 static void cmd_file_exit(void) {

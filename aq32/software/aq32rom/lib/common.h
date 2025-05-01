@@ -24,6 +24,7 @@
 #define COLOR_SELECTED   0x17
 #define COLOR_STATUS     0xF3
 #define COLOR_STATUS2    0x03
+#define COLOR_FIELD      0xF8
 
 #define CH_BACKSPACE   '\b'
 #define CH_F1          0x80
