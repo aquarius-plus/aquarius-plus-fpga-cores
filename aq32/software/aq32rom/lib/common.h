@@ -49,3 +49,13 @@
 #define CH_LEFT        0x9E
 #define CH_DOWN        0x9F
 #define CH_UP          0x8F
+
+static inline int min(int a, int b) { return a < b ? a : b; }
+static inline int max(int a, int b) { return a > b ? a : b; }
+static inline int clamp(int val, int _min, int _max) {
+    if (val < _min)
+        return _min;
+    if (val > _max)
+        return _max;
+    return val;
+}

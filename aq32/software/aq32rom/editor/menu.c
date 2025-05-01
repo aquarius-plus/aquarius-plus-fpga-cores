@@ -131,12 +131,6 @@ static void render_menu(const struct menu *menus, const struct menu *active_menu
         scr_draw_border(y, x, w, 2 + rows, COLOR_MENU, 0, NULL);
     y++;
 
-    char bla[16];
-    snprintf(bla, sizeof(bla), "%d", get_menu_width(active_menu));
-    scr_locate(24, 1);
-    scr_setcolor(COLOR_STATUS);
-    scr_puttext(bla);
-
     // Draw items
     const struct menu_item *mi = active_menu->items;
     while (mi && mi->title) {
@@ -205,18 +199,16 @@ void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {
         }
     }
 
-    int  active_idx   = 0;
-    bool needs_redraw = true;
+    int active_idx = 0;
 
     const struct menu_item *selected_mi = NULL;
     const struct menu      *prev_menu   = NULL;
 
     // Menu interaction
     while (selected_mi == NULL) {
-        if (needs_redraw) {
+        if (active_menu != prev_menu) {
             active_idx = 0;
             redraw_screen();
-            needs_redraw = false;
         }
         render_menubar(menus, !menu_open, active_menu);
 
@@ -240,7 +232,6 @@ void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {
                 active_menu++;
                 if (!active_menu->title)
                     active_menu = menus;
-                needs_redraw = true;
             } else if (ch == CH_LEFT) {
                 if (active_menu == menus) {
                     while (active_menu[1].title)
@@ -248,7 +239,6 @@ void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {
                 } else {
                     active_menu--;
                 }
-                needs_redraw = true;
             } else if (ch == CH_DOWN) {
                 if (!menu_open) {
                     menu_open = true;

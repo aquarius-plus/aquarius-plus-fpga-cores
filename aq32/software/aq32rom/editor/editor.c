@@ -15,92 +15,122 @@
 #define MAX_BUFSZ  255
 #define MAX_LINESZ (MAX_BUFSZ - 1)
 
-static char    filename[64];
-static uint8_t edit_buf[256 * 1024];
-static int     cursor_line    = 0;
-static int     cursor_pos     = 0; // Wanted position
-static int     cursor_pos2    = 0; // Actual position due to line length
-static int     scr_first_line = 0;
-static int     scr_first_pos  = 0;
-static int     num_lines      = 0;
+uint8_t edit_buf[256 * 1024];
+
+struct editor_state {
+    char filename[64];
+    int  cursor_line;
+    int  cursor_pos;  // Wanted position
+    int  cursor_pos2; // Actual position due to line length
+    int  scr_first_line;
+    int  scr_first_pos;
+    int  num_lines;
+    bool modified;
+};
+
+struct editor_state state;
 
 static void load_file(const char *path);
-static void cmd_newfile(void);
-static void cmd_openfile(void);
+
+static void cmd_file_new(void);
+static void cmd_file_open(void);
+static void cmd_file_save(void);
+static void cmd_file_saveas(void);
+static void cmd_file_exit(void);
 
 #pragma region Menus
 static const struct menu_item menu_file_items[] = {
-    {.title = "&New          Ctrl+N", .handler = cmd_newfile},
-    {.title = "&Open...      Ctrl+O", .handler = cmd_openfile},
-    {.title = "&Save         Ctrl+S"},
-    {.title = "Save &As..."},
+    {.title = "&New          Ctrl+N", .handler = cmd_file_new},
+    {.title = "&Open...      Ctrl+O", .handler = cmd_file_open},
+    {.title = "&Save         Ctrl+S", .handler = cmd_file_save},
+    {.title = "Save &As...", .handler = cmd_file_saveas},
     {.title = "-"},
-    {.title = "E&xit         Ctrl+Q"},
+    {.title = "E&xit         Ctrl+Q", .handler = cmd_file_exit},
     {.title = NULL},
 };
 
-static const struct menu_item menu_edit_items[] = {
-    {.title = "Cu&t          Ctrl+X"},
-    {.title = "&Copy         Ctrl+C"},
-    {.title = "&Paste        Ctrl+V"},
-    {.title = "-"},
-    {.title = "&Find         Ctrl+F"},
-    {.title = "&Replace      Ctrl+H"},
-    {.title = "-"},
-    {.title = "&Select all   Ctrl+A"},
-    {.title = "-"},
-    {.title = "Format selection    "},
-    {.title = "Format document     "},
-    {.title = "Trim trailing whitespace"},
-    {.title = NULL},
-};
+// static const struct menu_item menu_edit_items[] = {
+//     {.title = "Cu&t          Ctrl+X"},
+//     {.title = "&Copy         Ctrl+C"},
+//     {.title = "&Paste        Ctrl+V"},
+//     {.title = "-"},
+//     {.title = "&Find         Ctrl+F"},
+//     {.title = "&Replace      Ctrl+H"},
+//     {.title = "-"},
+//     {.title = "&Select all   Ctrl+A"},
+//     {.title = "-"},
+//     {.title = "Format selection    "},
+//     {.title = "Format document     "},
+//     {.title = "Trim trailing whitespace"},
+//     {.title = NULL},
+// };
 
-static const struct menu_item menu_view_items[] = {
-    {.title = "&Output Screen   F4"},
-    {.title = NULL},
-};
+// static const struct menu_item menu_view_items[] = {
+//     {.title = "&Output Screen   F4"},
+//     {.title = NULL},
+// };
 
-static const struct menu_item menu_run_items[] = {
-    {.title = "&Start   F5"},
-    {.title = NULL},
-};
+// static const struct menu_item menu_run_items[] = {
+//     {.title = "&Start   F5"},
+//     {.title = NULL},
+// };
 
-static const struct menu_item menu_help_items[] = {
-    {.title = "&Index"},
-    {.title = "&Contents"},
-    {.title = "&Topic      F1"},
-    {.title = "-"},
-    {.title = "&About..."},
-    {.title = NULL},
-};
+// static const struct menu_item menu_help_items[] = {
+//     {.title = "&Index"},
+//     {.title = "&Contents"},
+//     {.title = "&Topic      F1"},
+//     {.title = "-"},
+//     {.title = "&About..."},
+//     {.title = NULL},
+// };
 
 static const struct menu menubar_menus[] = {
     {.title = "&File", .items = menu_file_items},
-    {.title = "&Edit", .items = menu_edit_items},
-    {.title = "&View", .items = menu_view_items},
-    {.title = "&Run", .items = menu_run_items},
-    {.title = "&Help", .items = menu_help_items},
+    // {.title = "&Edit", .items = menu_edit_items},
+    // {.title = "&View", .items = menu_view_items},
+    // {.title = "&Run", .items = menu_run_items},
+    // {.title = "&Help", .items = menu_help_items},
     {.title = NULL},
 };
 #pragma endregion
 
-static void cmd_newfile(void) {
-    *filename      = 0;
-    edit_buf[0]    = 0;
-    edit_buf[1]    = 0;
-    cursor_line    = 0;
-    cursor_pos     = 0; // Wanted position
-    cursor_pos2    = 0; // Actual position due to line length
-    scr_first_line = 0;
-    scr_first_pos  = 0;
-    num_lines      = 0;
+static void reset_state(void) {
+    memset(&state, 0, sizeof(state));
+    edit_buf[0] = 0;
+    edit_buf[1] = 0;
 }
 
-static void cmd_openfile(void) {
+static bool check_modified(void) {
+    if (!state.modified) {
+        return true;
+    }
+
+    return true;
+}
+
+static void cmd_file_new(void) {
+    reset_state();
+}
+
+static void cmd_file_open(void) {
     char tmp[256];
     if (dialog_open(tmp, sizeof(tmp))) {
         load_file(tmp);
     }
+}
+
+static void cmd_file_save(void) {
+    if (!state.filename[0]) {
+        // File never saved, use save as command instead.
+        cmd_file_saveas();
+        return;
+    }
+}
+
+static void cmd_file_saveas(void) {
+}
+
+static void cmd_file_exit(void) {
 }
 
 static uint8_t *getline_addr(int line) {
@@ -125,10 +155,9 @@ static int getline_length(int line) {
 }
 
 static void render_editor(void) {
-    const uint8_t *ps = getline_addr(scr_first_line);
+    const uint8_t *ps = getline_addr(state.scr_first_line);
 
-    int line = 0;
-    for (int j = 2; j < 2 + EDITOR_ROWS; j++) {
+    for (int line = 0; line < EDITOR_ROWS; line++) {
         int            pos      = 0;
         int            buf_len  = *ps;
         const uint8_t *p_next   = ps;
@@ -140,23 +169,19 @@ static void render_editor(void) {
             line_len = *(ps++);
         }
 
-        if (line_len > scr_first_pos) {
-            ps += scr_first_pos;
-        }
-        line_len -= scr_first_pos;
-        if (line_len < 0)
-            line_len = 0;
+        if (line_len > state.scr_first_pos)
+            ps += state.scr_first_pos;
 
-        if (line_len > EDITOR_COLUMNS)
-            line_len = EDITOR_COLUMNS;
+        line_len = clamp(line_len - state.scr_first_pos, 0, EDITOR_COLUMNS);
+
         int fill_size = EDITOR_COLUMNS - line_len;
 
-        scr_locate(j, 1);
+        scr_locate(line + 2, 1);
         scr_setcolor(COLOR_EDITOR);
 
-        if (line == cursor_line - scr_first_line) {
+        if (line == state.cursor_line - state.scr_first_line) {
             for (int i = 0; i < EDITOR_COLUMNS; i++) {
-                scr_setcolor(pos == cursor_pos2 - scr_first_pos ? COLOR_CURSOR : COLOR_EDITOR);
+                scr_setcolor(pos == state.cursor_pos2 - state.scr_first_pos ? COLOR_CURSOR : COLOR_EDITOR);
 
                 if (i < line_len) {
                     scr_putchar(*(ps++));
@@ -176,19 +201,12 @@ static void render_editor(void) {
         }
 
         ps = p_next;
-        line++;
     }
 }
 
 static void load_file(const char *path) {
-    cursor_line    = 0;
-    cursor_pos     = 0; // Wanted position
-    cursor_pos2    = 0; // Actual position due to line length
-    scr_first_line = 0;
-    scr_first_pos  = 0;
-    num_lines      = 0;
-
-    snprintf(filename, sizeof(filename), "%s", path);
+    reset_state();
+    snprintf(state.filename, sizeof(state.filename), "%s", path);
 
     uint8_t *pd = edit_buf;
 
@@ -204,14 +222,13 @@ static void load_file(const char *path) {
             linebuf[line_size] = 0;
 
             // Limit line to 254 characters
-            if (line_size > MAX_LINESZ)
-                line_size = MAX_LINESZ;
+            line_size = min(line_size, MAX_LINESZ);
 
             *(pd++) = line_size + 1; // Buf length
             *(pd++) = line_size;     // Line length
             memcpy(pd, linebuf, line_size);
             pd += line_size;
-            num_lines++;
+            state.num_lines++;
         }
 
         // Buf length = 0: last line
@@ -235,7 +252,7 @@ static void resize_linebuffer(uint8_t *p, uint8_t new_size) {
 }
 
 static void insert_char(uint8_t ch) {
-    uint8_t *p             = getline_addr(cursor_line);
+    uint8_t *p             = getline_addr(state.cursor_line);
     uint8_t  cur_line_size = p[0] == 0 ? 0 : p[1];
 
     if (cur_line_size >= MAX_LINESZ) {
@@ -245,29 +262,24 @@ static void insert_char(uint8_t ch) {
 
     // Enough room in buffer to increase line size?
     if (p[0] < 1 + cur_line_size + 1) {
-        int new_size = 1 + cur_line_size + 16;
-        if (new_size > MAX_BUFSZ)
-            new_size = MAX_BUFSZ;
-
-        resize_linebuffer(p, new_size);
+        resize_linebuffer(p, min(1 + cur_line_size + 16, MAX_BUFSZ));
     }
 
-    uint8_t *p_cursor = p + 2 + cursor_pos2;
-    memmove(p_cursor + 1, p_cursor, cur_line_size - cursor_pos2);
+    uint8_t *p_cursor = p + 2 + state.cursor_pos2;
+    memmove(p_cursor + 1, p_cursor, cur_line_size - state.cursor_pos2);
     *p_cursor = ch;
     p[1]++;
-    cursor_pos = cursor_pos2 + 1;
+    state.cursor_pos = state.cursor_pos2 + 1;
 }
 
 static void delete_char(void) {
-    uint8_t *p = getline_addr(cursor_line);
+    uint8_t *p = getline_addr(state.cursor_line);
     if (p[0] == 0 || p[1] == 0)
         return;
 
-    uint8_t cur_line_size = p[1];
-
-    uint8_t *p_cursor = p + 2 + cursor_pos2;
-    memmove(p_cursor, p_cursor + 1, cur_line_size - cursor_pos2 - 1);
+    uint8_t  cur_line_size = p[1];
+    uint8_t *p_cursor      = p + 2 + state.cursor_pos2;
+    memmove(p_cursor, p_cursor + 1, cur_line_size - state.cursor_pos2 - 1);
     p[1]--;
 }
 
@@ -282,7 +294,7 @@ static void delete_char(void) {
 // }
 
 static void render_editor_border(void) {
-    scr_draw_border(1, 0, 80, 24, COLOR_EDITOR, BORDER_FLAG_NO_BOTTOM | BORDER_FLAG_NO_SHADOW | BORDER_FLAG_TITLE_INVERSE, *filename ? filename : "Untitled");
+    scr_draw_border(1, 0, 80, 24, COLOR_EDITOR, BORDER_FLAG_NO_BOTTOM | BORDER_FLAG_NO_SHADOW | BORDER_FLAG_TITLE_INVERSE, *state.filename ? state.filename : "Untitled");
 }
 
 static void render_statusbar(void) {
@@ -293,7 +305,7 @@ static void render_statusbar(void) {
     scr_putchar(26);
 
     char tmp[32];
-    snprintf(tmp, sizeof(tmp), " %05d:%03d ", cursor_line + 1, cursor_pos2 + 1);
+    snprintf(tmp, sizeof(tmp), " %05d:%03d ", state.cursor_line + 1, state.cursor_pos2 + 1);
     scr_puttext(tmp);
 }
 
@@ -303,9 +315,7 @@ static void menu_redraw_screen(void) {
 }
 
 void editor(void) {
-    cmd_newfile();
-
-    TRAM[2047] = 0;
+    reset_state();
 
     while (1) {
         render_menubar(menubar_menus, false, NULL);
@@ -329,66 +339,65 @@ void editor(void) {
 
         } else {
             uint8_t ch = key & 0xFF;
-            if (ch == CH_UP) {
-                cursor_line--;
-            } else if (ch == CH_DOWN) {
-                cursor_line++;
-            } else if (ch == CH_LEFT) {
-                cursor_pos = cursor_pos2 - 1;
-                if (cursor_pos < 0 && cursor_line > 0) {
-                    cursor_line--;
-                    cursor_pos = getline_length(cursor_line);
+            switch (ch) {
+                case CH_UP: state.cursor_line--; break;
+                case CH_DOWN: state.cursor_line++; break;
+                case CH_LEFT: {
+                    state.cursor_pos = state.cursor_pos2 - 1;
+                    if (state.cursor_pos < 0 && state.cursor_line > 0) {
+                        state.cursor_line--;
+                        state.cursor_pos = getline_length(state.cursor_line);
+                    }
+                    break;
                 }
+                case CH_RIGHT: {
+                    state.cursor_pos = state.cursor_pos2 + 1;
+                    if (state.cursor_pos > getline_length(state.cursor_line)) {
+                        state.cursor_line++;
+                        state.cursor_pos = 0;
+                    }
+                    break;
+                }
+                case CH_HOME: {
+                    if (key & KEY_MOD_CTRL) {
+                        state.cursor_line = 0;
+                    }
+                    state.cursor_pos = 0;
+                    break;
+                }
+                case CH_END: {
+                    if (key & KEY_MOD_CTRL) {
+                        state.cursor_line = state.num_lines;
 
-            } else if (ch == CH_RIGHT) {
-                cursor_pos = cursor_pos2 + 1;
-                if (cursor_pos > getline_length(cursor_line)) {
-                    cursor_line++;
-                    cursor_pos = 0;
+                    } else {
+                        state.cursor_pos = getline_length(state.cursor_line);
+                    }
+                    break;
                 }
-            } else if (ch == CH_HOME) {
-                cursor_pos = 0;
-            } else if (ch == CH_END) {
-                cursor_pos = getline_length(cursor_line);
-            } else if (ch == CH_PAGEUP) {
-                cursor_line -= (EDITOR_ROWS - 1);
-            } else if (ch == CH_PAGEDOWN) {
-                cursor_line += (EDITOR_ROWS - 1);
-            } else if (ch == CH_DELETE) {
-                delete_char();
-            } else if (ch == CH_BACKSPACE) {
-                if (cursor_pos2 > 0) {
-                    cursor_pos2 = cursor_pos2 - 1;
-                    cursor_pos  = cursor_pos2;
-                    delete_char();
+                case CH_PAGEUP: state.cursor_line -= (EDITOR_ROWS - 1); break;
+                case CH_PAGEDOWN: state.cursor_line += (EDITOR_ROWS - 1); break;
+                case CH_DELETE: delete_char(); break;
+                case CH_BACKSPACE: {
+                    if (state.cursor_pos2 > 0) {
+                        state.cursor_pos2 = state.cursor_pos2 - 1;
+                        state.cursor_pos  = state.cursor_pos2;
+                        delete_char();
+                    }
+                    break;
                 }
-
-            } else if (ch >= ' ' && ch < 127) {
-                insert_char(ch);
+                default: {
+                    if (ch >= ' ' && ch < 127) {
+                        insert_char(ch);
+                        break;
+                    }
+                }
             }
         }
 
-        if (cursor_line < 0)
-            cursor_line = 0;
-        if (cursor_line > num_lines)
-            cursor_line = num_lines;
-        if (cursor_pos < 0)
-            cursor_pos = 0;
-
-        cursor_pos2 = cursor_pos;
-        {
-            int linelen = getline_length(cursor_line);
-            if (cursor_pos2 > linelen)
-                cursor_pos2 = linelen;
-        }
-
-        if (cursor_line < scr_first_line)
-            scr_first_line = cursor_line;
-        if (cursor_line > scr_first_line + (EDITOR_ROWS - 1))
-            scr_first_line = cursor_line - (EDITOR_ROWS - 1);
-        if (cursor_pos2 < scr_first_pos)
-            scr_first_pos = cursor_pos2;
-        if (cursor_pos2 > scr_first_pos + (EDITOR_COLUMNS - 1))
-            scr_first_pos = cursor_pos2 - (EDITOR_COLUMNS - 1);
+        state.cursor_line    = clamp(state.cursor_line, 0, state.num_lines);
+        state.cursor_pos     = max(0, state.cursor_pos);
+        state.cursor_pos2    = min(state.cursor_pos, getline_length(state.cursor_line));
+        state.scr_first_line = clamp(state.scr_first_line, state.cursor_line - (EDITOR_ROWS - 1), state.cursor_line);
+        state.scr_first_pos  = clamp(state.scr_first_pos, state.cursor_pos2 - (EDITOR_COLUMNS - 1), state.cursor_pos2);
     }
 }

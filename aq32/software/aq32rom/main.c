@@ -16,6 +16,7 @@ static const uint16_t palette[16] = {
 // called from start.S
 void main(void) {
     REGS->VCTRL = VCTRL_80COLUMNS | VCTRL_REMAP_BORDER_CH | VCTRL_TEXT_EN;
+    TRAM[2047]  = 0;
 
     for (int i = 0; i < 64; i++)
         PALETTE[i] = palette[i & 15];
