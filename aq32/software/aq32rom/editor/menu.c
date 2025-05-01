@@ -1,6 +1,5 @@
 #include "menu.h"
 #include "screen.h"
-#include <ctype.h>
 
 static int get_menuitem_count(const struct menu *menu, bool include_separator) {
     int                     count = 0;
@@ -17,17 +16,8 @@ static int get_menu_width(const struct menu *menu) {
     int                     width = 0;
     const struct menu_item *mi    = menu->items;
     while (mi && mi->title) {
-        if (mi->title[0] != '-') {
-            const char *p = mi->title;
-            int         w = 0;
-            while (*p) {
-                if (p[0] != '&')
-                    w++;
-                p++;
-            }
-            if (w > width)
-                width = w;
-        }
+        if (mi->title[0] != '-')
+            width = max(width, strlen_accel(mi->title));
         mi++;
     }
     return width;
@@ -58,14 +48,7 @@ static int get_menu_offset(const struct menu *menus, const struct menu *active_m
     int                x = 1;
     const struct menu *m = menus;
     while (m != active_menu && m->title) {
-        const char *p = m->title;
-        x++;
-        while (*p) {
-            if (p[0] != '&')
-                x++;
-            p++;
-        }
-        x++;
+        x += 2 + strlen_accel(m->title);
         m++;
     }
     return x;
@@ -141,11 +124,8 @@ static void render_menu(const struct menu *menus, const struct menu *active_menu
         } else {
             uint8_t col = (idx == active_idx) ? COLOR_MENU_SEL : COLOR_MENU;
             scr_setcolor(col);
-
             scr_locate(y, x + 1);
-            scr_putchar(' ');
-            int miw = scr_puttext_accel(mi->title, true);
-            scr_fillchar(' ', w - 3 - miw);
+            scr_puttext_filled(w - 2, mi->title, true, true);
             idx++;
         }
 

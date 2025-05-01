@@ -86,3 +86,39 @@ void scr_draw_separator(int y, int x, int w, uint8_t color) {
     scr_fillchar(25, w - 2);
     scr_putchar(21);
 }
+
+size_t strlen_accel(const char *s) {
+    size_t w = 0;
+    while (*s) {
+        if (s[0] != '&')
+            w++;
+        s++;
+    }
+    return w;
+}
+
+void scr_puttext_centered(int w, const char *text, bool has_accel) {
+    int text_len = has_accel ? strlen_accel(text) : strlen(text);
+    int l        = (w - text_len) / 2;
+
+    scr_fillchar(' ', l);
+    if (has_accel)
+        scr_puttext_accel(text, true);
+    else
+        scr_puttext(text);
+    scr_fillchar(' ', w - l - text_len);
+}
+
+void scr_puttext_filled(int w, const char *text, bool has_accel, bool pad) {
+    int text_len = has_accel ? strlen_accel(text) : strlen(text);
+
+    if (pad)
+        scr_putchar(' ');
+
+    if (has_accel)
+        scr_puttext_accel(text, true);
+    else
+        scr_puttext(text);
+
+    scr_fillchar(' ', w - (pad ? 1 : 0) - text_len);
+}

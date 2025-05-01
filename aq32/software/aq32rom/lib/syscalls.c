@@ -7,7 +7,6 @@
 #include <sys/timeb.h>
 #include <sys/time.h>
 #include "esp.h"
-#include <unistd.h>
 
 #define FD_ESP_START 10
 #define XFER_MAX     0xF000

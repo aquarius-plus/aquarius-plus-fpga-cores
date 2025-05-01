@@ -137,7 +137,6 @@ bool dialog_open(char *fn_buf, size_t fn_bufsize) {
     x += 1;
     w -= 2;
 
-    int key;
     int old_selection = INT32_MIN;
     while (1) {
         if (selection >= total) {
@@ -159,6 +158,7 @@ bool dialog_open(char *fn_buf, size_t fn_bufsize) {
             old_selection = selection;
         }
 
+        int key;
         while ((key = REGS->KEYBUF) < 0);
         if (key & KEY_IS_SCANCODE) {
             uint8_t scancode = key & 0xFF;
@@ -194,6 +194,45 @@ bool dialog_open(char *fn_buf, size_t fn_bufsize) {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+int dialog_confirm(const char *text) {
+    const char *choices_str = "<&Yes>  <&No>  <&Cancel>";
+
+    int text_len    = strlen(text);
+    int choices_len = strlen(choices_str);
+
+    int w = max(text_len, choices_len) + 4;
+    int h = 7;
+    int x = (80 - w) / 2;
+    int y = (25 - h) / 2;
+
+    scr_draw_border(y, x, w, h, COLOR_MENU, 0, NULL);
+    scr_setcolor(COLOR_MENU);
+    scr_center_text(y + 1, x + 1, w - 2, "", false);
+    scr_center_text(y + 2, x + 1, w - 2, text, false);
+    scr_center_text(y + 3, x + 1, w - 2, "", false);
+    scr_draw_separator(y + 4, x, w, COLOR_MENU);
+    scr_center_text(y + 5, x + 1, w - 2, choices_str, true);
+
+    while (1) {
+        int key;
+        while ((key = REGS->KEYBUF) < 0);
+
+        if (key & KEY_IS_SCANCODE) {
+            uint8_t scancode = key & 0xFF;
+            // Escape?
+            if (((key & KEY_KEYDOWN) && scancode == 0x29))
+                return -1;
+        } else {
+            uint8_t ch = key & 0xFF;
+            switch (toupper(ch)) {
+                case 'Y': return 1;
+                case 'N': return 0;
+                case 'C': return -1;
             }
         }
     }

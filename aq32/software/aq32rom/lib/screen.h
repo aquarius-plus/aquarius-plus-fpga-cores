@@ -54,5 +54,13 @@ static inline void scr_setcolor(uint8_t col) {
 #define BORDER_FLAG_NO_BOTTOM     (1 << 1)
 #define BORDER_FLAG_TITLE_INVERSE (1 << 2)
 
-void scr_draw_border(int y, int x, int w, int h, uint8_t color, unsigned flags, const char *title);
-void scr_draw_separator(int y, int x, int w, uint8_t color);
+void   scr_draw_border(int y, int x, int w, int h, uint8_t color, unsigned flags, const char *title);
+void   scr_draw_separator(int y, int x, int w, uint8_t color);
+size_t strlen_accel(const char *s);
+void   scr_puttext_centered(int w, const char *text, bool has_accel);
+void   scr_puttext_filled(int w, const char *text, bool has_accel, bool pad);
+
+static inline void scr_center_text(int y, int x, int w, const char *text, bool has_accel) {
+    scr_locate(y, x);
+    scr_puttext_centered(w, text, has_accel);
+}

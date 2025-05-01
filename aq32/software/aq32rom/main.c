@@ -1,6 +1,5 @@
+#include "common.h"
 #include "console.h"
-#include <string.h>
-#include <stdio.h>
 #include "esp.h"
 
 void editor(void);

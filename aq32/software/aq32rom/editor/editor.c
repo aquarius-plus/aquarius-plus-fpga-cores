@@ -1,9 +1,4 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <ctype.h>
+#include "common.h"
 #include "regs.h"
 #include "menu.h"
 #include "screen.h"
@@ -31,11 +26,12 @@ struct editor_state {
 struct editor_state state;
 
 static void load_file(const char *path);
+static void render_editor(void);
 
 static void cmd_file_new(void);
 static void cmd_file_open(void);
 static void cmd_file_save(void);
-static void cmd_file_saveas(void);
+static void cmd_file_save_as(void);
 static void cmd_file_exit(void);
 
 #pragma region Menus
@@ -43,7 +39,7 @@ static const struct menu_item menu_file_items[] = {
     {.title = "&New          Ctrl+N", .handler = cmd_file_new},
     {.title = "&Open...      Ctrl+O", .handler = cmd_file_open},
     {.title = "&Save         Ctrl+S", .handler = cmd_file_save},
-    {.title = "Save &As...", .handler = cmd_file_saveas},
+    {.title = "Save &As...", .handler = cmd_file_save_as},
     {.title = "-"},
     {.title = "E&xit         Ctrl+Q", .handler = cmd_file_exit},
     {.title = NULL},
@@ -101,33 +97,45 @@ static void reset_state(void) {
 }
 
 static bool check_modified(void) {
-    if (!state.modified) {
+    if (!state.modified)
         return true;
-    }
 
+    int result = dialog_confirm("Save the changes made to the current document?");
+    if (result < 0) {
+        return false;
+    }
+    if (result > 0) {
+        // Save document
+        cmd_file_save();
+        if (state.modified)
+            return false;
+    }
     return true;
 }
 
 static void cmd_file_new(void) {
-    reset_state();
+    if (check_modified())
+        reset_state();
 }
 
 static void cmd_file_open(void) {
     char tmp[256];
     if (dialog_open(tmp, sizeof(tmp))) {
-        load_file(tmp);
+        render_editor();
+        if (check_modified())
+            load_file(tmp);
     }
 }
 
 static void cmd_file_save(void) {
     if (!state.filename[0]) {
-        // File never saved, use save as command instead.
-        cmd_file_saveas();
+        // File never saved, use 'save as' command instead.
+        cmd_file_save_as();
         return;
     }
 }
 
-static void cmd_file_saveas(void) {
+static void cmd_file_save_as(void) {
 }
 
 static void cmd_file_exit(void) {
@@ -270,6 +278,8 @@ static void insert_char(uint8_t ch) {
     *p_cursor = ch;
     p[1]++;
     state.cursor_pos = state.cursor_pos2 + 1;
+
+    state.modified = true;
 }
 
 static void delete_char(void) {
@@ -281,6 +291,8 @@ static void delete_char(void) {
     uint8_t *p_cursor      = p + 2 + state.cursor_pos2;
     memmove(p_cursor, p_cursor + 1, cur_line_size - state.cursor_pos2 - 1);
     p[1]--;
+
+    state.modified = true;
 }
 
 // static void delete_line(void) {
