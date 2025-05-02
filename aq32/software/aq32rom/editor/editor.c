@@ -38,27 +38,27 @@ static void cmd_file_exit(void);
 
 #pragma region Menus
 static const struct menu_item menu_file_items[] = {
-    {.title = "&New          Ctrl+N", .status = "Removes currently loaded file from memory", .handler = cmd_file_new},
-    {.title = "&Open...      Ctrl+O", .status = "Loads new file into memory", .handler = cmd_file_open},
-    {.title = "&Save         Ctrl+S", .status = "Saves current file", .handler = cmd_file_save},
-    {.title = "Save &As...", .status = "Saves current file with specified name", .handler = cmd_file_save_as},
+    {.title = "&New", .shortcut = KEY_MOD_CTRL | 'N', .status = "Removes currently loaded file from memory", .handler = cmd_file_new},
+    {.title = "&Open...", .shortcut = KEY_MOD_CTRL | 'O', .status = "Loads new file into memory", .handler = cmd_file_open},
+    {.title = "&Save", .shortcut = KEY_MOD_CTRL | 'S', .status = "Saves current file", .handler = cmd_file_save},
+    {.title = "Save &As...", .shortcut = KEY_MOD_SHIFT | KEY_MOD_CTRL | 'S', .status = "Saves current file with specified name", .handler = cmd_file_save_as},
     {.title = "-"},
-    {.title = "E&xit         Ctrl+Q", .status = "Exits editor and returns to system", .handler = cmd_file_exit},
+    {.title = "E&xit", .shortcut = KEY_MOD_CTRL | 'Q', .status = "Exits editor and returns to system", .handler = cmd_file_exit},
     {.title = NULL},
 };
 
 // static const struct menu_item menu_edit_items[] = {
-//     {.title = "Cu&t          Ctrl+X"},
-//     {.title = "&Copy         Ctrl+C"},
-//     {.title = "&Paste        Ctrl+V"},
+//     {.title = "Cu&t", .shortcut = KEY_MOD_CTRL | 'X'},
+//     {.title = "&Copy", .shortcut = KEY_MOD_CTRL | 'C'},
+//     {.title = "&Paste", .shortcut = KEY_MOD_CTRL | 'V'},
 //     {.title = "-"},
-//     {.title = "&Find         Ctrl+F"},
-//     {.title = "&Replace      Ctrl+H"},
+//     {.title = "&Find", .shortcut = KEY_MOD_CTRL | 'F'},
+//     {.title = "&Replace", .shortcut = KEY_MOD_CTRL | 'H'},
 //     {.title = "-"},
-//     {.title = "&Select all   Ctrl+A"},
+//     {.title = "&Select all", .shortcut = KEY_MOD_CTRL | 'A'},
 //     {.title = "-"},
-//     {.title = "Format selection    "},
-//     {.title = "Format document     "},
+//     {.title = "Format document", .shortcut = KEY_MOD_SHIFT | KEY_MOD_ALT | 'F'},
+//     {.title = "Format selection"},
 //     {.title = "Trim trailing whitespace"},
 //     {.title = NULL},
 // };
@@ -437,10 +437,19 @@ void editor(void) {
                     break;
                 }
                 default: {
-                    if (ch >= ' ' && ch < 127) {
-                        insert_char(ch);
-                        break;
+                    if (key & (KEY_MOD_CTRL | KEY_MOD_ALT)) {
+                        uint16_t       shortcut = (key & (KEY_MOD_CTRL | KEY_MOD_SHIFT | KEY_MOD_ALT)) | toupper(ch);
+                        menu_handler_t handler  = menu_find_shortcut(menubar_menus, shortcut);
+                        if (handler) {
+                            handler();
+                            break;
+                        }
                     }
+
+                    if ((ch >= ' ' && ch <= '~') || (ch >= 0xA0)) {
+                        insert_char(ch);
+                    }
+                    break;
                 }
             }
         }

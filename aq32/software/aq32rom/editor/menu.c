@@ -12,12 +12,50 @@ static int get_menuitem_count(const struct menu *menu, bool include_separator) {
     return count;
 }
 
+static const char *get_shortcut_str(const struct menu_item *mi) {
+    static char tmp[64];
+    if (mi->shortcut == 0) {
+        tmp[0] = 0;
+    } else {
+        snprintf(
+            tmp, sizeof(tmp), "  %s%s%s%c",
+            (mi->shortcut & KEY_MOD_CTRL) ? "Ctrl+" : "",
+            (mi->shortcut & KEY_MOD_SHIFT) ? "Shift+" : "",
+            (mi->shortcut & KEY_MOD_ALT) ? "Alt+" : "",
+            mi->shortcut & 0xFF);
+    }
+    return tmp;
+}
+
+menu_handler_t menu_find_shortcut(const struct menu *menus, uint16_t shortcut) {
+    const struct menu *m = menus;
+    while (m->title) {
+        const struct menu_item *mi = m->items;
+        while (mi->title) {
+            if (mi->shortcut == shortcut)
+                return mi->handler;
+
+            mi++;
+        }
+        m++;
+    }
+    return NULL;
+}
+
+static int get_menu_item_width(const struct menu_item *mi) {
+    if (mi->title[0] == '-')
+        return 0;
+    return strlen_accel(mi->title) + strlen(get_shortcut_str(mi));
+}
+
 static int get_menu_width(const struct menu *menu) {
-    int                     width = 0;
-    const struct menu_item *mi    = menu->items;
-    while (mi && mi->title) {
-        if (mi->title[0] != '-')
-            width = max(width, strlen_accel(mi->title));
+    const struct menu_item *mi = menu->items;
+    if (!mi)
+        return 0;
+
+    int width = 0;
+    while (mi->title) {
+        width = max(width, get_menu_item_width(mi));
         mi++;
     }
     return width;
@@ -125,7 +163,19 @@ static void render_menu(const struct menu *menus, const struct menu *active_menu
             bool selected = (idx == active_idx);
             scr_setcolor(selected ? COLOR_MENU_SEL : COLOR_MENU);
             scr_locate(y, x + 1);
-            scr_puttext_filled(w - 2, mi->title, true, true);
+
+            const char *shortcut_str     = get_shortcut_str(mi);
+            int         shortcut_str_len = strlen(shortcut_str);
+            int         title_len        = strlen_accel(mi->title);
+
+            scr_putchar(' ');
+            scr_puttext_accel(mi->title, true);
+            scr_fillchar(' ', w - 4 - title_len - shortcut_str_len);
+
+            scr_setcolor(selected ? COLOR_MENU_SHORTCUT_SEL : COLOR_MENU_SHORTCUT);
+            scr_puttext(shortcut_str);
+            scr_setcolor(selected ? COLOR_MENU_SEL : COLOR_MENU);
+            scr_putchar(' ');
 
             if (selected)
                 scr_status_msg(mi->status);
