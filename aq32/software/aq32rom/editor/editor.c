@@ -352,7 +352,9 @@ static void delete_char(void) {
 // }
 
 static void render_editor_border(void) {
-    scr_draw_border(1, 0, 80, 24, COLOR_EDITOR, BORDER_FLAG_NO_BOTTOM | BORDER_FLAG_NO_SHADOW | BORDER_FLAG_TITLE_INVERSE, *state.filename ? state.filename : "Untitled");
+    char title[65];
+    snprintf(title, sizeof(title), "%s%s", *state.filename ? state.filename : "Untitled", state.modified ? "\x88" : "");
+    scr_draw_border(1, 0, 80, 24, COLOR_EDITOR, BORDER_FLAG_NO_BOTTOM | BORDER_FLAG_NO_SHADOW | BORDER_FLAG_TITLE_INVERSE, title);
 }
 
 static void render_statusbar(void) {
