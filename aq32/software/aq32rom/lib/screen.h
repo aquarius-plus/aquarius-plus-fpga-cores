@@ -30,6 +30,13 @@ static inline void scr_puttext(const char *p) {
         scr_putchar(*(p++));
 }
 
+static inline void scr_putbuf(const uint8_t *p, int sz) {
+    while (sz > 0) {
+        sz--;
+        scr_putchar(*(p++));
+    }
+}
+
 static inline int scr_puttext_accel(const char *p, bool show_accel) {
     volatile uint16_t *p_old = p_scr;
     uint16_t           col   = color;
