@@ -176,7 +176,7 @@ bool dialog_save(char *fn_buf, size_t fn_bufsize) {
     return false;
 }
 
-int dialog_confirm(const char *text) {
+int dialog_confirm(const char *title, const char *text) {
     const char *choices_str = "<&Yes>   <&No>   <&Cancel>";
 
     scr_status_msg("Y=Yes   N=No   C/Esc=Cancel");
@@ -189,7 +189,7 @@ int dialog_confirm(const char *text) {
     int x = (80 - w) / 2;
     int y = (25 - h) / 2;
 
-    scr_draw_border(y, x, w, h, COLOR_MENU, 0, NULL);
+    scr_draw_border(y, x, w, h, COLOR_MENU, 0, title);
     scr_setcolor(COLOR_MENU);
     scr_center_text(y + 1, x + 1, w - 2, "", false);
     scr_center_text(y + 2, x + 1, w - 2, text, false);
@@ -212,6 +212,38 @@ int dialog_confirm(const char *text) {
                 case 'Y': return 1;
                 case 'N': return 0;
                 case 'C': return -1;
+            }
+        }
+    }
+}
+
+void dialog_message(const char *title, const char *text) {
+    scr_status_msg("Press enter or escape to dismiss message.");
+
+    int w = strlen(text) + 4;
+    int h = 5;
+    int x = (80 - w) / 2;
+    int y = (25 - h) / 2;
+
+    scr_draw_border(y, x, w, h, COLOR_MENU, 0, title);
+    scr_setcolor(COLOR_MENU);
+    scr_center_text(y + 1, x + 1, w - 2, "", false);
+    scr_center_text(y + 2, x + 1, w - 2, text, false);
+    scr_center_text(y + 3, x + 1, w - 2, "", false);
+
+    while (1) {
+        int key;
+        while ((key = REGS->KEYBUF) < 0);
+
+        if (key & KEY_IS_SCANCODE) {
+            uint8_t scancode = key & 0xFF;
+            // Escape?
+            if (((key & KEY_KEYDOWN) && scancode == SCANCODE_ESC))
+                return;
+        } else {
+            uint8_t ch = key & 0xFF;
+            switch (toupper(ch)) {
+                case CH_ENTER: return;
             }
         }
     }

@@ -4,4 +4,5 @@
 
 bool dialog_open(char *filename, size_t filename_max);
 bool dialog_save(char *filename, size_t filename_max);
-int  dialog_confirm(const char *text);
+int  dialog_confirm(const char *title, const char *text);
+void dialog_message(const char *title, const char *text);

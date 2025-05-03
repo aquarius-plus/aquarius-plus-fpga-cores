@@ -105,7 +105,7 @@ static bool check_modified(void) {
     if (!state.modified)
         return true;
 
-    int result = dialog_confirm("Save the changes made to the current document?");
+    int result = dialog_confirm(NULL, "Save the changes made to the current document?");
     if (result < 0) {
         return false;
     }
@@ -158,7 +158,7 @@ static void cmd_file_save_as(void) {
     if (esp_stat(tmp, &st) == 0) {
         // File exists
         render_editor();
-        if (dialog_confirm("Overwrite existing file?") <= 0)
+        if (dialog_confirm(NULL, "Overwrite existing file?") <= 0)
             do_save = false;
     }
 
@@ -209,7 +209,8 @@ static void load_file(const char *path) {
     reset_state();
     snprintf(state.filename, sizeof(state.filename), "%s", path);
 
-    int line = 0;
+    int  line        = 0;
+    bool do_truncate = false;
 
     FILE *f = fopen(path, "rt");
     if (f != NULL) {
@@ -222,7 +223,15 @@ static void load_file(const char *path) {
                 line_size--;
             linebuf[line_size] = 0;
 
-            // Limit line to 254 characters
+            // Check line length
+            if (!do_truncate && line_size > MAX_LINESZ) {
+                if (dialog_confirm("Error", "Line longer than 254 characters. Truncate long lines?") <= 0) {
+                    reset_state();
+                    break;
+                }
+                do_truncate = true;
+            }
+
             line_size = min(line_size, MAX_LINESZ);
 
             editbuf_insert_line(&state.editbuf, line, linebuf, line_size);
