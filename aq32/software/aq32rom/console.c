@@ -530,6 +530,7 @@ static struct terminal_data terminal = {
 };
 
 void console_init(void) {
+    reinit_video();
     hide_cursor(&terminal);
     clear_display(&terminal, 2);
     show_cursor(&terminal);

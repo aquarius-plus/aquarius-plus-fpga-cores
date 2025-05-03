@@ -69,3 +69,5 @@ static inline int clamp(int val, int _min, int _max) {
         return _max;
     return val;
 }
+
+void reinit_video(void);

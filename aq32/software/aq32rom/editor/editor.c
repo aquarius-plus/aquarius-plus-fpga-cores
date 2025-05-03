@@ -320,6 +320,7 @@ static int get_leading_spaces(void) {
 }
 
 void editor(void) {
+    reinit_video();
     reset_state();
 
     while (1) {

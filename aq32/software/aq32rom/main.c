@@ -4,37 +4,11 @@
 
 void editor(void);
 
-// static const uint16_t palette[16] = {
-//     0x111, 0xF11, 0x1F1, 0xFF1, 0x22E, 0xF1F, 0x3CC, 0xFFF,
-//     0xCCC, 0x3BB, 0xC2C, 0x419, 0xFF7, 0x2D4, 0xB22, 0x333};
-
-static const uint16_t palette[16] = {
-    0x000, 0x00A, 0x0A0, 0x0AA, 0xA00, 0xA0A, 0xA50, 0xAAA,
-    0x555, 0x55F, 0x5F5, 0x5FF, 0xF55, 0xF5F, 0xFF5, 0xFFF};
-
 // called from start.S
 void main(void) {
-    REGS->VCTRL = VCTRL_80COLUMNS | VCTRL_REMAP_BORDER_CH | VCTRL_TEXT_EN;
-    TRAM[2047]  = 0;
-
-    for (int i = 0; i < 64; i++)
-        PALETTE[i] = palette[i & 15];
-
-    FILE *f = fopen("esp:latin1b.chr", "rb");
-    if (f) {
-        fread((void *)CHRAM, 2048, 1, f);
-        fclose(f);
-    }
-
-    // {
-    //     esp_cmd(ESPCMD_KEYMODE);
-    //     esp_send_byte(7);
-    //     int result = (int8_t)esp_get_byte();
-
-    //     // printf("Keymode result=%d\n", result);
-    // }
-
 #if 0
+    editor();
+#else
     console_init();
 
     printf("\nAquarius32 System V0.1\n\nSD:/>\n");
@@ -71,7 +45,6 @@ void main(void) {
             continue;
         printf("%04X\n", ch);
     }
-#else
     editor();
 #endif
 }
