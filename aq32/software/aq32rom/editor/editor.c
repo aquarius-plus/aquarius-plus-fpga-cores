@@ -8,6 +8,7 @@
 
 #define EDITOR_ROWS    22
 #define EDITOR_COLUMNS 78
+#define TAB_SIZE       2
 
 struct editor_state {
     struct editbuf editbuf;
@@ -295,6 +296,29 @@ static void menu_redraw_screen(void) {
     render_editor();
 }
 
+static void insert_ch(uint8_t ch) {
+    update_cursor_pos();
+    if (editbuf_insert_ch(&state.editbuf, state.cursor_line, state.cursor_pos, ch)) {
+        state.cursor_pos++;
+        state.modified = true;
+    }
+}
+
+static int get_leading_spaces(void) {
+    const uint8_t *p;
+    int            line_len = editbuf_get_line(&state.editbuf, state.cursor_line, &p);
+    if (line_len < 0)
+        return 0;
+
+    int leading_spaces = 0;
+    for (int i = 0; i < line_len; i++) {
+        if (p[i] != ' ')
+            break;
+        leading_spaces++;
+    }
+    return leading_spaces;
+}
+
 void editor(void) {
     reset_state();
 
@@ -364,25 +388,63 @@ void editor(void) {
                         break;
 
                     if (state.cursor_pos > 0) {
-                        state.cursor_pos--;
+                        int leading_spaces = get_leading_spaces();
+                        int count          = 1;
+
+                        if (leading_spaces == state.cursor_pos) {
+                            int pos = state.cursor_pos;
+                            do {
+                                pos--;
+                            } while (pos % TAB_SIZE != 0);
+                            count = state.cursor_pos - pos;
+                        }
+
+                        while (count > 0) {
+                            count--;
+                            state.cursor_pos--;
+                            editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
+                        }
                     } else {
                         state.cursor_line--;
                         state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
+                        editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
                     }
 
-                    editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
                     state.modified = true;
                     break;
                 }
                 case CH_ENTER: {
+                    const uint8_t *p;
+                    int            line_len = editbuf_get_line(&state.editbuf, state.cursor_line, &p);
+                    if (line_len < 0)
+                        break;
+
+                    int leading_spaces = get_leading_spaces();
+
                     update_cursor_pos();
                     editbuf_split_line(&state.editbuf, state.cursor_line, state.cursor_pos);
                     state.cursor_line++;
                     state.cursor_pos = 0;
                     state.modified   = true;
+
+                    // Auto indent
+                    while (leading_spaces > 0) {
+                        leading_spaces--;
+                        insert_ch(' ');
+                    }
                     break;
                 }
                 case CH_TAB: {
+                    update_cursor_pos();
+                    int pos = state.cursor_pos;
+                    do {
+                        pos++;
+                    } while (pos % TAB_SIZE != 0);
+
+                    int count = pos - state.cursor_pos;
+                    for (int i = 0; i < count; i++) {
+                        insert_ch(' ');
+                    }
                     break;
                 }
                 default: {
@@ -396,10 +458,7 @@ void editor(void) {
                     }
 
                     if ((ch >= ' ' && ch <= '~') || (ch >= 0xA0)) {
-                        update_cursor_pos();
-                        if (editbuf_insert_ch(&state.editbuf, state.cursor_line, state.cursor_pos, ch))
-                            state.cursor_pos++;
-                        state.modified = true;
+                        insert_ch(ch);
                     }
                     break;
                 }
