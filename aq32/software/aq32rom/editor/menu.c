@@ -27,7 +27,7 @@ static const char *get_shortcut_str(const struct menu_item *mi) {
     return tmp;
 }
 
-menu_handler_t menu_find_shortcut(const struct menu *menus, uint16_t shortcut) {
+menu_handler_t menubar_find_shortcut(const struct menu *menus, uint16_t shortcut) {
     const struct menu *m = menus;
     while (m->title) {
         const struct menu_item *mi = m->items;
@@ -42,26 +42,26 @@ menu_handler_t menu_find_shortcut(const struct menu *menus, uint16_t shortcut) {
     return NULL;
 }
 
-static int get_menu_item_width(const struct menu_item *mi) {
+static int menu_item_get_width(const struct menu_item *mi) {
     if (mi->title[0] == '-')
         return 0;
     return strlen_accel(mi->title) + strlen(get_shortcut_str(mi));
 }
 
-static int get_menu_width(const struct menu *menu) {
+static int menu_get_width(const struct menu *menu) {
     const struct menu_item *mi = menu->items;
     if (!mi)
         return 0;
 
     int width = 0;
     while (mi->title) {
-        width = max(width, get_menu_item_width(mi));
+        width = max(width, menu_item_get_width(mi));
         mi++;
     }
     return width;
 }
 
-void render_menubar(const struct menu *menus, bool show_accel, const struct menu *active_menu) {
+void menubar_render(const struct menu *menus, bool show_accel, const struct menu *active_menu) {
     scr_locate(0, 0);
     scr_setcolor(COLOR_MENU);
 
@@ -144,7 +144,7 @@ static const struct menu *get_menu_by_accel(const struct menu *menus, char ch) {
 static void render_menu(const struct menu *menus, const struct menu *active_menu, int active_idx, bool render_border) {
     int x    = get_menu_offset(menus, active_menu);
     int y    = 1;
-    int w    = 4 + get_menu_width(active_menu);
+    int w    = 4 + menu_get_width(active_menu);
     int idx  = 0;
     int rows = get_menuitem_count(active_menu, true);
 
@@ -188,13 +188,13 @@ static void render_menu(const struct menu *menus, const struct menu *active_menu
     }
 }
 
-void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {
+void menubar_handle(const struct menu *menus, void (*redraw_screen)(void)) {
     int                key;
     const struct menu *active_menu = menus;
     bool               menu_open   = false;
 
     // Entering when Alt is being pressed
-    render_menubar(menus, true, NULL);
+    menubar_render(menus, true, NULL);
 
     // Wait for Alt to be released or an accelerator key pressed
     while (1) {
@@ -244,7 +244,7 @@ void handle_menu(const struct menu *menus, void (*redraw_screen)(void)) {
             active_idx = 0;
             redraw_screen();
         }
-        render_menubar(menus, !menu_open, active_menu);
+        menubar_render(menus, !menu_open, active_menu);
 
         if (menu_open) {
             render_menu(menus, active_menu, active_idx, active_menu != prev_menu);

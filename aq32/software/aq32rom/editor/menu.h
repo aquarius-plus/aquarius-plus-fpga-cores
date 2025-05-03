@@ -16,6 +16,6 @@ struct menu {
     const struct menu_item *items;
 };
 
-void           render_menubar(const struct menu *menus, bool show_accel, const struct menu *active_menu);
-void           handle_menu(const struct menu *menus, void (*redraw_screen)(void));
-menu_handler_t menu_find_shortcut(const struct menu *menus, uint16_t shortcut);
+void           menubar_render(const struct menu *menus, bool show_accel, const struct menu *active_menu);
+menu_handler_t menubar_find_shortcut(const struct menu *menus, uint16_t shortcut);
+void           menubar_handle(const struct menu *menus, void (*redraw_screen)(void));

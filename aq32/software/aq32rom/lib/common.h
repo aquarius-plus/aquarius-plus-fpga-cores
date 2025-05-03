@@ -28,6 +28,8 @@
 #define COLOR_STATUS2           0x03
 #define COLOR_FIELD             0xF8
 
+#define CH_TAB         '\t'
+#define CH_ENTER       '\r'
 #define CH_BACKSPACE   '\b'
 #define CH_F1          0x80
 #define CH_F2          0x81

@@ -181,6 +181,25 @@ static uint8_t *getline_addr(int line) {
     return p;
 }
 
+static void update_num_lines(void) {
+    int cnt = 0;
+
+    uint8_t *p = edit_buf;
+    while (p[0]) {
+        cnt++;
+        p += 1 + p[0];
+    }
+    state.num_lines = cnt;
+}
+
+static uint8_t *get_end_of_edit_buf(void) {
+    uint8_t *p = edit_buf;
+    while (p[0]) {
+        p += 1 + p[0];
+    }
+    return p;
+}
+
 static int getline_length(int line) {
     const uint8_t *p = getline_addr(line);
     if (p[0] == 0)
@@ -300,7 +319,7 @@ static void resize_linebuffer(uint8_t *p, uint8_t new_size) {
         return;
 
     uint8_t *p_next = p + 1 + p[0];
-    uint8_t *p_end  = getline_addr(999999) + 2;
+    uint8_t *p_end  = get_end_of_edit_buf() + 2;
     memmove(p + 1 + new_size, p_next, p_end - p_next);
     p[0] = new_size;
 }
@@ -316,7 +335,7 @@ static void insert_char(uint8_t ch) {
 
     // Enough room in buffer to increase line size?
     if (p[0] < 1 + cur_line_size + 1) {
-        resize_linebuffer(p, min(1 + cur_line_size + 16, MAX_BUFSZ));
+        resize_linebuffer(p, min(1 + cur_line_size + 15, MAX_BUFSZ));
     }
 
     uint8_t *p_cursor = p + 2 + state.cursor_pos2;
@@ -330,13 +349,43 @@ static void insert_char(uint8_t ch) {
 
 static void delete_char(void) {
     uint8_t *p = getline_addr(state.cursor_line);
-    if (p[0] == 0 || p[1] == 0)
+    if (p[0] == 0)
         return;
 
-    uint8_t  cur_line_size = p[1];
-    uint8_t *p_cursor      = p + 2 + state.cursor_pos2;
-    memmove(p_cursor, p_cursor + 1, cur_line_size - state.cursor_pos2 - 1);
-    p[1]--;
+    if (state.cursor_pos2 > p[1])
+        state.cursor_pos2 = p[1];
+
+    uint8_t *p_cursor = p + 2 + state.cursor_pos2;
+
+    uint8_t cur_line_size = p[1];
+    if (state.cursor_pos2 >= cur_line_size) {
+        // Merge with next line
+        uint8_t *pn        = p + 1 + p[0];
+        uint8_t  pn_bufsz  = pn[0];
+        uint8_t  pn_linesz = pn[1];
+        if (pn_bufsz == 0 || p[1] + pn_linesz > MAX_LINESZ)
+            return;
+
+        uint8_t *eoeb = get_end_of_edit_buf();
+        uint8_t *pnn  = pn + 1 + pn_bufsz;
+
+        memmove(p_cursor, pn + 2, pn_linesz);
+        p[1] += pn_linesz;
+
+        unsigned new_bufsize = p[0] + 1 + pn_bufsz;
+        if (new_bufsize > MAX_BUFSZ) {
+            memmove(p + 1 + p[1] + 1, pnn, eoeb + 2 - pnn);
+            new_bufsize = p[1] + 1;
+        }
+        p[0] = new_bufsize;
+
+        return;
+
+    } else {
+        // Delete within line
+        memmove(p_cursor, p_cursor + 1, cur_line_size - state.cursor_pos2 - 1);
+        p[1]--;
+    }
 
     state.modified = true;
 }
@@ -376,7 +425,8 @@ void editor(void) {
     reset_state();
 
     while (1) {
-        render_menubar(menubar_menus, false, NULL);
+        update_num_lines();
+        menubar_render(menubar_menus, false, NULL);
         render_editor_border();
         render_editor();
         render_statusbar();
@@ -387,7 +437,7 @@ void editor(void) {
         if (key & KEY_IS_SCANCODE) {
             uint8_t scancode = key & 0xFF;
             if ((key & KEY_KEYDOWN) && (scancode == SCANCODE_LALT || scancode == SCANCODE_RALT)) {
-                handle_menu(menubar_menus, menu_redraw_screen);
+                menubar_handle(menubar_menus, menu_redraw_screen);
             }
 
         } else {
@@ -435,13 +485,28 @@ void editor(void) {
                         state.cursor_pos2 = state.cursor_pos2 - 1;
                         state.cursor_pos  = state.cursor_pos2;
                         delete_char();
+                    } else if (state.cursor_line > 0) {
+                        state.cursor_line--;
+                        state.cursor_pos2 = getline_length(state.cursor_line);
+                        state.cursor_pos  = state.cursor_pos2;
+                        delete_char();
                     }
+                    break;
+                }
+                case CH_ENTER: {
+                    split_line();
+                    state.cursor_line++;
+                    state.cursor_pos2 = 0;
+                    state.cursor_pos  = state.cursor_pos2;
+                    break;
+                }
+                case CH_TAB: {
                     break;
                 }
                 default: {
                     if (key & (KEY_MOD_CTRL | KEY_MOD_ALT)) {
                         uint16_t       shortcut = (key & (KEY_MOD_CTRL | KEY_MOD_SHIFT | KEY_MOD_ALT)) | toupper(ch);
-                        menu_handler_t handler  = menu_find_shortcut(menubar_menus, shortcut);
+                        menu_handler_t handler  = menubar_find_shortcut(menubar_menus, shortcut);
                         if (handler) {
                             handler();
                             break;
@@ -459,7 +524,7 @@ void editor(void) {
         state.cursor_line    = clamp(state.cursor_line, 0, state.num_lines);
         state.cursor_pos     = max(0, state.cursor_pos);
         state.cursor_pos2    = min(state.cursor_pos, getline_length(state.cursor_line));
-        state.scr_first_line = clamp(state.scr_first_line, state.cursor_line - (EDITOR_ROWS - 1), state.cursor_line);
-        state.scr_first_pos  = clamp(state.scr_first_pos, state.cursor_pos2 - (EDITOR_COLUMNS - 1), state.cursor_pos2);
+        state.scr_first_line = clamp(state.scr_first_line, max(0, state.cursor_line - (EDITOR_ROWS - 1)), state.cursor_line);
+        state.scr_first_pos  = clamp(state.scr_first_pos, max(0, state.cursor_pos2 - (EDITOR_COLUMNS - 1)), state.cursor_pos2);
     }
 }
