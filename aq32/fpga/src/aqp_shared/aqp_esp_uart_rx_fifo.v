@@ -1,7 +1,7 @@
 `default_nettype none
 `timescale 1 ns / 1 ps
 
-module aqp_esp_uart_fifo(
+module aqp_esp_uart_rx_fifo(
     input  wire       clk,
     input  wire       reset,
 
@@ -15,8 +15,8 @@ module aqp_esp_uart_fifo(
     output wire       full,
     output wire       almost_full);
 
-    reg [3:0] q_wridx = 0, q_rdidx = 0;
-    reg [8:0] mem [15:0] /* synthesis syn_ramstyle = "distributed_ram" */;
+    reg  [3:0] q_wridx = 0, q_rdidx = 0;
+    reg  [8:0] mem [15:0] /* synthesis syn_ramstyle = "distributed_ram" */;
 
     wire [3:0] d_wridx = q_wridx + 4'd1;
     wire [3:0] d_rdidx = q_rdidx + 4'd1;
@@ -27,9 +27,7 @@ module aqp_esp_uart_fifo(
     assign almost_full = count   >= 4'd8;
 
     always @(posedge clk) begin
-        if (wr_en && !full) begin
-            mem[q_wridx] <= wrdata;
-        end
+        if (wr_en && !full)  mem[q_wridx] <= wrdata;
 
         rddata <= mem[q_rdidx];
     end

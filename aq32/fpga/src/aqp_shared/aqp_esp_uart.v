@@ -46,7 +46,7 @@ module aqp_esp_uart(
 
     wire       txfifo_almost_full; // unused
 
-    aqp_esp_uart_fifo tx_fifo(
+    aqp_esp_uart_tx_fifo tx_fifo(
 	    .clk(clk),
         .reset(reset),
 
@@ -169,7 +169,7 @@ module aqp_esp_uart(
         end
     end
 
-    aqp_esp_uart_fifo rx_fifo(
+    aqp_esp_uart_rx_fifo rx_fifo(
 	    .clk(clk),
         .reset(reset),
 
