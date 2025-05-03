@@ -66,20 +66,20 @@ int editbuf_get_line(struct editbuf *eb, int line, const uint8_t **p) {
     return pl[1];
 }
 
-void editbuf_insert_ch(struct editbuf *eb, int line, int pos, char ch) {
+bool editbuf_insert_ch(struct editbuf *eb, int line, int pos, char ch) {
     if (line < 0 || line > eb->line_count || pos < 0)
-        return;
+        return false;
 
     uint8_t *p          = getline_addr(eb, line);
     uint8_t  cur_linesz = 0;
     if (line < eb->line_count) {
         if (p[0] + 1 > MAX_BUFSZ)
-            return;
+            return false;
 
         cur_linesz = p[1];
     }
     if (pos > cur_linesz)
-        return;
+        return false;
 
     resize_linebuffer(eb, p, min(1 + cur_linesz + 15, MAX_BUFSZ));
 
@@ -91,6 +91,7 @@ void editbuf_insert_ch(struct editbuf *eb, int line, int pos, char ch) {
     if (line == eb->line_count) {
         eb->line_count++;
     }
+    return true;
 }
 
 void editbuf_delete_ch(struct editbuf *eb, int line, int pos) {

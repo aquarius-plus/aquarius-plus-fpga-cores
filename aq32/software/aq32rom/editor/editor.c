@@ -93,6 +93,14 @@ static void reset_state(void) {
     editbuf_init(&state.editbuf);
 }
 
+static int get_cursor_pos(void) {
+    return min(state.cursor_pos, max(0, editbuf_get_line(&state.editbuf, state.cursor_line, NULL)));
+}
+
+static void update_cursor_pos(void) {
+    state.cursor_pos = get_cursor_pos();
+}
+
 static bool check_modified(void) {
     if (!state.modified)
         return true;
@@ -177,7 +185,7 @@ static void render_editor(void) {
         line_len = clamp(line_len - state.scr_first_pos, 0, EDITOR_COLUMNS);
 
         if (line == state.cursor_line) {
-            int cpos = min(line_len, state.cursor_pos);
+            int cpos = get_cursor_pos();
 
             for (int i = 0; i < EDITOR_COLUMNS; i++) {
                 scr_setcolor(i == cpos - state.scr_first_pos ? COLOR_CURSOR : COLOR_EDITOR);
@@ -290,9 +298,6 @@ void editor(void) {
         int key;
         while ((key = REGS->KEYBUF) < 0);
 
-        int cline_len = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
-        int cpos      = min(cline_len, state.cursor_pos);
-
         if (key & KEY_IS_SCANCODE) {
             uint8_t scancode = key & 0xFF;
             if ((key & KEY_KEYDOWN) && (scancode == SCANCODE_LALT || scancode == SCANCODE_RALT)) {
@@ -305,7 +310,8 @@ void editor(void) {
                 case CH_UP: state.cursor_line--; break;
                 case CH_DOWN: state.cursor_line++; break;
                 case CH_LEFT: {
-                    state.cursor_pos = cpos - 1;
+                    update_cursor_pos();
+                    state.cursor_pos--;
                     if (state.cursor_pos < 0 && state.cursor_line > 0) {
                         state.cursor_line--;
                         state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
@@ -313,7 +319,7 @@ void editor(void) {
                     break;
                 }
                 case CH_RIGHT: {
-                    state.cursor_pos = cpos + 1;
+                    state.cursor_pos++;
                     if (state.cursor_pos > editbuf_get_line(&state.editbuf, state.cursor_line, NULL)) {
                         state.cursor_line++;
                         state.cursor_pos = 0;
@@ -338,29 +344,33 @@ void editor(void) {
                 }
                 case CH_PAGEUP: state.cursor_line -= (EDITOR_ROWS - 1); break;
                 case CH_PAGEDOWN: state.cursor_line += (EDITOR_ROWS - 1); break;
-                case CH_DELETE: editbuf_delete_ch(&state.editbuf, state.cursor_line, cpos); break;
+                case CH_DELETE: {
+                    update_cursor_pos();
+                    editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
+                    break;
+                }
                 case CH_BACKSPACE: {
-                    if (state.cursor_line <= 0 && cpos <= 0)
+                    update_cursor_pos();
+                    if (state.cursor_line <= 0 && state.cursor_pos <= 0)
                         break;
 
-                    if (cpos > 0) {
-                        state.cursor_pos = cpos - 1;
+                    if (state.cursor_pos > 0) {
+                        state.cursor_pos--;
                     } else {
                         state.cursor_line--;
-                        cline_len        = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
-                        state.cursor_pos = cpos = cline_len;
+                        state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
                     }
 
-                    editbuf_delete_ch(&state.editbuf, state.cursor_line, cpos);
+                    editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
                     state.modified = true;
                     break;
                 }
                 case CH_ENTER: {
-                    editbuf_split_line(&state.editbuf, state.cursor_line, cpos);
+                    update_cursor_pos();
+                    editbuf_split_line(&state.editbuf, state.cursor_line, state.cursor_pos);
                     state.cursor_line++;
-                    cline_len        = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
-                    state.cursor_pos = cpos = 0;
-                    state.modified          = true;
+                    state.cursor_pos = 0;
+                    state.modified   = true;
                     break;
                 }
                 case CH_TAB: {
@@ -377,9 +387,10 @@ void editor(void) {
                     }
 
                     if ((ch >= ' ' && ch <= '~') || (ch >= 0xA0)) {
-                        editbuf_insert_ch(&state.editbuf, state.cursor_line, cpos, ch);
-                        state.cursor_pos = cpos = cpos + 1;
-                        state.modified          = true;
+                        update_cursor_pos();
+                        if (editbuf_insert_ch(&state.editbuf, state.cursor_line, state.cursor_pos, ch))
+                            state.cursor_pos++;
+                        state.modified = true;
                     }
                     break;
                 }
@@ -389,6 +400,6 @@ void editor(void) {
         state.cursor_line    = clamp(state.cursor_line, 0, editbuf_get_line_count(&state.editbuf));
         state.cursor_pos     = max(0, state.cursor_pos);
         state.scr_first_line = clamp(state.scr_first_line, max(0, state.cursor_line - (EDITOR_ROWS - 1)), state.cursor_line);
-        state.scr_first_pos  = clamp(state.scr_first_pos, max(0, cpos - (EDITOR_COLUMNS - 1)), cpos);
+        state.scr_first_pos  = clamp(state.scr_first_pos, max(0, get_cursor_pos() - (EDITOR_COLUMNS - 1)), get_cursor_pos());
     }
 }
