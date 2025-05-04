@@ -5,6 +5,10 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+#define PATH_MAX 256
+
+static const char *search_path = ".:/cores/aq32";
+
 void skip_whitespace(char **p) {
     while (**p == ' ') (*p)++;
 }
@@ -32,7 +36,46 @@ char *parse_param(char **p) {
     return result;
 }
 
-#define PATH_MAX 256
+static char *search_in_path(const char *name) {
+    // Relative path, use search path
+    const char *path_list = search_path; // getenv("PATH");
+    if (path_list == NULL)
+        return NULL;
+
+    unsigned    name_len = strlen(name);
+    const char *path     = path_list;
+    char       *result   = NULL;
+
+    while (1) {
+        const char *delim    = strchr(path, ':');
+        unsigned    path_len = (delim != NULL) ? (unsigned)(delim - path) : strlen(path);
+
+        if (path_len != 0) {
+            char *new_result = realloc(result, path_len + 1 + name_len + 1);
+            if (new_result == NULL)
+                break;
+            result = new_result;
+
+            strncpy(result, path, path_len);
+            result[path_len] = 0;
+            strcat(result, "/");
+            strcat(result, name);
+
+            struct esp_stat st;
+            if (esp_stat(result, &st) == 0 && (st.attr & DE_ATTR_DIR) == 0) {
+                return result;
+            }
+        }
+
+        if (delim == NULL)
+            break;
+        path = delim + 1;
+    }
+    if (result)
+        free(result);
+
+    return NULL;
+}
 
 int cmd_cd(int argc, char **argv) {
     const char *path = "";
@@ -150,7 +193,7 @@ int cmd_rm(int argc, char **argv) {
 
 void load_executable(const char *path);
 
-int cmd_execute(int argc, char **argv) {
+int execute(int argc, char **argv) {
     char path[256];
     snprintf(path, sizeof(path) - 5, argv[0]);
     int len = strlen(path);
@@ -163,21 +206,37 @@ int cmd_execute(int argc, char **argv) {
         strcat(path, ".aq32");
     }
 
+    char *filename      = path;
+    char *search_result = NULL;
+    if (strchr(filename, '/') == NULL) {
+        // Search in path
+        if ((search_result = search_in_path(filename)) == NULL) {
+            fprintf(stdout, "%s: command not found\n", filename);
+            return -1;
+        }
+        filename = search_result;
+    }
+
     struct esp_stat st;
-    int             result = esp_stat(path, &st);
+    int             result = esp_stat(filename, &st);
     if (result < 0) {
         esp_set_errno(result);
-        perror(path);
-        return 1;
+        perror(filename);
+        goto done;
     }
 
     if ((st.attr & DE_ATTR_DIR) != 0) {
         errno = EISDIR;
-        perror(path);
-        return 1;
+        perror(filename);
+        goto done;
     }
-    load_executable(path);
+    load_executable(filename);
     return 0;
+
+done:
+    if (search_result)
+        free(search_result);
+    return 1;
 }
 
 // called from start.S
@@ -244,7 +303,7 @@ void main(void) {
             cmd_rm(cmd_argc, cmd_argv);
         } else if (strcmp(cmd, "cp") == 0) {
         } else {
-            cmd_execute(cmd_argc, cmd_argv);
+            execute(cmd_argc, cmd_argv);
         }
     }
 }

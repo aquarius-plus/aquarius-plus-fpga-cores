@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.13)
 
-project(aq32rom VERSION 0.1 LANGUAGES C CXX ASM)
+project(edit VERSION 0.1 LANGUAGES C CXX ASM)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(EXECNAME aq32rom)
+set(EXECNAME edit)
 
 set(APPLE FALSE)
 set(CMAKE_C_COMPILER riscv-none-elf-gcc)
@@ -28,7 +28,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${EXECNAME}.elf")
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND riscv-none-elf-objcopy -O binary ${EXECNAME}.elf ${EXECNAME}.bin
+    COMMAND riscv-none-elf-objcopy -O binary ${EXECNAME}.elf ${EXECNAME}.aq32
     COMMAND riscv-none-elf-objdump -d ${EXECNAME}.elf > dump.txt
     COMMAND riscv-none-elf-objdump -x ${EXECNAME}.elf > dump_x.txt
     COMMAND riscv-none-elf-objdump -t ${EXECNAME}.elf | expand -t36 | tail -n +5 | sort > dump_symbols.txt
@@ -56,7 +56,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_sources(${PROJECT_NAME} PRIVATE
     main.c
-    console.c
 
     lib/start.S
     lib/syscalls.c

@@ -1,3 +1,4 @@
+#include "editor.h"
 #include "common.h"
 #include "regs.h"
 #include "menu.h"

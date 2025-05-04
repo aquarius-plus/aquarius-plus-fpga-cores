@@ -1,5 +1,4 @@
 #include "common.h"
-#include "console.h"
 #include <errno.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -66,26 +65,6 @@ ssize_t _read(int fd, void *buf, size_t count) {
 
         return result;
 
-    } else if (fd == STDIN_FILENO) {
-        uint8_t *p = buf;
-
-        while (count) {
-            int ch = REGS->KEYBUF;
-            if (ch < 0) {
-                // No data
-                if (p > (uint8_t *)buf) {
-                    // Return what we got so far
-                    break;
-                }
-            } else {
-                if ((ch & KEY_IS_SCANCODE) == 0) {
-                    *(p++) = ch & 0xFF;
-                    count--;
-                }
-            }
-        }
-        return p - (uint8_t *)buf;
-
     } else {
         errno = EINVAL;
         return -1;
@@ -98,17 +77,6 @@ int _write(int fd, const void *buf, size_t count) {
         if (result < 0)
             return set_errno(result);
         return result;
-
-    } else if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
-        const uint8_t *p = buf;
-        while (count--) {
-            uint8_t ch = *(p++);
-            if (ch == '\n') {
-                console_putc('\r');
-            }
-            console_putc(ch);
-        }
-        return p - (uint8_t *)buf;
 
     } else {
         errno = EINVAL;
