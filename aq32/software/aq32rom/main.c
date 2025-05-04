@@ -6,7 +6,7 @@ void editor(void);
 
 // called from start.S
 void main(void) {
-#if 0
+#if 1
     editor();
 #else
     console_init();

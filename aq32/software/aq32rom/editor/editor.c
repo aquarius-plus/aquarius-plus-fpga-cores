@@ -21,6 +21,7 @@ struct editor_state {
     bool modified;
 };
 
+static uint32_t     mycrc;
 struct editor_state state;
 
 static void load_file(const char *path);
@@ -280,7 +281,9 @@ static void render_statusbar(void) {
     // uint8_t *p = getline_addr(state.cursor_line);
     // snprintf(tmp, sizeof(tmp), "p[0]=%u p[1]=%u lines=%u cursor_line=%d scr_first_line=%d", p[0], p[1], state.num_lines, state.cursor_line, state.scr_first_line);
 
-    scr_status_msg("");
+    snprintf(tmp, sizeof(tmp), "CRC: %08lX", mycrc);
+
+    scr_status_msg(tmp);
     scr_setcolor(COLOR_STATUS2);
     scr_putchar(26);
 
@@ -319,7 +322,23 @@ static int get_leading_spaces(void) {
     return leading_spaces;
 }
 
+unsigned int crc32b(const uint8_t *buf, size_t count) {
+    uint32_t crc = 0xFFFFFFFF;
+    while (count > 0) {
+        count--;
+        crc = crc ^ *(buf++);
+        for (int j = 0; j < 8; j++) {
+            uint32_t mask = -(crc & 1);
+            crc           = (crc >> 1) ^ (0xEDB88320 & mask);
+        }
+    }
+    return ~crc;
+}
+
 void editor(void) {
+    extern uint8_t __bss_start;
+    mycrc = crc32b((const uint8_t *)0x80000, &__bss_start - (const uint8_t *)0x80000);
+
     reinit_video();
     reset_state();
 
