@@ -170,6 +170,9 @@ static void cmd_file_save_as(void) {
 }
 
 static void cmd_file_exit(void) {
+    if (check_modified()) {
+        asm("j 0");
+    }
 }
 
 static void render_editor(void) {

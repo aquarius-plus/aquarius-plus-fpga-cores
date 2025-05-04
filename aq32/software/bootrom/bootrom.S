@@ -28,6 +28,17 @@ reset_handler:
     j       _load_program_entry
 
 _reset_entry:
+    // Disable interrupts
+    csrw    mstatus, zero
+    csrw    mie, zero
+
+    // t0=register base
+    li      t0, REG_ESP_CTRL
+
+    // Reset ESP
+    li      a0, ESPCMD_RESET
+    call    _esp_cmd
+
     // Use default file name
     la      a0, _fn
 
@@ -42,9 +53,10 @@ _load_program_entry:
     // t0=register base
     li      t0, REG_ESP_CTRL
 
-    // Reset ESP
-    li      a0, ESPCMD_RESET
+    // Close all files
+    li      a0, ESPCMD_CLOSEALL
     call    _esp_cmd
+    call    _esp_get_byte
 
     // Open file
     li      a0, ESPCMD_OPEN
@@ -140,4 +152,4 @@ _esp_get_byte:      // result in a0, clobbers t1
     lw      a0, 4(t0)
     ret
 
-_fn: .ascii "aq32.rom\0"
+_fn: .ascii "/cores/aq32/shell.aq32\0"

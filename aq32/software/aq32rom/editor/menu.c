@@ -96,12 +96,12 @@ static const struct menu_item *get_menu_item_by_idx(const struct menu *menu, int
     int                     count = 0;
     const struct menu_item *mi    = menu->items;
     while (mi && mi->title) {
-        if (count == idx)
-            return mi;
+        if (mi->title[0] != '-') {
+            if (count == idx)
+                return mi;
 
-        if (mi->title[0] != '-')
             count++;
-
+        }
         mi++;
     }
     return NULL;
