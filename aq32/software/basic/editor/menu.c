@@ -12,17 +12,50 @@ static int get_menuitem_count(const struct menu *menu, bool include_separator) {
     return count;
 }
 
+static const char *get_key_str(uint8_t ch) {
+    static char tmp[4];
+    switch (ch) {
+        case CH_F1: return "F1";
+        case CH_F2: return "F2";
+        case CH_F3: return "F3";
+        case CH_F4: return "F4";
+        case CH_F5: return "F5";
+        case CH_F6: return "F6";
+        case CH_F7: return "F7";
+        case CH_F8: return "F8";
+        case CH_F9: return "F9";
+        case CH_F10: return "F10";
+        case CH_F11: return "F11";
+        case CH_F12: return "F12";
+        case CH_PRINTSCREEN: return "PrtScr";
+        case CH_PAUSE: return "Pause";
+        case CH_INSERT: return "Ins";
+        case CH_HOME: return "Home";
+        case CH_PAGEUP: return "PgUp";
+        case CH_DELETE: return "Del";
+        case CH_END: return "End";
+        case CH_PAGEDOWN: return "PgDn";
+        case CH_RIGHT: return "Right";
+        case CH_LEFT: return "Left";
+        case CH_DOWN: return "Down";
+        case CH_UP: return "Up";
+        default:
+            snprintf(tmp, sizeof(tmp), "%c", ch);
+            return tmp;
+    }
+}
+
 static const char *get_shortcut_str(const struct menu_item *mi) {
     static char tmp[64];
     if (mi->shortcut == 0) {
         tmp[0] = 0;
     } else {
         snprintf(
-            tmp, sizeof(tmp), "  %s%s%s%c",
+            tmp, sizeof(tmp), "  %s%s%s%s",
             (mi->shortcut & KEY_MOD_CTRL) ? "Ctrl+" : "",
             (mi->shortcut & KEY_MOD_SHIFT) ? "Shift+" : "",
             (mi->shortcut & KEY_MOD_ALT) ? "Alt+" : "",
-            mi->shortcut & 0xFF);
+            get_key_str(mi->shortcut & 0xFF));
     }
     return tmp;
 }

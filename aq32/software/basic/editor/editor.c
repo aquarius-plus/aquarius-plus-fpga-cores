@@ -6,6 +6,7 @@
 #include "dialog.h"
 #include "esp.h"
 #include "editbuf.h"
+#include "basic/basic.h"
 
 #define EDITOR_ROWS    22
 #define EDITOR_COLUMNS 78
@@ -34,6 +35,8 @@ static void cmd_file_open(void);
 static void cmd_file_save(void);
 static void cmd_file_save_as(void);
 static void cmd_file_exit(void);
+
+static void cmd_run_start(void);
 
 #pragma region Menus
 static const struct menu_item menu_file_items[] = {
@@ -67,10 +70,10 @@ static const struct menu_item menu_file_items[] = {
 //     {.title = NULL},
 // };
 
-// static const struct menu_item menu_run_items[] = {
-//     {.title = "&Start   F5"},
-//     {.title = NULL},
-// };
+static const struct menu_item menu_run_items[] = {
+    {.title = "&Start", .shortcut = CH_F5, .handler = cmd_run_start},
+    {.title = NULL},
+};
 
 // static const struct menu_item menu_help_items[] = {
 //     {.title = "&Index"},
@@ -85,7 +88,7 @@ static const struct menu menubar_menus[] = {
     {.title = "&File", .items = menu_file_items},
     // {.title = "&Edit", .items = menu_edit_items},
     // {.title = "&View", .items = menu_view_items},
-    // {.title = "&Run", .items = menu_run_items},
+    {.title = "&Run", .items = menu_run_items},
     // {.title = "&Help", .items = menu_help_items},
     {.title = NULL},
 };
@@ -173,6 +176,13 @@ static void cmd_file_save_as(void) {
 static void cmd_file_exit(void) {
     if (check_modified()) {
         asm("j 0");
+    }
+}
+
+static void cmd_run_start(void) {
+    int result = basic_run();
+    if (result < 0) {
+        dialog_message("Error", basic_get_error_msg());
     }
 }
 
@@ -339,6 +349,8 @@ unsigned int crc32b(const uint8_t *buf, size_t count) {
     return ~crc;
 }
 
+static bool is_cntrl(uint8_t ch) { return (ch < 32 || (ch >= 127 && ch < 160)); }
+
 void editor(void) {
     extern uint8_t __bss_start;
     mycrc = crc32b((const uint8_t *)0x80000, &__bss_start - (const uint8_t *)0x80000);
@@ -363,128 +375,130 @@ void editor(void) {
 
         } else {
             uint8_t ch = key & 0xFF;
-            switch (ch) {
-                case CH_UP: state.cursor_line--; break;
-                case CH_DOWN: state.cursor_line++; break;
-                case CH_LEFT: {
-                    update_cursor_pos();
-                    state.cursor_pos--;
-                    if (state.cursor_pos < 0 && state.cursor_line > 0) {
-                        state.cursor_line--;
-                        state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
-                    }
-                    break;
-                }
-                case CH_RIGHT: {
-                    state.cursor_pos++;
-                    if (state.cursor_pos > editbuf_get_line(&state.editbuf, state.cursor_line, NULL)) {
-                        state.cursor_line++;
-                        state.cursor_pos = 0;
-                    }
-                    break;
-                }
-                case CH_HOME: {
-                    if (key & KEY_MOD_CTRL) {
-                        state.cursor_line = 0;
-                    }
-                    state.cursor_pos = 0;
-                    break;
-                }
-                case CH_END: {
-                    if (key & KEY_MOD_CTRL) {
-                        state.cursor_line = editbuf_get_line_count(&state.editbuf);
 
-                    } else {
-                        state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
-                    }
-                    break;
-                }
-                case CH_PAGEUP: state.cursor_line -= (EDITOR_ROWS - 1); break;
-                case CH_PAGEDOWN: state.cursor_line += (EDITOR_ROWS - 1); break;
-                case CH_DELETE: {
-                    update_cursor_pos();
-                    editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
-                    break;
-                }
-                case CH_BACKSPACE: {
-                    update_cursor_pos();
-                    if (state.cursor_line <= 0 && state.cursor_pos <= 0)
-                        break;
+            menu_handler_t handler = NULL;
+            if ((key & (KEY_MOD_CTRL | KEY_MOD_ALT)) || is_cntrl(key)) {
+                uint16_t shortcut = (key & (KEY_MOD_CTRL | KEY_MOD_SHIFT | KEY_MOD_ALT)) | toupper(ch);
+                handler           = menubar_find_shortcut(menubar_menus, shortcut);
+            }
 
-                    if (state.cursor_pos > 0) {
-                        int leading_spaces = get_leading_spaces();
-                        int count          = 1;
-
-                        if (leading_spaces == state.cursor_pos) {
-                            int pos = state.cursor_pos;
-                            do {
-                                pos--;
-                            } while (pos % TAB_SIZE != 0);
-                            count = state.cursor_pos - pos;
+            if (handler) {
+                handler();
+            } else {
+                switch (ch) {
+                    case CH_UP: state.cursor_line--; break;
+                    case CH_DOWN: state.cursor_line++; break;
+                    case CH_LEFT: {
+                        update_cursor_pos();
+                        state.cursor_pos--;
+                        if (state.cursor_pos < 0 && state.cursor_line > 0) {
+                            state.cursor_line--;
+                            state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
                         }
+                        break;
+                    }
+                    case CH_RIGHT: {
+                        state.cursor_pos++;
+                        if (state.cursor_pos > editbuf_get_line(&state.editbuf, state.cursor_line, NULL)) {
+                            state.cursor_line++;
+                            state.cursor_pos = 0;
+                        }
+                        break;
+                    }
+                    case CH_HOME: {
+                        if (key & KEY_MOD_CTRL) {
+                            state.cursor_line = 0;
+                        }
+                        state.cursor_pos = 0;
+                        break;
+                    }
+                    case CH_END: {
+                        if (key & KEY_MOD_CTRL) {
+                            state.cursor_line = editbuf_get_line_count(&state.editbuf);
 
-                        while (count > 0) {
-                            count--;
-                            state.cursor_pos--;
+                        } else {
+                            state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
+                        }
+                        break;
+                    }
+                    case CH_PAGEUP: state.cursor_line -= (EDITOR_ROWS - 1); break;
+                    case CH_PAGEDOWN: state.cursor_line += (EDITOR_ROWS - 1); break;
+                    case CH_DELETE: {
+                        update_cursor_pos();
+                        editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
+                        break;
+                    }
+                    case CH_BACKSPACE: {
+                        update_cursor_pos();
+                        if (state.cursor_line <= 0 && state.cursor_pos <= 0)
+                            break;
+
+                        if (state.cursor_pos > 0) {
+                            int leading_spaces = get_leading_spaces();
+                            int count          = 1;
+
+                            if (leading_spaces == state.cursor_pos) {
+                                int pos = state.cursor_pos;
+                                do {
+                                    pos--;
+                                } while (pos % TAB_SIZE != 0);
+                                count = state.cursor_pos - pos;
+                            }
+
+                            while (count > 0) {
+                                count--;
+                                state.cursor_pos--;
+                                editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
+                            }
+                        } else {
+                            state.cursor_line--;
+                            state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
                             editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
                         }
-                    } else {
-                        state.cursor_line--;
-                        state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
-                        editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
-                    }
 
-                    state.modified = true;
-                    break;
-                }
-                case CH_ENTER: {
-                    const uint8_t *p;
-                    int            line_len = editbuf_get_line(&state.editbuf, state.cursor_line, &p);
-                    if (line_len < 0)
+                        state.modified = true;
                         break;
-
-                    int leading_spaces = get_leading_spaces();
-
-                    update_cursor_pos();
-                    editbuf_split_line(&state.editbuf, state.cursor_line, state.cursor_pos);
-                    state.cursor_line++;
-                    state.cursor_pos = 0;
-                    state.modified   = true;
-
-                    // Auto indent
-                    while (leading_spaces > 0) {
-                        leading_spaces--;
-                        insert_ch(' ');
                     }
-                    break;
-                }
-                case CH_TAB: {
-                    update_cursor_pos();
-                    int pos = state.cursor_pos;
-                    do {
-                        pos++;
-                    } while (pos % TAB_SIZE != 0);
-
-                    int count = pos - state.cursor_pos;
-                    for (int i = 0; i < count; i++) {
-                        insert_ch(' ');
-                    }
-                    break;
-                }
-                default: {
-                    if (key & (KEY_MOD_CTRL | KEY_MOD_ALT)) {
-                        uint16_t       shortcut = (key & (KEY_MOD_CTRL | KEY_MOD_SHIFT | KEY_MOD_ALT)) | toupper(ch);
-                        menu_handler_t handler  = menubar_find_shortcut(menubar_menus, shortcut);
-                        if (handler) {
-                            handler();
+                    case CH_ENTER: {
+                        const uint8_t *p;
+                        int            line_len = editbuf_get_line(&state.editbuf, state.cursor_line, &p);
+                        if (line_len < 0)
                             break;
-                        }
-                    }
 
-                    if ((ch >= ' ' && ch <= '~') || (ch >= 0xA0)) {
-                        insert_ch(ch);
+                        int leading_spaces = get_leading_spaces();
+
+                        update_cursor_pos();
+                        editbuf_split_line(&state.editbuf, state.cursor_line, state.cursor_pos);
+                        state.cursor_line++;
+                        state.cursor_pos = 0;
+                        state.modified   = true;
+
+                        // Auto indent
+                        while (leading_spaces > 0) {
+                            leading_spaces--;
+                            insert_ch(' ');
+                        }
+                        break;
                     }
-                    break;
+                    case CH_TAB: {
+                        update_cursor_pos();
+                        int pos = state.cursor_pos;
+                        do {
+                            pos++;
+                        } while (pos % TAB_SIZE != 0);
+
+                        int count = pos - state.cursor_pos;
+                        for (int i = 0; i < count; i++) {
+                            insert_ch(' ');
+                        }
+                        break;
+                    }
+                    default: {
+                        if ((ch >= ' ' && ch <= '~') || (ch >= 0xA0)) {
+                            insert_ch(ch);
+                        }
+                        break;
+                    }
                 }
             }
         }

@@ -70,4 +70,6 @@ target_sources(${PROJECT_NAME} PRIVATE
     editor/ctrl_edit_field.c
     editor/ctrl_file_list.c
     editor/editbuf.c
+
+    basic/basic.c
 )
