@@ -1,5 +1,4 @@
 #include "editbuf.h"
-#include "dialog.h"
 
 static uint8_t *getline_addr(struct editbuf *eb, int line) {
     line = clamp(line, 0, eb->line_count);

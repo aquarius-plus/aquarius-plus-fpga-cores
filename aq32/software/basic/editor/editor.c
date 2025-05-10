@@ -26,7 +26,7 @@ struct editor_state {
 static uint32_t     mycrc;
 struct editor_state state;
 
-static void load_file(const char *path);
+static int  load_file(const char *path);
 static void save_file(const char *path);
 static void render_editor(void);
 
@@ -37,6 +37,8 @@ static void cmd_file_save_as(void);
 static void cmd_file_exit(void);
 
 static void cmd_run_start(void);
+
+static void cmd_help_about(void);
 
 #pragma region Menus
 static const struct menu_item menu_file_items[] = {
@@ -75,21 +77,21 @@ static const struct menu_item menu_run_items[] = {
     {.title = NULL},
 };
 
-// static const struct menu_item menu_help_items[] = {
-//     {.title = "&Index"},
-//     {.title = "&Contents"},
-//     {.title = "&Topic      F1"},
-//     {.title = "-"},
-//     {.title = "&About..."},
-//     {.title = NULL},
-// };
+static const struct menu_item menu_help_items[] = {
+    // {.title = "&Index"},
+    // {.title = "&Contents"},
+    // {.title = "&Topic      F1"},
+    // {.title = "-"},
+    {.title = "&About...", .handler = cmd_help_about},
+    {.title = NULL},
+};
 
 static const struct menu menubar_menus[] = {
     {.title = "&File", .items = menu_file_items},
     // {.title = "&Edit", .items = menu_edit_items},
     // {.title = "&View", .items = menu_view_items},
     {.title = "&Run", .items = menu_run_items},
-    // {.title = "&Help", .items = menu_help_items},
+    {.title = "&Help", .items = menu_help_items},
     {.title = NULL},
 };
 #pragma endregion
@@ -186,6 +188,11 @@ static void cmd_run_start(void) {
     }
 }
 
+static void cmd_help_about(void) {
+    dialog_message("About", "Aquarius32 BASIC v0.1");
+}
+
+
 static void render_editor(void) {
     for (int row = 0; row < EDITOR_ROWS; row++) {
         scr_locate(row + 2, 1);
@@ -221,42 +228,44 @@ static void render_editor(void) {
     }
 }
 
-static void load_file(const char *path) {
+static int load_file(const char *path) {
+    FILE *f = fopen(path, "rt");
+    if (!f)
+        return -1;
+
     reset_state();
     snprintf(state.filename, sizeof(state.filename), "%s", path);
 
     int  line        = 0;
     bool do_truncate = false;
 
-    FILE *f = fopen(path, "rt");
-    if (f != NULL) {
-        size_t linebuf_size = MAX_BUFSZ;
-        char  *linebuf      = malloc(linebuf_size);
-        int    line_size    = 0;
-        while ((line_size = __getline(&linebuf, &linebuf_size, f)) >= 0) {
-            // Strip of CR/LF
-            while (line_size > 0 && (linebuf[line_size - 1] == '\r' || linebuf[line_size - 1] == '\n'))
-                line_size--;
-            linebuf[line_size] = 0;
+    size_t linebuf_size = MAX_BUFSZ;
+    char  *linebuf      = malloc(linebuf_size);
+    int    line_size    = 0;
+    while ((line_size = __getline(&linebuf, &linebuf_size, f)) >= 0) {
+        // Strip of CR/LF
+        while (line_size > 0 && (linebuf[line_size - 1] == '\r' || linebuf[line_size - 1] == '\n'))
+            line_size--;
+        linebuf[line_size] = 0;
 
-            // Check line length
-            if (!do_truncate && line_size > MAX_LINESZ) {
-                if (dialog_confirm("Error", "Line longer than 254 characters. Truncate long lines?") <= 0) {
-                    reset_state();
-                    break;
-                }
-                do_truncate = true;
+        // Check line length
+        if (!do_truncate && line_size > MAX_LINESZ) {
+            if (dialog_confirm("Error", "Line longer than 254 characters. Truncate long lines?") <= 0) {
+                reset_state();
+                break;
             }
-
-            line_size = min(line_size, MAX_LINESZ);
-
-            editbuf_insert_line(&state.editbuf, line, linebuf, line_size);
-            line++;
+            do_truncate = true;
         }
 
-        fclose(f);
-        free(linebuf);
+        line_size = min(line_size, MAX_LINESZ);
+
+        editbuf_insert_line(&state.editbuf, line, linebuf, line_size);
+        line++;
     }
+
+    fclose(f);
+    free(linebuf);
+    return 0;
 }
 
 static void save_file(const char *path) {
