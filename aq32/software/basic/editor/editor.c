@@ -182,16 +182,16 @@ static void cmd_file_exit(void) {
 }
 
 static void cmd_run_start(void) {
-    int result = basic_run();
-    if (result < 0) {
-        dialog_message("Error", basic_get_error_msg());
+    scr_status_msg("Compiling...");
+    int result = basic_run(&state.editbuf);
+    if (result != 0) {
+        dialog_message("Error", basic_get_error_str(result));
     }
 }
 
 static void cmd_help_about(void) {
     dialog_message("About", "Aquarius32 BASIC v0.1");
 }
-
 
 static void render_editor(void) {
     for (int row = 0; row < EDITOR_ROWS; row++) {

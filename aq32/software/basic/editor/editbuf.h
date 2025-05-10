@@ -6,7 +6,7 @@
 #define MAX_LINESZ (MAX_BUFSZ - 1)
 
 struct editbuf {
-    uint8_t buf[256 * 1024];
+    uint8_t buf[192 * 1024];
     int     line_count;
 
     uint8_t *cached_p;
