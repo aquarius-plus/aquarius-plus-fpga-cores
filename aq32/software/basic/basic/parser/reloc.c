@@ -49,7 +49,7 @@ void reloc_init(void) {
     // During parsing we use the variables buffer as temporary work space
     ptr_alloc         = buf_variables;
     ptr_alloc_end     = buf_variables + 1; // Reserve offset 0 for list termination
-    ptr_alloc_buf_end = ptr_alloc + SIZE_BUF_DYNAMIC;
+    ptr_alloc_buf_end = ptr_alloc + SIZE_BUF_VARIABLES;
 
     buf_variables_size = 0;
 
@@ -135,9 +135,6 @@ uint16_t reloc_var_get(const char *ident, unsigned len) {
 }
 
 static uint16_t _linenr_search(int linenr) {
-    if (linenr < 0 || linenr > 65535)
-        _basic_error(ERR_ILLEGAL_NUMBER);
-
     // Search for existing line number
     uint16_t o = list_linenr_offsets;
     while (o != 0) {

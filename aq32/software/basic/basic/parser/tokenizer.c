@@ -1,5 +1,6 @@
 #include "tokenizer.h"
 #include "../basic.h"
+#include "../common/parsenum.h"
 
 static struct editbuf *eb;
 
@@ -139,90 +140,33 @@ static void parse_linenr(void) {
 }
 
 static bool parse_number(void) {
-    const uint8_t *org_p = state.p_cur;
-
-    // Read constant into tmp buf
-    char  tmp[64];
-    char *pd       = tmp;
-    char *pd_end   = tmp + sizeof(tmp);
-    bool  is_float = false;
-    {
-        if (state.p_cur < state.p_line_end && state.p_cur[0] == '-')
-            *(pd++) = *(state.p_cur++);
-        while (state.p_cur < state.p_line_end && pd < pd_end && is_decimal(state.p_cur[0]))
-            *(pd++) = *(state.p_cur++);
-
-        if (state.p_cur < state.p_line_end && pd < pd_end && state.p_cur[0] == '.') {
-            is_float = true;
-            *(pd++)  = *(state.p_cur++);
-
-            while (state.p_cur < state.p_line_end && pd < pd_end && is_decimal(state.p_cur[0]))
-                *(pd++) = *(state.p_cur++);
-        }
-
-        if (state.p_cur < state.p_line_end && pd < pd_end && (state.p_cur[0] == 'e' || state.p_cur[0] == 'E')) {
-            is_float = true;
-            *(pd++)  = *(state.p_cur++);
-
-            if (state.p_cur < state.p_line_end && pd < pd_end && (state.p_cur[0] == '-' || state.p_cur[0] == '+'))
-                *(pd++) = *(state.p_cur++);
-
-            while (state.p_cur < state.p_line_end && pd < pd_end && is_decimal(state.p_cur[0]))
-                *(pd++) = *(state.p_cur++);
-        }
-
-        if (pd >= pd_end)
-            _basic_error(ERR_ILLEGAL_NUMBER);
-
-        *pd = 0;
-    }
-
-    if (pd == tmp || (pd == tmp + 1 && tmp[0] == '-')) {
-        // String empty or only contains '-', not a number.
-        state.p_cur = org_p;
+    char tmp[64];
+    char type   = 0;
+    int  result = copy_num_to_buf(&state.p_cur, state.p_line_end, tmp, sizeof(tmp), &type);
+    if (result < 0) {
         return false;
-    }
 
-    char type = 0;
-    if (state.p_cur < state.p_line_end && (state.p_cur[0] == '%' || state.p_cur[0] == '&' || state.p_cur[0] == '!' || state.p_cur[0] == '#')) {
-        type = *(state.p_cur++);
-    }
-    if (type == '!' || type == '#')
-        is_float = true;
-    if (is_float && (type == '%' || type == '&')) {
-        _basic_error(ERR_ILLEGAL_NUMBER);
-    }
-
-    if (!is_float) {
-        char *endp;
-        tokval_num.val_long = strtol(tmp, &endp, 10);
-        if (endp != pd) {
-            // NOTE: strtol does not prevent parsing number that don't fit in a int32.
-            _basic_error(ERR_ILLEGAL_NUMBER);
-        }
+    } else if (result == 0) {
+        tokval_num.val_long = strtol(tmp, NULL, 10);
         bool is_int16_range = (tokval_num.val_long >= INT16_MIN && tokval_num.val_long <= INT16_MAX);
 
         if (type == 0) {
             // Infer type
             type = is_int16_range ? '%' : '&';
         } else if (type == '%' && !is_int16_range) {
-            _basic_error(ERR_ILLEGAL_NUMBER);
+            _basic_error(ERR_TYPE_MISMATCH);
         }
         cur_token = (type == '%') ? TOK_CONST_INT : TOK_CONST_LONG;
 
-    } else if (type == '#') {
-        char *endp;
-        cur_token             = TOK_CONST_DOUBLE;
-        tokval_num.val_double = strtod(tmp, &endp);
-        if (endp != pd)
-            _basic_error(ERR_ILLEGAL_NUMBER);
-
     } else {
-        char *endp;
-        cur_token             = TOK_CONST_SINGLE;
-        tokval_num.val_single = strtof(tmp, &endp);
-        if (endp != pd)
-            _basic_error(ERR_ILLEGAL_NUMBER);
+        if (type == '#') {
+            cur_token             = TOK_CONST_DOUBLE;
+            tokval_num.val_double = strtod(tmp, NULL);
+
+        } else {
+            cur_token             = TOK_CONST_SINGLE;
+            tokval_num.val_single = strtof(tmp, NULL);
+        }
     }
     return true;
 }

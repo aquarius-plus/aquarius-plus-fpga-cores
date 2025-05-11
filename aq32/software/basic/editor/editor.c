@@ -186,6 +186,17 @@ static void cmd_run_start(void) {
     int result = basic_run(&state.editbuf);
     if (result != 0) {
         dialog_message("Error", basic_get_error_str(result));
+    } else {
+        scr_status_msg("Press any key to continue");
+        int key;
+        while ((key = REGS->KEYBUF) >= 0);
+
+        while (1) {
+            while ((key = REGS->KEYBUF) < 0);
+            if ((key & KEY_IS_SCANCODE) == 0) {
+                break;
+            }
+        }
     }
 }
 

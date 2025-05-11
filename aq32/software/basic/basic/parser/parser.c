@@ -17,14 +17,6 @@ static void parse_statements(void);
 static void bc_emit_disable(void) { emit_enabled = false; }
 static void bc_emit_enable(void) { emit_enabled = true; }
 
-static void _bc_emit(uint8_t val) {
-    if (!emit_enabled)
-        return;
-    if (buf_bytecode_end >= ptr_bytecode_buf_end)
-        _basic_error(ERR_OUT_OF_MEM);
-    *(buf_bytecode_end++) = val;
-}
-
 static void expect(uint8_t tok) {
     if (get_token() != tok)
         _basic_error(ERR_SYNTAX_ERROR);
@@ -32,12 +24,18 @@ static void expect(uint8_t tok) {
 }
 
 static void bc_emit(uint8_t val) {
+    if (!emit_enabled)
+        return;
+
     if (do_emit_line_tag) {
         do_emit_line_tag = false;
         bc_emit(BC_LINE_TAG);
         bc_emit_u16(tokenizer_get_cur_line());
     }
-    _bc_emit(val);
+
+    if (buf_bytecode_end >= ptr_bytecode_buf_end)
+        _basic_error(ERR_OUT_OF_MEM);
+    *(buf_bytecode_end++) = val;
 }
 
 static void bc_emit_u16(uint16_t val) {
@@ -149,37 +147,43 @@ static void infer_identifier_type(void) {
     tokval_str[tokval_strlen]   = 0;
 }
 
-// Operator precedence
-static const uint8_t op_prec[] = {
-    13, // TOK_POW
-        // 12: unary plus/minus (handled with special case)
-    11, // TOK_MULT
-    11, // TOK_DIV
-    10, // TOK_INTDIV
-    9,  // TOK_MOD
-    8,  // TOK_PLUS (add)
-    8,  // TOK_MINUS (sub)
-    7,  // TOK_EQ
-    7,  // TOK_NE
-    7,  // TOK_LT
-    7,  // TOK_LE
-    7,  // TOK_GT
-    7,  // TOK_GE
-    6,  // unary TOK_NOT (handled with special case)
-    5,  // TOK_AND
-    4,  // TOK_OR
-    3,  // TOK_XOR
-    2,  // TOK_EQV
-    1,  // TOK_IMP
-};
-
 struct func {
-    int num_params;
+    uint8_t bc;
+    int     num_params;
     void (*emit_func)(void);
 };
 
 static void bc_emit_func_instr(void) {
-    _basic_error(ERR_UNHANDLED);
+    expect(TOK_LPAREN);
+
+    bool has_start_offset = false;
+
+    // First determine number of parameters
+    struct tokenizer_state tok_state;
+    tokenizer_save_state(&tok_state);
+    bc_emit_disable();
+    bc_emit_expr();
+    expect(TOK_COMMA);
+    bc_emit_expr();
+    if (get_token() == TOK_COMMA) {
+        has_start_offset = true;
+    }
+    bc_emit_enable();
+    tokenizer_restore_state(&tok_state);
+
+    // Now actually parse
+    if (!has_start_offset) {
+        bc_emit_push_const_int(1);
+    } else {
+        bc_emit_expr();
+        expect(TOK_COMMA);
+    }
+
+    bc_emit_expr();
+    expect(TOK_COMMA);
+    bc_emit_expr();
+    expect(TOK_RPAREN);
+    bc_emit(BC_FUNC_INSTR);
 }
 
 static void bc_emit_func_mid_s(void) {
@@ -191,9 +195,10 @@ static void bc_emit_func_mid_s(void) {
         ack_token();
         bc_emit_expr();
     } else {
-        bc_emit_push_const_int(255);
+        bc_emit_push_const_int(INT16_MAX);
     }
     expect(TOK_RPAREN);
+    bc_emit(BC_FUNC_MIDs);
 }
 
 static void bc_emit_func_rnd(void) {
@@ -207,50 +212,61 @@ static void bc_emit_func_rnd(void) {
     bc_emit(BC_FUNC_RND);
 }
 
+static void bc_emit_func_pos(void) {
+    if (get_token() == TOK_LPAREN) {
+        ack_token();
+        bc_emit_disable();
+        bc_emit_expr();
+        bc_emit_enable();
+        expect(TOK_RPAREN);
+    }
+    bc_emit(BC_FUNC_POS);
+}
+
 // clang-format off
 static const struct func funcs[TOK_FUNC_LAST - TOK_FUNC_FIRST + 1] = {
-    [TOK_ABS     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_ASC     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_ATN     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_CDBL    - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_CHRs    - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_CINT    - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_CLNG    - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_COS     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_CSNG    - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_CSRLIN  - TOK_FUNC_FIRST] = {.num_params = 0, .emit_func = NULL},
-    [TOK_CVD     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_CVI     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_CVL     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_CVS     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_ERL     - TOK_FUNC_FIRST] = {.num_params = 0, .emit_func = NULL},
-    [TOK_ERR     - TOK_FUNC_FIRST] = {.num_params = 0, .emit_func = NULL},
-    [TOK_EXP     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_FIX     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_HEXs    - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_INKEYs  - TOK_FUNC_FIRST] = {.num_params = 0, .emit_func = NULL},
-    [TOK_INSTR   - TOK_FUNC_FIRST] = {.num_params = 0, .emit_func = bc_emit_func_instr},
-    [TOK_INT     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_LEFTs   - TOK_FUNC_FIRST] = {.num_params = 2, .emit_func = NULL},
-    [TOK_LEN     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_LOG     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_MIDs    - TOK_FUNC_FIRST] = {.num_params = 0, .emit_func = bc_emit_func_mid_s},
-    [TOK_MKDs    - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_MKIs    - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_MKLs    - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_MKSs    - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_OCTs    - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_POS     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_RIGHTs  - TOK_FUNC_FIRST] = {.num_params = 2, .emit_func = NULL},
-    [TOK_RND     - TOK_FUNC_FIRST] = {.num_params = 0, .emit_func = bc_emit_func_rnd},
-    [TOK_SGN     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_SIN     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_SPACEs  - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_SQR     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_STRINGs - TOK_FUNC_FIRST] = {.num_params = 2, .emit_func = NULL},
-    [TOK_STRs    - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_TAN     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
-    [TOK_VAL     - TOK_FUNC_FIRST] = {.num_params = 1, .emit_func = NULL},
+    [TOK_ABS     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ABS,     .num_params = 1, .emit_func = NULL},
+    [TOK_ASC     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ASC,     .num_params = 1, .emit_func = NULL},
+    [TOK_ATN     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ATN,     .num_params = 1, .emit_func = NULL},
+    [TOK_CDBL    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CDBL,    .num_params = 1, .emit_func = NULL},
+    [TOK_CHRs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CHRs,    .num_params = 1, .emit_func = NULL},
+    [TOK_CINT    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CINT,    .num_params = 1, .emit_func = NULL},
+    [TOK_CLNG    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CLNG,    .num_params = 1, .emit_func = NULL},
+    [TOK_COS     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_COS,     .num_params = 1, .emit_func = NULL},
+    [TOK_CSNG    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CSNG,    .num_params = 1, .emit_func = NULL},
+    [TOK_CSRLIN  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CSRLIN,  .num_params = 0, .emit_func = NULL},
+    [TOK_CVD     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CVD,     .num_params = 1, .emit_func = NULL},
+    [TOK_CVI     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CVI,     .num_params = 1, .emit_func = NULL},
+    [TOK_CVL     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CVL,     .num_params = 1, .emit_func = NULL},
+    [TOK_CVS     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CVS,     .num_params = 1, .emit_func = NULL},
+    [TOK_ERL     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ERL,     .num_params = 0, .emit_func = NULL},
+    [TOK_ERR     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ERR,     .num_params = 0, .emit_func = NULL},
+    [TOK_EXP     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_EXP,     .num_params = 1, .emit_func = NULL},
+    [TOK_FIX     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_FIX,     .num_params = 1, .emit_func = NULL},
+    [TOK_HEXs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_HEXs,    .num_params = 1, .emit_func = NULL},
+    [TOK_INKEYs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_INKEYs,  .num_params = 0, .emit_func = NULL},
+    [TOK_INSTR   - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_instr},
+    [TOK_INT     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_INT,     .num_params = 1, .emit_func = NULL},
+    [TOK_LEFTs   - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LEFTs,   .num_params = 2, .emit_func = NULL},
+    [TOK_LEN     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LEN,     .num_params = 1, .emit_func = NULL},
+    [TOK_LOG     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LOG,     .num_params = 1, .emit_func = NULL},
+    [TOK_MIDs    - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_mid_s},
+    [TOK_MKDs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_MKDs,    .num_params = 1, .emit_func = NULL},
+    [TOK_MKIs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_MKIs,    .num_params = 1, .emit_func = NULL},
+    [TOK_MKLs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_MKLs,    .num_params = 1, .emit_func = NULL},
+    [TOK_MKSs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_MKSs,    .num_params = 1, .emit_func = NULL},
+    [TOK_OCTs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_OCTs,    .num_params = 1, .emit_func = NULL},
+    [TOK_POS     - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_pos},
+    [TOK_RIGHTs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_RIGHTs,  .num_params = 2, .emit_func = NULL},
+    [TOK_RND     - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_rnd},
+    [TOK_SGN     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SGN,     .num_params = 1, .emit_func = NULL},
+    [TOK_SIN     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SIN,     .num_params = 1, .emit_func = NULL},
+    [TOK_SPACEs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SPACEs,  .num_params = 1, .emit_func = NULL},
+    [TOK_SQR     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SQR,     .num_params = 1, .emit_func = NULL},
+    [TOK_STRINGs - TOK_FUNC_FIRST] = {.bc = BC_FUNC_STRINGs, .num_params = 2, .emit_func = NULL},
+    [TOK_STRs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_STRs,    .num_params = 1, .emit_func = NULL},
+    [TOK_TAN     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_TAN,     .num_params = 1, .emit_func = NULL},
+    [TOK_VAL     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_VAL,     .num_params = 1, .emit_func = NULL},
 };
 // clang-format on
 
@@ -312,21 +328,21 @@ static void bc_emit_expr0(void) {
             if (tok >= TOK_FUNC_FIRST && tok <= TOK_FUNC_LAST) {
                 ack_token();
 
-                if (funcs[tok - TOK_FUNC_FIRST].emit_func) {
-                    funcs[tok - TOK_FUNC_FIRST].emit_func();
-                } else {
-                    int num = funcs[tok - TOK_FUNC_FIRST].num_params;
+                const struct func *func = &funcs[tok - TOK_FUNC_FIRST];
 
-                    if (num > 0) {
+                if (func->emit_func) {
+                    func->emit_func();
+                } else {
+                    if (func->num_params > 0) {
                         expect(TOK_LPAREN);
-                        for (int i = 0; i < num; i++) {
+                        for (int i = 0; i < func->num_params; i++) {
                             bc_emit_expr();
-                            if (i != num - 1)
+                            if (i != func->num_params - 1)
                                 expect(TOK_COMMA);
                         }
                         expect(TOK_RPAREN);
                     }
-                    bc_emit(tok - TOK_FUNC_FIRST + BC_FUNC_FIRST);
+                    bc_emit(func->bc);
                 }
                 break;
             }
@@ -335,6 +351,36 @@ static void bc_emit_expr0(void) {
         }
     }
 }
+
+struct op {
+    uint8_t bc;
+    uint8_t prec;
+};
+
+// clang-format off
+static const struct op ops[TOK_OP_LAST - TOK_OP_FIRST + 1] = {
+    [TOK_POW    - TOK_OP_FIRST] = {.bc = BC_OP_POW,    .prec = 13},
+                             // = {.bc = BC_OP_NEGATE, .prec = 12},
+    [TOK_MULT   - TOK_OP_FIRST] = {.bc = BC_OP_MULT,   .prec = 11},
+    [TOK_DIV    - TOK_OP_FIRST] = {.bc = BC_OP_DIV,    .prec = 11},
+    [TOK_INTDIV - TOK_OP_FIRST] = {.bc = BC_OP_INTDIV, .prec = 10},
+    [TOK_MOD    - TOK_OP_FIRST] = {.bc = BC_OP_MOD,    .prec =  9},
+    [TOK_PLUS   - TOK_OP_FIRST] = {.bc = BC_OP_ADD,    .prec =  8},
+    [TOK_MINUS  - TOK_OP_FIRST] = {.bc = BC_OP_SUB,    .prec =  8},
+    [TOK_EQ     - TOK_OP_FIRST] = {.bc = BC_OP_EQ,     .prec =  7},
+    [TOK_NE     - TOK_OP_FIRST] = {.bc = BC_OP_NE,     .prec =  7},
+    [TOK_LT     - TOK_OP_FIRST] = {.bc = BC_OP_LT,     .prec =  7},
+    [TOK_LE     - TOK_OP_FIRST] = {.bc = BC_OP_LE,     .prec =  7},
+    [TOK_GT     - TOK_OP_FIRST] = {.bc = BC_OP_GT,     .prec =  7},
+    [TOK_GE     - TOK_OP_FIRST] = {.bc = BC_OP_GE,     .prec =  7},
+    [TOK_NOT    - TOK_OP_FIRST] = {.bc = BC_OP_NOT,    .prec =  6},
+    [TOK_AND    - TOK_OP_FIRST] = {.bc = BC_OP_AND,    .prec =  5},
+    [TOK_OR     - TOK_OP_FIRST] = {.bc = BC_OP_OR,     .prec =  4},
+    [TOK_XOR    - TOK_OP_FIRST] = {.bc = BC_OP_XOR,    .prec =  3},
+    [TOK_EQV    - TOK_OP_FIRST] = {.bc = BC_OP_EQV,    .prec =  2},
+    [TOK_IMP    - TOK_OP_FIRST] = {.bc = BC_OP_IMP,    .prec =  1},
+};
+// clang-format on
 
 static void bc_emit_expr_prec(uint8_t min_prec) {
     uint8_t tok_op = get_token();
@@ -356,8 +402,8 @@ static void bc_emit_expr_prec(uint8_t min_prec) {
         if (tok_op < TOK_OP_FIRST || tok_op > TOK_OP_LAST)
             break;
 
-        uint8_t prec = op_prec[tok_op - TOK_OP_FIRST];
-        if (prec < min_prec)
+        const struct op *op = &ops[tok_op - TOK_OP_FIRST];
+        if (op->prec < min_prec)
             break;
 
         ack_token();
@@ -366,8 +412,8 @@ static void bc_emit_expr_prec(uint8_t min_prec) {
         if (tok_op == TOK_NOT) {
             bc_emit(BC_OP_NOT);
         } else {
-            bc_emit_expr_prec(prec + 1);
-            bc_emit(tok_op - TOK_OP_FIRST + BC_OP_FIRST);
+            bc_emit_expr_prec(op->prec + 1);
+            bc_emit(op->bc);
         }
     }
 }
@@ -504,7 +550,6 @@ static void bc_emit_stmt_while(void) {
 
 static void bc_emit_for(void) {
     expect(TOK_IDENTIFIER);
-    ack_token();
     infer_identifier_type();
     uint8_t var_type = tokval_str[tokval_strlen - 1];
     if (var_type == '$')
@@ -651,6 +696,69 @@ static void bc_emit_stmt_restore(void) {
     _bc_emit_target();
 }
 
+static void bc_emit_stmt_swap(void) {
+    expect(TOK_IDENTIFIER);
+    infer_identifier_type();
+    uint8_t  var1_type   = tokval_str[tokval_strlen - 1];
+    uint16_t var1_offset = reloc_var_get(tokval_str, tokval_strlen);
+
+    expect(TOK_COMMA);
+    expect(TOK_IDENTIFIER);
+    infer_identifier_type();
+    uint8_t  var2_type   = tokval_str[tokval_strlen - 1];
+    uint16_t var2_offset = reloc_var_get(tokval_str, tokval_strlen);
+
+    if (var1_type != var2_type)
+        _basic_error(ERR_TYPE_MISMATCH);
+
+    bc_emit_push_var(var1_type, var1_offset);
+    bc_emit_push_var(var2_type, var2_offset);
+    bc_emit_store_var(var1_type, var1_offset);
+    bc_emit_store_var(var2_type, var2_offset);
+}
+
+static void bc_emit_color(void) {
+    if (get_token() == TOK_COMMA) {
+        bc_emit(BC_PUSH_CONST_UNSPECIFIED_PARAM);
+    } else {
+        bc_emit_expr();
+    }
+    if (get_token() == TOK_COMMA) {
+        ack_token();
+        bc_emit_expr();
+    } else {
+        bc_emit(BC_PUSH_CONST_UNSPECIFIED_PARAM);
+    }
+    if (get_token() == TOK_COMMA) {
+        ack_token();
+        bc_emit_expr();
+    } else {
+        bc_emit(BC_PUSH_CONST_UNSPECIFIED_PARAM);
+    }
+    bc_emit(BC_STMT_COLOR);
+}
+
+static void bc_emit_locate(void) {
+    if (get_token() == TOK_COMMA) {
+        bc_emit(BC_PUSH_CONST_UNSPECIFIED_PARAM);
+    } else {
+        bc_emit_expr();
+    }
+    if (get_token() == TOK_COMMA) {
+        ack_token();
+        bc_emit_expr();
+    } else {
+        bc_emit(BC_PUSH_CONST_UNSPECIFIED_PARAM);
+    }
+    if (get_token() == TOK_COMMA) {
+        ack_token();
+        bc_emit_expr();
+    } else {
+        bc_emit(BC_PUSH_CONST_UNSPECIFIED_PARAM);
+    }
+    bc_emit(BC_STMT_LOCATE);
+}
+
 struct stmt {
     uint8_t bc;
     int     num_params;
@@ -661,7 +769,7 @@ struct stmt {
 static const struct stmt stmts[TOK_STMT_LAST - TOK_STMT_FIRST + 1] = {
     [TOK_CLEAR     - TOK_STMT_FIRST] = {.bc = BC_STMT_CLEAR,     .num_params = 0, .emit_stmt = NULL},
     [TOK_CLS       - TOK_STMT_FIRST] = {.bc = BC_STMT_CLS,       .num_params = 0, .emit_stmt = NULL},
- // [TOK_COLOR     - TOK_STMT_FIRST] = {.bc = BC_STMT_COLOR,     .num_params = 0, .emit_stmt = NULL},
+    [TOK_COLOR     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_color},
     [TOK_DATA      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_data},
  // [TOK_DIM       - TOK_STMT_FIRST] = {.bc = BC_STMT_DIM,       .num_params = 0, .emit_stmt = NULL},
     [TOK_END       - TOK_STMT_FIRST] = {.bc = BC_END,            .num_params = 0, .emit_stmt = NULL},
@@ -673,7 +781,7 @@ static const struct stmt stmts[TOK_STMT_LAST - TOK_STMT_FIRST + 1] = {
     [TOK_IF        - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_if},
  // [TOK_INPUT     - TOK_STMT_FIRST] = {.bc = BC_STMT_INPUT,     .num_params = 0, .emit_stmt = NULL},
  // [TOK_INPUTs    - TOK_STMT_FIRST] = {.bc = BC_STMT_INPUTs,    .num_params = 0, .emit_stmt = NULL},
- // [TOK_LOCATE    - TOK_STMT_FIRST] = {.bc = BC_STMT_LOCATE,    .num_params = 0, .emit_stmt = NULL},
+    [TOK_LOCATE    - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_locate},
  // [TOK_ON        - TOK_STMT_FIRST] = {.bc = BC_STMT_ON,        .num_params = 0, .emit_stmt = NULL},
  // [TOK_OPTION    - TOK_STMT_FIRST] = {.bc = BC_STMT_OPTION,    .num_params = 0, .emit_stmt = NULL},
     [TOK_PRINT     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_print},
@@ -682,10 +790,10 @@ static const struct stmt stmts[TOK_STMT_LAST - TOK_STMT_FIRST + 1] = {
     [TOK_RESTORE   - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_restore},
  // [TOK_RESUME    - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = NULL},
     [TOK_RETURN    - TOK_STMT_FIRST] = {.bc = BC_STMT_RETURN,    .num_params = 0, .emit_stmt = NULL},
-    [TOK_SWAP      - TOK_STMT_FIRST] = {.bc = BC_STMT_SWAP,      .num_params = 2, .emit_stmt = NULL},
+    [TOK_SWAP      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_swap},
  // [TOK_TIMER     - TOK_STMT_FIRST] = {.bc = BC_STMT_TIMER,     .num_params = 0, .emit_stmt = NULL},
     [TOK_WHILE     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_while},
- // [TOK_WIDTH     - TOK_STMT_FIRST] = {.bc = BC_STMT_WIDTH,     .num_params = 0, .emit_stmt = NULL},
+    [TOK_WIDTH     - TOK_STMT_FIRST] = {.bc = BC_STMT_WIDTH,     .num_params = 1, .emit_stmt = NULL},
 };
 // clang-format on
 

@@ -43,7 +43,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE -Wno-unused-parameter -Wno-shadow
 target_compile_options(${PROJECT_NAME} PRIVATE -fdata-sections -ffunction-sections -fno-strict-aliasing)
 target_compile_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestanding -specs=nano.specs)
 
-target_link_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestanding -specs=nano.specs) # -u _printf_float)
+target_link_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestanding -specs=nano.specs -u _printf_float)
 target_link_options(${PROJECT_NAME} PRIVATE -nostartfiles)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--gc-sections)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--print-memory-usage)
@@ -74,6 +74,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     basic/basic.c
     
     basic/common/buffers.c
+    basic/common/parsenum.c
 
     basic/parser/reloc.c
     basic/parser/tokenizer.c
@@ -81,7 +82,10 @@ target_sources(${PROJECT_NAME} PRIVATE
 
     basic/bytecode/bytecode.c
     basic/bytecode/bytecode_dump.c
-    basic/bytecode/bytecode_run.c
+    basic/bytecode/bytecode_math.c
+    basic/bytecode/bytecode_string.c
+    basic/bytecode/bytecode_console_io.c
+    basic/bytecode/bytecode_file_io.c
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE m)

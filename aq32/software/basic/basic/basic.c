@@ -31,7 +31,7 @@ static const struct err_str err_str[] = {
     {18, "Function not defined"},
     {19, "No RESUME"},
     {20, "RESUME without error"},
-    {21, "Illegal number"},       // New
+    // 21
     {22, "Missing operand"},      // Only in GW-BASIC
     {23, "Line buffer overflow"}, // Only in GW-BASIC
     {24, "Device timeout"},

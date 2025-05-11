@@ -6,6 +6,7 @@
 #include <sys/timeb.h>
 #include <sys/time.h>
 #include "esp.h"
+#include "console.h"
 
 #define FD_ESP_START 10
 #define XFER_MAX     0xF000
@@ -77,6 +78,17 @@ int _write(int fd, const void *buf, size_t count) {
         if (result < 0)
             return set_errno(result);
         return result;
+
+    } else if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
+        const uint8_t *p = buf;
+        while (count--) {
+            uint8_t ch = *(p++);
+            if (ch == '\n') {
+                console_putc('\r');
+            }
+            console_putc(ch);
+        }
+        return p - (uint8_t *)buf;
 
     } else {
         errno = EINVAL;
