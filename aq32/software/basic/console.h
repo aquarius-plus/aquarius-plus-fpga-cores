@@ -21,3 +21,4 @@ void console_set_background_color(int val);
 void console_set_border_color(int val);
 
 void console_putc(char ch);
+void console_puts(const char *s);

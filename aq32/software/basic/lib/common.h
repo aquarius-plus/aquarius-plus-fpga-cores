@@ -72,8 +72,6 @@ static inline int clamp(int val, int _min, int _max) {
 
 void reinit_video(void);
 
-void hexdump(const void *buf, int length);
-
 static inline uint16_t read_u16(const uint8_t *p) {
     return p[0] | (p[1] << 8);
 }

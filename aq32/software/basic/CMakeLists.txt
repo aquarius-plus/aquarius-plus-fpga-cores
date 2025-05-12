@@ -81,7 +81,6 @@ target_sources(${PROJECT_NAME} PRIVATE
     basic/parser/parser.c
 
     basic/bytecode/bytecode.c
-    basic/bytecode/bytecode_dump.c
     basic/bytecode/bytecode_math.c
     basic/bytecode/bytecode_string.c
     basic/bytecode/bytecode_console_io.c

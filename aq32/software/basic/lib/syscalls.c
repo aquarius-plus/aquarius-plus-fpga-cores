@@ -12,7 +12,7 @@
 #define XFER_MAX     0xF000
 
 int _isatty(int fd) {
-    return (fd == STDIN_FILENO || fd == STDOUT_FILENO || fd == STDERR_FILENO);
+    return false;
 }
 
 static int set_errno(int esp_err) {
@@ -78,17 +78,6 @@ int _write(int fd, const void *buf, size_t count) {
         if (result < 0)
             return set_errno(result);
         return result;
-
-    } else if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
-        const uint8_t *p = buf;
-        while (count--) {
-            uint8_t ch = *(p++);
-            if (ch == '\n') {
-                console_putc('\r');
-            }
-            console_putc(ch);
-        }
-        return p - (uint8_t *)buf;
 
     } else {
         errno = EINVAL;

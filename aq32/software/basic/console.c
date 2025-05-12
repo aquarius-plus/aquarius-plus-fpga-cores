@@ -4,17 +4,12 @@
 #define DEF_BGCOL    (3)
 #define CURSOR_COLOR (0x80)
 
-struct terminal_data {
-    uint16_t *buffer;
-    int       rows, columns;
-    int       cursor_row, cursor_col;
-    uint8_t   saved_color;
-    uint8_t   fg_col;
-    uint8_t   bg_col;
-    uint8_t   text_color;
-};
-
-static struct terminal_data terminal;
+static int      num_rows, num_columns;
+static int      cursor_row, cursor_column;
+static uint16_t saved_color;
+static uint16_t text_color;
+static bool     cursor_visible;
+static bool     cursor_enabled;
 
 static void memmove16(uint16_t *dst, const uint16_t *src, unsigned count) {
     uint16_t       *d = dst;
@@ -37,100 +32,135 @@ static void memset16(uint16_t *dst, uint16_t val, unsigned count) {
         *(dst++) = val;
 }
 
-static void clear_display(void) {
-    // erase entire display
-    memset16(
-        terminal.buffer,
-        (terminal.text_color << 8) | ' ',
-        terminal.columns * terminal.rows);
+static void hide_cursor(void) {
+    if (cursor_visible) {
+        uint16_t *p_cursor = (uint16_t *)&TRAM[cursor_row * num_columns + cursor_column];
+        *p_cursor          = saved_color | (*p_cursor & 0xFF);
+        cursor_visible     = false;
+    }
 }
 
-static void hide_cursor(struct terminal_data *td) {
-    if (terminal.buffer == NULL ||
-        terminal.cursor_row < 0 || terminal.cursor_row >= terminal.rows ||
-        terminal.cursor_col < 0 || terminal.cursor_col >= terminal.columns)
-        return;
-
-    uint16_t *p = &terminal.buffer[terminal.cursor_row * terminal.columns + terminal.cursor_col];
-    *p          = (*p & 0xFF) | (terminal.saved_color << 8);
+static void show_cursor(void) {
+    if (cursor_enabled && !cursor_visible) {
+        uint16_t *p_cursor = (uint16_t *)&TRAM[cursor_row * num_columns + cursor_column];
+        uint16_t  val      = *p_cursor;
+        saved_color        = val & 0xFF00;
+        *p_cursor          = (CURSOR_COLOR << 8) | (val & 0xFF);
+        cursor_visible     = true;
+    }
 }
 
-static void show_cursor(struct terminal_data *td) {
-    if (terminal.buffer == NULL ||
-        terminal.cursor_row < 0 || terminal.cursor_row >= terminal.rows ||
-        terminal.cursor_col < 0 || terminal.cursor_col >= terminal.columns)
-        return;
-
-    uint16_t *p          = &terminal.buffer[terminal.cursor_row * terminal.columns + terminal.cursor_col];
-    terminal.saved_color = *p >> 8;
-    *p                   = (*p & 0xFF) | (CURSOR_COLOR << 8);
-}
-
-static inline int imin(int a, int b) { return a < b ? a : b; }
-static inline int imax(int a, int b) { return a > b ? a : b; }
-
-static inline void cursor_set(struct terminal_data *td, int col, int row) {
-    terminal.cursor_col = imax(0, imin(col, terminal.columns - 1));
-    terminal.cursor_row = imax(0, imin(row, terminal.rows - 1));
-}
-
-static void terminal_process(struct terminal_data *td, char ch) {
-    if (terminal.buffer == NULL || terminal.columns == 0 || terminal.rows == 0) {
-        return;
-    }
-
-    if (ch == '\t') {
-        // Horizontal TAB
-        terminal.cursor_col = (terminal.cursor_col + 8) & ~7;
-
-    } else if (ch == '\n') {
-        // Newline
-        terminal.cursor_row++;
-
-    } else if (ch == '\r') {
-        // Carriage return
-        terminal.cursor_col = 0;
-
-    } else {
-        terminal.buffer[terminal.cursor_row * terminal.columns + terminal.cursor_col] = (terminal.text_color << 8) | ch;
-        terminal.cursor_col++;
-    }
-
-    if (terminal.cursor_row < 0) {
-        terminal.cursor_row = 0;
-    }
-    if (terminal.cursor_col < 0) {
-        terminal.cursor_col = 0;
-    }
-
-    if (terminal.cursor_col >= terminal.columns) {
-        terminal.cursor_col = 0;
-        terminal.cursor_row++;
-    }
-
-    if (terminal.cursor_row >= terminal.rows) {
-        memmove16(terminal.buffer, terminal.buffer + terminal.columns, terminal.columns * (terminal.rows - 1));
-        memset16(terminal.buffer + terminal.columns * (terminal.rows - 1), (terminal.text_color << 8) | ' ', terminal.columns);
-        terminal.cursor_row = terminal.rows - 1;
-    }
+void _clear_screen(void) {
+    cursor_row    = 0;
+    cursor_column = 0;
+    memset16((uint16_t *)TRAM, text_color | ' ', num_columns * num_rows);
 }
 
 void console_init(void) {
-    terminal.buffer     = (uint16_t *)TRAM;
-    terminal.rows       = 25;
-    terminal.columns    = 80;
-    terminal.text_color = (DEF_FGCOL << 4) | DEF_BGCOL;
-    terminal.fg_col     = DEF_FGCOL;
-    terminal.bg_col     = DEF_BGCOL;
+    num_rows       = 25;
+    num_columns    = 80;
+    text_color     = (DEF_FGCOL << 12) | (DEF_BGCOL << 8);
+    cursor_visible = false;
+    cursor_enabled = true;
 
     reinit_video();
-    hide_cursor(&terminal);
-    clear_display();
-    show_cursor(&terminal);
+    _clear_screen();
+    show_cursor();
+}
+
+bool console_set_width(int width) {
+    if (width != 40 && width != 80)
+        return false;
+    return true;
+}
+
+void console_clear_screen(void) {
+    hide_cursor();
+    _clear_screen();
+    show_cursor();
+}
+
+void console_show_cursor(bool en) {
+    hide_cursor();
+    cursor_enabled = en;
+    show_cursor();
+}
+
+void console_set_cursor_row(int val) {
+    if (val < 0)
+        val = 0;
+    if (val > num_rows - 1)
+        val = num_rows - 1;
+
+    hide_cursor();
+    cursor_row = val;
+    show_cursor();
+}
+int console_get_cursor_row(void) { return cursor_row; }
+int console_get_num_rows(void) { return num_rows; }
+
+void console_set_cursor_column(int val) {
+    if (val < 0)
+        val = 0;
+    if (val > num_columns - 1)
+        val = num_columns - 1;
+
+    hide_cursor();
+    cursor_column = val;
+    show_cursor();
+}
+int console_get_num_columns(void) { return num_columns; }
+int console_get_cursor_column(void) { return cursor_column; }
+
+void console_set_foreground_color(int val) {
+    text_color = ((val & 0xF) << 12) | (text_color & 0x0F00);
+}
+void console_set_background_color(int val) {
+    text_color = (text_color & 0xF000) | ((val & 0xF) << 8);
+}
+void console_set_border_color(int val) {
+    TRAM[2047] = ((val & 0xF) << 12) | ((val & 0xF) << 8) | ' ';
+}
+
+static void _putc(char ch) {
+    if (ch == '\t') {
+        // Horizontal TAB
+        cursor_column = (cursor_column + 8) & ~7;
+
+    } else if (ch == '\n') {
+        // Newline
+        cursor_row++;
+
+    } else if (ch == '\r') {
+        // Carriage return
+        cursor_column = 0;
+
+    } else {
+        // Regular character
+        TRAM[cursor_row * num_columns + cursor_column] = text_color | ch;
+        cursor_column++;
+    }
+
+    if (cursor_column >= num_columns) {
+        cursor_column = 0;
+        cursor_row++;
+    }
+    if (cursor_row >= num_rows) {
+        memmove16((uint16_t *)TRAM, (uint16_t *)TRAM + num_columns, num_columns * (num_rows - 1));
+        memset16((uint16_t *)TRAM + num_columns * (num_rows - 1), text_color | ' ', num_columns);
+        cursor_row = num_rows - 1;
+    }
 }
 
 void console_putc(char ch) {
-    hide_cursor(&terminal);
-    terminal_process(&terminal, ch);
-    show_cursor(&terminal);
+    hide_cursor();
+    _putc(ch);
+    show_cursor();
+}
+
+void console_puts(const char *s) {
+    hide_cursor();
+    while (*s)
+        _putc(*(s++));
+    show_cursor();
 }
