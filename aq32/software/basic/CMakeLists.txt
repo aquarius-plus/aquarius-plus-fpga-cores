@@ -51,6 +51,7 @@ target_link_options(${PROJECT_NAME} PRIVATE -Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/de
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     .
+    basic
     lib
 )
 

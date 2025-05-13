@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common.h"
-#include "../common/buffers.h"
-#include "../basic.h"
+#include "common/buffers.h"
+#include "basic.h"
 #include <math.h>
 
 // Stack values

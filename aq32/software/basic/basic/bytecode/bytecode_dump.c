@@ -1,5 +1,5 @@
 #include "bytecode.h"
-#include "../common/buffers.h"
+#include "common/buffers.h"
 
 static const char *bc_names[] = {
     [BC_END]                          = "END",

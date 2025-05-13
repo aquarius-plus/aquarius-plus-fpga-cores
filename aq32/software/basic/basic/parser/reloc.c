@@ -1,8 +1,8 @@
 #include "reloc.h"
-#include "../basic.h"
+#include "basic.h"
 #include "tokenizer.h"
-#include "../bytecode/bytecode.h"
-#include "../common/buffers.h"
+#include "bytecode/bytecode.h"
+#include "common/buffers.h"
 
 static uint8_t *ptr_alloc;
 static uint8_t *ptr_alloc_end;

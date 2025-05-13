@@ -1,6 +1,6 @@
 #include "tokenizer.h"
-#include "../basic.h"
-#include "../common/parsenum.h"
+#include "basic.h"
+#include "common/parsenum.h"
 
 static struct editbuf *eb;
 

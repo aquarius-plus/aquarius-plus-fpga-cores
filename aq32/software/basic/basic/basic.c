@@ -93,7 +93,9 @@ int basic_run(struct editbuf *eb) {
     cur_error = 0;
     if (setjmp(jb_error) == 0) {
         basic_parse(eb);
-        // bytecode_dump();
+#ifdef DEBUG
+        bytecode_dump();
+#endif
 
         console_init();
         bytecode_run();

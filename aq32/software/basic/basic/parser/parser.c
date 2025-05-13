@@ -1,9 +1,9 @@
 #include "parser.h"
 #include "tokenizer.h"
-#include "../basic.h"
+#include "basic.h"
 #include "reloc.h"
-#include "../bytecode/bytecode.h"
-#include "../common/buffers.h"
+#include "bytecode/bytecode.h"
+#include "common/buffers.h"
 
 static uint8_t  default_type[26];
 static bool     do_emit_line_tag = false;

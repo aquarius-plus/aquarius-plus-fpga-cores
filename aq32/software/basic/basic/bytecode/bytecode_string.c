@@ -1,5 +1,5 @@
 #include "bytecode_internal.h"
-#include "../common/parsenum.h"
+#include "common/parsenum.h"
 
 void bc_func_len(void) {
     value_t *val = bc_stack_pop_str();

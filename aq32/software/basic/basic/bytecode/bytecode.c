@@ -113,8 +113,7 @@ void bc_end(void) {
     _basic_error(0);
 }
 void bc_line_tag(void) {
-    err_line = bc_p_cur[0] | (bc_p_cur[1] << 8);
-    bc_p_cur += 2;
+    err_line = bc_get_u16();
 }
 void bc_dup(void) {
     if (bc_stack_idx >= STACK_DEPTH)

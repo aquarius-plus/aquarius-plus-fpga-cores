@@ -1,5 +1,5 @@
 #include "parsenum.h"
-#include "../basic/basic.h"
+#include "basic.h"
 
 static inline bool is_decimal(uint8_t ch) { return (ch >= '0' && ch <= '9'); }
 static inline bool is_typechar(char ch) { return (ch == '%' || ch == '&' || ch == '!' || ch == '#' || ch == '$'); }
