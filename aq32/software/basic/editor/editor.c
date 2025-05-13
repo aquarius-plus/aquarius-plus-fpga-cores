@@ -96,9 +96,11 @@ static const struct menu menubar_menus[] = {
 };
 #pragma endregion
 
+static __attribute__((section(".noinit"))) uint8_t buf_edit[128 * 1024];
+
 static void reset_state(void) {
     memset(&state, 0, sizeof(state));
-    editbuf_init(&state.editbuf);
+    editbuf_init(&state.editbuf, buf_edit, sizeof(buf_edit));
 }
 
 static int get_cursor_pos(void) {
@@ -273,7 +275,14 @@ static int load_file(const char *path) {
 
         line_size = min(line_size, MAX_LINESZ);
 
-        editbuf_insert_line(&state.editbuf, line, linebuf, line_size);
+        if (!editbuf_insert_line(&state.editbuf, line, linebuf, line_size)) {
+            if (dialog_confirm("Error", "File too large to fully load. Load partially?") <= 0) {
+                reset_state();
+                break;
+            }
+            state.modified = true;
+            break;
+        }
         line++;
     }
 
@@ -316,6 +325,8 @@ static void render_statusbar(void) {
     char tmp[64];
 
     tmp[0] = 0;
+    snprintf(tmp, sizeof(tmp), "%p", state.editbuf.p_buf);
+
     // uint8_t *p = getline_addr(state.cursor_line);
     // snprintf(tmp, sizeof(tmp), "p[0]=%u p[1]=%u lines=%u cursor_line=%d scr_first_line=%d", p[0], p[1], state.num_lines, state.cursor_line, state.scr_first_line);
     // snprintf(tmp, sizeof(tmp), "CRC: %08lX", mycrc);
@@ -492,23 +503,19 @@ void editor(void) {
                         break;
                     }
                     case CH_ENTER: {
-                        const uint8_t *p;
-                        int            line_len = editbuf_get_line(&state.editbuf, state.cursor_line, &p);
-                        if (line_len < 0)
-                            break;
-
                         int leading_spaces = get_leading_spaces();
 
                         update_cursor_pos();
-                        editbuf_split_line(&state.editbuf, state.cursor_line, state.cursor_pos);
-                        state.cursor_line++;
-                        state.cursor_pos = 0;
-                        state.modified   = true;
+                        if (editbuf_split_line(&state.editbuf, state.cursor_line, state.cursor_pos)) {
+                            state.cursor_line++;
+                            state.cursor_pos = 0;
+                            state.modified   = true;
 
-                        // Auto indent
-                        while (leading_spaces > 0) {
-                            leading_spaces--;
-                            insert_ch(' ');
+                            // Auto indent
+                            while (leading_spaces > 0) {
+                                leading_spaces--;
+                                insert_ch(' ');
+                            }
                         }
                         break;
                     }

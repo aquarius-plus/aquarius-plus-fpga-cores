@@ -14,9 +14,11 @@ struct editor_state {
 
 struct editor_state state;
 
+static uint8_t buf_edit[128 * 1024];
+
 void reset_state(void) {
     memset(&state, 0, sizeof(state));
-    editbuf_init(&state.editbuf);
+    editbuf_init(&state.editbuf, buf_edit, sizeof(buf_edit));
 }
 
 static int load_file(const char *path) {
