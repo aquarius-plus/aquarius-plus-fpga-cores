@@ -82,7 +82,7 @@ static const struct err_str err_str[] = {
 
 static int     cur_error;
 static jmp_buf jb_error;
-int            err_line = -1;
+int            err_line;
 
 void _basic_error(int err) {
     cur_error = err;
@@ -110,12 +110,19 @@ int basic_get_error_line(void) {
 }
 
 const char *basic_get_error_str(int err) {
-    const char *str = "Unprintable error";
+    static char result[64];
+
+    const char *str = NULL;
     for (int i = 0; i < (int)(sizeof(err_str) / sizeof(err_str[0])); i++) {
         if (err_str[i].err == err) {
             str = err_str[i].str;
             break;
         }
     }
-    return str;
+    if (str == NULL) {
+        snprintf(result, sizeof(result), "Error %d in line %d", err, err_line + 1);
+    } else {
+        snprintf(result, sizeof(result), "%s in line %d", str, err_line + 1);
+    }
+    return result;
 }

@@ -379,6 +379,7 @@ void tokenizer_init(struct editbuf *_eb) {
     state.cur_line   = -1;
 
     cur_token = -1;
+    err_line  = 0;
 }
 
 int tokenizer_get_cur_line(void) {

@@ -8,5 +8,13 @@
       "path": "pcdev"
     }
   ],
-  "settings": {}
+  "settings": {
+    "files.associations": {
+      "malloc.h": "c",
+      "strings.h": "c",
+      "random": "c",
+      "unistd.h": "c",
+      "cstdlib": "c"
+    }
+  }
 }

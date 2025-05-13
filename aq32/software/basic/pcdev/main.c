@@ -74,7 +74,7 @@ int main(int argc, const char **argv) {
 
     int result = basic_run(&state.editbuf);
     if (result != 0) {
-        printf("Error in line %d: %s\n", basic_get_error_line() + 1, basic_get_error_str(result));
+        puts(basic_get_error_str(result));
         exit(1);
     } else {
         printf("Program finished.\n");

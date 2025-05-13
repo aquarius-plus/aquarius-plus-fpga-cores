@@ -64,6 +64,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     lib/screen.c
     lib/esp.c
     lib/common.c
+    lib/malloc.c
 
     editor/editor.c
     editor/menu.c

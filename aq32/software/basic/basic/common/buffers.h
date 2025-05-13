@@ -4,7 +4,7 @@
 
 #define SIZE_BUF_BYTECODE  0x10000
 #define SIZE_BUF_VARIABLES 0x10000
-#define SIZE_BUF_DYNAMIC   0x10000
+#define SIZE_BUF_DYNAMIC   0x7000
 
 extern uint8_t  buf_bytecode[SIZE_BUF_BYTECODE];
 extern uint8_t *buf_bytecode_end;
@@ -20,4 +20,8 @@ static inline void buf_bytecode_patch_u16(uint16_t offset, uint16_t value) {
 extern uint8_t  buf_variables[SIZE_BUF_VARIABLES];
 extern uint16_t buf_variables_size;
 
-extern uint8_t buf_dynamic[SIZE_BUF_DYNAMIC];
+void  buf_reinit(void);
+void *buf_malloc(size_t sz);
+void *buf_calloc(size_t sz);
+void *buf_realloc(void *p, size_t sz);
+void  buf_free(void *p);

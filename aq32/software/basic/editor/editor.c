@@ -28,7 +28,7 @@ struct editor_state state;
 
 static int  load_file(const char *path);
 static void save_file(const char *path);
-static void render_editor(void);
+static void redraw_screen(void);
 
 static void cmd_file_new(void);
 static void cmd_file_open(void);
@@ -134,7 +134,7 @@ static void cmd_file_new(void) {
 static void cmd_file_open(void) {
     char tmp[256];
     if (dialog_open(tmp, sizeof(tmp))) {
-        render_editor();
+        redraw_screen();
         if (check_modified()) {
             scr_status_msg("Loading file...");
             load_file(tmp);
@@ -165,7 +165,7 @@ static void cmd_file_save_as(void) {
     struct esp_stat st;
     if (esp_stat(tmp, &st) == 0) {
         // File exists
-        render_editor();
+        redraw_screen();
         if (dialog_confirm(NULL, "Overwrite existing file?") <= 0)
             do_save = false;
     }
@@ -185,6 +185,9 @@ static void cmd_run_start(void) {
     scr_status_msg("Compiling...");
     int result = basic_run(&state.editbuf);
     if (result != 0) {
+        state.cursor_line = basic_get_error_line();
+        state.cursor_pos  = 0;
+        redraw_screen();
         dialog_message("Error", basic_get_error_str(result));
     } else {
         scr_status_msg("Press any key to continue");
@@ -312,10 +315,10 @@ static void render_editor_border(void) {
 static void render_statusbar(void) {
     char tmp[64];
 
+    tmp[0] = 0;
     // uint8_t *p = getline_addr(state.cursor_line);
     // snprintf(tmp, sizeof(tmp), "p[0]=%u p[1]=%u lines=%u cursor_line=%d scr_first_line=%d", p[0], p[1], state.num_lines, state.cursor_line, state.scr_first_line);
-
-    snprintf(tmp, sizeof(tmp), "CRC: %08lX", mycrc);
+    // snprintf(tmp, sizeof(tmp), "CRC: %08lX", mycrc);
 
     scr_status_msg(tmp);
     scr_setcolor(COLOR_STATUS2);
@@ -371,6 +374,18 @@ unsigned int crc32b(const uint8_t *buf, size_t count) {
 
 static bool is_cntrl(uint8_t ch) { return (ch < 32 || (ch >= 127 && ch < 160)); }
 
+static void redraw_screen(void) {
+    state.cursor_line    = clamp(state.cursor_line, 0, editbuf_get_line_count(&state.editbuf));
+    state.cursor_pos     = max(0, state.cursor_pos);
+    state.scr_first_line = clamp(state.scr_first_line, max(0, state.cursor_line - (EDITOR_ROWS - 1)), state.cursor_line);
+    state.scr_first_pos  = clamp(state.scr_first_pos, max(0, get_cursor_pos() - (EDITOR_COLUMNS - 1)), get_cursor_pos());
+
+    menubar_render(menubar_menus, false, NULL);
+    render_editor_border();
+    render_editor();
+    render_statusbar();
+}
+
 void editor(void) {
     extern uint8_t __bss_start;
     mycrc = crc32b((const uint8_t *)0x80000, &__bss_start - (const uint8_t *)0x80000);
@@ -379,10 +394,7 @@ void editor(void) {
     reset_state();
 
     while (1) {
-        menubar_render(menubar_menus, false, NULL);
-        render_editor_border();
-        render_editor();
-        render_statusbar();
+        redraw_screen();
 
         int key;
         while ((key = REGS->KEYBUF) < 0);
@@ -522,10 +534,5 @@ void editor(void) {
                 }
             }
         }
-
-        state.cursor_line    = clamp(state.cursor_line, 0, editbuf_get_line_count(&state.editbuf));
-        state.cursor_pos     = max(0, state.cursor_pos);
-        state.scr_first_line = clamp(state.scr_first_line, max(0, state.cursor_line - (EDITOR_ROWS - 1)), state.cursor_line);
-        state.scr_first_pos  = clamp(state.scr_first_pos, max(0, get_cursor_pos() - (EDITOR_COLUMNS - 1)), get_cursor_pos());
     }
 }

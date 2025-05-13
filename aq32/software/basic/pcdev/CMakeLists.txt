@@ -18,13 +18,15 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_sources(${PROJECT_NAME} PRIVATE
     main.c
     console.c
+    buffers.c
+
     ../lib/common.c
 
     ../editor/editbuf.c
 
     ../basic/basic.c
     
-    ../basic/common/buffers.c
+    # ../basic/common/buffers.c
     ../basic/common/parsenum.c
 
     ../basic/parser/reloc.c
