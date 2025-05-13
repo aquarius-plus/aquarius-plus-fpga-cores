@@ -35,6 +35,7 @@ static uint16_t list_var_offsets    = 0;
 static uint16_t list_label_offsets  = 0;
 static uint16_t list_linenr_offsets = 0;
 static uint16_t list_relocations    = 0;
+uint16_t        vars_total_size;
 
 static uint16_t alloc_record(unsigned size) {
     if (ptr_alloc_end + size > ptr_alloc_buf_end)
@@ -46,12 +47,16 @@ static uint16_t alloc_record(unsigned size) {
 }
 
 void reloc_init(void) {
-    // During parsing we use the variables buffer as temporary work space
-    ptr_alloc         = buf_variables;
-    ptr_alloc_end     = buf_variables + 1; // Reserve offset 0 for list termination
-    ptr_alloc_buf_end = ptr_alloc + SIZE_BUF_VARIABLES;
+    size_t workspace_size = 0x10000;
 
-    buf_variables_size = 0;
+    ptr_alloc = buf_malloc(workspace_size);
+    if (!ptr_alloc)
+        _basic_error(ERR_OUT_OF_MEM);
+
+    ptr_alloc_end     = ptr_alloc + 1; // Reserve offset 0 for list termination
+    ptr_alloc_buf_end = ptr_alloc + workspace_size;
+
+    vars_total_size = 0;
 
     list_var_offsets    = 0;
     list_label_offsets  = 0;
@@ -115,13 +120,13 @@ uint16_t reloc_var_get(const char *ident, unsigned len) {
 
     // Not found, allocate new variable
     unsigned data_sz = get_data_size(ident[len - 1]);
-    if (buf_variables_size + data_sz > sizeof(buf_variables))
+    if (vars_total_size + data_sz > 0x10000)
         _basic_error(ERR_OUT_OF_MEM);
 
     unsigned rec_sz     = sizeof(uint16_t) + sizeof(uint16_t) + 1 + len;
     uint16_t rec_next   = list_var_offsets;
-    uint16_t var_offset = buf_variables_size;
-    buf_variables_size += data_sz;
+    uint16_t var_offset = vars_total_size;
+    vars_total_size += data_sz;
 
     o = alloc_record(rec_sz);
     write_u16(&ptr_alloc[o], rec_next);

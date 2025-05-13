@@ -4,9 +4,6 @@
 __attribute__((section(".noinit"))) uint8_t buf_bytecode[SIZE_BUF_BYTECODE];
 uint8_t                                    *buf_bytecode_end;
 
-__attribute__((section(".noinit"))) uint8_t buf_variables[SIZE_BUF_VARIABLES];
-uint16_t                                    buf_variables_size;
-
 static mspace *arena;
 
 void buf_reinit(void) {

@@ -4,9 +4,6 @@
 uint8_t  buf_bytecode[SIZE_BUF_BYTECODE];
 uint8_t *buf_bytecode_end;
 
-uint8_t  buf_variables[SIZE_BUF_VARIABLES];
-uint16_t buf_variables_size;
-
 void  buf_reinit(void) {}
 void *buf_malloc(size_t sz) { return malloc(sz); }
 void *buf_calloc(size_t sz) { return calloc(1, sz); }

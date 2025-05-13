@@ -4,6 +4,7 @@
 #include "parser/reloc.h"
 #include <setjmp.h>
 #include "console.h"
+#include "common/buffers.h"
 
 struct err_str {
     uint8_t     err;
@@ -98,7 +99,7 @@ int basic_run(struct editbuf *eb) {
 #endif
 
         console_init();
-        bytecode_run();
+        bytecode_run(buf_bytecode, vars_total_size);
     } else {
         return cur_error;
     }

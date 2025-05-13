@@ -7,6 +7,7 @@ const uint8_t *bc_p_buf;
 const uint8_t *bc_p_cur;
 value_t        bc_stack[STACK_DEPTH];
 int            bc_stack_idx;
+uint8_t       *p_vars;
 
 value_t *bc_stack_push_temp_str(unsigned length) {
     value_t *stk = bc_stack_push();
@@ -159,21 +160,21 @@ void bc_push_const_string(void) {
     bc_p_cur += 1 + bc_p_cur[0];
 }
 void bc_push_var_int(void) {
-    bc_stack_push_long((int16_t)read_u16(&buf_variables[bc_get_u16()]));
+    bc_stack_push_long((int16_t)read_u16(&p_vars[bc_get_u16()]));
 }
 void bc_push_var_long(void) {
-    bc_stack_push_long(read_u32(&buf_variables[bc_get_u16()]));
+    bc_stack_push_long(read_u32(&p_vars[bc_get_u16()]));
 }
 void bc_push_var_single(void) {
-    uint32_t u32 = read_u32(&buf_variables[bc_get_u16()]);
+    uint32_t u32 = read_u32(&p_vars[bc_get_u16()]);
     bc_stack_push_single(*(float *)&u32);
 }
 void bc_push_var_double(void) {
-    uint64_t u64 = read_u64(&buf_variables[bc_get_u16()]);
+    uint64_t u64 = read_u64(&p_vars[bc_get_u16()]);
     bc_stack_push_double(*(double *)&u64);
 }
 void bc_push_var_string(void) {
-    uint8_t *p = &buf_variables[bc_get_u16()];
+    uint8_t *p = &p_vars[bc_get_u16()];
     uint8_t *p_str;
     memcpy(&p_str, p, sizeof(uint8_t *));
 
@@ -188,26 +189,26 @@ void bc_store_var_int(void) {
     bc_to_long_round(val);
     if (val->val_long < INT16_MIN || val->val_long >= INT16_MAX)
         _basic_error(ERR_OVERFLOW);
-    write_u16(&buf_variables[bc_get_u16()], val->val_long);
+    write_u16(&p_vars[bc_get_u16()], val->val_long);
 }
 void bc_store_var_long(void) {
     value_t *val = bc_stack_pop();
     bc_to_long_round(val);
-    write_u32(&buf_variables[bc_get_u16()], val->val_long);
+    write_u32(&p_vars[bc_get_u16()], val->val_long);
 }
 void bc_store_var_single(void) {
     value_t *val = bc_stack_pop();
     bc_to_single(val);
-    write_u32(&buf_variables[bc_get_u16()], val->val_long);
+    write_u32(&p_vars[bc_get_u16()], val->val_long);
 }
 void bc_store_var_double(void) {
     value_t *val = bc_stack_pop();
     bc_to_double(val);
-    write_u64(&buf_variables[bc_get_u16()], val->val_longlong);
+    write_u64(&p_vars[bc_get_u16()], val->val_longlong);
 }
 void bc_store_var_string(void) {
     value_t *stk = bc_stack_pop_str();
-    uint8_t *p   = &buf_variables[bc_get_u16()];
+    uint8_t *p   = &p_vars[bc_get_u16()];
 
     uint8_t *p_str;
     memcpy(&p_str, p, sizeof(uint8_t *));
@@ -429,11 +430,14 @@ static bc_handler_t bc_handlers[] = {
     [BC_FUNC_VAL]     = bc_func_val,
 };
 
-void bytecode_run(void) {
-    memset(buf_variables, 0, buf_variables_size);
+void bytecode_run(const uint8_t *p_buf, size_t vars_sz) {
+    buf_reinit();
+    p_vars = buf_calloc(vars_sz);
+    if (!p_vars)
+        _basic_error(ERR_OUT_OF_MEM);
 
-    bc_p_buf     = buf_bytecode;
-    bc_p_cur     = bc_p_buf;
+    bc_p_buf     = p_buf;
+    bc_p_cur     = p_buf;
     bc_stack_idx = STACK_DEPTH;
 
     while (1) {

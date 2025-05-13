@@ -871,6 +871,8 @@ static void parse_statements(void) {
 }
 
 void basic_parse(struct editbuf *eb) {
+    buf_reinit();
+
     buf_bytecode_end     = buf_bytecode;
     ptr_bytecode_buf_end = buf_bytecode + sizeof(buf_bytecode);
     emit_enabled         = true;
