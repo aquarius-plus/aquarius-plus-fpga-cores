@@ -19,7 +19,8 @@ enum {
     ERR_UNHANDLED            = 73,
 };
 
-int         basic_run(struct editbuf *eb);
+int         basic_compile(struct editbuf *eb);
+int         basic_run(void);
 int         basic_get_error_line(void);
 const char *basic_get_error_str(int err);
 

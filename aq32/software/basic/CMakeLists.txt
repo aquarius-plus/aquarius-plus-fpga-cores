@@ -72,6 +72,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     editor/ctrl_edit_field.c
     editor/ctrl_file_list.c
     editor/editbuf.c
+    editor/video_save.c
 
     basic/basic.c
     

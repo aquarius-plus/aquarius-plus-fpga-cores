@@ -38,6 +38,11 @@ static void cmd_file_exit(void);
 
 static void cmd_run_start(void);
 
+static void cmd_view_output_screen();
+
+static void cmd_help_index(void);
+static void cmd_help_contents(void);
+static void cmd_help_topic(void);
 static void cmd_help_about(void);
 
 #pragma region Menus
@@ -67,29 +72,29 @@ static const struct menu_item menu_file_items[] = {
 //     {.title = NULL},
 // };
 
-// static const struct menu_item menu_view_items[] = {
-//     {.title = "&Output Screen   F4"},
-//     {.title = NULL},
-// };
+static const struct menu_item menu_view_items[] = {
+    {.title = "&Output Screen", .shortcut = CH_F4, .status = "Displays output screen", .handler = cmd_view_output_screen},
+    {.title = NULL},
+};
 
 static const struct menu_item menu_run_items[] = {
-    {.title = "&Start", .shortcut = CH_F5, .handler = cmd_run_start},
+    {.title = "&Start", .shortcut = CH_F5, .status = "Runs current program", .handler = cmd_run_start},
     {.title = NULL},
 };
 
 static const struct menu_item menu_help_items[] = {
-    // {.title = "&Index"},
-    // {.title = "&Contents"},
-    // {.title = "&Topic      F1"},
-    // {.title = "-"},
-    {.title = "&About...", .handler = cmd_help_about},
+    {.title = "&Index", .status = "Displays help index", .handler = cmd_help_index},
+    {.title = "&Contents", .status = "Display help table of contents", .handler = cmd_help_contents},
+    {.title = "&Topic", .shortcut = CH_F1, .status = "Displays information about the keyword the cursor is on", .handler = cmd_help_topic},
+    {.title = "-"},
+    {.title = "&About...", .status = "Displays product version", .handler = cmd_help_about},
     {.title = NULL},
 };
 
 static const struct menu menubar_menus[] = {
     {.title = "&File", .items = menu_file_items},
     // {.title = "&Edit", .items = menu_edit_items},
-    // {.title = "&View", .items = menu_view_items},
+    {.title = "&View", .items = menu_view_items},
     {.title = "&Run", .items = menu_run_items},
     {.title = "&Help", .items = menu_help_items},
     {.title = NULL},
@@ -183,26 +188,64 @@ static void cmd_file_exit(void) {
     }
 }
 
-static void cmd_run_start(void) {
-    scr_status_msg("Compiling...");
-    int result = basic_run(&state.editbuf);
-    if (result != 0) {
-        state.cursor_line = basic_get_error_line();
-        state.cursor_pos  = 0;
-        redraw_screen();
-        dialog_message("Error", basic_get_error_str(result));
-    } else {
-        scr_status_msg("Press any key to continue");
-        int key;
-        while ((key = REGS->KEYBUF) >= 0);
-
-        while (1) {
-            while ((key = REGS->KEYBUF) < 0);
-            if ((key & KEY_IS_SCANCODE) == 0) {
-                break;
-            }
+static void wait_keypress(void) {
+    int key;
+    while ((key = REGS->KEYBUF) >= 0);
+    while (1) {
+        while ((key = REGS->KEYBUF) < 0);
+        if ((key & KEY_IS_SCANCODE) == 0) {
+            break;
         }
     }
+}
+
+static void show_basic_error(int result) {
+    state.cursor_line = basic_get_error_line();
+    state.cursor_pos  = 0;
+    reinit_video();
+    redraw_screen();
+    dialog_message("Error", basic_get_error_str(result));
+}
+
+static void cmd_run_start(void) {
+    scr_status_msg("Compiling...");
+    int result = basic_compile(&state.editbuf);
+    if (result != 0) {
+        show_basic_error(result);
+        return;
+    }
+    result = basic_run();
+    save_video();
+    if (result != 0) {
+        show_basic_error(result);
+        return;
+    }
+
+    scr_status_msg("Press any key to continue");
+    int key;
+    while ((key = REGS->KEYBUF) >= 0);
+    while (1) {
+        while ((key = REGS->KEYBUF) < 0);
+        if ((key & KEY_IS_SCANCODE) == 0) {
+            break;
+        }
+    }
+    reinit_video();
+}
+
+static void cmd_view_output_screen(void) {
+    restore_video();
+    wait_keypress();
+    reinit_video();
+}
+
+static void cmd_help_index(void) {
+}
+
+static void cmd_help_contents(void) {
+}
+
+static void cmd_help_topic(void) {
 }
 
 static void cmd_help_about(void) {
@@ -401,6 +444,7 @@ void editor(void) {
     extern uint8_t __bss_start;
     mycrc = crc32b((const uint8_t *)0x80000, &__bss_start - (const uint8_t *)0x80000);
 
+    save_video();
     reinit_video();
     reset_state();
 

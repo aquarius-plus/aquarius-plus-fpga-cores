@@ -90,14 +90,22 @@ void _basic_error(int err) {
     longjmp(jb_error, 1);
 }
 
-int basic_run(struct editbuf *eb) {
+int basic_compile(struct editbuf *eb) {
     cur_error = 0;
     if (setjmp(jb_error) == 0) {
         basic_parse(eb);
 #ifdef DEBUG
         bytecode_dump();
 #endif
+    } else {
+        return cur_error;
+    }
+    return 0;
+}
 
+int basic_run(void) {
+    cur_error = 0;
+    if (setjmp(jb_error) == 0) {
         console_init();
         bytecode_run(buf_bytecode, vars_total_size);
     } else {
