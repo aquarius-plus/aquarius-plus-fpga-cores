@@ -58,6 +58,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_sources(${PROJECT_NAME} PRIVATE
     main.c
     console.c
+    video_save.c
 
     lib/start.S
     lib/syscalls.c
@@ -66,13 +67,12 @@ target_sources(${PROJECT_NAME} PRIVATE
     lib/common.c
     lib/malloc.c
 
-    editor/editor.c
-    editor/menu.c
-    editor/dialog.c
     editor/ctrl_edit_field.c
     editor/ctrl_file_list.c
+    editor/dialog.c
     editor/editbuf.c
-    editor/video_save.c
+    editor/editor.c
+    editor/menu.c
 
     basic/basic.c
     

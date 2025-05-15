@@ -1,6 +1,7 @@
 #include "common.h"
 #include "editor/editor.h"
 #include "basic/basic.h"
+#include "video_save.h"
 
 static void cmd_run_start(void);
 
@@ -133,7 +134,7 @@ static void cmd_help_about(void) {
 static __attribute__((section(".noinit"))) uint8_t buf_edit[128 * 1024];
 
 void main(void) {
+    save_video();
     editbuf_init(&editbuf, buf_edit, sizeof(buf_edit));
-
     editor(&editbuf);
 }

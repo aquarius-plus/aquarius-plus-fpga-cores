@@ -291,7 +291,6 @@ void editor_redraw_screen(void) {
 void editor(struct editbuf *eb) {
     state.editbuf = eb;
 
-    save_video();
     reinit_video();
     reset_state();
 
