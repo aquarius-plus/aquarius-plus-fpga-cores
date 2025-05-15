@@ -319,5 +319,21 @@ bool editbuf_convert_from_regular(struct editbuf *eb, const uint8_t *ps, const u
 }
 
 int editbuf_convert_to_regular(struct editbuf *eb) {
-    return 0;
+    const uint8_t *ps = eb->p_buf;
+    uint8_t       *pd = eb->p_buf;
+
+    for (int i = 0; i < eb->line_count; i++) {
+        const uint8_t *p_next    = ps + 1 + ps[0];
+        uint8_t        line_size = ps[1];
+        ps += 2;
+
+        while (line_size--)
+            *(pd++) = *(ps++);
+        *(pd++) = '\n';
+
+        ps = p_next;
+    }
+    editbuf_reset(eb);
+
+    return pd - eb->p_buf;
 }

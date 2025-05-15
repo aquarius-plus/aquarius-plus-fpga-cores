@@ -210,8 +210,10 @@ static void render_editor(void) {
 
 static int load_file(const char *path) {
     FILE *f = fopen(path, "rt");
-    if (f == NULL)
+    if (f == NULL) {
+        dialog_message("Error", "Error opening file!");
         return -1;
+    }
 
     fseek(f, 0, SEEK_END);
     int file_size = ftell(f);
@@ -247,24 +249,23 @@ static void save_file(const char *path) {
     scr_status_msg("Saving file...");
 
     FILE *f = fopen(path, "wb");
-    if (!f)
+    if (f == NULL) {
+        dialog_message("Error", "Error opening file!");
         return;
-
-    int line_count = editbuf_get_line_count(state.editbuf);
-    for (int line = 0; line < line_count; line++) {
-        const uint8_t *p_line;
-        int            line_len = editbuf_get_line(state.editbuf, line, &p_line);
-        if (line_len < 0)
-            break;
-
-        if (line_len > 0)
-            fwrite(p_line, line_len, 1, f);
-        fputc('\n', f);
     }
+
+    // Convert for saving
+    int length = editbuf_convert_to_regular(state.editbuf);
+
+    fwrite(state.editbuf->p_buf, length, 1, f);
     fclose(f);
 
+    // Convert back
+    uint8_t *p_load = state.editbuf->p_buf_end - length;
+    memmove(p_load, state.editbuf->p_buf, length);
+    editbuf_convert_from_regular(state.editbuf, p_load, state.editbuf->p_buf_end);
+
     snprintf(state.filename, sizeof(state.filename), "%s", path);
-    state.editbuf->modified = false;
 }
 
 static void save_range(const char *path, location_t from, location_t to) {
