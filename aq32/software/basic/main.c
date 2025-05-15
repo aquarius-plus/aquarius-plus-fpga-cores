@@ -124,7 +124,44 @@ static void cmd_help_index(void) {
 static void cmd_help_contents(void) {
 }
 
+static bool get_keyword_under_cursor(char *keyword, size_t keyword_maxlen) {
+    int line, pos;
+    editor_get_cursor(&line, &pos);
+
+    const uint8_t *p_line;
+    int            line_len = editbuf_get_line(&editbuf, line, &p_line);
+    if (line_len < 0 || pos < 0 || pos >= line_len)
+        return false;
+
+    const uint8_t *p_line_end = p_line + line_len;
+    const uint8_t *p_cursor   = p_line + pos;
+    if (!is_alpha(p_cursor[0]) && p_cursor[0] != '$')
+        return false;
+
+    // Go to start of keyword
+    while (p_cursor > p_line && is_alpha(p_cursor[-1]))
+        p_cursor--;
+
+    unsigned idx = 0;
+    while (p_cursor < p_line_end && (is_alpha(p_cursor[0]) || p_cursor[0] == '$')) {
+        if (idx >= keyword_maxlen - 1)
+            return false;
+
+        keyword[idx++] = p_cursor[0];
+        if (p_cursor[0] == '$')
+            break;
+        p_cursor++;
+    }
+    keyword[idx] = 0;
+    return true;
+}
+
 static void cmd_help_topic(void) {
+    char keyword[16];
+    if (!get_keyword_under_cursor(keyword, sizeof(keyword)))
+        return;
+
+    dialog_message("Help topic", keyword);
 }
 
 static void cmd_help_about(void) {

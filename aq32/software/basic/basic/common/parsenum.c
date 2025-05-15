@@ -1,9 +1,6 @@
 #include "parsenum.h"
 #include "basic.h"
 
-static inline bool is_decimal(uint8_t ch) { return (ch >= '0' && ch <= '9'); }
-static inline bool is_typechar(char ch) { return (ch == '%' || ch == '&' || ch == '!' || ch == '#' || ch == '$'); }
-
 int copy_num_to_buf(const uint8_t **ps, const uint8_t *ps_end, char *buf, size_t buf_size, char *type) {
     const uint8_t *ps_cur = *ps;
     char          *pd     = buf;

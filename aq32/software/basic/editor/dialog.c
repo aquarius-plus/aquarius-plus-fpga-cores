@@ -220,7 +220,7 @@ int dialog_confirm(const char *title, const char *text) {
 void dialog_message(const char *title, const char *text) {
     scr_status_msg("Press enter or escape to dismiss message.");
 
-    int w = strlen(text) + 4;
+    int w = max(strlen(text), strlen(title)) + 4;
     int h = 5;
     int x = (80 - w) / 2;
     int y = (25 - h) / 2;

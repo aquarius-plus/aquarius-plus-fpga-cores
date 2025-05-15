@@ -437,3 +437,8 @@ void editor_set_cursor(int line, int pos) {
     state.cursor_line = line;
     state.cursor_pos  = pos;
 }
+
+void editor_get_cursor(int *line, int *pos) {
+    *line = state.cursor_line;
+    *pos  = state.cursor_pos;
+}
