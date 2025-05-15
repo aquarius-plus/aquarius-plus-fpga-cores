@@ -32,8 +32,16 @@ static void reset_state(void) {
     state.scr_first_pos  = 0;
 }
 
+static bool has_selection(void) {
+    return state.loc_selection.line >= 0;
+}
+
+static void clear_selection(void) {
+    state.loc_selection = (location_t){-1, -1};
+}
+
 static bool in_selection(location_t loc) {
-    if (state.loc_selection.line < 0)
+    if (!has_selection())
         return false;
 
     location_t loc_selection_from;
@@ -362,6 +370,8 @@ void editor(struct editbuf *eb) {
             if (handler) {
                 handler();
             } else {
+                bool       check_other     = false;
+                location_t prev_loc_cursor = state.loc_cursor;
                 switch (ch) {
                     case CH_UP: state.loc_cursor.line--; break;
                     case CH_DOWN: state.loc_cursor.line++; break;
@@ -400,73 +410,89 @@ void editor(struct editbuf *eb) {
                     }
                     case CH_PAGEUP: state.loc_cursor.line -= (EDITOR_ROWS - 1); break;
                     case CH_PAGEDOWN: state.loc_cursor.line += (EDITOR_ROWS - 1); break;
-                    case CH_DELETE: {
-                        update_cursor_pos();
-                        editbuf_delete_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos);
-                        break;
-                    }
-                    case CH_BACKSPACE: {
-                        update_cursor_pos();
-                        if (state.loc_cursor.line <= 0 && state.loc_cursor.pos <= 0)
+                    default: check_other = true;
+                }
+
+                // Start a new selection?
+                if (!check_other && !has_selection() && (key & KEY_MOD_SHIFT) != 0) {
+                    state.loc_selection = prev_loc_cursor;
+                }
+
+                if (check_other) {
+                    switch (ch) {
+                        case CH_DELETE: {
+                            update_cursor_pos();
+                            editbuf_delete_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos);
                             break;
+                        }
+                        case CH_BACKSPACE: {
+                            update_cursor_pos();
+                            if (state.loc_cursor.line <= 0 && state.loc_cursor.pos <= 0)
+                                break;
 
-                        if (state.loc_cursor.pos > 0) {
-                            int leading_spaces = get_leading_spaces();
-                            int count          = 1;
+                            if (state.loc_cursor.pos > 0) {
+                                int leading_spaces = get_leading_spaces();
+                                int count          = 1;
 
-                            if (leading_spaces == state.loc_cursor.pos) {
-                                int pos = state.loc_cursor.pos;
-                                do {
-                                    pos--;
-                                } while (pos % TAB_SIZE != 0);
-                                count = state.loc_cursor.pos - pos;
-                            }
+                                if (leading_spaces == state.loc_cursor.pos) {
+                                    int pos = state.loc_cursor.pos;
+                                    do {
+                                        pos--;
+                                    } while (pos % TAB_SIZE != 0);
+                                    count = state.loc_cursor.pos - pos;
+                                }
 
-                            while (count > 0) {
-                                count--;
-                                state.loc_cursor.pos--;
+                                while (count > 0) {
+                                    count--;
+                                    state.loc_cursor.pos--;
+                                    editbuf_delete_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos);
+                                }
+                            } else {
+                                state.loc_cursor.line--;
+                                state.loc_cursor.pos = editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL);
                                 editbuf_delete_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos);
                             }
-                        } else {
-                            state.loc_cursor.line--;
-                            state.loc_cursor.pos = editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL);
-                            editbuf_delete_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos);
+                            break;
                         }
-                        break;
-                    }
-                    case CH_ENTER: {
-                        update_cursor_pos();
-                        int leading_spaces = min(state.loc_cursor.pos, get_leading_spaces());
-                        if (editbuf_split_line(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos)) {
-                            state.loc_cursor.line++;
-                            state.loc_cursor.pos = 0;
+                        case CH_ENTER: {
+                            update_cursor_pos();
+                            int leading_spaces = min(state.loc_cursor.pos, get_leading_spaces());
+                            if (editbuf_split_line(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos)) {
+                                state.loc_cursor.line++;
+                                state.loc_cursor.pos = 0;
 
-                            // Auto indent
-                            while (leading_spaces > 0) {
-                                leading_spaces--;
+                                // Auto indent
+                                while (leading_spaces > 0) {
+                                    leading_spaces--;
+                                    insert_ch(' ');
+                                }
+                            }
+                            break;
+                        }
+                        case CH_TAB: {
+                            update_cursor_pos();
+                            int pos = state.loc_cursor.pos;
+                            do {
+                                pos++;
+                            } while (pos % TAB_SIZE != 0);
+
+                            int count = pos - state.loc_cursor.pos;
+                            for (int i = 0; i < count; i++) {
                                 insert_ch(' ');
                             }
+                            break;
                         }
-                        break;
+                        default: {
+                            if (!is_cntrl(ch))
+                                insert_ch(ch);
+                            break;
+                        }
                     }
-                    case CH_TAB: {
-                        update_cursor_pos();
-                        int pos = state.loc_cursor.pos;
-                        do {
-                            pos++;
-                        } while (pos % TAB_SIZE != 0);
+                }
 
-                        int count = pos - state.loc_cursor.pos;
-                        for (int i = 0; i < count; i++) {
-                            insert_ch(' ');
-                        }
-                        break;
-                    }
-                    default: {
-                        if (!is_cntrl(ch))
-                            insert_ch(ch);
-                        break;
-                    }
+                // Clear existing selection?
+                if ((key & KEY_MOD_SHIFT) == 0) {
+                    clear_selection();
                 }
             }
         }
