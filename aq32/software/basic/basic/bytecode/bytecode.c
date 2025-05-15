@@ -294,7 +294,7 @@ void bc_data_restore(void) { _basic_error(ERR_UNHANDLED); }
 void bc_stmt_clear(void) { _basic_error(ERR_UNHANDLED); }
 void bc_stmt_dim(void) { _basic_error(ERR_UNHANDLED); }
 void bc_stmt_erase(void) { _basic_error(ERR_UNHANDLED); }
-void bc_stmt_inputs(void) { _basic_error(ERR_UNHANDLED); }
+void bc_stmt_input_s(void) { _basic_error(ERR_UNHANDLED); }
 void bc_stmt_on(void) { _basic_error(ERR_UNHANDLED); }
 void bc_stmt_option(void) { _basic_error(ERR_UNHANDLED); }
 void bc_stmt_resume(void) { _basic_error(ERR_UNHANDLED); }
@@ -375,7 +375,7 @@ static bc_handler_t bc_handlers[] = {
     [BC_STMT_ERASE]     = bc_stmt_erase,
     [BC_STMT_ERROR]     = bc_stmt_error,
     [BC_STMT_INPUT]     = bc_stmt_input,
-    [BC_STMT_INPUTs]    = bc_stmt_inputs,
+    [BC_STMT_INPUTs]    = bc_stmt_input_s,
     [BC_STMT_LOCATE]    = bc_stmt_locate,
     [BC_STMT_ON]        = bc_stmt_on,
     [BC_STMT_OPTION]    = bc_stmt_option,

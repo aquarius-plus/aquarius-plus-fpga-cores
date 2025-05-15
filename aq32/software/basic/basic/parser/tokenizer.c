@@ -16,6 +16,7 @@ struct keyword {
     uint8_t     token;
 };
 
+// Keep this table sorted on name, since it is searched using a binary search
 static const struct keyword keywords[] = {
     {.name = "ABS", .token = TOK_ABS},
     {.name = "AND", .token = TOK_AND},
@@ -43,6 +44,7 @@ static const struct keyword keywords[] = {
     {.name = "DEFSTR", .token = TOK_DEFSTR},
     {.name = "DIM", .token = TOK_DIM},
     {.name = "ELSE", .token = TOK_ELSE},
+    {.name = "ELSEIF", .token = TOK_ELSEIF},
     {.name = "END", .token = TOK_END},
     {.name = "EQV", .token = TOK_EQV},
     {.name = "ERASE", .token = TOK_ERASE},
@@ -341,6 +343,23 @@ static int _get_token(void) {
         keyword_cmp);
     if (kw != NULL) {
         cur_token = kw->token;
+
+        if (cur_token == TOK_END) {
+            const uint8_t *p_save = state.p_cur;
+
+            skip_whitespace();
+            if (parse_identifier(false)) {
+                // END IF?
+                if (strcmp(tokval_str, "IF") == 0) {
+                    cur_token = TOK_ENDIF;
+                }
+            }
+
+            if (cur_token == TOK_END) {
+                // No keyword following END, so estore position
+                state.p_cur = p_save;
+            }
+        }
 
         if (cur_token == TOK_REM) {
             // Remark, ignore rest of line

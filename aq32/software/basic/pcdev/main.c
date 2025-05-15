@@ -1,5 +1,6 @@
 #include "basic.h"
 #include "editor/editbuf.h"
+#include "basic/bytecode/bytecode.h"
 
 struct editor_state {
     struct editbuf editbuf;
@@ -74,7 +75,17 @@ int main(int argc, const char **argv) {
 
     printf("Loaded %s: %u lines\n", state.filename, editbuf_get_line_count(&state.editbuf));
 
-    int result = basic_run(&state.editbuf);
+    printf("Compiling...\n");
+    int result = basic_compile(&state.editbuf);
+    if (result != 0) {
+        puts(basic_get_error_str(result));
+        exit(1);
+    }
+
+    bytecode_dump();
+    printf("Running...\n");
+
+    result = basic_run();
     if (result != 0) {
         puts(basic_get_error_str(result));
         exit(1);

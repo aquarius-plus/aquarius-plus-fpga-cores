@@ -32,9 +32,9 @@ static const struct err_str err_str[] = {
     {18, "Function not defined"},
     {19, "No RESUME"},
     {20, "RESUME without error"},
-    // 21
-    {22, "Missing operand"},      // Only in GW-BASIC
-    {23, "Line buffer overflow"}, // Only in GW-BASIC
+    {21, "Block IF without END IF"}, // 21 new
+    {22, "Missing operand"},         // Only in GW-BASIC
+    {23, "Line buffer overflow"},    // Only in GW-BASIC
     {24, "Device timeout"},
     {25, "Device fault"},
     {26, "FOR without NEXT"},
@@ -94,9 +94,6 @@ int basic_compile(struct editbuf *eb) {
     cur_error = 0;
     if (setjmp(jb_error) == 0) {
         basic_parse(eb);
-#ifdef DEBUG
-        bytecode_dump();
-#endif
     } else {
         return cur_error;
     }

@@ -1,25 +1,35 @@
 defint a-z
 
-color 1
-color ,1
-color 1,2
-locate 1
-locate ,1
-locate 1,2
-locate 1,2,0
+a = 3
 
-gosub mysub
-print "b"
-gosub mysub
-gosub mysub
-gosub mysub
-gosub mysub
+if a = 1 then
+  ? "1"
+elseif a = 2 then
+  ? "2"
+else
+  ? "else"
+end if
 
-end
+' color 1
+' color ,1
+' color 1,2
+' locate 1
+' locate ,1
+' locate 1,2
+' locate 1,2,0
 
-mysub:
-  print 5
-  return
+' gosub mysub
+' print "b"
+' gosub mysub
+' gosub mysub
+' gosub mysub
+' gosub mysub
+
+' end
+
+' mysub:
+'   print 5
+'   return
 
 
 ' a = 1

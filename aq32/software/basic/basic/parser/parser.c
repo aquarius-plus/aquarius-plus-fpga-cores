@@ -500,24 +500,106 @@ static void bc_emit_stmt_if(void) {
     }
 
     expect(TOK_THEN);
-    bc_emit(BC_JMP_Z);
-    uint16_t if_false_offset = buf_bytecode_get_cur_offset();
-    bc_emit_u16(0xFFFF);
-    parse_statements();
 
-    if (get_token() != TOK_ELSE) {
+    if (get_token() != TOK_EOL) {
+        // Single line if/else
+
+        bc_emit(BC_JMP_Z);
+        uint16_t if_false_offset = buf_bytecode_get_cur_offset();
+        bc_emit_u16(0xFFFF);
+
+        parse_statements();
+
+        // ELSE?
+        if (get_token() != TOK_ELSE) {
+            buf_bytecode_patch_u16(if_false_offset, buf_bytecode_get_cur_offset());
+            return;
+        }
+        ack_token();
+
+        bc_emit(BC_JMP);
+        uint16_t else_skip_offset = buf_bytecode_get_cur_offset();
+        bc_emit_u16(0xFFFF);
         buf_bytecode_patch_u16(if_false_offset, buf_bytecode_get_cur_offset());
+        parse_statements();
+        buf_bytecode_patch_u16(else_skip_offset, buf_bytecode_get_cur_offset());
         return;
     }
 
-    ack_token();
+    // Block if/elseif/else/endif
+#define IF_FALSE_OFFSETS_MAX 64
+    uint16_t if_done_offsets[IF_FALSE_OFFSETS_MAX];
+    unsigned if_done_offsets_count = 0;
 
-    bc_emit(BC_JMP);
-    uint16_t else_skip_offset = buf_bytecode_get_cur_offset();
-    bc_emit_u16(0xFFFF);
-    buf_bytecode_patch_u16(if_false_offset, buf_bytecode_get_cur_offset());
-    parse_statements();
-    buf_bytecode_patch_u16(else_skip_offset, buf_bytecode_get_cur_offset());
+    uint16_t if_false_offset;
+
+    while (1) {
+        bc_emit(BC_JMP_Z);
+        if_false_offset = buf_bytecode_get_cur_offset();
+        bc_emit_u16(0xFFFF);
+
+        // Keep parsing until we find a ELSE/ELSEIF/END IF
+        while (1) {
+            parse_statements();
+
+            uint8_t tok = get_token();
+            if (tok == TOK_ENDIF || tok == TOK_ELSE || tok == TOK_ELSEIF)
+                break;
+
+            if (tok == TOK_EOF)
+                _basic_error(ERR_BLOCK_IF_WITHOUT_ENDIF);
+
+            expect(TOK_EOL);
+            do_emit_line_tag = true;
+        }
+
+        if (get_token() != TOK_ELSEIF)
+            break;
+
+        bc_emit(BC_JMP);
+        if (if_done_offsets_count >= IF_FALSE_OFFSETS_MAX)
+            _basic_error(ERR_OUT_OF_MEM);
+        if_done_offsets[if_done_offsets_count++] = buf_bytecode_get_cur_offset();
+        bc_emit_u16(0xFFFF);
+
+        ack_token();
+        buf_bytecode_patch_u16(if_false_offset, buf_bytecode_get_cur_offset());
+        bc_emit_expr();
+        expect(TOK_THEN);
+    }
+
+    if (get_token() == TOK_ELSE) {
+        ack_token();
+
+        bc_emit(BC_JMP);
+        uint16_t else_skip_offset = buf_bytecode_get_cur_offset();
+        bc_emit_u16(0xFFFF);
+        buf_bytecode_patch_u16(if_false_offset, buf_bytecode_get_cur_offset());
+
+        // Keep parsing until we find a END IF
+        while (1) {
+            parse_statements();
+
+            uint8_t tok = get_token();
+            if (tok == TOK_ENDIF)
+                break;
+
+            if (tok == TOK_EOF)
+                _basic_error(ERR_BLOCK_IF_WITHOUT_ENDIF);
+
+            expect(TOK_EOL);
+            do_emit_line_tag = true;
+        }
+        ack_token();
+        buf_bytecode_patch_u16(else_skip_offset, buf_bytecode_get_cur_offset());
+
+    } else {
+        expect(TOK_ENDIF);
+    }
+
+    for (unsigned i = 0; i < if_done_offsets_count; i++) {
+        buf_bytecode_patch_u16(if_done_offsets[i], buf_bytecode_get_cur_offset());
+    }
 }
 
 static void bc_emit_stmt_while(void) {

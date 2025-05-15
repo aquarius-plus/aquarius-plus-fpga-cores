@@ -76,6 +76,8 @@ enum {
     TOK_USING,
     TOK_REM,
     TOK_ELSE,
+    TOK_ELSEIF,
+    TOK_ENDIF,
     TOK_WEND,
     TOK_LET,
     TOK_NEXT,
