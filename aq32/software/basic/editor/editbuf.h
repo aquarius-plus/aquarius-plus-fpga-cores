@@ -6,9 +6,9 @@
 #define MAX_LINESZ (MAX_BUFSZ - 1)
 
 struct editbuf {
-    int      line_count;
     uint8_t *p_buf;
     uint8_t *p_buf_end;
+    int      line_count;
     uint8_t *cached_p;
     int      cached_p_line;
     bool     modified;
@@ -22,3 +22,6 @@ bool editbuf_insert_ch(struct editbuf *eb, int line, int pos, char ch);
 bool editbuf_delete_ch(struct editbuf *eb, int line, int pos);
 bool editbuf_insert_line(struct editbuf *eb, int line, const char *s, size_t sz);
 bool editbuf_split_line(struct editbuf *eb, int line, int pos);
+
+bool editbuf_convert_from_regular(struct editbuf *eb, const uint8_t *ps, const uint8_t *ps_end);
+int  editbuf_convert_to_regular(struct editbuf *eb);

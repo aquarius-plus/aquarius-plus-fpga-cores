@@ -210,49 +210,37 @@ static void render_editor(void) {
 
 static int load_file(const char *path) {
     FILE *f = fopen(path, "rt");
-    if (!f)
+    if (f == NULL)
         return -1;
+
+    fseek(f, 0, SEEK_END);
+    int file_size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    int p_buf_size = state.editbuf->p_buf_end - state.editbuf->p_buf;
+
+    if (file_size > p_buf_size)
+        goto error;
 
     reset_state();
     snprintf(state.filename, sizeof(state.filename), "%s", path);
 
-    int  line        = 0;
-    bool do_truncate = false;
-
-    size_t linebuf_size = MAX_BUFSZ;
-    char  *linebuf      = malloc(linebuf_size);
-    int    line_size    = 0;
-    while ((line_size = __getline(&linebuf, &linebuf_size, f)) >= 0) {
-        // Strip of CR/LF
-        while (line_size > 0 && (linebuf[line_size - 1] == '\r' || linebuf[line_size - 1] == '\n'))
-            line_size--;
-        linebuf[line_size] = 0;
-
-        // Check line length
-        if (!do_truncate && line_size > MAX_LINESZ) {
-            if (dialog_confirm("Error", "Line longer than 254 characters. Truncate long lines?") <= 0) {
-                reset_state();
-                break;
-            }
-            do_truncate = true;
-        }
-
-        line_size = min(line_size, MAX_LINESZ);
-
-        if (!editbuf_insert_line(state.editbuf, line, linebuf, line_size)) {
-            if (dialog_confirm("Error", "File too large to fully load. Load partially?") <= 0) {
-                reset_state();
-                break;
-            }
-            break;
-        }
-        line++;
-    }
-
+    uint8_t *p_load = state.editbuf->p_buf_end - file_size;
+    fread(p_load, file_size, 1, f);
     fclose(f);
-    free(linebuf);
-    state.editbuf->modified = false;
+    f = NULL;
+
+    if (!editbuf_convert_from_regular(state.editbuf, p_load, state.editbuf->p_buf_end))
+        goto error;
+
     return 0;
+
+error:
+    dialog_message("Error", "File too big to load!");
+    if (f != NULL)
+        fclose(f);
+    reset_state();
+    return -1;
 }
 
 static void save_file(const char *path) {

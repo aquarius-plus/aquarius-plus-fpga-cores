@@ -268,3 +268,56 @@ bool editbuf_split_line(struct editbuf *eb, int line, int pos) {
     }
     return result;
 }
+
+bool editbuf_convert_from_regular(struct editbuf *eb, const uint8_t *ps, const uint8_t *ps_end) {
+    editbuf_reset(eb);
+
+    uint8_t *pd     = eb->p_buf;
+    uint8_t  len    = 0;
+    uint8_t *p_line = pd;
+
+    bool newline = true;
+    while (ps < ps_end) {
+        if (len == MAX_LINESZ) {
+            eb->line_count++;
+            p_line[0] = len + 1;
+            p_line[1] = len;
+            len       = 0;
+            newline   = true;
+        }
+        if (newline) {
+            p_line = pd;
+            pd += 2;
+            newline = false;
+        }
+        if (pd >= eb->p_buf_end || pd >= ps) {
+            editbuf_reset(eb);
+            return false;
+        }
+
+        uint8_t val = *(ps++);
+        newline     = (val == '\r' || val == '\n');
+        if (val == '\r' && ps[0] == '\n')
+            ps++;
+
+        if (newline) {
+            eb->line_count++;
+            p_line[0] = len + 1;
+            p_line[1] = len;
+            len       = 0;
+        } else {
+            *(pd++) = val;
+            len++;
+        }
+    }
+    if (len > 0) {
+        eb->line_count++;
+        p_line[0] = len + 1;
+        p_line[1] = len;
+    }
+    return true;
+}
+
+int editbuf_convert_to_regular(struct editbuf *eb) {
+    return 0;
+}
