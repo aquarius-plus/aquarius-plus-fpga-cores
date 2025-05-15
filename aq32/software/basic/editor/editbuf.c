@@ -96,6 +96,10 @@ int editbuf_get_line_count(struct editbuf *eb) {
     return eb->line_count;
 }
 
+bool editbuf_get_modified(struct editbuf *eb) {
+    return eb->modified;
+}
+
 int editbuf_get_line(struct editbuf *eb, int line, const uint8_t **p) {
     if (line < 0 || line >= eb->line_count)
         return -1;

@@ -16,6 +16,7 @@ struct editbuf {
 
 void editbuf_init(struct editbuf *eb, uint8_t *p, size_t size);
 void editbuf_reset(struct editbuf *eb);
+bool editbuf_get_modified(struct editbuf *eb);
 int  editbuf_get_line_count(struct editbuf *eb);
 int  editbuf_get_line(struct editbuf *eb, int line, const uint8_t **p);
 bool editbuf_insert_ch(struct editbuf *eb, int line, int pos, char ch);

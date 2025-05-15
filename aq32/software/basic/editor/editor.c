@@ -72,7 +72,7 @@ static void update_cursor_pos(void) {
 }
 
 static bool check_modified(void) {
-    if (!state.editbuf->modified)
+    if (!editbuf_get_modified(state.editbuf))
         return true;
 
     int result = dialog_confirm(NULL, "Save the changes made to the current document?");
@@ -82,7 +82,7 @@ static bool check_modified(void) {
     if (result > 0) {
         // Save document
         cmd_file_save();
-        if (state.editbuf->modified)
+        if (editbuf_get_modified(state.editbuf))
             return false;
     }
     return true;
@@ -110,7 +110,7 @@ void cmd_file_save(void) {
         cmd_file_save_as();
         return;
     }
-    if (!state.editbuf->modified)
+    if (!editbuf_get_modified(state.editbuf))
         return;
 
     save_file(state.filename);
@@ -360,7 +360,7 @@ void cmd_edit_select_all(void) {
 
 static void render_editor_border(void) {
     char title[65];
-    snprintf(title, sizeof(title), "%s%s", *state.filename ? state.filename : "Untitled", state.editbuf->modified ? "\x88" : "");
+    snprintf(title, sizeof(title), "%s%s", *state.filename ? state.filename : "Untitled", editbuf_get_modified(state.editbuf) ? "\x88" : "");
     scr_draw_border(1, 0, 80, 24, COLOR_EDITOR, BORDER_FLAG_NO_BOTTOM | BORDER_FLAG_NO_SHADOW | BORDER_FLAG_TITLE_INVERSE, title);
 }
 
