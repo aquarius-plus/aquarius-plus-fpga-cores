@@ -209,62 +209,24 @@ static void render_editor(void) {
 }
 
 static int load_file(const char *path) {
-    FILE *f = fopen(path, "rt");
-    if (f == NULL) {
-        dialog_message("Error", "Error opening file!");
+    scr_status_msg("Loading file...");
+
+    reset_state();
+    if (!editbuf_load(state.editbuf, path)) {
+        dialog_message("Error", "Error loading file!");
         return -1;
     }
-
-    fseek(f, 0, SEEK_END);
-    int file_size = ftell(f);
-    fseek(f, 0, SEEK_SET);
-
-    int p_buf_size = state.editbuf->p_buf_end - state.editbuf->p_buf;
-
-    if (file_size > p_buf_size)
-        goto error;
-
-    reset_state();
     snprintf(state.filename, sizeof(state.filename), "%s", path);
-
-    uint8_t *p_load = state.editbuf->p_buf_end - file_size;
-    fread(p_load, file_size, 1, f);
-    fclose(f);
-    f = NULL;
-
-    if (!editbuf_convert_from_regular(state.editbuf, p_load, state.editbuf->p_buf_end))
-        goto error;
-
     return 0;
-
-error:
-    dialog_message("Error", "File too big to load!");
-    if (f != NULL)
-        fclose(f);
-    reset_state();
-    return -1;
 }
 
 static void save_file(const char *path) {
     scr_status_msg("Saving file...");
 
-    FILE *f = fopen(path, "wb");
-    if (f == NULL) {
-        dialog_message("Error", "Error opening file!");
+    if (!editbuf_save(state.editbuf, path)) {
+        dialog_message("Error", "Error saving file!");
         return;
     }
-
-    // Convert for saving
-    int length = editbuf_convert_to_regular(state.editbuf);
-
-    fwrite(state.editbuf->p_buf, length, 1, f);
-    fclose(f);
-
-    // Convert back
-    uint8_t *p_load = state.editbuf->p_buf_end - length;
-    memmove(p_load, state.editbuf->p_buf, length);
-    editbuf_convert_from_regular(state.editbuf, p_load, state.editbuf->p_buf_end);
-
     snprintf(state.filename, sizeof(state.filename), "%s", path);
 }
 
@@ -306,7 +268,7 @@ done:
 
 static void insert_ch(uint8_t ch) {
     update_cursor_pos();
-    if (editbuf_insert_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos, ch)) {
+    if (editbuf_insert_ch(state.editbuf, state.loc_cursor, ch)) {
         state.loc_cursor.pos++;
     }
 }
@@ -344,7 +306,7 @@ void cmd_edit_paste(void) {
     //     if (!is_cntrl(ch))
     //         insert_ch(ch);
     //     else if (ch == '\n') {
-    //         if (editbuf_split_line(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos)) {
+    //         if (editbuf_split_line(state.editbuf, state.loc_cursor)) {
     //             state.loc_cursor.line++;
     //             state.loc_cursor.pos = 0;
     //         }
@@ -498,7 +460,7 @@ void editor(struct editbuf *eb) {
                     switch (ch) {
                         case CH_DELETE: {
                             update_cursor_pos();
-                            editbuf_delete_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos);
+                            editbuf_delete_ch(state.editbuf, state.loc_cursor);
                             break;
                         }
                         case CH_BACKSPACE: {
@@ -521,19 +483,19 @@ void editor(struct editbuf *eb) {
                                 while (count > 0) {
                                     count--;
                                     state.loc_cursor.pos--;
-                                    editbuf_delete_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos);
+                                    editbuf_delete_ch(state.editbuf, state.loc_cursor);
                                 }
                             } else {
                                 state.loc_cursor.line--;
                                 state.loc_cursor.pos = editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL);
-                                editbuf_delete_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos);
+                                editbuf_delete_ch(state.editbuf, state.loc_cursor);
                             }
                             break;
                         }
                         case CH_ENTER: {
                             update_cursor_pos();
                             int leading_spaces = min(state.loc_cursor.pos, get_leading_spaces());
-                            if (editbuf_split_line(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos)) {
+                            if (editbuf_insert_ch(state.editbuf, state.loc_cursor, '\n')) {
                                 state.loc_cursor.line++;
                                 state.loc_cursor.pos = 0;
 

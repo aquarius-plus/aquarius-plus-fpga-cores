@@ -110,27 +110,62 @@ int editbuf_get_line(struct editbuf *eb, int line, const uint8_t **p) {
     return pl[1];
 }
 
-static bool _insert_ch(struct editbuf *eb, int line, int pos, char ch) {
-    if (line < 0 || line > eb->line_count || pos < 0)
+static bool _split_line(struct editbuf *eb, location_t loc) {
+    if (loc.line < 0 || loc.line > eb->line_count || loc.pos < 0)
         return false;
 
-    uint8_t *p          = getline_addr(eb, line);
+    uint8_t *p = getline_addr(eb, loc.line);
+    if (loc.pos > p[1])
+        return false;
+
+    uint8_t *p_pos = p + 2 + loc.pos;
+    uint8_t *p_end = getline_addr(eb, eb->line_count);
+
+    if (p == p_end) {
+        if (p + 2 > eb->p_buf_end)
+            return false;
+
+        p[1] = 0;
+        p[0] = p[1] + 1;
+
+    } else {
+        if (p_end + 2 > eb->p_buf_end)
+            return false;
+
+        memmove(p_pos + 2, p_pos, p_end - p_pos);
+        p_pos[1] = p[1] - loc.pos;
+        p_pos[0] = p[0] - loc.pos;
+        p[1]     = loc.pos;
+        p[0]     = p[1] + 1;
+    }
+
+    eb->line_count++;
+    invalidate_cached(eb);
+    eb->modified = true;
+    return true;
+}
+
+static bool _insert_ch(struct editbuf *eb, location_t loc, char ch) {
+    if (loc.line < 0 || loc.line > eb->line_count || loc.pos < 0)
+        return false;
+
+    uint8_t *p          = getline_addr(eb, loc.line);
     uint8_t  cur_linesz = 0;
-    if (line < eb->line_count) {
+    if (loc.line < eb->line_count) {
         if (p[0] + 1 > MAX_BUFSZ)
             return false;
 
         cur_linesz = p[1];
     }
-    if (pos > cur_linesz)
+    if (loc.pos > cur_linesz)
         return false;
 
     unsigned new_size = min(1 + cur_linesz + 15, MAX_BUFSZ);
     if (!resize_linebuffer(eb, p, new_size))
         return false;
 
-    uint8_t *p_pos = p + 2 + pos;
-    memmove(p_pos + 1, p_pos, cur_linesz - pos);
+    uint8_t *p_pos = p + 2 + loc.pos;
+    memmove(p_pos + 1, p_pos, cur_linesz - loc.pos);
     *p_pos = ch;
     p[1]++;
 
@@ -138,28 +173,38 @@ static bool _insert_ch(struct editbuf *eb, int line, int pos, char ch) {
     return true;
 }
 
-bool editbuf_insert_ch(struct editbuf *eb, int line, int pos, char ch) {
-    bool result = _insert_ch(eb, line, pos, ch);
-    if (!result) {
-        compact(eb);
-        result = _insert_ch(eb, line, pos, ch);
+bool editbuf_insert_ch(struct editbuf *eb, location_t loc, char ch) {
+    bool result;
+    if (ch == '\n') {
+        result = _split_line(eb, loc);
+        if (!result) {
+            compact(eb);
+            result = _split_line(eb, loc);
+        }
+
+    } else {
+        result = _insert_ch(eb, loc, ch);
+        if (!result) {
+            compact(eb);
+            result = _insert_ch(eb, loc, ch);
+        }
     }
     return result;
 }
 
-bool editbuf_delete_ch(struct editbuf *eb, int line, int pos) {
-    if (line < 0 || line >= eb->line_count || pos < 0)
+bool editbuf_delete_ch(struct editbuf *eb, location_t loc) {
+    if (loc.line < 0 || loc.line >= eb->line_count || loc.pos < 0)
         return false;
 
-    uint8_t *p = getline_addr(eb, line);
-    if (pos > p[1])
+    uint8_t *p = getline_addr(eb, loc.line);
+    if (loc.pos > p[1])
         return false;
 
-    uint8_t *p_pos = p + 2 + pos;
+    uint8_t *p_pos = p + 2 + loc.pos;
 
-    if (pos == p[1]) {
+    if (loc.pos == p[1]) {
         // Merge with next line
-        if (line + 1 < eb->line_count) {
+        if (loc.line + 1 < eb->line_count) {
             uint8_t *pn        = p + 1 + p[0];
             uint8_t  pn_bufsz  = pn[0];
             uint8_t  pn_linesz = pn[1];
@@ -184,7 +229,7 @@ bool editbuf_delete_ch(struct editbuf *eb, int line, int pos) {
 
     } else {
         // Delete within line
-        memmove(p_pos, p_pos + 1, p[1] - pos - 1);
+        memmove(p_pos, p_pos + 1, p[1] - loc.pos - 1);
         p[1]--;
     }
 
@@ -199,81 +244,7 @@ bool editbuf_delete_ch(struct editbuf *eb, int line, int pos) {
     return true;
 }
 
-static bool _insert_line(struct editbuf *eb, int line, const char *s, size_t sz) {
-    if (sz > MAX_LINESZ)
-        sz = MAX_LINESZ;
-
-    // FIXME
-    if (line != eb->line_count)
-        return false;
-
-    uint8_t *p = getline_addr(eb, line);
-    if (p + 2 + sz > eb->p_buf_end)
-        return false;
-
-    p[0] = sz + 1;
-    p[1] = sz;
-    memmove(p + 2, s, sz);
-
-    eb->line_count++;
-    eb->modified = true;
-    return true;
-}
-
-bool editbuf_insert_line(struct editbuf *eb, int line, const char *s, size_t sz) {
-    bool result = _insert_line(eb, line, s, sz);
-    if (!result) {
-        compact(eb);
-        result = _insert_line(eb, line, s, sz);
-    }
-    return result;
-}
-
-static bool _split_line(struct editbuf *eb, int line, int pos) {
-    if (line < 0 || line > eb->line_count || pos < 0)
-        return false;
-
-    uint8_t *p = getline_addr(eb, line);
-    if (pos > p[1])
-        return false;
-
-    uint8_t *p_pos = p + 2 + pos;
-    uint8_t *p_end = getline_addr(eb, eb->line_count);
-
-    if (p == p_end) {
-        if (p + 2 > eb->p_buf_end)
-            return false;
-
-        p[1] = 0;
-        p[0] = p[1] + 1;
-
-    } else {
-        if (p_end + 2 > eb->p_buf_end)
-            return false;
-
-        memmove(p_pos + 2, p_pos, p_end - p_pos);
-        p_pos[1] = p[1] - pos;
-        p_pos[0] = p[0] - pos;
-        p[1]     = pos;
-        p[0]     = p[1] + 1;
-    }
-
-    eb->line_count++;
-    invalidate_cached(eb);
-    eb->modified = true;
-    return true;
-}
-
-bool editbuf_split_line(struct editbuf *eb, int line, int pos) {
-    bool result = _split_line(eb, line, pos);
-    if (!result) {
-        compact(eb);
-        result = _split_line(eb, line, pos);
-    }
-    return result;
-}
-
-bool editbuf_convert_from_regular(struct editbuf *eb, const uint8_t *ps, const uint8_t *ps_end) {
+static bool convert_from_regular(struct editbuf *eb, const uint8_t *ps, const uint8_t *ps_end) {
     editbuf_reset(eb);
 
     uint8_t *pd     = eb->p_buf;
@@ -322,7 +293,7 @@ bool editbuf_convert_from_regular(struct editbuf *eb, const uint8_t *ps, const u
     return true;
 }
 
-int editbuf_convert_to_regular(struct editbuf *eb) {
+static int convert_to_regular(struct editbuf *eb) {
     const uint8_t *ps = eb->p_buf;
     uint8_t       *pd = eb->p_buf;
 
@@ -340,4 +311,54 @@ int editbuf_convert_to_regular(struct editbuf *eb) {
     editbuf_reset(eb);
 
     return pd - eb->p_buf;
+}
+
+bool editbuf_load(struct editbuf *eb, const char *path) {
+    FILE *f = fopen(path, "rt");
+    if (f == NULL)
+        return false;
+
+    fseek(f, 0, SEEK_END);
+    int file_size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    int p_buf_size = eb->p_buf_end - eb->p_buf;
+
+    if (file_size > p_buf_size)
+        goto error;
+
+    editbuf_reset(eb);
+
+    uint8_t *p_load = eb->p_buf_end - file_size;
+    fread(p_load, file_size, 1, f);
+    fclose(f);
+    f = NULL;
+
+    if (!convert_from_regular(eb, p_load, eb->p_buf_end))
+        goto error;
+
+    return true;
+
+error:
+    editbuf_reset(eb);
+    return false;
+}
+
+bool editbuf_save(struct editbuf *eb, const char *path) {
+    FILE *f = fopen(path, "wb");
+    if (f == NULL) {
+        return false;
+    }
+
+    // Convert for saving
+    int length = convert_to_regular(eb);
+
+    fwrite(eb->p_buf, length, 1, f);
+    fclose(f);
+
+    // Convert back
+    uint8_t *p_load = eb->p_buf_end - length;
+    memmove(p_load, eb->p_buf, length);
+    convert_from_regular(eb, p_load, eb->p_buf_end);
+    return true;
 }

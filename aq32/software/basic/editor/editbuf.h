@@ -5,6 +5,14 @@
 #define MAX_BUFSZ  255
 #define MAX_LINESZ (MAX_BUFSZ - 1)
 
+typedef struct {
+    int line, pos;
+} location_t;
+
+static inline bool loc_lt(location_t l, location_t r) {
+    return (l.line == r.line) ? (l.pos < r.pos) : (l.line < r.line);
+}
+
 struct editbuf {
     uint8_t *p_buf;
     uint8_t *p_buf_end;
@@ -19,10 +27,7 @@ void editbuf_reset(struct editbuf *eb);
 bool editbuf_get_modified(struct editbuf *eb);
 int  editbuf_get_line_count(struct editbuf *eb);
 int  editbuf_get_line(struct editbuf *eb, int line, const uint8_t **p);
-bool editbuf_insert_ch(struct editbuf *eb, int line, int pos, char ch);
-bool editbuf_delete_ch(struct editbuf *eb, int line, int pos);
-bool editbuf_insert_line(struct editbuf *eb, int line, const char *s, size_t sz);
-bool editbuf_split_line(struct editbuf *eb, int line, int pos);
-
-bool editbuf_convert_from_regular(struct editbuf *eb, const uint8_t *ps, const uint8_t *ps_end);
-int  editbuf_convert_to_regular(struct editbuf *eb);
+bool editbuf_insert_ch(struct editbuf *eb, location_t loc, char ch);
+bool editbuf_delete_ch(struct editbuf *eb, location_t loc);
+bool editbuf_load(struct editbuf *eb, const char *path);
+bool editbuf_save(struct editbuf *eb, const char *path);
