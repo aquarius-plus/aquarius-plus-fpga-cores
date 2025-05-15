@@ -287,8 +287,10 @@ void bc_stmt_error(void) {
     _basic_error(err);
 }
 
-void bc_data_start(void) { _basic_error(ERR_UNHANDLED); }
-void bc_data_end(void) { _basic_error(ERR_UNHANDLED); }
+void bc_data(void) {
+    // Skip data
+    bc_p_cur = bc_p_buf + bc_get_u16();
+}
 void bc_data_read(void) { _basic_error(ERR_UNHANDLED); }
 void bc_data_restore(void) { _basic_error(ERR_UNHANDLED); }
 void bc_stmt_clear(void) { _basic_error(ERR_UNHANDLED); }
@@ -311,8 +313,7 @@ static bc_handler_t bc_handlers[] = {
 
     [BC_OP_INC]       = bc_op_inc,
     [BC_OP_LE_GE]     = bc_op_le_ge, // Used in for loop with step, takes 3 params: step/var/end
-    [BC_DATA_START]   = bc_data_start,
-    [BC_DATA_END]     = bc_data_end,
+    [BC_DATA]         = bc_data,
     [BC_DATA_READ]    = bc_data_read,
     [BC_DATA_RESTORE] = bc_data_restore,
 

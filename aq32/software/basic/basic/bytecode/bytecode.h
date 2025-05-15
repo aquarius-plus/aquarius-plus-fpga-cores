@@ -38,8 +38,7 @@ enum {
     BC_JMP_Z,
     BC_JSR,
 
-    BC_DATA_START,
-    BC_DATA_END,
+    BC_DATA,
     BC_DATA_READ,
     BC_DATA_RESTORE,
 

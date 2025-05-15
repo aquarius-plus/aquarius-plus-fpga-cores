@@ -13,7 +13,6 @@ To be implemented:
 - Hexadecimal / octal constants (&H1234 &O777)
 - INPUT
 - INKEY$
-- DATA
 - RESTORE
 - READ
 - DIM

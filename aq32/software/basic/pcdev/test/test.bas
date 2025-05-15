@@ -2,6 +2,8 @@ defint a-z
 
 a = 3
 
+data 1,2,3,4
+
 if a = 1 then
   ? "1"
 elseif a = 2 then

@@ -127,8 +127,7 @@ static inline uint64_t bc_get_u64(void) {
 void bc_end(void);
 void bc_line_tag(void);
 void bc_dup(void);
-void bc_data_start(void);
-void bc_data_end(void);
+void bc_data(void);
 void bc_data_read(void);
 void bc_data_restore(void);
 void bc_push_const_int(void);

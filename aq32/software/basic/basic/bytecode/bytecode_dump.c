@@ -9,8 +9,7 @@ static const char *bc_names[] = {
     [BC_PUSH_CONST_UNSPECIFIED_PARAM] = "PUSH_CONST_UNSPECIFIED_PARAM",
     [BC_OP_INC]                       = "OP_INC",
     [BC_OP_LE_GE]                     = "OP_LE_GE",
-    [BC_DATA_START]                   = "DATA_START",
-    [BC_DATA_END]                     = "DATA_END",
+    [BC_DATA]                         = "DATA",
     [BC_DATA_READ]                    = "DATA_READ",
     [BC_DATA_RESTORE]                 = "DATA_RESTORE",
     [BC_PUSH_CONST_INT]               = "PUSH_CONST_INT",
@@ -165,6 +164,7 @@ void bytecode_dump(void) {
                 break;
             }
 
+            case BC_DATA:
             case BC_JMP:
             case BC_JMP_NZ:
             case BC_JMP_Z:

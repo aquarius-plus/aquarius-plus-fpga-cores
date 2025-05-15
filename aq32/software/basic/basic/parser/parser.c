@@ -738,7 +738,9 @@ static void bc_emit_for(void) {
 }
 
 static void bc_emit_data(void) {
-    bc_emit(BC_DATA_START);
+    bc_emit(BC_DATA);
+    uint16_t data_size_offset = buf_bytecode_get_cur_offset();
+    bc_emit_u16(0xFFFF);
 
     while (1) {
         uint8_t tok = get_token();
@@ -754,7 +756,7 @@ static void bc_emit_data(void) {
         ack_token();
     }
 
-    bc_emit(BC_DATA_END);
+    buf_bytecode_patch_u16(data_size_offset, buf_bytecode_get_cur_offset());
 }
 
 static void bc_emit_stmt_read(void) {
