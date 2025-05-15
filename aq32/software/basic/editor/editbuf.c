@@ -327,8 +327,8 @@ int editbuf_convert_to_regular(struct editbuf *eb) {
         uint8_t        line_size = ps[1];
         ps += 2;
 
-        while (line_size--)
-            *(pd++) = *(ps++);
+        memmove(pd, ps, line_size);
+        pd += line_size;
         *(pd++) = '\n';
 
         ps = p_next;
