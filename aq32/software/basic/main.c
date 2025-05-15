@@ -80,7 +80,7 @@ static void wait_keypress(void) {
 }
 
 static void show_basic_error(int result) {
-    editor_set_cursor(basic_get_error_line(), 0);
+    editor_set_cursor((location_t){basic_get_error_line(), 0});
     reinit_video();
     editor_redraw_screen();
     dialog_message("Error", basic_get_error_str(result));
@@ -125,16 +125,15 @@ static void cmd_help_contents(void) {
 }
 
 static bool get_keyword_under_cursor(char *keyword, size_t keyword_maxlen) {
-    int line, pos;
-    editor_get_cursor(&line, &pos);
+    location_t loc_cursor = editor_get_cursor();
 
     const uint8_t *p_line;
-    int            line_len = editbuf_get_line(&editbuf, line, &p_line);
-    if (line_len < 0 || pos < 0 || pos >= line_len)
+    int            line_len = editbuf_get_line(&editbuf, loc_cursor.line, &p_line);
+    if (line_len < 0 || loc_cursor.pos < 0 || loc_cursor.pos >= line_len)
         return false;
 
     const uint8_t *p_line_end = p_line + line_len;
-    const uint8_t *p_cursor   = p_line + pos;
+    const uint8_t *p_cursor   = p_line + loc_cursor.pos;
     if (!is_alpha(p_cursor[0]) && p_cursor[0] != '$')
         return false;
 

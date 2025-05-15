@@ -7,5 +7,10 @@
       "name": "pcdev",
       "path": "pcdev"
     }
-  ]
+  ],
+  "settings": {
+    "files.associations": {
+      "regs.h": "c"
+    }
+  }
 }

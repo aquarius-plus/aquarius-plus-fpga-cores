@@ -12,8 +12,8 @@
 struct editor_state {
     struct editbuf *editbuf;
     char            filename[64];
-    int             cursor_line;
-    int             cursor_pos;
+    location_t      loc_cursor;
+    location_t      loc_selection;
     int             scr_first_line;
     int             scr_first_pos;
     bool            modified;
@@ -27,19 +27,36 @@ static void save_file(const char *path);
 static void reset_state(void) {
     editbuf_reset(state.editbuf);
     state.filename[0]    = 0;
-    state.cursor_line    = 0;
-    state.cursor_pos     = 0;
+    state.loc_cursor     = (location_t){0, 0};
+    state.loc_selection  = (location_t){-1, -1};
     state.scr_first_line = 0;
     state.scr_first_pos  = 0;
     state.modified       = false;
 }
 
+static bool in_selection(location_t loc) {
+    if (state.loc_selection.line < 0)
+        return false;
+
+    location_t loc_selection_from;
+    location_t loc_selection_to;
+
+    if (loc_lt(state.loc_cursor, state.loc_selection)) {
+        loc_selection_to   = state.loc_selection;
+        loc_selection_from = state.loc_cursor;
+    } else {
+        loc_selection_to   = state.loc_cursor;
+        loc_selection_from = state.loc_selection;
+    }
+    return (loc_lt(loc, loc_selection_to) && !loc_lt(loc, loc_selection_from));
+}
+
 static int get_cursor_pos(void) {
-    return min(state.cursor_pos, max(0, editbuf_get_line(state.editbuf, state.cursor_line, NULL)));
+    return min(state.loc_cursor.pos, max(0, editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL)));
 }
 
 static void update_cursor_pos(void) {
-    state.cursor_pos = get_cursor_pos();
+    state.loc_cursor.pos = get_cursor_pos();
 }
 
 static bool check_modified(void) {
@@ -119,32 +136,62 @@ static void render_editor(void) {
         scr_locate(row + 2, 1);
         scr_setcolor(COLOR_EDITOR);
 
-        int            line = state.scr_first_line + row;
+        location_t     loc = (location_t){state.scr_first_line + row, 0};
         const uint8_t *p;
-        int            line_len = editbuf_get_line(state.editbuf, line, &p);
+        int            line_len = editbuf_get_line(state.editbuf, loc.line, &p);
 
         if (line_len > state.scr_first_pos)
             p += state.scr_first_pos;
 
         line_len = clamp(line_len - state.scr_first_pos, 0, EDITOR_COLUMNS);
 
-        if (line == state.cursor_line) {
+        if (loc.line == state.loc_cursor.line) {
             int cpos = get_cursor_pos();
 
             for (int i = 0; i < EDITOR_COLUMNS; i++) {
-                scr_setcolor(i == cpos - state.scr_first_pos ? COLOR_CURSOR : COLOR_EDITOR);
+                loc.pos = state.scr_first_pos + i;
+                scr_setcolor(
+                    (i == cpos - state.scr_first_pos)
+                        ? COLOR_CURSOR
+                        : (in_selection(loc) ? COLOR_SELECTED : COLOR_EDITOR));
 
                 if (i < line_len) {
                     scr_putchar(*(p++));
                 } else {
+                    if (i > line_len)
+                        scr_setcolor(COLOR_EDITOR);
+                    scr_putchar(' ');
+                }
+            }
+
+        } else if (loc.line == state.loc_selection.line) {
+            for (int i = 0; i < EDITOR_COLUMNS; i++) {
+                loc.pos = state.scr_first_pos + i;
+                scr_setcolor(
+                    (in_selection(loc) ? COLOR_SELECTED : COLOR_EDITOR));
+
+                if (i < line_len) {
+                    scr_putchar(*(p++));
+                } else {
+                    if (i > line_len)
+                        scr_setcolor(COLOR_EDITOR);
                     scr_putchar(' ');
                 }
             }
 
         } else {
+            if (in_selection(loc))
+                scr_setcolor(COLOR_SELECTED);
+
             scr_putbuf(p, line_len);
+            int fill_sz = EDITOR_COLUMNS - line_len;
+            if (fill_sz > 0) {
+                scr_putchar(' ');
+                fill_sz--;
+            }
+
             scr_setcolor(COLOR_EDITOR);
-            scr_fillchar(' ', EDITOR_COLUMNS - line_len);
+            scr_fillchar(' ', fill_sz);
         }
     }
 }
@@ -232,17 +279,17 @@ static void render_statusbar(void) {
     tmp[0] = 0;
     // snprintf(tmp, sizeof(tmp), "%p", state.editbuf.p_buf);
 
-    // uint8_t *p = getline_addr(state.cursor_line);
-    // snprintf(tmp, sizeof(tmp), "p[0]=%u p[1]=%u lines=%u cursor_line=%d scr_first_line=%d", p[0], p[1], state.num_lines, state.cursor_line, state.scr_first_line);
+    // uint8_t *p = getline_addr(state.loc_cursor.line);
+    // snprintf(tmp, sizeof(tmp), "p[0]=%u p[1]=%u lines=%u cursor_line=%d scr_first_line=%d", p[0], p[1], state.num_lines, state.loc_cursor.line, state.scr_first_line);
 
     scr_status_msg(tmp);
     scr_setcolor(COLOR_STATUS2);
     scr_putchar(26);
 
-    int line_len = editbuf_get_line(state.editbuf, state.cursor_line, NULL);
-    int cpos     = min(line_len, state.cursor_pos);
+    int line_len = editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL);
+    int cpos     = min(line_len, state.loc_cursor.pos);
 
-    snprintf(tmp, sizeof(tmp), " %05d:%03d ", state.cursor_line + 1, cpos + 1);
+    snprintf(tmp, sizeof(tmp), " %05d:%03d ", state.loc_cursor.line + 1, cpos + 1);
     scr_puttext(tmp);
 }
 
@@ -253,15 +300,15 @@ static void menu_redraw_screen(void) {
 
 static void insert_ch(uint8_t ch) {
     update_cursor_pos();
-    if (editbuf_insert_ch(state.editbuf, state.cursor_line, state.cursor_pos, ch)) {
-        state.cursor_pos++;
+    if (editbuf_insert_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos, ch)) {
+        state.loc_cursor.pos++;
         state.modified = true;
     }
 }
 
 static int get_leading_spaces(void) {
     const uint8_t *p;
-    int            line_len = editbuf_get_line(state.editbuf, state.cursor_line, &p);
+    int            line_len = editbuf_get_line(state.editbuf, state.loc_cursor.line, &p);
     if (line_len < 0)
         return 0;
 
@@ -277,10 +324,10 @@ static int get_leading_spaces(void) {
 static bool is_cntrl(uint8_t ch) { return (ch < 32 || (ch >= 127 && ch < 160)); }
 
 void editor_redraw_screen(void) {
-    state.cursor_line    = clamp(state.cursor_line, 0, editbuf_get_line_count(state.editbuf));
-    state.cursor_pos     = max(0, state.cursor_pos);
-    state.scr_first_line = clamp(state.scr_first_line, max(0, state.cursor_line - (EDITOR_ROWS - 1)), state.cursor_line);
-    state.scr_first_pos  = clamp(state.scr_first_pos, max(0, get_cursor_pos() - (EDITOR_COLUMNS - 1)), get_cursor_pos());
+    state.loc_cursor.line = clamp(state.loc_cursor.line, 0, editbuf_get_line_count(state.editbuf));
+    state.loc_cursor.pos  = max(0, state.loc_cursor.pos);
+    state.scr_first_line  = clamp(state.scr_first_line, max(0, state.loc_cursor.line - (EDITOR_ROWS - 1)), state.loc_cursor.line);
+    state.scr_first_pos   = clamp(state.scr_first_pos, max(0, get_cursor_pos() - (EDITOR_COLUMNS - 1)), get_cursor_pos());
 
     menubar_render(menubar_menus, false, NULL);
     render_editor_border();
@@ -319,74 +366,74 @@ void editor(struct editbuf *eb) {
                 handler();
             } else {
                 switch (ch) {
-                    case CH_UP: state.cursor_line--; break;
-                    case CH_DOWN: state.cursor_line++; break;
+                    case CH_UP: state.loc_cursor.line--; break;
+                    case CH_DOWN: state.loc_cursor.line++; break;
                     case CH_LEFT: {
                         update_cursor_pos();
-                        state.cursor_pos--;
-                        if (state.cursor_pos < 0 && state.cursor_line > 0) {
-                            state.cursor_line--;
-                            state.cursor_pos = editbuf_get_line(state.editbuf, state.cursor_line, NULL);
+                        state.loc_cursor.pos--;
+                        if (state.loc_cursor.pos < 0 && state.loc_cursor.line > 0) {
+                            state.loc_cursor.line--;
+                            state.loc_cursor.pos = editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL);
                         }
                         break;
                     }
                     case CH_RIGHT: {
-                        state.cursor_pos++;
-                        if (state.cursor_pos > editbuf_get_line(state.editbuf, state.cursor_line, NULL)) {
-                            state.cursor_line++;
-                            state.cursor_pos = 0;
+                        state.loc_cursor.pos++;
+                        if (state.loc_cursor.pos > editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL)) {
+                            state.loc_cursor.line++;
+                            state.loc_cursor.pos = 0;
                         }
                         break;
                     }
                     case CH_HOME: {
                         if (key & KEY_MOD_CTRL) {
-                            state.cursor_line = 0;
+                            state.loc_cursor.line = 0;
                         }
-                        state.cursor_pos = 0;
+                        state.loc_cursor.pos = 0;
                         break;
                     }
                     case CH_END: {
                         if (key & KEY_MOD_CTRL) {
-                            state.cursor_line = editbuf_get_line_count(state.editbuf);
+                            state.loc_cursor.line = editbuf_get_line_count(state.editbuf);
 
                         } else {
-                            state.cursor_pos = editbuf_get_line(state.editbuf, state.cursor_line, NULL);
+                            state.loc_cursor.pos = editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL);
                         }
                         break;
                     }
-                    case CH_PAGEUP: state.cursor_line -= (EDITOR_ROWS - 1); break;
-                    case CH_PAGEDOWN: state.cursor_line += (EDITOR_ROWS - 1); break;
+                    case CH_PAGEUP: state.loc_cursor.line -= (EDITOR_ROWS - 1); break;
+                    case CH_PAGEDOWN: state.loc_cursor.line += (EDITOR_ROWS - 1); break;
                     case CH_DELETE: {
                         update_cursor_pos();
-                        editbuf_delete_ch(state.editbuf, state.cursor_line, state.cursor_pos);
+                        editbuf_delete_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos);
                         break;
                     }
                     case CH_BACKSPACE: {
                         update_cursor_pos();
-                        if (state.cursor_line <= 0 && state.cursor_pos <= 0)
+                        if (state.loc_cursor.line <= 0 && state.loc_cursor.pos <= 0)
                             break;
 
-                        if (state.cursor_pos > 0) {
+                        if (state.loc_cursor.pos > 0) {
                             int leading_spaces = get_leading_spaces();
                             int count          = 1;
 
-                            if (leading_spaces == state.cursor_pos) {
-                                int pos = state.cursor_pos;
+                            if (leading_spaces == state.loc_cursor.pos) {
+                                int pos = state.loc_cursor.pos;
                                 do {
                                     pos--;
                                 } while (pos % TAB_SIZE != 0);
-                                count = state.cursor_pos - pos;
+                                count = state.loc_cursor.pos - pos;
                             }
 
                             while (count > 0) {
                                 count--;
-                                state.cursor_pos--;
-                                editbuf_delete_ch(state.editbuf, state.cursor_line, state.cursor_pos);
+                                state.loc_cursor.pos--;
+                                editbuf_delete_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos);
                             }
                         } else {
-                            state.cursor_line--;
-                            state.cursor_pos = editbuf_get_line(state.editbuf, state.cursor_line, NULL);
-                            editbuf_delete_ch(state.editbuf, state.cursor_line, state.cursor_pos);
+                            state.loc_cursor.line--;
+                            state.loc_cursor.pos = editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL);
+                            editbuf_delete_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos);
                         }
 
                         state.modified = true;
@@ -394,11 +441,11 @@ void editor(struct editbuf *eb) {
                     }
                     case CH_ENTER: {
                         update_cursor_pos();
-                        int leading_spaces = min(state.cursor_pos, get_leading_spaces());
-                        if (editbuf_split_line(state.editbuf, state.cursor_line, state.cursor_pos)) {
-                            state.cursor_line++;
-                            state.cursor_pos = 0;
-                            state.modified   = true;
+                        int leading_spaces = min(state.loc_cursor.pos, get_leading_spaces());
+                        if (editbuf_split_line(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos)) {
+                            state.loc_cursor.line++;
+                            state.loc_cursor.pos = 0;
+                            state.modified       = true;
 
                             // Auto indent
                             while (leading_spaces > 0) {
@@ -410,12 +457,12 @@ void editor(struct editbuf *eb) {
                     }
                     case CH_TAB: {
                         update_cursor_pos();
-                        int pos = state.cursor_pos;
+                        int pos = state.loc_cursor.pos;
                         do {
                             pos++;
                         } while (pos % TAB_SIZE != 0);
 
-                        int count = pos - state.cursor_pos;
+                        int count = pos - state.loc_cursor.pos;
                         for (int i = 0; i < count; i++) {
                             insert_ch(' ');
                         }
@@ -432,12 +479,5 @@ void editor(struct editbuf *eb) {
     }
 }
 
-void editor_set_cursor(int line, int pos) {
-    state.cursor_line = line;
-    state.cursor_pos  = pos;
-}
-
-void editor_get_cursor(int *line, int *pos) {
-    *line = state.cursor_line;
-    *pos  = state.cursor_pos;
-}
+void       editor_set_cursor(location_t loc) { state.loc_cursor = loc; }
+location_t editor_get_cursor(void) { return state.loc_cursor; }
