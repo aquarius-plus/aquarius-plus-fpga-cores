@@ -2,114 +2,40 @@
 #include "common.h"
 #include "regs.h"
 #include "menu.h"
-#include "screen.h"
-#include "dialog.h"
 #include "esp.h"
 #include "editbuf.h"
-#include "basic/basic.h"
 
 #define EDITOR_ROWS    22
 #define EDITOR_COLUMNS 78
 #define TAB_SIZE       2
 
 struct editor_state {
-    struct editbuf editbuf;
-
-    char filename[64];
-    int  cursor_line;
-    int  cursor_pos;
-    int  scr_first_line;
-    int  scr_first_pos;
-    bool modified;
+    struct editbuf *editbuf;
+    char            filename[64];
+    int             cursor_line;
+    int             cursor_pos;
+    int             scr_first_line;
+    int             scr_first_pos;
+    bool            modified;
 };
 
-static uint32_t     mycrc;
 struct editor_state state;
 
 static int  load_file(const char *path);
 static void save_file(const char *path);
-static void redraw_screen(void);
-
-static void cmd_file_new(void);
-static void cmd_file_open(void);
-static void cmd_file_save(void);
-static void cmd_file_save_as(void);
-static void cmd_file_exit(void);
-
-static void cmd_run_start(void);
-
-static void cmd_view_output_screen();
-
-static void cmd_help_index(void);
-static void cmd_help_contents(void);
-static void cmd_help_topic(void);
-static void cmd_help_about(void);
-
-#pragma region Menus
-static const struct menu_item menu_file_items[] = {
-    {.title = "&New", .shortcut = KEY_MOD_CTRL | 'N', .status = "Removes currently loaded file from memory", .handler = cmd_file_new},
-    {.title = "&Open...", .shortcut = KEY_MOD_CTRL | 'O', .status = "Loads new file into memory", .handler = cmd_file_open},
-    {.title = "&Save", .shortcut = KEY_MOD_CTRL | 'S', .status = "Saves current file", .handler = cmd_file_save},
-    {.title = "Save &As...", .shortcut = KEY_MOD_SHIFT | KEY_MOD_CTRL | 'S', .status = "Saves current file with specified name", .handler = cmd_file_save_as},
-    {.title = "-"},
-    {.title = "E&xit", .shortcut = KEY_MOD_CTRL | 'Q', .status = "Exits editor and returns to system", .handler = cmd_file_exit},
-    {.title = NULL},
-};
-
-// static const struct menu_item menu_edit_items[] = {
-//     {.title = "Cu&t", .shortcut = KEY_MOD_CTRL | 'X'},
-//     {.title = "&Copy", .shortcut = KEY_MOD_CTRL | 'C'},
-//     {.title = "&Paste", .shortcut = KEY_MOD_CTRL | 'V'},
-//     {.title = "-"},
-//     {.title = "&Find", .shortcut = KEY_MOD_CTRL | 'F'},
-//     {.title = "&Replace", .shortcut = KEY_MOD_CTRL | 'H'},
-//     {.title = "-"},
-//     {.title = "&Select all", .shortcut = KEY_MOD_CTRL | 'A'},
-//     {.title = "-"},
-//     {.title = "Format document", .shortcut = KEY_MOD_SHIFT | KEY_MOD_ALT | 'F'},
-//     {.title = "Format selection"},
-//     {.title = "Trim trailing whitespace"},
-//     {.title = NULL},
-// };
-
-static const struct menu_item menu_view_items[] = {
-    {.title = "&Output Screen", .shortcut = CH_F4, .status = "Displays output screen", .handler = cmd_view_output_screen},
-    {.title = NULL},
-};
-
-static const struct menu_item menu_run_items[] = {
-    {.title = "&Start", .shortcut = CH_F5, .status = "Runs current program", .handler = cmd_run_start},
-    {.title = NULL},
-};
-
-static const struct menu_item menu_help_items[] = {
-    {.title = "&Index", .status = "Displays help index", .handler = cmd_help_index},
-    {.title = "&Contents", .status = "Display help table of contents", .handler = cmd_help_contents},
-    {.title = "&Topic", .shortcut = CH_F1, .status = "Displays information about the keyword the cursor is on", .handler = cmd_help_topic},
-    {.title = "-"},
-    {.title = "&About...", .status = "Displays product version", .handler = cmd_help_about},
-    {.title = NULL},
-};
-
-static const struct menu menubar_menus[] = {
-    {.title = "&File", .items = menu_file_items},
-    // {.title = "&Edit", .items = menu_edit_items},
-    {.title = "&View", .items = menu_view_items},
-    {.title = "&Run", .items = menu_run_items},
-    {.title = "&Help", .items = menu_help_items},
-    {.title = NULL},
-};
-#pragma endregion
-
-static __attribute__((section(".noinit"))) uint8_t buf_edit[128 * 1024];
 
 static void reset_state(void) {
-    memset(&state, 0, sizeof(state));
-    editbuf_init(&state.editbuf, buf_edit, sizeof(buf_edit));
+    editbuf_reset(state.editbuf);
+    state.filename[0]    = 0;
+    state.cursor_line    = 0;
+    state.cursor_pos     = 0;
+    state.scr_first_line = 0;
+    state.scr_first_pos  = 0;
+    state.modified       = false;
 }
 
 static int get_cursor_pos(void) {
-    return min(state.cursor_pos, max(0, editbuf_get_line(&state.editbuf, state.cursor_line, NULL)));
+    return min(state.cursor_pos, max(0, editbuf_get_line(state.editbuf, state.cursor_line, NULL)));
 }
 
 static void update_cursor_pos(void) {
@@ -133,15 +59,15 @@ static bool check_modified(void) {
     return true;
 }
 
-static void cmd_file_new(void) {
+void cmd_file_new(void) {
     if (check_modified())
         reset_state();
 }
 
-static void cmd_file_open(void) {
+void cmd_file_open(void) {
     char tmp[256];
     if (dialog_open(tmp, sizeof(tmp))) {
-        redraw_screen();
+        editor_redraw_screen();
         if (check_modified()) {
             scr_status_msg("Loading file...");
             load_file(tmp);
@@ -149,7 +75,7 @@ static void cmd_file_open(void) {
     }
 }
 
-static void cmd_file_save(void) {
+void cmd_file_save(void) {
     if (!state.filename[0]) {
         // File never saved, use 'save as' command instead.
         cmd_file_save_as();
@@ -161,7 +87,7 @@ static void cmd_file_save(void) {
     save_file(state.filename);
 }
 
-static void cmd_file_save_as(void) {
+void cmd_file_save_as(void) {
     char tmp[64];
     strcpy(tmp, state.filename);
     if (!dialog_save(tmp, sizeof(tmp)))
@@ -172,7 +98,7 @@ static void cmd_file_save_as(void) {
     struct esp_stat st;
     if (esp_stat(tmp, &st) == 0) {
         // File exists
-        redraw_screen();
+        editor_redraw_screen();
         if (dialog_confirm(NULL, "Overwrite existing file?") <= 0)
             do_save = false;
     }
@@ -182,74 +108,10 @@ static void cmd_file_save_as(void) {
     }
 }
 
-static void cmd_file_exit(void) {
+void cmd_file_exit(void) {
     if (check_modified()) {
         asm("j 0");
     }
-}
-
-static void wait_keypress(void) {
-    int key;
-    while ((key = REGS->KEYBUF) >= 0);
-    while (1) {
-        while ((key = REGS->KEYBUF) < 0);
-        if ((key & KEY_IS_SCANCODE) == 0) {
-            break;
-        }
-    }
-}
-
-static void show_basic_error(int result) {
-    state.cursor_line = basic_get_error_line();
-    state.cursor_pos  = 0;
-    reinit_video();
-    redraw_screen();
-    dialog_message("Error", basic_get_error_str(result));
-}
-
-static void cmd_run_start(void) {
-    scr_status_msg("Compiling...");
-    int result = basic_compile(&state.editbuf);
-    if (result != 0) {
-        show_basic_error(result);
-        return;
-    }
-    result = basic_run();
-    save_video();
-    if (result != 0) {
-        show_basic_error(result);
-        return;
-    }
-
-    scr_status_msg("Press any key to continue");
-    int key;
-    while ((key = REGS->KEYBUF) >= 0);
-    while (1) {
-        while ((key = REGS->KEYBUF) < 0);
-        if ((key & KEY_IS_SCANCODE) == 0) {
-            break;
-        }
-    }
-    reinit_video();
-}
-
-static void cmd_view_output_screen(void) {
-    restore_video();
-    wait_keypress();
-    reinit_video();
-}
-
-static void cmd_help_index(void) {
-}
-
-static void cmd_help_contents(void) {
-}
-
-static void cmd_help_topic(void) {
-}
-
-static void cmd_help_about(void) {
-    dialog_message("About", "Aquarius32 BASIC v0.1");
 }
 
 static void render_editor(void) {
@@ -259,7 +121,7 @@ static void render_editor(void) {
 
         int            line = state.scr_first_line + row;
         const uint8_t *p;
-        int            line_len = editbuf_get_line(&state.editbuf, line, &p);
+        int            line_len = editbuf_get_line(state.editbuf, line, &p);
 
         if (line_len > state.scr_first_pos)
             p += state.scr_first_pos;
@@ -318,7 +180,7 @@ static int load_file(const char *path) {
 
         line_size = min(line_size, MAX_LINESZ);
 
-        if (!editbuf_insert_line(&state.editbuf, line, linebuf, line_size)) {
+        if (!editbuf_insert_line(state.editbuf, line, linebuf, line_size)) {
             if (dialog_confirm("Error", "File too large to fully load. Load partially?") <= 0) {
                 reset_state();
                 break;
@@ -341,10 +203,10 @@ static void save_file(const char *path) {
     if (!f)
         return;
 
-    int line_count = editbuf_get_line_count(&state.editbuf);
+    int line_count = editbuf_get_line_count(state.editbuf);
     for (int line = 0; line < line_count; line++) {
         const uint8_t *p;
-        int            line_len = editbuf_get_line(&state.editbuf, line, &p);
+        int            line_len = editbuf_get_line(state.editbuf, line, &p);
         if (line_len < 0)
             break;
 
@@ -372,13 +234,12 @@ static void render_statusbar(void) {
 
     // uint8_t *p = getline_addr(state.cursor_line);
     // snprintf(tmp, sizeof(tmp), "p[0]=%u p[1]=%u lines=%u cursor_line=%d scr_first_line=%d", p[0], p[1], state.num_lines, state.cursor_line, state.scr_first_line);
-    // snprintf(tmp, sizeof(tmp), "CRC: %08lX", mycrc);
 
     scr_status_msg(tmp);
     scr_setcolor(COLOR_STATUS2);
     scr_putchar(26);
 
-    int line_len = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
+    int line_len = editbuf_get_line(state.editbuf, state.cursor_line, NULL);
     int cpos     = min(line_len, state.cursor_pos);
 
     snprintf(tmp, sizeof(tmp), " %05d:%03d ", state.cursor_line + 1, cpos + 1);
@@ -392,7 +253,7 @@ static void menu_redraw_screen(void) {
 
 static void insert_ch(uint8_t ch) {
     update_cursor_pos();
-    if (editbuf_insert_ch(&state.editbuf, state.cursor_line, state.cursor_pos, ch)) {
+    if (editbuf_insert_ch(state.editbuf, state.cursor_line, state.cursor_pos, ch)) {
         state.cursor_pos++;
         state.modified = true;
     }
@@ -400,7 +261,7 @@ static void insert_ch(uint8_t ch) {
 
 static int get_leading_spaces(void) {
     const uint8_t *p;
-    int            line_len = editbuf_get_line(&state.editbuf, state.cursor_line, &p);
+    int            line_len = editbuf_get_line(state.editbuf, state.cursor_line, &p);
     if (line_len < 0)
         return 0;
 
@@ -413,23 +274,10 @@ static int get_leading_spaces(void) {
     return leading_spaces;
 }
 
-unsigned int crc32b(const uint8_t *buf, size_t count) {
-    uint32_t crc = 0xFFFFFFFF;
-    while (count > 0) {
-        count--;
-        crc = crc ^ *(buf++);
-        for (int j = 0; j < 8; j++) {
-            uint32_t mask = -(crc & 1);
-            crc           = (crc >> 1) ^ (0xEDB88320 & mask);
-        }
-    }
-    return ~crc;
-}
-
 static bool is_cntrl(uint8_t ch) { return (ch < 32 || (ch >= 127 && ch < 160)); }
 
-static void redraw_screen(void) {
-    state.cursor_line    = clamp(state.cursor_line, 0, editbuf_get_line_count(&state.editbuf));
+void editor_redraw_screen(void) {
+    state.cursor_line    = clamp(state.cursor_line, 0, editbuf_get_line_count(state.editbuf));
     state.cursor_pos     = max(0, state.cursor_pos);
     state.scr_first_line = clamp(state.scr_first_line, max(0, state.cursor_line - (EDITOR_ROWS - 1)), state.cursor_line);
     state.scr_first_pos  = clamp(state.scr_first_pos, max(0, get_cursor_pos() - (EDITOR_COLUMNS - 1)), get_cursor_pos());
@@ -440,16 +288,15 @@ static void redraw_screen(void) {
     render_statusbar();
 }
 
-void editor(void) {
-    extern uint8_t __bss_start;
-    mycrc = crc32b((const uint8_t *)0x80000, &__bss_start - (const uint8_t *)0x80000);
+void editor(struct editbuf *eb) {
+    state.editbuf = eb;
 
     save_video();
     reinit_video();
     reset_state();
 
     while (1) {
-        redraw_screen();
+        editor_redraw_screen();
 
         int key;
         while ((key = REGS->KEYBUF) < 0);
@@ -480,13 +327,13 @@ void editor(void) {
                         state.cursor_pos--;
                         if (state.cursor_pos < 0 && state.cursor_line > 0) {
                             state.cursor_line--;
-                            state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
+                            state.cursor_pos = editbuf_get_line(state.editbuf, state.cursor_line, NULL);
                         }
                         break;
                     }
                     case CH_RIGHT: {
                         state.cursor_pos++;
-                        if (state.cursor_pos > editbuf_get_line(&state.editbuf, state.cursor_line, NULL)) {
+                        if (state.cursor_pos > editbuf_get_line(state.editbuf, state.cursor_line, NULL)) {
                             state.cursor_line++;
                             state.cursor_pos = 0;
                         }
@@ -501,10 +348,10 @@ void editor(void) {
                     }
                     case CH_END: {
                         if (key & KEY_MOD_CTRL) {
-                            state.cursor_line = editbuf_get_line_count(&state.editbuf);
+                            state.cursor_line = editbuf_get_line_count(state.editbuf);
 
                         } else {
-                            state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
+                            state.cursor_pos = editbuf_get_line(state.editbuf, state.cursor_line, NULL);
                         }
                         break;
                     }
@@ -512,7 +359,7 @@ void editor(void) {
                     case CH_PAGEDOWN: state.cursor_line += (EDITOR_ROWS - 1); break;
                     case CH_DELETE: {
                         update_cursor_pos();
-                        editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
+                        editbuf_delete_ch(state.editbuf, state.cursor_line, state.cursor_pos);
                         break;
                     }
                     case CH_BACKSPACE: {
@@ -535,12 +382,12 @@ void editor(void) {
                             while (count > 0) {
                                 count--;
                                 state.cursor_pos--;
-                                editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
+                                editbuf_delete_ch(state.editbuf, state.cursor_line, state.cursor_pos);
                             }
                         } else {
                             state.cursor_line--;
-                            state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
-                            editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
+                            state.cursor_pos = editbuf_get_line(state.editbuf, state.cursor_line, NULL);
+                            editbuf_delete_ch(state.editbuf, state.cursor_line, state.cursor_pos);
                         }
 
                         state.modified = true;
@@ -550,7 +397,7 @@ void editor(void) {
                         int leading_spaces = get_leading_spaces();
 
                         update_cursor_pos();
-                        if (editbuf_split_line(&state.editbuf, state.cursor_line, state.cursor_pos)) {
+                        if (editbuf_split_line(state.editbuf, state.cursor_line, state.cursor_pos)) {
                             state.cursor_line++;
                             state.cursor_pos = 0;
                             state.modified   = true;
@@ -585,4 +432,9 @@ void editor(void) {
             }
         }
     }
+}
+
+void editor_set_cursor(int line, int pos) {
+    state.cursor_line = line;
+    state.cursor_pos  = pos;
 }

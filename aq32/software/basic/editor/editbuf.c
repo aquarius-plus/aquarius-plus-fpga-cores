@@ -84,6 +84,12 @@ void editbuf_init(struct editbuf *eb, uint8_t *p, size_t size) {
     eb->cached_p_line = 0;
 }
 
+void editbuf_reset(struct editbuf *eb) {
+    eb->line_count    = 0;
+    eb->cached_p      = eb->p_buf;
+    eb->cached_p_line = 0;
+}
+
 int editbuf_get_line_count(struct editbuf *eb) {
     return eb->line_count;
 }
