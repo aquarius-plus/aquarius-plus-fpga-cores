@@ -1,6 +1,8 @@
 #include "controls.h"
 #include "screen.h"
 
+#define OPENDIREXT_FLAGS (DE_FLAG_DOTDOT | DE_FLAG_HIDDEN)
+
 static void set_listing_color(int y, int x, int w, uint8_t col) {
     scr_setcolor(y == 6 ? COLOR_MENU_SEL : COLOR_MENU);
 
@@ -66,7 +68,7 @@ static void draw_listing_page(int y, int x, int w, int rows, int page) {
     struct esp_stat st;
     char            tmp[256];
 
-    int dd = esp_opendirext("", DE_FLAG_DOTDOT, page * rows);
+    int dd = esp_opendirext("", OPENDIREXT_FLAGS, page * rows);
     for (int i = 0; i < rows; i++) {
         if (dd >= 0) {
             int res = esp_readdir(dd, &st, tmp, sizeof(tmp));
@@ -88,7 +90,7 @@ static int get_num_entries(void) {
     char            tmp[16];
     int             result = 0;
 
-    int dd = esp_opendirext("", DE_FLAG_DOTDOT, 0);
+    int dd = esp_opendirext("", OPENDIREXT_FLAGS, 0);
     if (dd >= 0) {
         while (1) {
             if (esp_readdir(dd, &st, tmp, sizeof(tmp)) < 0)
@@ -151,7 +153,7 @@ int file_list_handle(struct file_list_ctx *ctx) {
                 case CH_PAGEDOWN: ctx->selection += ctx->rows; break;
                 case CH_PAGEUP: ctx->selection -= ctx->rows; break;
                 case '\r': {
-                    int dd = esp_opendirext("", DE_FLAG_DOTDOT, ctx->selection);
+                    int dd = esp_opendirext("", OPENDIREXT_FLAGS, ctx->selection);
                     if (dd >= 0) {
                         int res = esp_readdir(dd, &ctx->st, ctx->fn_buf, ctx->fn_bufsize);
                         esp_closedir(dd);

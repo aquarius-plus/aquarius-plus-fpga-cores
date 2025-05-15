@@ -5,6 +5,8 @@
 #include "esp.h"
 #include "editbuf.h"
 
+#define CLIPBOARD_PATH "/.editor-clipboard"
+
 #define EDITOR_ROWS    22
 #define EDITOR_COLUMNS 78
 #define TAB_SIZE       2
@@ -16,6 +18,9 @@ struct editor_state {
     location_t      loc_selection;
     int             scr_first_line;
     int             scr_first_pos;
+
+    location_t loc_selection_from;
+    location_t loc_selection_to;
 };
 
 struct editor_state state;
@@ -40,21 +45,22 @@ static void clear_selection(void) {
     state.loc_selection = (location_t){-1, -1};
 }
 
+static void update_selection_range(void) {
+    if (loc_lt(state.loc_cursor, state.loc_selection)) {
+        state.loc_selection_to   = state.loc_selection;
+        state.loc_selection_from = state.loc_cursor;
+    } else {
+        state.loc_selection_to   = state.loc_cursor;
+        state.loc_selection_from = state.loc_selection;
+    }
+}
+
 static bool in_selection(location_t loc) {
     if (!has_selection())
         return false;
 
-    location_t loc_selection_from;
-    location_t loc_selection_to;
-
-    if (loc_lt(state.loc_cursor, state.loc_selection)) {
-        loc_selection_to   = state.loc_selection;
-        loc_selection_from = state.loc_cursor;
-    } else {
-        loc_selection_to   = state.loc_cursor;
-        loc_selection_from = state.loc_selection;
-    }
-    return (loc_lt(loc, loc_selection_to) && !loc_lt(loc, loc_selection_from));
+    update_selection_range();
+    return (loc_lt(loc, state.loc_selection_to) && !loc_lt(loc, state.loc_selection_from));
 }
 
 static int get_cursor_pos(void) {
@@ -258,19 +264,84 @@ static void save_file(const char *path) {
 
     int line_count = editbuf_get_line_count(state.editbuf);
     for (int line = 0; line < line_count; line++) {
-        const uint8_t *p;
-        int            line_len = editbuf_get_line(state.editbuf, line, &p);
+        const uint8_t *p_line;
+        int            line_len = editbuf_get_line(state.editbuf, line, &p_line);
         if (line_len < 0)
             break;
 
         if (line_len > 0)
-            fwrite(p, line_len, 1, f);
+            fwrite(p_line, line_len, 1, f);
         fputc('\n', f);
     }
     fclose(f);
 
     snprintf(state.filename, sizeof(state.filename), "%s", path);
     state.editbuf->modified = false;
+}
+
+static void save_range(const char *path, location_t from, location_t to) {
+    FILE *f = fopen(path, "wt");
+    if (f == NULL)
+        return;
+
+    int line = from.line;
+
+    const uint8_t *p_line;
+    int            line_len = editbuf_get_line(state.editbuf, line, &p_line);
+    if (from.pos < line_len) {
+        if (from.line == to.line) {
+            fwrite(p_line + from.pos, to.pos - from.pos, 1, f);
+            goto done;
+        }
+        fwrite(p_line + from.pos, line_len - from.pos, 1, f);
+        fputc('\n', f);
+    }
+
+    for (line = from.line + 1; line < to.line; line++) {
+        line_len = editbuf_get_line(state.editbuf, line, &p_line);
+        if (line_len > 0)
+            fwrite(p_line, line_len, 1, f);
+        fputc('\n', f);
+    }
+
+    {
+        line_len  = editbuf_get_line(state.editbuf, line, &p_line);
+        int count = min(line_len, to.pos);
+        if (count > 0)
+            fwrite(p_line, count, 1, f);
+    }
+
+done:
+    fclose(f);
+}
+
+void cmd_edit_cut(void) {
+    if (!has_selection())
+        return;
+
+    // Save range
+    scr_status_msg("Writing to clipboard file...");
+    update_selection_range();
+    save_range(CLIPBOARD_PATH, state.loc_selection_from, state.loc_selection_to);
+
+    // Delete range
+}
+
+void cmd_edit_copy(void) {
+    if (!has_selection())
+        return;
+
+    scr_status_msg("Writing to clipboard file...");
+    update_selection_range();
+    save_range(CLIPBOARD_PATH, state.loc_selection_from, state.loc_selection_to);
+}
+void cmd_edit_paste(void) {
+    clear_selection();
+}
+void cmd_edit_select_all(void) {
+    state.loc_selection.line = 0;
+    state.loc_selection.pos  = 0;
+    state.loc_cursor.line    = editbuf_get_line_count(state.editbuf);
 }
 
 static void render_editor_border(void) {
@@ -483,7 +554,7 @@ void editor(struct editbuf *eb) {
                             break;
                         }
                         default: {
-                            if (!is_cntrl(ch))
+                            if ((key & (KEY_MOD_GUI | KEY_MOD_ALT | KEY_MOD_CTRL)) == 0 && !is_cntrl(ch))
                                 insert_ch(ch);
                             break;
                         }

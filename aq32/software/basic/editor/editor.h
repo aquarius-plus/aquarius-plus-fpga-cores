@@ -25,3 +25,8 @@ void cmd_file_open(void);
 void cmd_file_save(void);
 void cmd_file_save_as(void);
 void cmd_file_exit(void);
+
+void cmd_edit_cut(void);
+void cmd_edit_copy(void);
+void cmd_edit_paste(void);
+void cmd_edit_select_all(void);
