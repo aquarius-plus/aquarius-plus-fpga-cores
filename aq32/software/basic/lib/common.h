@@ -119,3 +119,4 @@ static inline bool is_alpha(uint8_t ch) { return is_upper(ch) || is_lower(ch); }
 static inline char to_upper(char ch) { return is_lower(ch) ? (ch - 'a' + 'A') : ch; }
 static inline char to_lower(char ch) { return is_upper(ch) ? (ch - 'A' + 'a') : ch; }
 static inline bool is_typechar(char ch) { return (ch == '%' || ch == '&' || ch == '!' || ch == '#' || ch == '$'); }
+static inline bool is_cntrl(uint8_t ch) { return (ch < 32 || (ch >= 127 && ch < 160)); }

@@ -304,6 +304,13 @@ done:
     fclose(f);
 }
 
+static void insert_ch(uint8_t ch) {
+    update_cursor_pos();
+    if (editbuf_insert_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos, ch)) {
+        state.loc_cursor.pos++;
+    }
+}
+
 void cmd_edit_cut(void) {
     if (!has_selection())
         return;
@@ -326,6 +333,24 @@ void cmd_edit_copy(void) {
 }
 void cmd_edit_paste(void) {
     clear_selection();
+
+    // FILE *f = fopen(CLIPBOARD_PATH, "rt");
+    // if (f == NULL)
+    //     return;
+
+    // int ch;
+
+    // while ((ch = fgetc(f)) >= 0) {
+    //     if (!is_cntrl(ch))
+    //         insert_ch(ch);
+    //     else if (ch == '\n') {
+    //         if (editbuf_split_line(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos)) {
+    //             state.loc_cursor.line++;
+    //             state.loc_cursor.pos = 0;
+    //         }
+    //     }
+    // }
+    // fclose(f);
 }
 void cmd_edit_select_all(void) {
     state.loc_selection.line = 0;
@@ -364,13 +389,6 @@ static void menu_redraw_screen(void) {
     render_editor();
 }
 
-static void insert_ch(uint8_t ch) {
-    update_cursor_pos();
-    if (editbuf_insert_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos, ch)) {
-        state.loc_cursor.pos++;
-    }
-}
-
 static int get_leading_spaces(void) {
     const uint8_t *p;
     int            line_len = editbuf_get_line(state.editbuf, state.loc_cursor.line, &p);
@@ -385,8 +403,6 @@ static int get_leading_spaces(void) {
     }
     return leading_spaces;
 }
-
-static bool is_cntrl(uint8_t ch) { return (ch < 32 || (ch >= 127 && ch < 160)); }
 
 void editor_redraw_screen(void) {
     state.loc_cursor.line = clamp(state.loc_cursor.line, 0, editbuf_get_line_count(state.editbuf));
