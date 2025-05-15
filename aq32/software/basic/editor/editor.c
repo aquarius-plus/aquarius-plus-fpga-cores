@@ -368,7 +368,7 @@ static void render_statusbar(void) {
     char tmp[64];
 
     tmp[0] = 0;
-    snprintf(tmp, sizeof(tmp), "%p", state.editbuf.p_buf);
+    // snprintf(tmp, sizeof(tmp), "%p", state.editbuf.p_buf);
 
     // uint8_t *p = getline_addr(state.cursor_line);
     // snprintf(tmp, sizeof(tmp), "p[0]=%u p[1]=%u lines=%u cursor_line=%d scr_first_line=%d", p[0], p[1], state.num_lines, state.cursor_line, state.scr_first_line);
@@ -577,9 +577,8 @@ void editor(void) {
                         break;
                     }
                     default: {
-                        if ((ch >= ' ' && ch <= '~') || (ch >= 0xA0)) {
+                        if (!is_cntrl(ch))
                             insert_ch(ch);
-                        }
                         break;
                     }
                 }

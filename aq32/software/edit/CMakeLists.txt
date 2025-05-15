@@ -40,7 +40,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE -Os -g)
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wshadow -Winit-self -Wfloat-conversion -Wdouble-promotion -Wmissing-include-dirs -Wlogical-op)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wno-unused-parameter -Wno-shadow)
-target_compile_options(${PROJECT_NAME} PRIVATE -fdata-sections -ffunction-sections)
+target_compile_options(${PROJECT_NAME} PRIVATE -fdata-sections -ffunction-sections -fno-strict-aliasing)
 target_compile_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestanding -specs=nano.specs)
 
 target_link_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestanding -specs=nano.specs) # -u _printf_float)
@@ -62,6 +62,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     lib/screen.c
     lib/esp.c
     lib/common.c
+    lib/malloc.c
 
     editor/editor.c
     editor/menu.c

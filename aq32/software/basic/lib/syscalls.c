@@ -6,7 +6,6 @@
 #include <sys/timeb.h>
 #include <sys/time.h>
 #include "esp.h"
-#include "console.h"
 #include "malloc.h"
 
 #define SIZE_BUF_HEAP 0x1000

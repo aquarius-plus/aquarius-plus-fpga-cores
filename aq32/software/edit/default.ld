@@ -1,10 +1,14 @@
+STACK_SIZE = 8k;
+
 MEMORY {
-    ram (rwx) : ORIGIN = 0x80000, LENGTH = 512k
+    ram   (rwx) : ORIGIN = 0x80000,                   LENGTH = 512k - STACK_SIZE
+    stack (rw)  : ORIGIN = ORIGIN(ram) + LENGTH(ram), LENGTH = STACK_SIZE
 }
+PROVIDE(__stack_start = ORIGIN(stack));
+PROVIDE(__stack_end   = ORIGIN(stack) + LENGTH(stack));
 
 ENTRY(_start)
 
-PROVIDE(__ram_end = ORIGIN(ram) + LENGTH(ram));
 
 SECTIONS {
     /DISCARD/ : {
@@ -80,6 +84,10 @@ SECTIONS {
         *(COMMON)
         . = ALIGN(16);
         PROVIDE(__bss_end = .);
+    } > ram
+
+    .noinit (NOLOAD) : ALIGN(16) {
+        KEEP(*(*.noinit*))
     } > ram
 
     _end = .;

@@ -25,15 +25,17 @@ struct editor_state {
 static uint32_t     mycrc;
 struct editor_state state;
 
-static void load_file(const char *path);
+static int  load_file(const char *path);
 static void save_file(const char *path);
-static void render_editor(void);
+static void redraw_screen(void);
 
 static void cmd_file_new(void);
 static void cmd_file_open(void);
 static void cmd_file_save(void);
 static void cmd_file_save_as(void);
 static void cmd_file_exit(void);
+
+static void cmd_help_about(void);
 
 #pragma region Menus
 static const struct menu_item menu_file_items[] = {
@@ -62,38 +64,24 @@ static const struct menu_item menu_file_items[] = {
 //     {.title = NULL},
 // };
 
-// static const struct menu_item menu_view_items[] = {
-//     {.title = "&Output Screen   F4"},
-//     {.title = NULL},
-// };
-
-// static const struct menu_item menu_run_items[] = {
-//     {.title = "&Start   F5"},
-//     {.title = NULL},
-// };
-
-// static const struct menu_item menu_help_items[] = {
-//     {.title = "&Index"},
-//     {.title = "&Contents"},
-//     {.title = "&Topic      F1"},
-//     {.title = "-"},
-//     {.title = "&About..."},
-//     {.title = NULL},
-// };
+static const struct menu_item menu_help_items[] = {
+    {.title = "&About...", .status = "Displays product version", .handler = cmd_help_about},
+    {.title = NULL},
+};
 
 static const struct menu menubar_menus[] = {
     {.title = "&File", .items = menu_file_items},
     // {.title = "&Edit", .items = menu_edit_items},
-    // {.title = "&View", .items = menu_view_items},
-    // {.title = "&Run", .items = menu_run_items},
-    // {.title = "&Help", .items = menu_help_items},
+    {.title = "&Help", .items = menu_help_items},
     {.title = NULL},
 };
 #pragma endregion
 
+static __attribute__((section(".noinit"))) uint8_t buf_edit[450 * 1024];
+
 static void reset_state(void) {
     memset(&state, 0, sizeof(state));
-    editbuf_init(&state.editbuf);
+    editbuf_init(&state.editbuf, buf_edit, sizeof(buf_edit));
 }
 
 static int get_cursor_pos(void) {
@@ -129,7 +117,7 @@ static void cmd_file_new(void) {
 static void cmd_file_open(void) {
     char tmp[256];
     if (dialog_open(tmp, sizeof(tmp))) {
-        render_editor();
+        redraw_screen();
         if (check_modified()) {
             scr_status_msg("Loading file...");
             load_file(tmp);
@@ -160,7 +148,7 @@ static void cmd_file_save_as(void) {
     struct esp_stat st;
     if (esp_stat(tmp, &st) == 0) {
         // File exists
-        render_editor();
+        redraw_screen();
         if (dialog_confirm(NULL, "Overwrite existing file?") <= 0)
             do_save = false;
     }
@@ -174,6 +162,10 @@ static void cmd_file_exit(void) {
     if (check_modified()) {
         asm("j 0");
     }
+}
+
+static void cmd_help_about(void) {
+    dialog_message("About", "Aquarius32 text editor v0.1");
 }
 
 static void render_editor(void) {
@@ -211,42 +203,51 @@ static void render_editor(void) {
     }
 }
 
-static void load_file(const char *path) {
+static int load_file(const char *path) {
+    FILE *f = fopen(path, "rt");
+    if (!f)
+        return -1;
+
     reset_state();
     snprintf(state.filename, sizeof(state.filename), "%s", path);
 
     int  line        = 0;
     bool do_truncate = false;
 
-    FILE *f = fopen(path, "rt");
-    if (f != NULL) {
-        size_t linebuf_size = MAX_BUFSZ;
-        char  *linebuf      = malloc(linebuf_size);
-        int    line_size    = 0;
-        while ((line_size = __getline(&linebuf, &linebuf_size, f)) >= 0) {
-            // Strip of CR/LF
-            while (line_size > 0 && (linebuf[line_size - 1] == '\r' || linebuf[line_size - 1] == '\n'))
-                line_size--;
-            linebuf[line_size] = 0;
+    size_t linebuf_size = MAX_BUFSZ;
+    char  *linebuf      = malloc(linebuf_size);
+    int    line_size    = 0;
+    while ((line_size = __getline(&linebuf, &linebuf_size, f)) >= 0) {
+        // Strip of CR/LF
+        while (line_size > 0 && (linebuf[line_size - 1] == '\r' || linebuf[line_size - 1] == '\n'))
+            line_size--;
+        linebuf[line_size] = 0;
 
-            // Check line length
-            if (!do_truncate && line_size > MAX_LINESZ) {
-                if (dialog_confirm("Error", "Line longer than 254 characters. Truncate long lines?") <= 0) {
-                    reset_state();
-                    break;
-                }
-                do_truncate = true;
+        // Check line length
+        if (!do_truncate && line_size > MAX_LINESZ) {
+            if (dialog_confirm("Error", "Line longer than 254 characters. Truncate long lines?") <= 0) {
+                reset_state();
+                break;
             }
-
-            line_size = min(line_size, MAX_LINESZ);
-
-            editbuf_insert_line(&state.editbuf, line, linebuf, line_size);
-            line++;
+            do_truncate = true;
         }
 
-        fclose(f);
-        free(linebuf);
+        line_size = min(line_size, MAX_LINESZ);
+
+        if (!editbuf_insert_line(&state.editbuf, line, linebuf, line_size)) {
+            if (dialog_confirm("Error", "File too large to fully load. Load partially?") <= 0) {
+                reset_state();
+                break;
+            }
+            state.modified = true;
+            break;
+        }
+        line++;
     }
+
+    fclose(f);
+    free(linebuf);
+    return 0;
 }
 
 static void save_file(const char *path) {
@@ -282,10 +283,12 @@ static void render_editor_border(void) {
 static void render_statusbar(void) {
     char tmp[64];
 
+    tmp[0] = 0;
+    // snprintf(tmp, sizeof(tmp), "%p", state.editbuf.p_buf);
+
     // uint8_t *p = getline_addr(state.cursor_line);
     // snprintf(tmp, sizeof(tmp), "p[0]=%u p[1]=%u lines=%u cursor_line=%d scr_first_line=%d", p[0], p[1], state.num_lines, state.cursor_line, state.scr_first_line);
-
-    snprintf(tmp, sizeof(tmp), "CRC: %08lX", mycrc);
+    // snprintf(tmp, sizeof(tmp), "CRC: %08lX", mycrc);
 
     scr_status_msg(tmp);
     scr_setcolor(COLOR_STATUS2);
@@ -339,6 +342,20 @@ unsigned int crc32b(const uint8_t *buf, size_t count) {
     return ~crc;
 }
 
+static bool is_cntrl(uint8_t ch) { return (ch < 32 || (ch >= 127 && ch < 160)); }
+
+static void redraw_screen(void) {
+    state.cursor_line    = clamp(state.cursor_line, 0, editbuf_get_line_count(&state.editbuf));
+    state.cursor_pos     = max(0, state.cursor_pos);
+    state.scr_first_line = clamp(state.scr_first_line, max(0, state.cursor_line - (EDITOR_ROWS - 1)), state.cursor_line);
+    state.scr_first_pos  = clamp(state.scr_first_pos, max(0, get_cursor_pos() - (EDITOR_COLUMNS - 1)), get_cursor_pos());
+
+    menubar_render(menubar_menus, false, NULL);
+    render_editor_border();
+    render_editor();
+    render_statusbar();
+}
+
 void editor(void) {
     extern uint8_t __bss_start;
     mycrc = crc32b((const uint8_t *)0x80000, &__bss_start - (const uint8_t *)0x80000);
@@ -347,10 +364,7 @@ void editor(void) {
     reset_state();
 
     while (1) {
-        menubar_render(menubar_menus, false, NULL);
-        render_editor_border();
-        render_editor();
-        render_statusbar();
+        redraw_screen();
 
         int key;
         while ((key = REGS->KEYBUF) < 0);
@@ -363,135 +377,127 @@ void editor(void) {
 
         } else {
             uint8_t ch = key & 0xFF;
-            switch (ch) {
-                case CH_UP: state.cursor_line--; break;
-                case CH_DOWN: state.cursor_line++; break;
-                case CH_LEFT: {
-                    update_cursor_pos();
-                    state.cursor_pos--;
-                    if (state.cursor_pos < 0 && state.cursor_line > 0) {
-                        state.cursor_line--;
-                        state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
-                    }
-                    break;
-                }
-                case CH_RIGHT: {
-                    state.cursor_pos++;
-                    if (state.cursor_pos > editbuf_get_line(&state.editbuf, state.cursor_line, NULL)) {
-                        state.cursor_line++;
-                        state.cursor_pos = 0;
-                    }
-                    break;
-                }
-                case CH_HOME: {
-                    if (key & KEY_MOD_CTRL) {
-                        state.cursor_line = 0;
-                    }
-                    state.cursor_pos = 0;
-                    break;
-                }
-                case CH_END: {
-                    if (key & KEY_MOD_CTRL) {
-                        state.cursor_line = editbuf_get_line_count(&state.editbuf);
 
-                    } else {
-                        state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
-                    }
-                    break;
-                }
-                case CH_PAGEUP: state.cursor_line -= (EDITOR_ROWS - 1); break;
-                case CH_PAGEDOWN: state.cursor_line += (EDITOR_ROWS - 1); break;
-                case CH_DELETE: {
-                    update_cursor_pos();
-                    editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
-                    break;
-                }
-                case CH_BACKSPACE: {
-                    update_cursor_pos();
-                    if (state.cursor_line <= 0 && state.cursor_pos <= 0)
-                        break;
+            menu_handler_t handler = NULL;
+            if ((key & (KEY_MOD_CTRL | KEY_MOD_ALT)) || is_cntrl(key)) {
+                uint16_t shortcut = (key & (KEY_MOD_CTRL | KEY_MOD_SHIFT | KEY_MOD_ALT)) | toupper(ch);
+                handler           = menubar_find_shortcut(menubar_menus, shortcut);
+            }
 
-                    if (state.cursor_pos > 0) {
-                        int leading_spaces = get_leading_spaces();
-                        int count          = 1;
-
-                        if (leading_spaces == state.cursor_pos) {
-                            int pos = state.cursor_pos;
-                            do {
-                                pos--;
-                            } while (pos % TAB_SIZE != 0);
-                            count = state.cursor_pos - pos;
+            if (handler) {
+                handler();
+            } else {
+                switch (ch) {
+                    case CH_UP: state.cursor_line--; break;
+                    case CH_DOWN: state.cursor_line++; break;
+                    case CH_LEFT: {
+                        update_cursor_pos();
+                        state.cursor_pos--;
+                        if (state.cursor_pos < 0 && state.cursor_line > 0) {
+                            state.cursor_line--;
+                            state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
                         }
+                        break;
+                    }
+                    case CH_RIGHT: {
+                        state.cursor_pos++;
+                        if (state.cursor_pos > editbuf_get_line(&state.editbuf, state.cursor_line, NULL)) {
+                            state.cursor_line++;
+                            state.cursor_pos = 0;
+                        }
+                        break;
+                    }
+                    case CH_HOME: {
+                        if (key & KEY_MOD_CTRL) {
+                            state.cursor_line = 0;
+                        }
+                        state.cursor_pos = 0;
+                        break;
+                    }
+                    case CH_END: {
+                        if (key & KEY_MOD_CTRL) {
+                            state.cursor_line = editbuf_get_line_count(&state.editbuf);
 
-                        while (count > 0) {
-                            count--;
-                            state.cursor_pos--;
+                        } else {
+                            state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
+                        }
+                        break;
+                    }
+                    case CH_PAGEUP: state.cursor_line -= (EDITOR_ROWS - 1); break;
+                    case CH_PAGEDOWN: state.cursor_line += (EDITOR_ROWS - 1); break;
+                    case CH_DELETE: {
+                        update_cursor_pos();
+                        editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
+                        break;
+                    }
+                    case CH_BACKSPACE: {
+                        update_cursor_pos();
+                        if (state.cursor_line <= 0 && state.cursor_pos <= 0)
+                            break;
+
+                        if (state.cursor_pos > 0) {
+                            int leading_spaces = get_leading_spaces();
+                            int count          = 1;
+
+                            if (leading_spaces == state.cursor_pos) {
+                                int pos = state.cursor_pos;
+                                do {
+                                    pos--;
+                                } while (pos % TAB_SIZE != 0);
+                                count = state.cursor_pos - pos;
+                            }
+
+                            while (count > 0) {
+                                count--;
+                                state.cursor_pos--;
+                                editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
+                            }
+                        } else {
+                            state.cursor_line--;
+                            state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
                             editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
                         }
-                    } else {
-                        state.cursor_line--;
-                        state.cursor_pos = editbuf_get_line(&state.editbuf, state.cursor_line, NULL);
-                        editbuf_delete_ch(&state.editbuf, state.cursor_line, state.cursor_pos);
-                    }
 
-                    state.modified = true;
-                    break;
-                }
-                case CH_ENTER: {
-                    const uint8_t *p;
-                    int            line_len = editbuf_get_line(&state.editbuf, state.cursor_line, &p);
-                    if (line_len < 0)
+                        state.modified = true;
                         break;
-
-                    int leading_spaces = get_leading_spaces();
-
-                    update_cursor_pos();
-                    editbuf_split_line(&state.editbuf, state.cursor_line, state.cursor_pos);
-                    state.cursor_line++;
-                    state.cursor_pos = 0;
-                    state.modified   = true;
-
-                    // Auto indent
-                    while (leading_spaces > 0) {
-                        leading_spaces--;
-                        insert_ch(' ');
                     }
-                    break;
-                }
-                case CH_TAB: {
-                    update_cursor_pos();
-                    int pos = state.cursor_pos;
-                    do {
-                        pos++;
-                    } while (pos % TAB_SIZE != 0);
+                    case CH_ENTER: {
+                        int leading_spaces = get_leading_spaces();
 
-                    int count = pos - state.cursor_pos;
-                    for (int i = 0; i < count; i++) {
-                        insert_ch(' ');
-                    }
-                    break;
-                }
-                default: {
-                    if (key & (KEY_MOD_CTRL | KEY_MOD_ALT)) {
-                        uint16_t       shortcut = (key & (KEY_MOD_CTRL | KEY_MOD_SHIFT | KEY_MOD_ALT)) | toupper(ch);
-                        menu_handler_t handler  = menubar_find_shortcut(menubar_menus, shortcut);
-                        if (handler) {
-                            handler();
-                            break;
+                        update_cursor_pos();
+                        if (editbuf_split_line(&state.editbuf, state.cursor_line, state.cursor_pos)) {
+                            state.cursor_line++;
+                            state.cursor_pos = 0;
+                            state.modified   = true;
+
+                            // Auto indent
+                            while (leading_spaces > 0) {
+                                leading_spaces--;
+                                insert_ch(' ');
+                            }
                         }
+                        break;
                     }
+                    case CH_TAB: {
+                        update_cursor_pos();
+                        int pos = state.cursor_pos;
+                        do {
+                            pos++;
+                        } while (pos % TAB_SIZE != 0);
 
-                    if ((ch >= ' ' && ch <= '~') || (ch >= 0xA0)) {
-                        insert_ch(ch);
+                        int count = pos - state.cursor_pos;
+                        for (int i = 0; i < count; i++) {
+                            insert_ch(' ');
+                        }
+                        break;
                     }
-                    break;
+                    default: {
+                        if (!is_cntrl(ch))
+                            insert_ch(ch);
+                        break;
+                    }
                 }
             }
         }
-
-        state.cursor_line    = clamp(state.cursor_line, 0, editbuf_get_line_count(&state.editbuf));
-        state.cursor_pos     = max(0, state.cursor_pos);
-        state.scr_first_line = clamp(state.scr_first_line, max(0, state.cursor_line - (EDITOR_ROWS - 1)), state.cursor_line);
-        state.scr_first_pos  = clamp(state.scr_first_pos, max(0, get_cursor_pos() - (EDITOR_COLUMNS - 1)), get_cursor_pos());
     }
 }
