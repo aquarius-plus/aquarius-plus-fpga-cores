@@ -11,6 +11,7 @@ struct editbuf {
     uint8_t *p_buf_end;
     uint8_t *cached_p;
     int      cached_p_line;
+    bool     modified;
 };
 
 void editbuf_init(struct editbuf *eb, uint8_t *p, size_t size);

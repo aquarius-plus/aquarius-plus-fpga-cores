@@ -16,7 +16,6 @@ struct editor_state {
     location_t      loc_selection;
     int             scr_first_line;
     int             scr_first_pos;
-    bool            modified;
 };
 
 struct editor_state state;
@@ -31,7 +30,6 @@ static void reset_state(void) {
     state.loc_selection  = (location_t){-1, -1};
     state.scr_first_line = 0;
     state.scr_first_pos  = 0;
-    state.modified       = false;
 }
 
 static bool in_selection(location_t loc) {
@@ -60,7 +58,7 @@ static void update_cursor_pos(void) {
 }
 
 static bool check_modified(void) {
-    if (!state.modified)
+    if (!state.editbuf->modified)
         return true;
 
     int result = dialog_confirm(NULL, "Save the changes made to the current document?");
@@ -70,7 +68,7 @@ static bool check_modified(void) {
     if (result > 0) {
         // Save document
         cmd_file_save();
-        if (state.modified)
+        if (state.editbuf->modified)
             return false;
     }
     return true;
@@ -98,7 +96,7 @@ void cmd_file_save(void) {
         cmd_file_save_as();
         return;
     }
-    if (!state.modified)
+    if (!state.editbuf->modified)
         return;
 
     save_file(state.filename);
@@ -232,7 +230,6 @@ static int load_file(const char *path) {
                 reset_state();
                 break;
             }
-            state.modified = true;
             break;
         }
         line++;
@@ -240,6 +237,7 @@ static int load_file(const char *path) {
 
     fclose(f);
     free(linebuf);
+    state.editbuf->modified = false;
     return 0;
 }
 
@@ -264,12 +262,12 @@ static void save_file(const char *path) {
     fclose(f);
 
     snprintf(state.filename, sizeof(state.filename), "%s", path);
-    state.modified = false;
+    state.editbuf->modified = false;
 }
 
 static void render_editor_border(void) {
     char title[65];
-    snprintf(title, sizeof(title), "%s%s", *state.filename ? state.filename : "Untitled", state.modified ? "\x88" : "");
+    snprintf(title, sizeof(title), "%s%s", *state.filename ? state.filename : "Untitled", state.editbuf->modified ? "\x88" : "");
     scr_draw_border(1, 0, 80, 24, COLOR_EDITOR, BORDER_FLAG_NO_BOTTOM | BORDER_FLAG_NO_SHADOW | BORDER_FLAG_TITLE_INVERSE, title);
 }
 
@@ -302,7 +300,6 @@ static void insert_ch(uint8_t ch) {
     update_cursor_pos();
     if (editbuf_insert_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos, ch)) {
         state.loc_cursor.pos++;
-        state.modified = true;
     }
 }
 
@@ -435,8 +432,6 @@ void editor(struct editbuf *eb) {
                             state.loc_cursor.pos = editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL);
                             editbuf_delete_ch(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos);
                         }
-
-                        state.modified = true;
                         break;
                     }
                     case CH_ENTER: {
@@ -445,7 +440,6 @@ void editor(struct editbuf *eb) {
                         if (editbuf_split_line(state.editbuf, state.loc_cursor.line, state.loc_cursor.pos)) {
                             state.loc_cursor.line++;
                             state.loc_cursor.pos = 0;
-                            state.modified       = true;
 
                             // Auto indent
                             while (leading_spaces > 0) {

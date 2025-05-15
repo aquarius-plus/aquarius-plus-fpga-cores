@@ -82,12 +82,14 @@ void editbuf_init(struct editbuf *eb, uint8_t *p, size_t size) {
     eb->p_buf_end     = p + size;
     eb->cached_p      = eb->p_buf;
     eb->cached_p_line = 0;
+    eb->modified      = false;
 }
 
 void editbuf_reset(struct editbuf *eb) {
     eb->line_count    = 0;
     eb->cached_p      = eb->p_buf;
     eb->cached_p_line = 0;
+    eb->modified      = false;
 }
 
 int editbuf_get_line_count(struct editbuf *eb) {
@@ -128,6 +130,7 @@ static bool _insert_ch(struct editbuf *eb, int line, int pos, char ch) {
     *p_pos = ch;
     p[1]++;
 
+    eb->modified = true;
     return true;
 }
 
@@ -188,6 +191,7 @@ bool editbuf_delete_ch(struct editbuf *eb, int line, int pos) {
     }
 
     invalidate_cached(eb);
+    eb->modified = true;
     return true;
 }
 
@@ -208,6 +212,7 @@ static bool _insert_line(struct editbuf *eb, int line, const char *s, size_t sz)
     memmove(p + 2, s, sz);
 
     eb->line_count++;
+    eb->modified = true;
     return true;
 }
 
@@ -251,6 +256,7 @@ static bool _split_line(struct editbuf *eb, int line, int pos) {
 
     eb->line_count++;
     invalidate_cached(eb);
+    eb->modified = true;
     return true;
 }
 
