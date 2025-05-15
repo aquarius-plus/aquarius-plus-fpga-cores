@@ -393,9 +393,8 @@ void editor(struct editbuf *eb) {
                         break;
                     }
                     case CH_ENTER: {
-                        int leading_spaces = get_leading_spaces();
-
                         update_cursor_pos();
+                        int leading_spaces = min(state.cursor_pos, get_leading_spaces());
                         if (editbuf_split_line(state.editbuf, state.cursor_line, state.cursor_pos)) {
                             state.cursor_line++;
                             state.cursor_pos = 0;
