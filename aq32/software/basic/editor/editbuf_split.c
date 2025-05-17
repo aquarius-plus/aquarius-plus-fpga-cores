@@ -153,7 +153,7 @@ static uint8_t *move_split_after_line(struct editbuf *eb, int line) {
 
         // Cached location has changed
         eb->cached_p_line = line;
-        eb->cached_p      = eb->p_split_start - copy_amount;
+        eb->cached_p      = eb->p_split_start - (p_line_end - p_line);
     }
     return eb->cached_p;
 }
@@ -186,6 +186,7 @@ bool editbuf_insert_ch(struct editbuf *eb, location_t loc, char ch) {
     if (ch == '\n')
         eb->line_count++;
 
+    eb->modified = true;
     return true;
 }
 
@@ -225,6 +226,8 @@ bool editbuf_delete_ch(struct editbuf *eb, location_t loc) {
         memmove(p_loc, p_from, copy_amount);
         eb->p_split_start = p_loc + copy_amount;
     }
+
+    eb->modified = true;
     return true;
 }
 
@@ -297,7 +300,21 @@ error:
 }
 
 bool editbuf_save(struct editbuf *eb, const char *path) {
-    return false;
+    FILE *f = fopen(path, "wb");
+    if (f == NULL)
+        return false;
+
+    unsigned size = (eb->p_split_start - eb->p_buf);
+    if (size)
+        fwrite(eb->p_buf, size, 1, f);
+    size = (eb->p_buf_end - eb->p_split_end);
+    if (size)
+        fwrite(eb->p_split_end, size, 1, f);
+
+    fclose(f);
+
+    eb->modified = false;
+    return true;
 }
 
 #endif
