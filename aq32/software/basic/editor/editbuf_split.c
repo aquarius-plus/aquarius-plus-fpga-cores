@@ -3,21 +3,27 @@
 #ifdef EDITBUF_SPLIT
 
 static inline bool inc_ptr(struct editbuf *eb, uint8_t **p) {
-    if (*p == eb->p_buf_end)
-        return false;
+    uint8_t *p_old = *p;
+
     (*p)++;
-    if (*p == eb->p_split_start)
+    if (*p >= eb->p_split_start && *p < eb->p_split_end)
         *p = eb->p_split_end;
-    return true;
+    if (*p >= eb->p_buf_end)
+        *p = eb->p_buf_end;
+
+    return *p != p_old;
 }
 
 static inline bool dec_ptr(struct editbuf *eb, uint8_t **p) {
-    if (*p == eb->p_buf)
-        return false;
-    if (*p == eb->p_split_end)
-        *p = eb->p_split_start;
+    uint8_t *p_old = *p;
+
     (*p)--;
-    return true;
+    if (*p >= eb->p_split_start && *p < eb->p_split_end)
+        *p = eb->p_split_start - 1;
+    if (*p <= eb->p_buf)
+        *p = eb->p_buf;
+
+    return *p != p_old;
 }
 
 static inline int _abs(int x) { return x < 0 ? -x : x; }
@@ -45,18 +51,23 @@ static uint8_t *getline_addr(struct editbuf *eb, int line) {
     int      count = line - eb->cached_p_line;
 
     if (count > 0) {
-        while (count--) {
+        while (count-- > 0) {
             while (*p != '\n')
-                inc_ptr(eb, &p);
+                if (!inc_ptr(eb, &p))
+                    break;
             inc_ptr(eb, &p);
         }
 
     } else if (count < 0) {
         count = -count;
-        while (count--) {
-            dec_ptr(eb, &p);
+        while (count-- > 0) {
+            // Skip past '\n' of previous line
+            if (!dec_ptr(eb, &p))
+                break;
             while (1) {
-                dec_ptr(eb, &p);
+                // Check if previous char is a '\n'
+                if (!dec_ptr(eb, &p))
+                    break;
                 if (*p == '\n') {
                     inc_ptr(eb, &p);
                     break;
@@ -82,7 +93,7 @@ void editbuf_init(struct editbuf *eb, uint8_t *p, size_t size) {
 }
 
 void editbuf_reset(struct editbuf *eb) {
-    eb->line_count = 0;
+    eb->line_count = 1;
     invalidate_cached(eb);
     eb->modified      = false;
     eb->p_split_start = eb->p_buf;
@@ -104,6 +115,49 @@ static int _linelen(struct editbuf *eb, const uint8_t *p_line) {
     return p - p_line;
 }
 
+static uint8_t *get_line_end(struct editbuf *eb, uint8_t *p_line) {
+    uint8_t *p = p_line;
+    while (p != eb->p_buf_end && p != eb->p_split_start) {
+        uint8_t ch = *(p++);
+        if (ch == '\n')
+            break;
+    }
+    return p;
+}
+
+static uint8_t *move_split_after_line(struct editbuf *eb, int line) {
+    line = clamp(line, 0, eb->line_count - 1);
+
+    uint8_t *p_line     = getline_addr(eb, line);
+    uint8_t *p_line_end = get_line_end(eb, p_line);
+    if (p_line_end == eb->p_split_start) {
+        // Already splitted at the right point
+        return p_line;
+    }
+
+    if (p_line <= eb->p_split_start) {
+        // Line is currently before split
+        int copy_amount = eb->p_split_start - p_line_end;
+        eb->p_split_start -= copy_amount;
+        eb->p_split_end -= copy_amount;
+        memmove(eb->p_split_end, eb->p_split_start, copy_amount);
+
+        // Cached location stays valid
+
+    } else {
+        // Line is currently after split
+        int copy_amount = p_line_end - eb->p_split_end;
+        memmove(eb->p_split_start, eb->p_split_end, copy_amount);
+        eb->p_split_start += copy_amount;
+        eb->p_split_end += copy_amount;
+
+        // Cached location has changed
+        eb->cached_p_line = line;
+        eb->cached_p      = eb->p_split_start - copy_amount;
+    }
+    return eb->cached_p;
+}
+
 int editbuf_get_line(struct editbuf *eb, int line, const uint8_t **p) {
     if (line < 0 || line >= eb->line_count)
         return -1;
@@ -115,11 +169,63 @@ int editbuf_get_line(struct editbuf *eb, int line, const uint8_t **p) {
 }
 
 bool editbuf_insert_ch(struct editbuf *eb, location_t loc, char ch) {
-    return false;
+    if (loc.line < 0 || loc.line >= eb->line_count || loc.pos < 0 || eb->p_split_start == eb->p_split_end)
+        return false;
+
+    uint8_t *p_line   = move_split_after_line(eb, loc.line);
+    int      line_len = _linelen(eb, p_line);
+    if (loc.pos >= line_len)
+        loc.pos = line_len;
+
+    uint8_t *p_loc = p_line + loc.pos;
+
+    memmove(p_loc + 1, p_loc, eb->p_split_start - p_loc);
+    eb->p_split_start++;
+    *p_loc = ch;
+
+    if (ch == '\n')
+        eb->line_count++;
+
+    return true;
 }
 
 bool editbuf_delete_ch(struct editbuf *eb, location_t loc) {
-    return false;
+    if (loc.line < 0 || loc.line >= eb->line_count || loc.pos < 0)
+        return false;
+
+    uint8_t *p_line     = move_split_after_line(eb, loc.line);
+    uint8_t *p_line_end = get_line_end(eb, p_line);
+    uint8_t *p_loc      = p_line + loc.pos;
+    if (p_loc >= p_line_end)
+        return false;
+
+    if (*p_loc == '\n') {
+        // Merge with next line
+        if (p_line == eb->p_buf_end)
+            return false;
+        if (p_line == eb->p_split_start && eb->p_split_end == eb->p_buf_end)
+            return false;
+
+        // Remove '\n'
+        eb->p_split_start--;
+        eb->line_count--;
+
+        // Copy data from next line
+        uint8_t *p_next_end = get_line_end(eb, eb->p_split_end);
+
+        int copy_amount = p_next_end - eb->p_split_end;
+        memmove(eb->p_split_start, eb->p_split_end, copy_amount);
+        eb->p_split_start += copy_amount;
+        eb->p_split_end += copy_amount;
+
+    } else if (p_loc < p_line_end) {
+        // Delete within line
+        uint8_t *p_from      = p_loc + 1;
+        int      copy_amount = p_line_end - p_from;
+        memmove(p_loc, p_from, copy_amount);
+        eb->p_split_start = p_loc + copy_amount;
+    }
+    return true;
 }
 
 // Remove control characters, expand tabs to spaces, normalize line endings

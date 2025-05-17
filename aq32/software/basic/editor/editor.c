@@ -331,7 +331,14 @@ static void render_statusbar(void) {
 
     tmp[0] = 0;
 
-    snprintf(tmp, sizeof(tmp), "%d", editbuf_get_line_count(state.editbuf));
+    const uint8_t *p;
+    int            line_len = editbuf_get_line(state.editbuf, state.loc_cursor.line, &p);
+
+    snprintf(
+        tmp, sizeof(tmp), "ln:%p(%d) bf %p:%p spl %p:%p",
+        p, line_len,
+        state.editbuf->p_buf, state.editbuf->p_buf_end,
+        state.editbuf->p_split_start, state.editbuf->p_split_end);
 
     // snprintf(tmp, sizeof(tmp), "%p", state.editbuf.p_buf);
 
@@ -342,9 +349,7 @@ static void render_statusbar(void) {
     scr_setcolor(COLOR_STATUS2);
     scr_putchar(26);
 
-    int line_len = editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL);
-    int cpos     = min(line_len, state.loc_cursor.pos);
-
+    int cpos = min(line_len, state.loc_cursor.pos);
     snprintf(tmp, sizeof(tmp), " %05d:%03d ", state.loc_cursor.line + 1, cpos + 1);
     scr_puttext(tmp);
 }
@@ -370,7 +375,7 @@ static int get_leading_spaces(void) {
 }
 
 void editor_redraw_screen(void) {
-    state.loc_cursor.line = clamp(state.loc_cursor.line, 0, editbuf_get_line_count(state.editbuf));
+    state.loc_cursor.line = clamp(state.loc_cursor.line, 0, editbuf_get_line_count(state.editbuf) - 1);
     state.loc_cursor.pos  = max(0, state.loc_cursor.pos);
     state.scr_first_line  = clamp(state.scr_first_line, max(0, state.loc_cursor.line - (EDITOR_ROWS - 1)), state.loc_cursor.line);
     state.scr_first_pos   = clamp(state.scr_first_pos, max(0, get_cursor_pos() - (EDITOR_COLUMNS - 1)), get_cursor_pos());
@@ -418,16 +423,19 @@ void editor(struct editbuf *eb) {
                     case CH_DOWN: state.loc_cursor.line++; break;
                     case CH_LEFT: {
                         update_cursor_pos();
-                        state.loc_cursor.pos--;
-                        if (state.loc_cursor.pos < 0 && state.loc_cursor.line > 0) {
+                        if (state.loc_cursor.pos > 0) {
+                            state.loc_cursor.pos--;
+                        } else if (state.loc_cursor.line > 0) {
                             state.loc_cursor.line--;
                             state.loc_cursor.pos = editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL);
                         }
                         break;
                     }
                     case CH_RIGHT: {
-                        state.loc_cursor.pos++;
-                        if (state.loc_cursor.pos > editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL)) {
+                        int line_len = editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL);
+                        if (state.loc_cursor.pos < line_len) {
+                            state.loc_cursor.pos++;
+                        } else if (state.loc_cursor.line + 1 < editbuf_get_line_count(state.editbuf)) {
                             state.loc_cursor.line++;
                             state.loc_cursor.pos = 0;
                         }

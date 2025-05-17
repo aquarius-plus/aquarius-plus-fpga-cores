@@ -94,7 +94,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 target_link_libraries(${PROJECT_NAME} PRIVATE m)
 
 add_custom_target(debug
-    COMMAND sh -c "${CMAKE_CURRENT_SOURCE_DIR}/../../../../emulator/build/aqplus-emu >/dev/null 2>&1 &"
+    # COMMAND sh -c "${CMAKE_CURRENT_SOURCE_DIR}/../../../../emulator/build/aqplus-emu >/dev/null 2>&1 &"
     COMMAND riscv-none-elf-gdb --tui -q ${EXECNAME}.elf -ex "target remote localhost:2331" -ex "load"
     DEPENDS ${PROJECT_NAME}
     USES_TERMINAL
