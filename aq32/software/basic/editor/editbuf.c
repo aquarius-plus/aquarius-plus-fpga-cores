@@ -1,7 +1,5 @@
 #include "editbuf.h"
 
-#ifdef EDITBUF_SPLIT
-
 static inline bool inc_ptr(struct editbuf *eb, uint8_t **p) {
     uint8_t *p_old = *p;
 
@@ -231,6 +229,68 @@ bool editbuf_delete_ch(struct editbuf *eb, location_t loc) {
     return true;
 }
 
+bool editbuf_delete_range(struct editbuf *eb, location_t loc_from, location_t loc_to) {
+    if (loc_from.line < 0 || loc_from.line >= eb->line_count || loc_from.pos < 0 ||
+        loc_to.line < 0 || loc_to.line >= eb->line_count || loc_to.pos < 0)
+        return false;
+
+    // Swap loc_to/loc_from if loc_from is larger than loc_to
+    if (loc_lt(loc_to, loc_from)) {
+        location_t tmp = loc_from;
+        loc_from       = loc_to;
+        loc_to         = tmp;
+    }
+
+    if (loc_from.line == loc_to.line) {
+        // Within line
+        uint8_t *p_line     = move_split_after_line(eb, loc_from.line);
+        uint8_t *p_line_end = get_line_end(eb, p_line);
+        int      p_line_len = _linelen(eb, p_line);
+        uint8_t *p_loc_from = p_line + loc_from.pos;
+        if (p_loc_from >= p_line_end)
+            return false;
+
+        uint8_t *p_loc_to = p_line + loc_to.pos;
+        if (p_loc_to > p_line + p_line_len) {
+            return false;
+        }
+
+        int copy_amount = p_line_end - p_loc_to;
+        memmove(p_loc_from, p_loc_to, copy_amount);
+        eb->p_split_start = p_loc_from + copy_amount;
+
+    } else {
+        // Across lines
+        uint8_t *p_line     = move_split_after_line(eb, loc_from.line);
+        uint8_t *p_line_end = get_line_end(eb, p_line);
+        uint8_t *p_loc_from = p_line + loc_from.pos;
+        if (p_loc_from >= p_line_end)
+            return false;
+
+        uint8_t *p_line_to     = getline_addr(eb, loc_to.line);
+        uint8_t *p_line_to_end = get_line_end(eb, p_line_to);
+        uint8_t *p_loc_to      = p_line_to + loc_to.pos;
+        if (p_loc_to >= p_line_to_end && p_loc_to != eb->p_buf_end)
+            return false;
+
+        eb->line_count--;
+        uint8_t *p = eb->p_split_end;
+        while (p < p_loc_to) {
+            uint8_t val = *(p++);
+            if (val == '\n')
+                eb->line_count--;
+        }
+
+        int copy_amount = p_line_to_end - p_loc_to;
+        memmove(p_loc_from, p_loc_to, copy_amount);
+        eb->p_split_start = p_loc_from + copy_amount;
+        eb->p_split_end   = p_line_to_end;
+    }
+
+    eb->modified = true;
+    return true;
+}
+
 // Remove control characters, expand tabs to spaces, normalize line endings
 static bool normalize(struct editbuf *eb, const uint8_t *ps, const uint8_t *ps_end) {
     editbuf_reset(eb);
@@ -316,5 +376,3 @@ bool editbuf_save(struct editbuf *eb, const char *path) {
     eb->modified = false;
     return true;
 }
-
-#endif

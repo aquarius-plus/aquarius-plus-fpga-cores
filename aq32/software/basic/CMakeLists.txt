@@ -70,8 +70,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     editor/ctrl_edit_field.c
     editor/ctrl_file_list.c
     editor/dialog.c
-    editor/editbuf_split.c
-    editor/editbuf_linebufs.c
+    editor/editbuf.c
     editor/editor.c
     editor/menu.c
 
