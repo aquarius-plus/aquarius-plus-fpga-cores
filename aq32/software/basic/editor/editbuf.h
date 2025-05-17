@@ -34,5 +34,5 @@ bool editbuf_delete_ch(struct editbuf *eb, location_t loc);
 bool editbuf_delete_range(struct editbuf *eb, location_t from, location_t to);
 bool editbuf_load(struct editbuf *eb, const char *path);
 bool editbuf_save(struct editbuf *eb, const char *path);
-
-// bool editbuf_insert_from_file(struct editbuf *eb, location_t loc, const char *path);
+bool editbuf_save_range(struct editbuf *eb, location_t from, location_t to, const char *path);
+bool editbuf_insert_from_file(struct editbuf *eb, location_t *loc, const char *path);

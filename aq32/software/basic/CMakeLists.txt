@@ -36,7 +36,7 @@ add_custom_command(
     # COMMAND riscv-none-elf-size -G ${EXECNAME}.elf
 )
 
-target_compile_options(${PROJECT_NAME} PRIVATE -Os -g)
+target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g)
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wshadow -Winit-self -Wfloat-conversion -Wdouble-promotion -Wmissing-include-dirs -Wlogical-op)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wno-unused-parameter -Wno-shadow)

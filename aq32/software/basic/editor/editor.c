@@ -230,59 +230,16 @@ static void save_file(const char *path) {
     snprintf(state.filename, sizeof(state.filename), "%s", path);
 }
 
-static void save_range(const char *path, location_t from, location_t to) {
-    FILE *f = fopen(path, "wt");
-    if (f == NULL)
-        return;
-
-    int line = from.line;
-
-    const uint8_t *p_line;
-    int            line_len = editbuf_get_line(state.editbuf, line, &p_line);
-    if (from.pos < line_len) {
-        if (from.line == to.line) {
-            fwrite(p_line + from.pos, to.pos - from.pos, 1, f);
-            goto done;
-        }
-        fwrite(p_line + from.pos, line_len - from.pos, 1, f);
-        fputc('\n', f);
-    }
-
-    for (line = from.line + 1; line < to.line; line++) {
-        line_len = editbuf_get_line(state.editbuf, line, &p_line);
-        if (line_len > 0)
-            fwrite(p_line, line_len, 1, f);
-        fputc('\n', f);
-    }
-
-    {
-        line_len  = editbuf_get_line(state.editbuf, line, &p_line);
-        int count = min(line_len, to.pos);
-        if (count > 0)
-            fwrite(p_line, count, 1, f);
-    }
-
-done:
-    fclose(f);
-}
-
-static void insert_ch(uint8_t ch) {
-    update_cursor_pos();
-    if (editbuf_insert_ch(state.editbuf, state.loc_cursor, ch)) {
-        state.loc_cursor.pos++;
-    }
-}
-
 void cmd_edit_cut(void) {
     if (!has_selection())
         return;
 
-    // Save range
     scr_status_msg("Writing to clipboard file...");
     update_selection_range();
-    save_range(CLIPBOARD_PATH, state.loc_selection_from, state.loc_selection_to);
-
-    // Delete range
+    if (editbuf_save_range(state.editbuf, state.loc_selection_from, state.loc_selection_to, CLIPBOARD_PATH)) {
+        editbuf_delete_range(state.editbuf, state.loc_selection_from, state.loc_selection_to);
+        clear_selection();
+    }
 }
 
 void cmd_edit_copy(void) {
@@ -291,33 +248,20 @@ void cmd_edit_copy(void) {
 
     scr_status_msg("Writing to clipboard file...");
     update_selection_range();
-    save_range(CLIPBOARD_PATH, state.loc_selection_from, state.loc_selection_to);
+    editbuf_save_range(state.editbuf, state.loc_selection_from, state.loc_selection_to, CLIPBOARD_PATH);
 }
+
 void cmd_edit_paste(void) {
     clear_selection();
-
-    // FILE *f = fopen(CLIPBOARD_PATH, "rt");
-    // if (f == NULL)
-    //     return;
-
-    // int ch;
-
-    // while ((ch = fgetc(f)) >= 0) {
-    //     if (!is_cntrl(ch))
-    //         insert_ch(ch);
-    //     else if (ch == '\n') {
-    //         if (editbuf_split_line(state.editbuf, state.loc_cursor)) {
-    //             state.loc_cursor.line++;
-    //             state.loc_cursor.pos = 0;
-    //         }
-    //     }
-    // }
-    // fclose(f);
+    update_cursor_pos();
+    editbuf_insert_from_file(state.editbuf, &state.loc_cursor, CLIPBOARD_PATH);
 }
+
 void cmd_edit_select_all(void) {
     state.loc_selection.line = 0;
     state.loc_selection.pos  = 0;
-    state.loc_cursor.line    = editbuf_get_line_count(state.editbuf);
+    state.loc_cursor.line    = editbuf_get_line_count(state.editbuf) - 1;
+    state.loc_cursor.pos     = editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL);
 }
 
 static void render_editor_border(void) {
@@ -425,6 +369,13 @@ static void forward_delete(void) {
 static void backward_delete(void) {
     if (loc_dec(&state.loc_cursor))
         forward_delete();
+}
+
+static void insert_ch(uint8_t ch) {
+    update_cursor_pos();
+    if (editbuf_insert_ch(state.editbuf, state.loc_cursor, ch)) {
+        state.loc_cursor.pos++;
+    }
 }
 
 static int indent_line(int line) {

@@ -26,7 +26,7 @@ static inline bool dec_ptr(struct editbuf *eb, uint8_t **p) {
 
 static inline int _abs(int x) { return x < 0 ? -x : x; }
 
-static uint8_t *getline_addr(struct editbuf *eb, int line) {
+static uint8_t *get_line_addr(struct editbuf *eb, int line) {
     line = clamp(line, 0, eb->line_count);
 
     // Determine best start point to search from
@@ -106,7 +106,7 @@ bool editbuf_get_modified(struct editbuf *eb) {
     return eb->modified;
 }
 
-static int _linelen(struct editbuf *eb, const uint8_t *p_line) {
+static int get_line_len(struct editbuf *eb, const uint8_t *p_line) {
     const uint8_t *p = p_line;
     while (*p != '\n' && p != eb->p_buf_end && p != eb->p_split_start)
         p++;
@@ -126,7 +126,7 @@ static uint8_t *get_line_end(struct editbuf *eb, uint8_t *p_line) {
 static uint8_t *move_split_after_line(struct editbuf *eb, int line) {
     line = clamp(line, 0, eb->line_count - 1);
 
-    uint8_t *p_line     = getline_addr(eb, line);
+    uint8_t *p_line     = get_line_addr(eb, line);
     uint8_t *p_line_end = get_line_end(eb, p_line);
     if (p_line_end == eb->p_split_start) {
         // Already splitted at the right point
@@ -160,10 +160,10 @@ int editbuf_get_line(struct editbuf *eb, int line, const uint8_t **p) {
     if (line < 0 || line >= eb->line_count)
         return -1;
 
-    uint8_t *p_line = getline_addr(eb, line);
+    uint8_t *p_line = get_line_addr(eb, line);
     *p              = p_line;
 
-    return _linelen(eb, p_line);
+    return get_line_len(eb, p_line);
 }
 
 bool editbuf_insert_ch(struct editbuf *eb, location_t loc, char ch) {
@@ -171,7 +171,7 @@ bool editbuf_insert_ch(struct editbuf *eb, location_t loc, char ch) {
         return false;
 
     uint8_t *p_line   = move_split_after_line(eb, loc.line);
-    int      line_len = _linelen(eb, p_line);
+    int      line_len = get_line_len(eb, p_line);
     if (loc.pos >= line_len)
         loc.pos = line_len;
 
@@ -245,7 +245,7 @@ bool editbuf_delete_range(struct editbuf *eb, location_t loc_from, location_t lo
         // Within line
         uint8_t *p_line     = move_split_after_line(eb, loc_from.line);
         uint8_t *p_line_end = get_line_end(eb, p_line);
-        int      p_line_len = _linelen(eb, p_line);
+        int      p_line_len = get_line_len(eb, p_line);
         uint8_t *p_loc_from = p_line + loc_from.pos;
         if (p_loc_from >= p_line_end)
             return false;
@@ -267,7 +267,7 @@ bool editbuf_delete_range(struct editbuf *eb, location_t loc_from, location_t lo
         if (p_loc_from >= p_line_end)
             return false;
 
-        uint8_t *p_line_to     = getline_addr(eb, loc_to.line);
+        uint8_t *p_line_to     = get_line_addr(eb, loc_to.line);
         uint8_t *p_line_to_end = get_line_end(eb, p_line_to);
         uint8_t *p_loc_to      = p_line_to + loc_to.pos;
         if (p_loc_to >= p_line_to_end && p_loc_to != eb->p_buf_end)
@@ -300,7 +300,7 @@ static bool normalize(struct editbuf *eb, const uint8_t *ps, const uint8_t *ps_e
 
     while (ps < ps_end) {
         uint8_t val = *(ps++);
-        if (is_cntrl(val) && val != '\n')
+        if (is_cntrl(val) && val != '\n' && val != '\t')
             continue;
         if (pd >= eb->p_buf_end || pd >= ps)
             return false;
@@ -327,6 +327,31 @@ static bool normalize(struct editbuf *eb, const uint8_t *ps, const uint8_t *ps_e
     eb->p_split_start = pd;
 
     return true;
+}
+
+static int normalize2(uint8_t **pdst, const uint8_t *ps, const uint8_t *ps_end, location_t *loc) {
+    uint8_t *pd = *pdst;
+
+    int line_count = 0;
+    while (ps < ps_end) {
+        uint8_t val = *(ps++);
+        if (is_cntrl(val) && val != '\n' && val != '\t')
+            continue;
+
+        if (val == '\t')
+            val = ' ';
+
+        *(pd++) = val;
+        loc->pos++;
+        if (val == '\n') {
+            loc->line++;
+            loc->pos = 0;
+            line_count++;
+        }
+    }
+
+    *pdst = pd;
+    return line_count;
 }
 
 bool editbuf_load(struct editbuf *eb, const char *path) {
@@ -374,5 +399,60 @@ bool editbuf_save(struct editbuf *eb, const char *path) {
     fclose(f);
 
     eb->modified = false;
+    return true;
+}
+
+bool editbuf_save_range(struct editbuf *eb, location_t from, location_t to, const char *path) {
+    uint8_t *p_line_to   = move_split_after_line(eb, to.line);
+    uint8_t *p_line_from = get_line_addr(eb, from.line);
+    uint8_t *p_loc_from  = p_line_from + from.pos;
+    uint8_t *p_loc_to    = p_line_to + to.pos;
+
+    FILE *f = fopen(path, "wb");
+    if (f == NULL)
+        return false;
+    fwrite(p_loc_from, p_loc_to - p_loc_from, 1, f);
+    fclose(f);
+
+    return true;
+}
+
+bool editbuf_insert_from_file(struct editbuf *eb, location_t *loc, const char *path) {
+    FILE *f = fopen(path, "rt");
+    if (f == NULL)
+        return false;
+
+    fseek(f, 0, SEEK_END);
+    int file_size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    uint8_t *p_line     = move_split_after_line(eb, loc->line);
+    uint8_t *p_line_end = get_line_end(eb, p_line);
+
+    if (file_size >= eb->p_split_end - eb->p_split_start) {
+        // Too big to insert
+        fclose(f);
+        return false;
+    }
+
+    uint8_t *p_loc       = p_line + loc->pos;
+    int      copy_amount = p_line_end - p_loc;
+
+    uint8_t *p_load = eb->p_split_end - copy_amount;
+    memmove(p_load, p_loc, copy_amount);
+    p_load -= file_size;
+    fread(p_load, file_size, 1, f);
+    fclose(f);
+
+    uint8_t *pd = p_loc;
+    eb->line_count += normalize2(&pd, p_load, p_load + file_size, loc);
+
+    p_load += file_size;
+    memmove(pd, p_load, copy_amount);
+    pd += copy_amount;
+    eb->p_split_start = pd;
+
+    eb->modified = true;
+
     return true;
 }
