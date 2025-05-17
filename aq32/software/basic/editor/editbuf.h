@@ -2,8 +2,12 @@
 
 #include "common.h"
 
+#define EDITBUF_SPLIT
+
+#ifndef EDITBUF_SPLIT
 #define MAX_BUFSZ  255
 #define MAX_LINESZ (MAX_BUFSZ - 1)
+#endif
 
 typedef struct {
     int line, pos;
@@ -20,6 +24,10 @@ struct editbuf {
     uint8_t *cached_p;
     int      cached_p_line;
     bool     modified;
+#ifdef EDITBUF_SPLIT
+    uint8_t *p_split_start;
+    uint8_t *p_split_end;
+#endif
 };
 
 void editbuf_init(struct editbuf *eb, uint8_t *p, size_t size);

@@ -1,0 +1,197 @@
+#include "editbuf.h"
+
+#ifdef EDITBUF_SPLIT
+
+static inline bool inc_ptr(struct editbuf *eb, uint8_t **p) {
+    if (*p == eb->p_buf_end)
+        return false;
+    (*p)++;
+    if (*p == eb->p_split_start)
+        *p = eb->p_split_end;
+    return true;
+}
+
+static inline bool dec_ptr(struct editbuf *eb, uint8_t **p) {
+    if (*p == eb->p_buf)
+        return false;
+    if (*p == eb->p_split_end)
+        *p = eb->p_split_start;
+    (*p)--;
+    return true;
+}
+
+static inline int _abs(int x) { return x < 0 ? -x : x; }
+
+static uint8_t *getline_addr(struct editbuf *eb, int line) {
+    line = clamp(line, 0, eb->line_count);
+
+    // Determine best start point to search from
+    {
+        int dist_to_start = line;
+        int dist_to_end   = eb->line_count - line;
+        int dist_to_split = _abs(eb->cached_p_line - line);
+
+        if (line == 0 || dist_to_start < dist_to_split) {
+            eb->cached_p      = eb->p_buf;
+            eb->cached_p_line = 0;
+        }
+        if (dist_to_end < dist_to_split) {
+            eb->cached_p      = eb->p_buf_end;
+            eb->cached_p_line = eb->line_count;
+        }
+    }
+
+    uint8_t *p     = eb->cached_p;
+    int      count = line - eb->cached_p_line;
+
+    if (count > 0) {
+        while (count--) {
+            while (*p != '\n')
+                inc_ptr(eb, &p);
+            inc_ptr(eb, &p);
+        }
+
+    } else if (count < 0) {
+        count = -count;
+        while (count--) {
+            dec_ptr(eb, &p);
+            while (1) {
+                dec_ptr(eb, &p);
+                if (*p == '\n') {
+                    inc_ptr(eb, &p);
+                    break;
+                }
+            }
+        }
+    }
+
+    eb->cached_p      = p;
+    eb->cached_p_line = line;
+    return p;
+}
+
+static void invalidate_cached(struct editbuf *eb) {
+    eb->cached_p      = eb->p_buf;
+    eb->cached_p_line = 0;
+}
+
+void editbuf_init(struct editbuf *eb, uint8_t *p, size_t size) {
+    eb->p_buf     = p;
+    eb->p_buf_end = p + size;
+    editbuf_reset(eb);
+}
+
+void editbuf_reset(struct editbuf *eb) {
+    eb->line_count = 0;
+    invalidate_cached(eb);
+    eb->modified      = false;
+    eb->p_split_start = eb->p_buf;
+    eb->p_split_end   = eb->p_buf_end;
+}
+
+int editbuf_get_line_count(struct editbuf *eb) {
+    return eb->line_count;
+}
+
+bool editbuf_get_modified(struct editbuf *eb) {
+    return eb->modified;
+}
+
+static int _linelen(struct editbuf *eb, const uint8_t *p_line) {
+    const uint8_t *p = p_line;
+    while (*p != '\n' && p != eb->p_buf_end && p != eb->p_split_start)
+        p++;
+    return p - p_line;
+}
+
+int editbuf_get_line(struct editbuf *eb, int line, const uint8_t **p) {
+    if (line < 0 || line >= eb->line_count)
+        return -1;
+
+    uint8_t *p_line = getline_addr(eb, line);
+    *p              = p_line;
+
+    return _linelen(eb, p_line);
+}
+
+bool editbuf_insert_ch(struct editbuf *eb, location_t loc, char ch) {
+    return false;
+}
+
+bool editbuf_delete_ch(struct editbuf *eb, location_t loc) {
+    return false;
+}
+
+// Remove control characters, expand tabs to spaces, normalize line endings
+static bool normalize(struct editbuf *eb, const uint8_t *ps, const uint8_t *ps_end) {
+    editbuf_reset(eb);
+
+    uint8_t *pd     = eb->p_buf;
+    uint8_t *p_line = pd;
+
+    while (ps < ps_end) {
+        uint8_t val = *(ps++);
+        if (is_cntrl(val) && val != '\n')
+            continue;
+        if (pd >= eb->p_buf_end || pd >= ps)
+            return false;
+
+        if (val == '\t') {
+            do {
+                *(pd++) = ' ';
+                if (pd >= eb->p_buf_end || pd >= ps)
+                    return false;
+            } while ((pd - p_line) % 2 != 0);
+            continue;
+        }
+
+        *(pd++) = val;
+
+        if (val == '\n') {
+            eb->line_count++;
+            p_line = pd;
+        }
+    }
+    if (p_line != pd)
+        eb->line_count++;
+
+    eb->p_split_start = pd;
+
+    return true;
+}
+
+bool editbuf_load(struct editbuf *eb, const char *path) {
+    FILE *f = fopen(path, "rt");
+    if (f == NULL)
+        return false;
+
+    fseek(f, 0, SEEK_END);
+    int file_size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    int p_buf_size = eb->p_buf_end - eb->p_buf;
+    memset(eb->p_buf, 'A', p_buf_size);
+
+    if (file_size > p_buf_size)
+        goto error;
+
+    uint8_t *p_load = eb->p_buf_end - file_size;
+    fread(p_load, file_size, 1, f);
+    fclose(f);
+    f = NULL;
+
+    if (!normalize(eb, p_load, eb->p_buf_end))
+        goto error;
+
+    return true;
+
+error:
+    editbuf_reset(eb);
+    return false;
+}
+
+bool editbuf_save(struct editbuf *eb, const char *path) {
+    return false;
+}
+
+#endif

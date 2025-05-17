@@ -1,5 +1,7 @@
 #include "editbuf.h"
 
+#ifndef EDITBUF_SPLIT
+
 static uint8_t *getline_addr(struct editbuf *eb, int line) {
     line = clamp(line, 0, eb->line_count);
 
@@ -362,3 +364,5 @@ bool editbuf_save(struct editbuf *eb, const char *path) {
     convert_from_regular(eb, p_load, eb->p_buf_end);
     return true;
 }
+
+#endif

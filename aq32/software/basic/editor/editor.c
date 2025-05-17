@@ -330,6 +330,9 @@ static void render_statusbar(void) {
     char tmp[64];
 
     tmp[0] = 0;
+
+    snprintf(tmp, sizeof(tmp), "%d", editbuf_get_line_count(state.editbuf));
+
     // snprintf(tmp, sizeof(tmp), "%p", state.editbuf.p_buf);
 
     // uint8_t *p = getline_addr(state.loc_cursor.line);

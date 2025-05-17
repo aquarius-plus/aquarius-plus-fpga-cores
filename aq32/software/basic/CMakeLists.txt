@@ -70,7 +70,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     editor/ctrl_edit_field.c
     editor/ctrl_file_list.c
     editor/dialog.c
-    editor/editbuf.c
+    editor/editbuf_split.c
+    editor/editbuf_linebufs.c
     editor/editor.c
     editor/menu.c
 
@@ -91,3 +92,11 @@ target_sources(${PROJECT_NAME} PRIVATE
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE m)
+
+add_custom_target(debug
+    COMMAND sh -c "${CMAKE_CURRENT_SOURCE_DIR}/../../../../emulator/build/aqplus-emu >/dev/null 2>&1 &"
+    COMMAND riscv-none-elf-gdb --tui -q ${EXECNAME}.elf -ex "target remote localhost:2331" -ex "load"
+    DEPENDS ${PROJECT_NAME}
+    USES_TERMINAL
+    VERBATIM
+)
