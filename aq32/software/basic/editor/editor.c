@@ -359,9 +359,9 @@ static void menu_redraw_screen(void) {
     render_editor();
 }
 
-static int get_leading_spaces(void) {
+static int get_leading_spaces(int line) {
     const uint8_t *p;
-    int            line_len = editbuf_get_line(state.editbuf, state.loc_cursor.line, &p);
+    int            line_len = editbuf_get_line(state.editbuf, line, &p);
     if (line_len < 0)
         return 0;
 
@@ -425,6 +425,30 @@ static void forward_delete(void) {
 static void backward_delete(void) {
     if (loc_dec(&state.loc_cursor))
         forward_delete();
+}
+
+static int indent_line(int line) {
+    int spaces = get_leading_spaces(line);
+
+    spaces %= TAB_SIZE;
+    int count = TAB_SIZE - spaces;
+
+    for (int i = 0; i < count; i++)
+        editbuf_insert_ch(state.editbuf, (location_t){line, 0}, ' ');
+
+    return count;
+}
+
+static int unindent_line(int line) {
+    int spaces = get_leading_spaces(line);
+    int count  = (spaces % TAB_SIZE != 0) ? (spaces % TAB_SIZE) : TAB_SIZE;
+    if (count > spaces)
+        count = spaces;
+
+    for (int i = 0; i < count; i++)
+        editbuf_delete_ch(state.editbuf, (location_t){line, 0});
+
+    return count;
 }
 
 void editor(struct editbuf *eb) {
@@ -494,6 +518,8 @@ void editor(struct editbuf *eb) {
                     state.loc_selection = prev_loc_cursor;
                 }
 
+                bool keep_selection = false;
+
                 if (check_other) {
                     switch (ch) {
                         case CH_DELETE: {
@@ -515,7 +541,7 @@ void editor(struct editbuf *eb) {
                                 break;
 
                             // Unindent?
-                            if (state.loc_cursor.pos > 0 && state.loc_cursor.pos == get_leading_spaces()) {
+                            if (state.loc_cursor.pos > 0 && state.loc_cursor.pos == get_leading_spaces(state.loc_cursor.line)) {
                                 location_t loc_old = state.loc_cursor;
                                 do {
                                     loc_dec(&state.loc_cursor);
@@ -529,7 +555,7 @@ void editor(struct editbuf *eb) {
                         }
                         case CH_ENTER: {
                             update_cursor_pos();
-                            int leading_spaces = min(state.loc_cursor.pos, get_leading_spaces());
+                            int leading_spaces = min(state.loc_cursor.pos, get_leading_spaces(state.loc_cursor.line));
                             if (editbuf_insert_ch(state.editbuf, state.loc_cursor, '\n')) {
                                 state.loc_cursor.line++;
                                 state.loc_cursor.pos = 0;
@@ -544,14 +570,35 @@ void editor(struct editbuf *eb) {
                         }
                         case CH_TAB: {
                             update_cursor_pos();
-                            int pos = state.loc_cursor.pos;
-                            do {
-                                pos++;
-                            } while (pos % TAB_SIZE != 0);
+                            bool shift_pressed = (key & KEY_MOD_SHIFT) == 0;
+                            if (has_selection()) {
+                                int from_line = state.loc_selection_from.line;
+                                int to_line   = state.loc_selection_to.line;
+                                if (state.loc_selection_to.pos == 0)
+                                    to_line--;
 
-                            int count = pos - state.loc_cursor.pos;
-                            for (int i = 0; i < count; i++) {
-                                insert_ch(' ');
+                                for (int line = from_line; line <= to_line; line++) {
+                                    if (shift_pressed)
+                                        indent_line(line);
+                                    else
+                                        unindent_line(line);
+                                }
+                                keep_selection = true;
+
+                            } else {
+                                if (shift_pressed) {
+                                    int pos = state.loc_cursor.pos;
+                                    do {
+                                        pos++;
+                                    } while (pos % TAB_SIZE != 0);
+
+                                    int count = pos - state.loc_cursor.pos;
+                                    for (int i = 0; i < count; i++)
+                                        insert_ch(' ');
+
+                                } else {
+                                    state.loc_cursor.pos -= unindent_line(state.loc_cursor.line);
+                                }
                             }
                             break;
                         }
@@ -564,7 +611,7 @@ void editor(struct editbuf *eb) {
                 }
 
                 // Clear existing selection?
-                if ((key & KEY_MOD_SHIFT) == 0) {
+                if ((key & KEY_MOD_SHIFT) == 0 && !keep_selection) {
                     clear_selection();
                 }
             }
