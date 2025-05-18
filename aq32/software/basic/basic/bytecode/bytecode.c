@@ -8,6 +8,7 @@ const uint8_t *bc_p_cur;
 value_t        bc_stack[STACK_DEPTH];
 int            bc_stack_idx;
 uint8_t       *p_vars;
+static bool    stop;
 
 value_t *bc_stack_push_temp_str(unsigned length) {
     value_t *stk = bc_stack_push();
@@ -431,6 +432,12 @@ static bc_handler_t bc_handlers[] = {
     [BC_FUNC_VAL]     = bc_func_val,
 };
 
+static void handle_key(int key) {
+    if ((key & KEY_MOD_CTRL) && toupper(key & 0xFF) == 'C') {
+        stop = true;
+    }
+}
+
 void bytecode_run(const uint8_t *p_buf, size_t vars_sz) {
     buf_reinit();
     p_vars = buf_calloc(vars_sz);
@@ -440,8 +447,13 @@ void bytecode_run(const uint8_t *p_buf, size_t vars_sz) {
     bc_p_buf     = p_buf;
     bc_p_cur     = p_buf;
     bc_stack_idx = STACK_DEPTH;
+    stop         = false;
 
-    while (1) {
+    while (!stop) {
+        int key = REGS->KEYBUF;
+        if (key >= 0)
+            handle_key(key);
+
         uint8_t      bc      = bc_get_u8();
         bc_handler_t handler = bc_handlers[bc];
         handler();
