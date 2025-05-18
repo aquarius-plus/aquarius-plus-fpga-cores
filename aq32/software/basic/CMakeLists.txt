@@ -76,6 +76,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     editor/cmd_file.c
     editor/cmd_edit.c
 
+    help/help.c
+
     basic/basic.c
     
     basic/common/buffers.c

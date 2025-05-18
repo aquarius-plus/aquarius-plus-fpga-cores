@@ -1,0 +1,6 @@
+ABS returns the absolute value of a number.
+
+*ABS(numeric-expression)*
+
+Example:
+    PRINT ABS(45.5 - 100!)         'Output is:  54.5

@@ -113,11 +113,11 @@ static void render_statusbar(void) {
     const uint8_t *p;
     int            line_len = editbuf_get_line(state.editbuf, state.loc_cursor.line, &p);
 
-    snprintf(
-        tmp, sizeof(tmp), "ln:%p(%d) bf %p:%p spl %p:%p",
-        p, line_len,
-        state.editbuf->p_buf, state.editbuf->p_buf_end,
-        state.editbuf->p_split_start, state.editbuf->p_split_end);
+    // snprintf(
+    //     tmp, sizeof(tmp), "ln:%p(%d) bf %p:%p spl %p:%p",
+    //     p, line_len,
+    //     state.editbuf->p_buf, state.editbuf->p_buf_end,
+    //     state.editbuf->p_split_start, state.editbuf->p_split_end);
 
     // snprintf(tmp, sizeof(tmp), "%p", state.editbuf.p_buf);
 

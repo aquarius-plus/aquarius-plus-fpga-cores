@@ -1,6 +1,7 @@
 #include "common.h"
 #include "editor/editor.h"
 #include "basic/basic.h"
+#include "help/help.h"
 #include "video_save.h"
 
 static void cmd_run_start(void);
@@ -32,7 +33,7 @@ static const struct menu_item menu_edit_items[] = {
     {.title = "&Select all", .shortcut = KEY_MOD_CTRL | 'A', .status = "Selects all text in document", .handler = cmd_edit_select_all},
     {.title = "-"},
     {.title = "&Find...", .shortcut = KEY_MOD_CTRL | 'F', .status = "Finds specified text", .handler = cmd_edit_find},
-    {.title = "&Repeat Last Find", .shortcut = CH_F3, .status = "Finds specified text", .handler = cmd_edit_find_next},
+    {.title = "&Repeat Last Find", .shortcut = CH_F3, .status = "Finds next occurence of previously specified text", .handler = cmd_edit_find_next},
     // {.title = "&Replace", .shortcut = KEY_MOD_CTRL | 'H'},
     // {.title = "-"},
     // {.title = "Format document", .shortcut = KEY_MOD_SHIFT | KEY_MOD_ALT | 'F'},
@@ -52,8 +53,8 @@ static const struct menu_item menu_run_items[] = {
 };
 
 static const struct menu_item menu_help_items[] = {
-    {.title = "&Index", .status = "Displays help index", .handler = cmd_help_index},
-    {.title = "&Contents", .status = "Display help table of contents", .handler = cmd_help_contents},
+    {.title = "&Index", .shortcut = KEY_MOD_SHIFT | CH_F1, .status = "Displays help index", .handler = cmd_help_index},
+    {.title = "&Contents", .shortcut = KEY_MOD_CTRL | CH_F1, .status = "Display help table of contents", .handler = cmd_help_contents},
     {.title = "&Topic", .shortcut = CH_F1, .status = "Displays information about the keyword the cursor is on", .handler = cmd_help_topic},
     {.title = "-"},
     {.title = "&About...", .status = "Displays product version", .handler = cmd_help_about},
@@ -120,9 +121,11 @@ static void cmd_view_output_screen(void) {
 }
 
 static void cmd_help_index(void) {
+    help(HELP_TOPIC_INDEX);
 }
 
 static void cmd_help_contents(void) {
+    help(HELP_TOPIC_TOC);
 }
 
 static bool get_keyword_under_cursor(char *keyword, size_t keyword_maxlen) {
@@ -161,7 +164,8 @@ static void cmd_help_topic(void) {
     if (!get_keyword_under_cursor(keyword, sizeof(keyword)))
         return;
 
-    dialog_message("Help topic", keyword);
+    help(keyword);
+    // dialog_message("Help topic", keyword);
 }
 
 static void cmd_help_about(void) {
