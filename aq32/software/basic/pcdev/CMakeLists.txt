@@ -5,6 +5,7 @@ project(aq32basic VERSION 0.1 LANGUAGES C CXX ASM)
 add_executable(${PROJECT_NAME})
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wshadow -Winit-self -Wfloat-conversion -Wdouble-promotion -Wmissing-include-dirs -Wlogical-op)
+target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE DEBUG)
 

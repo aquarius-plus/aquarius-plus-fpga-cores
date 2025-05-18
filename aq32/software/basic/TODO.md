@@ -1,7 +1,7 @@
 ## Editor
 
-- Selections
-- Copy / cut / paste
+- Undo / Redo
+- Find / Replace
 - Help system
 
 ## BASIC
