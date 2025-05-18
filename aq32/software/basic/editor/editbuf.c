@@ -40,8 +40,25 @@ static uint8_t *get_line_addr(struct editbuf *eb, int line) {
             eb->cached_p_line = 0;
         }
         if (dist_to_end < dist_to_split) {
-            eb->cached_p      = eb->p_buf_end;
-            eb->cached_p_line = eb->line_count;
+            uint8_t *p = eb->p_buf_end;
+            if (dec_ptr(eb, &p) && *p == '\n') {
+                eb->cached_p      = eb->p_buf_end;
+                eb->cached_p_line = eb->line_count - 1;
+            } else {
+                p = eb->p_buf_end;
+
+                while (1) {
+                    if (!dec_ptr(eb, &p))
+                        break;
+                    if (*p == '\n') {
+                        inc_ptr(eb, &p);
+                        break;
+                    }
+                }
+
+                eb->cached_p      = p;
+                eb->cached_p_line = eb->line_count - 1;
+            }
         }
     }
 
