@@ -248,3 +248,46 @@ void dialog_message(const char *title, const char *text) {
         }
     }
 }
+
+bool dialog_edit_field(const char *title, char *buf, size_t buf_size) {
+    scr_status_msg("Enter=Confirm   Esc=Cancel");
+
+    int w = 70;
+    int h = 5;
+    int x = (80 - w) / 2;
+    int y = (25 - h) / 2;
+
+    scr_draw_border(y, x, w, h, COLOR_MENU, 0, title);
+    scr_setcolor(COLOR_MENU);
+    scr_center_text(y + 1, x + 1, w - 2, "", false);
+
+    scr_setcolor(COLOR_MENU);
+    scr_locate(y + 2, x + 1);
+    scr_putchar(' ');
+    struct edit_field_ctx efctx;
+    edit_field_init(&efctx, y + 2, x + 2, w - 4, buf, buf_size);
+    edit_field_draw(&efctx, true);
+    scr_setcolor(COLOR_MENU);
+    scr_putchar(' ');
+
+    // scr_center_text(y + 2, x + 1, w - 2, text, false);
+    scr_setcolor(COLOR_MENU);
+    scr_center_text(y + 3, x + 1, w - 2, "", false);
+
+    while (1) {
+        int key;
+        key = edit_field_handle(&efctx);
+
+        if (key & KEY_IS_SCANCODE) {
+            uint8_t scancode = key & 0xFF;
+            // Escape?
+            if (((key & KEY_KEYDOWN) && scancode == SCANCODE_ESC))
+                return false;
+        } else {
+            uint8_t ch = key & 0xFF;
+            switch (toupper(ch)) {
+                case CH_ENTER: return true;
+            }
+        }
+    }
+}

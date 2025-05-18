@@ -83,7 +83,7 @@ int edit_field_handle(struct edit_field_ctx *ctx) {
                         break;
 
                     uint8_t *p_cursor = (uint8_t *)ctx->buf + ctx->cursor_pos;
-                    memmove(p_cursor + 1, p_cursor, linesz + 1);
+                    memmove(p_cursor + 1, p_cursor, linesz - ctx->cursor_pos + 1);
                     *p_cursor = ch;
                     ctx->cursor_pos++;
                 }

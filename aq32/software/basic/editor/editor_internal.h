@@ -18,6 +18,8 @@ struct editor_state {
 
     location_t loc_selection_from;
     location_t loc_selection_to;
+
+    char search_value[128];
 };
 
 extern struct editor_state state;
