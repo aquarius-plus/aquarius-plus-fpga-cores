@@ -2,33 +2,12 @@
 #include "common.h"
 #include "regs.h"
 #include "menu.h"
-#include "esp.h"
 #include "editbuf.h"
-
-#define CLIPBOARD_PATH "/.editor-clipboard"
-
-#define EDITOR_ROWS    22
-#define EDITOR_COLUMNS 78
-#define TAB_SIZE       2
-
-struct editor_state {
-    struct editbuf *editbuf;
-    char            filename[64];
-    location_t      loc_cursor;
-    location_t      loc_selection;
-    int             scr_first_line;
-    int             scr_first_pos;
-
-    location_t loc_selection_from;
-    location_t loc_selection_to;
-};
+#include "editor_internal.h"
 
 struct editor_state state;
 
-static int  load_file(const char *path);
-static void save_file(const char *path);
-
-static void reset_state(void) {
+void reset_state(void) {
     editbuf_reset(state.editbuf);
     state.filename[0]    = 0;
     state.loc_cursor     = (location_t){0, 0};
@@ -37,15 +16,7 @@ static void reset_state(void) {
     state.scr_first_pos  = 0;
 }
 
-static bool has_selection(void) {
-    return state.loc_selection.line >= 0;
-}
-
-static void clear_selection(void) {
-    state.loc_selection = (location_t){-1, -1};
-}
-
-static void update_selection_range(void) {
+void update_selection_range(void) {
     if (loc_lt(state.loc_cursor, state.loc_selection)) {
         state.loc_selection_to   = state.loc_selection;
         state.loc_selection_from = state.loc_cursor;
@@ -61,86 +32,6 @@ static bool in_selection(location_t loc) {
 
     update_selection_range();
     return (loc_lt(loc, state.loc_selection_to) && !loc_lt(loc, state.loc_selection_from));
-}
-
-static int get_cursor_pos(void) {
-    return min(state.loc_cursor.pos, max(0, editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL)));
-}
-
-static void update_cursor_pos(void) {
-    state.loc_cursor.pos = get_cursor_pos();
-}
-
-static bool check_modified(void) {
-    if (!editbuf_get_modified(state.editbuf))
-        return true;
-
-    int result = dialog_confirm(NULL, "Save the changes made to the current document?");
-    if (result < 0) {
-        return false;
-    }
-    if (result > 0) {
-        // Save document
-        cmd_file_save();
-        if (editbuf_get_modified(state.editbuf))
-            return false;
-    }
-    return true;
-}
-
-void cmd_file_new(void) {
-    if (check_modified())
-        reset_state();
-}
-
-void cmd_file_open(void) {
-    char tmp[256];
-    if (dialog_open(tmp, sizeof(tmp))) {
-        editor_redraw_screen();
-        if (check_modified()) {
-            scr_status_msg("Loading file...");
-            load_file(tmp);
-        }
-    }
-}
-
-void cmd_file_save(void) {
-    if (!state.filename[0]) {
-        // File never saved, use 'save as' command instead.
-        cmd_file_save_as();
-        return;
-    }
-    if (!editbuf_get_modified(state.editbuf))
-        return;
-
-    save_file(state.filename);
-}
-
-void cmd_file_save_as(void) {
-    char tmp[64];
-    strcpy(tmp, state.filename);
-    if (!dialog_save(tmp, sizeof(tmp)))
-        return;
-
-    bool do_save = true;
-
-    struct esp_stat st;
-    if (esp_stat(tmp, &st) == 0) {
-        // File exists
-        editor_redraw_screen();
-        if (dialog_confirm(NULL, "Overwrite existing file?") <= 0)
-            do_save = false;
-    }
-
-    if (do_save) {
-        save_file(tmp);
-    }
-}
-
-void cmd_file_exit(void) {
-    if (check_modified()) {
-        asm("j 0");
-    }
 }
 
 static void render_editor(void) {
@@ -206,62 +97,6 @@ static void render_editor(void) {
             scr_fillchar(' ', fill_sz);
         }
     }
-}
-
-static int load_file(const char *path) {
-    scr_status_msg("Loading file...");
-
-    reset_state();
-    if (!editbuf_load(state.editbuf, path)) {
-        dialog_message("Error", "Error loading file!");
-        return -1;
-    }
-    snprintf(state.filename, sizeof(state.filename), "%s", path);
-    return 0;
-}
-
-static void save_file(const char *path) {
-    scr_status_msg("Saving file...");
-
-    if (!editbuf_save(state.editbuf, path)) {
-        dialog_message("Error", "Error saving file!");
-        return;
-    }
-    snprintf(state.filename, sizeof(state.filename), "%s", path);
-}
-
-void cmd_edit_cut(void) {
-    if (!has_selection())
-        return;
-
-    scr_status_msg("Writing to clipboard file...");
-    update_selection_range();
-    if (editbuf_save_range(state.editbuf, state.loc_selection_from, state.loc_selection_to, CLIPBOARD_PATH)) {
-        editbuf_delete_range(state.editbuf, state.loc_selection_from, state.loc_selection_to);
-        clear_selection();
-    }
-}
-
-void cmd_edit_copy(void) {
-    if (!has_selection())
-        return;
-
-    scr_status_msg("Writing to clipboard file...");
-    update_selection_range();
-    editbuf_save_range(state.editbuf, state.loc_selection_from, state.loc_selection_to, CLIPBOARD_PATH);
-}
-
-void cmd_edit_paste(void) {
-    clear_selection();
-    update_cursor_pos();
-    editbuf_insert_from_file(state.editbuf, &state.loc_cursor, CLIPBOARD_PATH);
-}
-
-void cmd_edit_select_all(void) {
-    state.loc_selection.line = 0;
-    state.loc_selection.pos  = 0;
-    state.loc_cursor.line    = editbuf_get_line_count(state.editbuf) - 1;
-    state.loc_cursor.pos     = editbuf_get_line(state.editbuf, state.loc_cursor.line, NULL);
 }
 
 static void render_editor_border(void) {
@@ -338,7 +173,7 @@ static void delete_selection(void) {
     }
 }
 
-static bool loc_dec(location_t *loc) {
+bool loc_dec(location_t *loc) {
     if (loc->pos > 0) {
         loc->pos--;
     } else if (loc->line > 0) {
@@ -350,7 +185,7 @@ static bool loc_dec(location_t *loc) {
     return true;
 }
 
-static void loc_inc(location_t *loc) {
+void loc_inc(location_t *loc) {
     int line_len = editbuf_get_line(state.editbuf, loc->line, NULL);
     if (loc->pos < line_len) {
         loc->pos++;

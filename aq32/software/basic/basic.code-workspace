@@ -7,5 +7,11 @@
       "name": "pcdev",
       "path": "pcdev"
     }
-  ]
+  ],
+  "settings": {
+    "files.associations": {
+      "editor_internal.h": "c",
+      "esp.h": "c"
+    }
+  }
 }

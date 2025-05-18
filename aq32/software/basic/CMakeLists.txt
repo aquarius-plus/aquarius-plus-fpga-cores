@@ -73,6 +73,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     editor/editbuf.c
     editor/editor.c
     editor/menu.c
+    editor/cmd_file.c
+    editor/cmd_edit.c
 
     basic/basic.c
     

@@ -22,3 +22,5 @@ void cmd_edit_cut(void);
 void cmd_edit_copy(void);
 void cmd_edit_paste(void);
 void cmd_edit_select_all(void);
+void cmd_edit_find(void);
+void cmd_edit_find_next(void);
