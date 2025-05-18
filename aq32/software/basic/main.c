@@ -25,8 +25,8 @@ static const struct menu_item menu_file_items[] = {
 };
 
 static const struct menu_item menu_edit_items[] = {
-    {.title = "Cu&t", .shortcut = KEY_MOD_CTRL | 'X', .status = "Deletes and copies selected text to clipboard", .handler = cmd_edit_cut},
-    {.title = "&Copy", .shortcut = KEY_MOD_CTRL | 'C', .status = "Copies selected text to clipboard", .handler = cmd_edit_copy},
+    {.title = "Cu&t", .shortcut = KEY_MOD_CTRL | 'X', .status = "Deletes and copies selected text to clipboard", .handler = cmd_edit_cut, .is_active_handler = cmd_edit_cut_copy_active},
+    {.title = "&Copy", .shortcut = KEY_MOD_CTRL | 'C', .status = "Copies selected text to clipboard", .handler = cmd_edit_copy, .is_active_handler = cmd_edit_cut_copy_active},
     {.title = "&Paste", .shortcut = KEY_MOD_CTRL | 'V', .status = "Inserts clipboard contents at cursor", .handler = cmd_edit_paste},
     {.title = "-"},
     {.title = "&Select all", .shortcut = KEY_MOD_CTRL | 'A', .status = "Selects all text in document", .handler = cmd_edit_select_all},

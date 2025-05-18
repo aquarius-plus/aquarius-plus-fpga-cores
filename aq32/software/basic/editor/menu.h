@@ -3,12 +3,14 @@
 #include "common.h"
 
 typedef void (*menu_handler_t)(void);
+typedef bool (*menu_is_active_handler_t)(void);
 
 struct menu_item {
-    const char    *title;
-    const char    *status;
-    uint16_t       shortcut;
-    menu_handler_t handler;
+    const char              *title;
+    const char              *status;
+    uint16_t                 shortcut;
+    menu_handler_t           handler;
+    menu_is_active_handler_t is_active_handler;
 };
 
 struct menu {

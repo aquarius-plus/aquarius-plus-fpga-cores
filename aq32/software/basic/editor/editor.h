@@ -18,6 +18,8 @@ void cmd_file_save(void);
 void cmd_file_save_as(void);
 void cmd_file_exit(void);
 
+bool cmd_edit_cut_copy_active(void);
+
 void cmd_edit_cut(void);
 void cmd_edit_copy(void);
 void cmd_edit_paste(void);

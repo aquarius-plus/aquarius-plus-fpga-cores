@@ -22,6 +22,8 @@ void cmd_edit_copy(void) {
     editbuf_save_range(state.editbuf, state.loc_selection_from, state.loc_selection_to, CLIPBOARD_PATH);
 }
 
+bool cmd_edit_cut_copy_active(void) { return has_selection(); }
+
 void cmd_edit_paste(void) {
     clear_selection();
     update_cursor_pos();

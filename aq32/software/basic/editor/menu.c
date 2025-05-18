@@ -65,8 +65,12 @@ menu_handler_t menubar_find_shortcut(const struct menu *menus, uint16_t shortcut
     while (m->title) {
         const struct menu_item *mi = m->items;
         while (mi->title) {
-            if (mi->shortcut == shortcut)
+            if (mi->shortcut == shortcut) {
+                if (mi->is_active_handler && !mi->is_active_handler())
+                    return NULL;
+
                 return mi->handler;
+            }
 
             mi++;
         }
@@ -193,8 +197,18 @@ static void render_menu(const struct menu *menus, const struct menu *active_menu
                 scr_draw_separator(y, x, w, COLOR_MENU);
 
         } else {
-            bool selected = (idx == active_idx);
-            scr_setcolor(selected ? COLOR_MENU_SEL : COLOR_MENU);
+            bool    selected   = (idx == active_idx);
+            uint8_t col        = COLOR_MENU;
+            bool    show_accel = true;
+            if (mi->is_active_handler && !(mi->is_active_handler())) {
+                col        = COLOR_MENU_INACTIVE;
+                show_accel = false;
+            }
+
+            if (selected)
+                col = COLOR_MENU_SEL;
+
+            scr_setcolor(col);
             scr_locate(y, x + 1);
 
             const char *shortcut_str     = get_shortcut_str(mi);
@@ -202,12 +216,12 @@ static void render_menu(const struct menu *menus, const struct menu *active_menu
             int         title_len        = strlen_accel(mi->title);
 
             scr_putchar(' ');
-            scr_puttext_accel(mi->title, true);
+            scr_puttext_accel(mi->title, show_accel);
             scr_fillchar(' ', w - 4 - title_len - shortcut_str_len);
 
             scr_setcolor(selected ? COLOR_MENU_SHORTCUT_SEL : COLOR_MENU_SHORTCUT);
             scr_puttext(shortcut_str);
-            scr_setcolor(selected ? COLOR_MENU_SEL : COLOR_MENU);
+            scr_setcolor(col);
             scr_putchar(' ');
 
             if (selected)
@@ -340,8 +354,12 @@ void menubar_handle(const struct menu *menus, void (*redraw_screen)(void)) {
                 }
             }
         }
-        if (selected_mi != NULL)
-            break;
+        if (selected_mi != NULL) {
+            if (!selected_mi->is_active_handler || selected_mi->is_active_handler())
+                break;
+
+            selected_mi = NULL;
+        }
     }
 
     redraw_screen();
