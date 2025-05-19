@@ -17,7 +17,9 @@ def read_topics():
                 continue
             if line.startswith("#"):
                 continue
-            topics.append(line.split(" ", 1))
+            name, path = line.split(" ", 1)
+            path = path.strip()
+            topics.append((name, path))
 
     topics.sort()
     return topics
@@ -41,7 +43,11 @@ def process_file(path):
                 exit(1)
 
             data.append(len(line))
-            data.extend(line.encode("latin-1"))
+            try:
+                data.extend(line.encode("latin-1"))
+            except:
+                print(f"{path}:{idx+1} Encoding error")
+                exit(1)
             num_lines += 1
 
     data = struct.pack("<H", num_lines) + data

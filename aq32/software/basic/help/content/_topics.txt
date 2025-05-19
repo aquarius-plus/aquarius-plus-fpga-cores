@@ -1,6 +1,125 @@
 _index index.txt
 _toc toc.txt
 
-# Math functions
-ABS math/ABS.txt
-SGN math/SGN.txt
+# Keywords
+DEFINT  other/DEFx.txt
+DEFLNG  other/DEFx.txt
+DEFSNG  other/DEFx.txt
+DEFDBL  other/DEFx.txt
+DEFSTR  other/DEFx.txt
+
+END     other/END.txt
+LET     other/LET.txt
+SWAP    other/SWAP.txt
+
+DATA    other/DATA_READ_RESTORE.txt
+READ    other/DATA_READ_RESTORE.txt
+RESTORE other/DATA_READ_RESTORE.txt
+
+REM     other/REM.txt
+
+GOTO    other/GOTO.txt
+GOSUB   other/GOSUB_RETURN.txt
+RETURN  other/GOSUB_RETURN.txt
+
+FOR     other/FOR_TO_STEP_NEXT.txt
+TO      other/FOR_TO_STEP_NEXT.txt
+STEP    other/FOR_TO_STEP_NEXT.txt
+NEXT    other/FOR_TO_STEP_NEXT.txt
+
+IF      other/IF_ELSEIF_ELSE_THEN.txt
+ELSEIF  other/IF_ELSEIF_ELSE_THEN.txt
+ELSE    other/IF_ELSEIF_ELSE_THEN.txt
+THEN    other/IF_ELSEIF_ELSE_THEN.txt
+
+#WHILE
+#WEND
+
+# Statements
+#CLEAR
+#DIM
+#ERASE
+#INPUT$
+#ON
+#OPTION
+#TIMER
+#FN
+#OFF
+#USING
+
+# Math
+#MOD
+NOT  math/bool_ops.txt
+AND  math/bool_ops.txt
+OR   math/bool_ops.txt
+XOR  math/bool_ops.txt
+EQV  math/bool_ops.txt
+IMP  math/bool_ops.txt
+
+ABS  math/ABS_SGN.txt
+ATN  math/ATN_COS_SIN_TAN.txt
+TAN  math/ATN_COS_SIN_TAN.txt
+COS  math/ATN_COS_SIN_TAN.txt
+SIN  math/ATN_COS_SIN_TAN.txt
+#SQR
+#EXP
+#FIX
+SGN  math/ABS_SGN.txt
+#LOG
+#INT
+#RND
+
+#RANDOMIZE
+
+# Type conversion
+CINT  other/CINT_CLNG.txt
+CLNG  other/CINT_CLNG.txt
+CSNG  other/CSNG_CDBL.txt
+CDBL  other/CSNG_CDBL.txt
+
+# String handling
+#LEN
+#LEFT$
+#RIGHT$
+#MID$
+#INSTR
+#VAL
+#STRING$
+#SPACE$
+#STR$
+ASC  str/ASC_CHR$.txt
+CHR$ str/ASC_CHR$.txt
+#HEX$
+#OCT$
+
+# Console I/O
+#INKEY$
+#CSRLIN
+#POS
+
+#CLS
+#COLOR
+#INPUT
+#LOCATE
+#WIDTH
+
+PRINT console_io/PRINT.txt
+SPC   console_io/SPC.txt
+TAB   console_io/TAB.txt
+
+# Error handling
+#ERL
+#ERR
+
+#ERROR
+#RESUME
+
+# File I/O
+MKI$ file_io/MKx$_CVx.txt
+MKL$ file_io/MKx$_CVx.txt
+MKS$ file_io/MKx$_CVx.txt
+MKD$ file_io/MKx$_CVx.txt
+CVI  file_io/MKx$_CVx.txt
+CVL  file_io/MKx$_CVx.txt
+CVS  file_io/MKx$_CVx.txt
+CVD  file_io/MKx$_CVx.txt
