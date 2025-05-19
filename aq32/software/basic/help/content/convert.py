@@ -35,7 +35,7 @@ def process_file(path):
 
     with open(path, "rt") as f:
         for idx, line in enumerate(f.readlines()):
-            line.rstrip()
+            line = line.rstrip()
             if len(line) > 78:
                 print(f"{path}:{idx+1} Line too long {len(line)} > 78!")
                 exit(1)

@@ -29,7 +29,8 @@
 #define COLOR_STATUS2           0x03
 #define COLOR_FIELD             0xF8
 
-#define COLOR_HELP 0x70
+#define COLOR_HELP      0x70
+#define COLOR_HELP_BOLD 0xF0
 
 #define CH_TAB         '\t'
 #define CH_ENTER       '\r'

@@ -73,10 +73,51 @@ error:
 static void draw_screen(void) {
     scr_draw_border(0, 0, 80, 25, COLOR_HELP, BORDER_FLAG_NO_SHADOW | BORDER_FLAG_TITLE_INVERSE, "Help");
 
+    const uint8_t *p         = state.p_buf;
+    unsigned       num_lines = read_u16(p);
+    p += 2;
+    int lines_remaining = num_lines;
+
     for (int i = 1; i <= 23; i++) {
         scr_locate(i, 1);
         scr_setcolor(COLOR_HELP);
-        scr_fillchar(' ', 78);
+
+        int line_len = 0;
+
+        if (lines_remaining > 0) {
+            int len = p[0];
+            p++;
+            const uint8_t *p_next = p + len;
+
+            scr_setcolor(COLOR_HELP);
+            bool bold   = false;
+            bool escape = false;
+
+            for (int i = 0; i < len; i++) {
+                uint8_t val = *(p++);
+
+                if (escape) {
+                    escape = false;
+                } else if (val == '\\') {
+                    escape = true;
+                    continue;
+                } else if (val == '*') {
+                    bold = !bold;
+                    scr_setcolor(bold ? COLOR_HELP_BOLD : COLOR_HELP);
+                    continue;
+                } else if (val == '@') {
+                    val = 136;
+                }
+
+                scr_putchar(val);
+                line_len++;
+            }
+
+            p = p_next;
+            lines_remaining--;
+        }
+
+        scr_fillchar(' ', 78 - line_len);
     }
 }
 
