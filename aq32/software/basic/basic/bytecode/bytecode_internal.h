@@ -158,6 +158,7 @@ void bc_stmt_inputs(void);
 void bc_stmt_on(void);
 void bc_stmt_option(void);
 void bc_stmt_return(void);
+void bc_stmt_return_to(void);
 void bc_stmt_timer(void);
 
 // Math operators

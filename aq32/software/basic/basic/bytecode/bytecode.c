@@ -254,6 +254,12 @@ void bc_stmt_return(void) {
 
     bc_p_cur = bc_p_buf + (uint16_t)bc_stack_pop_long();
 }
+void bc_stmt_return_to(void) {
+    if (bc_stack_idx >= STACK_DEPTH)
+        _basic_error(ERR_RETURN_WITHOUT_GOSUB);
+    bc_stack_pop_long();
+    bc_p_cur = bc_p_buf + bc_get_u16();
+}
 
 void bc_func_cint(void) {
     value_t *val = bc_stack_pop_num();
@@ -384,6 +390,7 @@ static bc_handler_t bc_handlers[] = {
     [BC_STMT_RANDOMIZE] = bc_stmt_randomize,
     [BC_STMT_RESUME]    = bc_stmt_resume,
     [BC_STMT_RETURN]    = bc_stmt_return,
+    [BC_STMT_RETURN_TO] = bc_stmt_return_to,
     [BC_STMT_TIMER]     = bc_stmt_timer,
     [BC_STMT_WIDTH]     = bc_stmt_width,
 
@@ -450,10 +457,11 @@ void bytecode_run(const uint8_t *p_buf, size_t vars_sz) {
     stop         = false;
 
     while (!stop) {
+#ifndef PCDEV
         int key = REGS->KEYBUF;
         if (key >= 0)
             handle_key(key);
-
+#endif
         uint8_t      bc      = bc_get_u8();
         bc_handler_t handler = bc_handlers[bc];
         handler();

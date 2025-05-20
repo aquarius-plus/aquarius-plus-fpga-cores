@@ -69,6 +69,7 @@ static const char *bc_names[] = {
     [BC_STMT_RANDOMIZE]               = "STMT_RANDOMIZE",
     [BC_STMT_RESUME]                  = "STMT_RESUME",
     [BC_STMT_RETURN]                  = "STMT_RETURN",
+    [BC_STMT_RETURN_TO]               = "STMT_RETURN_TO",
     [BC_STMT_TIMER]                   = "STMT_TIMER",
     [BC_STMT_WIDTH]                   = "STMT_WIDTH",
     [BC_FUNC_ABS]                     = "FUNC_ABS",
@@ -169,6 +170,7 @@ void bytecode_dump(void) {
             case BC_JMP_NZ:
             case BC_JMP_Z:
             case BC_JSR:
+            case BC_STMT_RETURN_TO:
             case BC_PUSH_VAR_INT:
             case BC_PUSH_VAR_LONG:
             case BC_PUSH_VAR_SINGLE:

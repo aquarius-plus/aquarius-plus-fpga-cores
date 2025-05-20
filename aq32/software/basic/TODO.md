@@ -1,8 +1,7 @@
 ## Editor
 
 - Undo / Redo
-- Find / Replace
-- Help system
+- Replace
 
 ## BASIC
 

@@ -50,6 +50,7 @@ enum {
     BC_STMT_ON,
     BC_STMT_OPTION,
     BC_STMT_RETURN,
+    BC_STMT_RETURN_TO,
     BC_STMT_TIMER,
 
     // Math operators

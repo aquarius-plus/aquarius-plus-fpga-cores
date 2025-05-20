@@ -869,6 +869,16 @@ static void bc_emit_locate(void) {
     bc_emit(BC_STMT_LOCATE);
 }
 
+void bc_emit_stmt_return(void) {
+    uint8_t tok = get_token();
+    if (tok == TOK_COLON || tok == TOK_EOL) {
+        bc_emit(BC_STMT_RETURN);
+    } else {
+        bc_emit(BC_STMT_RETURN_TO);
+        _bc_emit_target();
+    }
+}
+
 struct stmt {
     uint8_t bc;
     int     num_params;
@@ -899,7 +909,7 @@ static const struct stmt stmts[TOK_STMT_LAST - TOK_STMT_FIRST + 1] = {
     [TOK_READ      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_read},
     [TOK_RESTORE   - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_restore},
  // [TOK_RESUME    - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = NULL},
-    [TOK_RETURN    - TOK_STMT_FIRST] = {.bc = BC_STMT_RETURN,    .num_params = 0, .emit_stmt = NULL},
+    [TOK_RETURN    - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_return},
     [TOK_SWAP      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_swap},
  // [TOK_TIMER     - TOK_STMT_FIRST] = {.bc = BC_STMT_TIMER,     .num_params = 0, .emit_stmt = NULL},
     [TOK_WHILE     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_while},
