@@ -1,5 +1,9 @@
 _index      index.txt
 _toc        toc.txt
+_using_help using_help.txt
+_keywords   keywords.txt
+_ascii      ascii.txt
+_errors     errors.txt
 
 # Keywords
 DEFINT      other/DEFx.txt

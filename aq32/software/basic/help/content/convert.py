@@ -38,13 +38,28 @@ def process_file(path):
     with open(path, "rt") as f:
         for idx, line in enumerate(f.readlines()):
             line = line.rstrip()
-            if len(line) > 78:
-                print(f"{path}:{idx+1} Line too long {len(line)} > 78!")
-                exit(1)
+            # if len(line) > 78:
+            #     print(f"{path}:{idx+1} Line too long {len(line)} > 78!")
+            #     exit(1)
 
-            data.append(len(line))
             try:
-                data.extend(line.encode("latin-1"))
+                enc = line.encode("ascii")
+
+                line_data = bytearray()
+                idx = 0
+                while idx < len(enc):
+                    val = enc[idx]
+                    if val == b"\\"[0] and enc[idx + 1] == b"x"[0]:
+                        # Hexadecimal value
+                        val = int(enc[idx + 2 : idx + 4], 16)
+                        idx += 3
+
+                    line_data.append(val)
+                    idx = idx + 1
+
+                data.append(len(line_data))
+                data.extend(line_data)
+
             except:
                 print(f"{path}:{idx+1} Encoding error")
                 exit(1)
