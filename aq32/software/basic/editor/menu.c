@@ -271,8 +271,14 @@ void menubar_handle(const struct menu *menus, void (*redraw_screen)(void)) {
             }
 
             // No match found
-            if (!active_menu->title)
+            if (!active_menu->title) {
+                // Check for shortcut
+                uint16_t       shortcut = (key & (KEY_MOD_CTRL | KEY_MOD_SHIFT | KEY_MOD_ALT)) | toupper(ch);
+                menu_handler_t handler  = menubar_find_shortcut(menus, shortcut);
+                if (handler)
+                    handler();
                 return;
+            }
 
             // Match found
             menu_open = true;

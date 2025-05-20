@@ -11,7 +11,8 @@
   "settings": {
     "files.associations": {
       "editor_internal.h": "c",
-      "esp.h": "c"
+      "esp.h": "c",
+      "common.h": "c"
     }
   }
 }

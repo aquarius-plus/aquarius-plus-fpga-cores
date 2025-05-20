@@ -3,8 +3,9 @@
 #include "basic/common/buffers.h"
 #include "editor/dialog.h"
 
-#define HELP_FILE "/cores/aq32/basic.hlp"
-#define HELP_ROWS 23
+#define HELP_FILE    "/cores/aq32/basic.hlp"
+#define HELP_ROWS    23
+#define HISTORY_SIZE 20
 
 struct help_state {
     uint8_t *p_index;
@@ -13,17 +14,21 @@ struct help_state {
     uint8_t *p_content_end;
 
     char window_title[80];
-
-    int cursor_line;
-    int cursor_pos;
-    int first_line;
-    int num_lines;
+    int  cursor_line;
+    int  cursor_pos;
+    int  first_line;
+    int  num_lines;
+    int  current_topic_offset;
 };
+
+static int history[HISTORY_SIZE];
+static int history_idx = -1;
 
 static struct help_state state;
 
 static bool init(void) {
     buf_reinit();
+    memset(&state, 0, sizeof(state));
 
     unsigned sz   = 32768;
     state.p_index = buf_malloc(sz);
@@ -36,57 +41,68 @@ static bool init(void) {
         return false;
     state.p_content_end = state.p_content + sz;
 
+    state.current_topic_offset = -1;
+
     return true;
 }
 
-static bool load_topic(const char *topic) {
+static int find_topic(const char *topic) {
     int topic_len = strlen(topic);
 
     FILE *f = fopen(HELP_FILE, "rb");
-    if (!f)
-        return false;
+    if (f == NULL)
+        return -1;
 
     // Find topic offset
     int offset = -1;
-    {
-        unsigned index_max_sz = state.p_index_end - state.p_index;
-        uint8_t  hdr[4];
-        uint16_t index_data_len;
-        if (fread(hdr, sizeof(hdr), 1, f) != 1)
-            goto error;
-        if (memcmp(hdr, "HELP", 4) != 0)
-            goto error;
-        if (fread(&index_data_len, sizeof(index_data_len), 1, f) != 1)
-            goto error;
-        if (index_data_len > index_max_sz)
-            goto error;
-        if (fread(state.p_index, index_data_len, 1, f) != 1)
-            goto error;
 
-        // if (fread(hdr, sizeof(hdr), 1, f) != 1 || memcmp(hdr, "HELP", 4) != 0 ||
-        //     fread(&index_data_len, sizeof(index_data_len), 1, f) != 1 || index_data_len > index_max_sz ||
-        //     fread(state.p_index, index_data_len, 1, f) != 1)
-        //     goto error;
+    unsigned index_max_sz = state.p_index_end - state.p_index;
+    uint8_t  hdr[4];
+    uint16_t index_data_len;
+    if (fread(hdr, sizeof(hdr), 1, f) != 1 || memcmp(hdr, "HELP", 4) != 0 ||
+        fread(&index_data_len, sizeof(index_data_len), 1, f) != 1 || index_data_len > index_max_sz ||
+        fread(state.p_index, index_data_len, 1, f) != 1)
+        goto done;
 
-        uint8_t *p           = state.p_index;
-        uint16_t num_entries = read_u16(p);
-        p += 2;
+    uint8_t *p           = state.p_index;
+    uint16_t num_entries = read_u16(p);
+    p += 2;
 
-        for (unsigned i = 0; i < num_entries; i++) {
-            uint8_t *p_next = p + 1 + p[0] + 4;
-            if (p[0] == topic_len && strncasecmp((const char *)p + 1, topic, topic_len) == 0) {
-                offset = read_u32(p + 1 + p[0]);
-                break;
-            }
-            p = p_next;
+    for (unsigned i = 0; i < num_entries; i++) {
+        uint8_t *p_next = p + 1 + p[0] + 4;
+        if (p[0] == topic_len && strncasecmp((const char *)p + 1, topic, topic_len) == 0) {
+            offset = read_u32(p + 1 + p[0]);
+            break;
         }
-        if (offset < 0)
-            goto error;
-
-        fseek(f, offset, SEEK_CUR);
+        p = p_next;
     }
+    if (offset < 0)
+        goto done;
+
+done:
+    fclose(f);
+    return offset;
+}
+
+static bool load_topic(int offset) {
+    if (offset < 0 || state.current_topic_offset == offset)
+        return false;
+
+    FILE *f = fopen(HELP_FILE, "rb");
+    if (f == NULL)
+        return false;
+
+    // Skip past topics
+    unsigned index_max_sz = state.p_index_end - state.p_index;
+    uint8_t  hdr[4];
+    uint16_t index_data_len;
+    if (fread(hdr, sizeof(hdr), 1, f) != 1 || memcmp(hdr, "HELP", 4) != 0 ||
+        fread(&index_data_len, sizeof(index_data_len), 1, f) != 1 || index_data_len > index_max_sz ||
+        fseek(f, index_data_len, SEEK_CUR) != 0)
+        goto error;
 
     // Load topic contents
+    fseek(f, offset, SEEK_CUR);
     {
         state.cursor_line       = 0;
         state.cursor_pos        = 0;
@@ -127,13 +143,48 @@ static bool load_topic(const char *topic) {
 
         state.num_lines += num_lines;
     }
-
     fclose(f);
+    state.current_topic_offset = offset;
+
     return true;
 
 error:
     fclose(f);
     return false;
+}
+
+static bool navigate_back(void) {
+    if (history_idx < 1)
+        return false;
+
+    int offset = history[--history_idx];
+    return load_topic(offset);
+}
+
+static bool navigate_to_topic(const char *topic) {
+    if (strcmp(topic, "_back") == 0) {
+        return navigate_back();
+    }
+
+    int offset = find_topic(topic);
+    if (offset < 0)
+        return false;
+
+    bool ok = load_topic(offset);
+
+    // Record offset in history table
+    if (ok) {
+        if (history_idx == HISTORY_SIZE - 1) {
+            for (int i = 0; i < HISTORY_SIZE - 1; i++) {
+                history[i] = history[i + 1];
+            }
+        } else {
+            history_idx++;
+        }
+        history[history_idx] = offset;
+    }
+
+    return ok;
 }
 
 static void draw_screen(void) {
@@ -280,7 +331,7 @@ static void navigate(bool f1_pressed) {
         } else if (hyperlink > 0 && val == '>') {
             if (topic_len >= 0 && state.cursor_pos >= first_pos && state.cursor_pos <= last_pos) {
                 topic[topic_len] = 0;
-                load_topic(topic);
+                navigate_to_topic(topic);
                 return;
             }
             hyperlink = 0;
@@ -305,7 +356,7 @@ static void navigate(bool f1_pressed) {
             if (topic_len >= 0 && state.cursor_pos >= first_pos && state.cursor_pos <= last_pos) {
                 topic[topic_len] = 0;
                 if (f1_pressed)
-                    load_topic(topic);
+                    navigate_to_topic(topic);
                 return;
             }
 
@@ -319,18 +370,12 @@ static void navigate(bool f1_pressed) {
     if (topic_len >= 0 && state.cursor_pos >= first_pos && state.cursor_pos <= last_pos) {
         topic[topic_len] = 0;
         if (f1_pressed)
-            load_topic(topic);
+            navigate_to_topic(topic);
         return;
     }
 }
 
-void help(const char *topic) {
-    if (!init() || !load_topic(topic))
-        return;
-
-    state.cursor_line = 0;
-    state.cursor_pos  = 0;
-
+static void help_loop(void) {
     while (1) {
         draw_screen();
 
@@ -364,7 +409,12 @@ void help(const char *topic) {
                 case CH_PAGEUP: state.cursor_line -= HELP_ROWS - 1; break;
                 case CH_PAGEDOWN: state.cursor_line += HELP_ROWS - 1; break;
                 case CH_ENTER: navigate(false); break;
-                case CH_F1: navigate(true); break;
+                case CH_F1:
+                    if (key & KEY_MOD_ALT)
+                        navigate_back();
+                    else
+                        navigate(true);
+                    break;
             }
 
             state.cursor_pos  = clamp(state.cursor_pos, 0, 77);
@@ -372,4 +422,23 @@ void help(const char *topic) {
             state.first_line  = clamp(state.first_line, max(0, state.cursor_line - (HELP_ROWS - 1)), state.cursor_line);
         }
     }
+}
+
+void help(const char *topic) {
+    if (!init())
+        return;
+    if (!navigate_to_topic(topic))
+        return;
+
+    help_loop();
+}
+
+void help_reopen(void) {
+    if (history_idx < 0)
+        return;
+
+    if (!init())
+        return;
+    load_topic(history[history_idx]);
+    help_loop();
 }
