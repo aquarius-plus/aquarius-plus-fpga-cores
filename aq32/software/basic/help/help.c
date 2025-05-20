@@ -5,8 +5,10 @@
 #define HELP_FILE "/cores/aq32/basic.hlp"
 
 struct help_state {
-    uint8_t *p_buf;
-    uint8_t *p_buf_end;
+    uint8_t *p_index;
+    uint8_t *p_index_end;
+    uint8_t *p_content;
+    uint8_t *p_content_end;
 };
 
 static struct help_state state;
@@ -14,11 +16,16 @@ static struct help_state state;
 static bool init(void) {
     buf_reinit();
 
-    unsigned sz = 32768;
-    state.p_buf = buf_malloc(sz);
-    if (!state.p_buf)
+    unsigned sz   = 32768;
+    state.p_index = buf_malloc(sz);
+    if (!state.p_index)
         return false;
-    state.p_buf_end = state.p_buf + sz;
+    state.p_index_end = state.p_index + sz;
+
+    state.p_content = buf_malloc(sz);
+    if (!state.p_content)
+        return false;
+    state.p_content_end = state.p_content + sz;
 
     return true;
 }
@@ -30,37 +37,59 @@ static bool load_topic(const char *topic) {
     if (!f)
         return false;
 
-    unsigned buf_sz = state.p_buf_end - state.p_buf;
-    uint8_t  hdr[4];
-    uint16_t index_data_len;
-    if (fread(hdr, sizeof(hdr), 1, f) != 1 || memcmp(hdr, "HELP", 4) != 0 ||
-        fread(&index_data_len, sizeof(index_data_len), 1, f) != 1 || index_data_len > buf_sz ||
-        fread(state.p_buf, index_data_len, 1, f) != 1)
-        goto error;
-
-    uint8_t *p           = state.p_buf;
-    uint16_t num_entries = read_u16(p);
-    p += 2;
-
+    // Find topic offset
     int offset = -1;
+    {
+        unsigned index_max_sz = state.p_index_end - state.p_index;
+        uint8_t  hdr[4];
+        uint16_t index_data_len;
+        if (fread(hdr, sizeof(hdr), 1, f) != 1 || memcmp(hdr, "HELP", 4) != 0 ||
+            fread(&index_data_len, sizeof(index_data_len), 1, f) != 1 || index_data_len > index_max_sz ||
+            fread(state.p_index, index_data_len, 1, f) != 1)
+            goto error;
 
-    for (unsigned i = 0; i < num_entries; i++) {
-        uint8_t *p_next = p + 1 + p[0] + 4;
-        if (p[0] == topic_len && strncasecmp((const char *)p + 1, topic, topic_len) == 0) {
-            offset = read_u32(p + 1 + p[0]);
-            break;
+        uint8_t *p           = state.p_index;
+        uint16_t num_entries = read_u16(p);
+        p += 2;
+
+        for (unsigned i = 0; i < num_entries; i++) {
+            uint8_t *p_next = p + 1 + p[0] + 4;
+            if (p[0] == topic_len && strncasecmp((const char *)p + 1, topic, topic_len) == 0) {
+                offset = read_u32(p + 1 + p[0]);
+                break;
+            }
+            p = p_next;
         }
-        p = p_next;
+        if (offset < 0)
+            goto error;
+
+        fseek(f, offset, SEEK_CUR);
     }
-    if (offset < 0)
-        goto error;
 
-    fseek(f, offset, SEEK_CUR);
+    // Load topic contents
+    {
+        uint8_t *p = state.p_content;
+        write_u16(p, 2);
+        p += 2;
+        const char *top_line    = "  <Contents|_toc>  <Index|_index>  <Back|_back>";
+        int         top_line_sz = strlen(top_line);
+        *(p++)                  = top_line_sz;
+        for (int i = 0; i < top_line_sz; i++)
+            *(p++) = top_line[i];
+        *(p++) = 78;
+        for (int i = 0; i < 78; i++)
+            *(p++) = 25;
 
-    uint16_t data_len;
-    if (fread(&data_len, sizeof(data_len), 1, f) != 1 || data_len > buf_sz ||
-        fread(state.p_buf, data_len, 1, f) != 1)
-        goto error;
+        unsigned content_max_sz = state.p_content_end - p;
+        uint16_t data_len;
+        uint16_t num_lines;
+        if (fread(&data_len, sizeof(data_len), 1, f) != 1 || data_len > content_max_sz ||
+            fread(&num_lines, sizeof(num_lines), 1, f) != 1 ||
+            fread(p, data_len, 1, f) != 1)
+            goto error;
+
+        write_u16(state.p_content, 2 + num_lines);
+    }
 
     fclose(f);
     return true;
@@ -73,7 +102,7 @@ error:
 static void draw_screen(void) {
     scr_draw_border(0, 0, 80, 25, COLOR_HELP, BORDER_FLAG_NO_SHADOW | BORDER_FLAG_TITLE_INVERSE, "Help");
 
-    const uint8_t *p         = state.p_buf;
+    const uint8_t *p         = state.p_content;
     unsigned       num_lines = read_u16(p);
     p += 2;
     int lines_remaining = num_lines;
@@ -90,8 +119,9 @@ static void draw_screen(void) {
             const uint8_t *p_next = p + len;
 
             scr_setcolor(COLOR_HELP);
-            bool bold   = false;
-            bool escape = false;
+            bool bold     = false;
+            bool escape   = false;
+            int  shortcut = 0;
 
             for (int i = 0; i < len; i++) {
                 uint8_t val = *(p++);
@@ -106,11 +136,28 @@ static void draw_screen(void) {
                     scr_setcolor(bold ? COLOR_HELP_BOLD : COLOR_HELP);
                     continue;
                 } else if (val == '@') {
+                    // Bulletpoint
                     val = 136;
+                } else if (val == '<') {
+                    // Link start
+                    scr_setcolor(COLOR_HELP_LINK);
+                    shortcut = 1;
+                    bold     = false;
+                } else if (shortcut > 0 && val == '|') {
+                    shortcut = 2;
+                } else if (shortcut > 0 && val == '>') {
+                    shortcut = 3;
                 }
 
-                scr_putchar(val);
-                line_len++;
+                if (shortcut != 2) {
+                    scr_putchar(val);
+                    line_len++;
+                }
+
+                if (shortcut == 3) {
+                    shortcut = 0;
+                    scr_setcolor(COLOR_HELP);
+                }
             }
 
             p = p_next;

@@ -1,9 +1,9 @@
 Sets the screen display colors.
 
-COLOR [foreground%] [,[background%] [,border%]]    Screen mode 0 (text only)
-COLOR [background%] [,palette%]                    Screen mode 1
-COLOR [foreground%]                                Screen modes 4, 12, 13
-COLOR [foreground%] [,background&]                 Screen modes 7-10
+*COLOR [foreground%] [,[background%] [,border%]]*    Screen mode 0 (text only)
+*COLOR [background%] [,palette%]*                    Screen mode 1
+*COLOR [foreground%]*                                Screen modes 4, 12, 13
+*COLOR [foreground%] [,background&]*                 Screen modes 7-10
 
     @ *foreground%*    A number that sets the foreground screen color. In
       *foreground&*    screen mode 0, foreground% is a color attribute that

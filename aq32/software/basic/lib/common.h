@@ -31,6 +31,7 @@
 
 #define COLOR_HELP      0x70
 #define COLOR_HELP_BOLD 0xF0
+#define COLOR_HELP_LINK 0x90
 
 #define CH_TAB         '\t'
 #define CH_ENTER       '\r'
