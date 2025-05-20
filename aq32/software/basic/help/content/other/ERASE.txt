@@ -1,0 +1,17 @@
+Reinitializes array elements or frees dynamic array storage space.
+
+*ERASE arrayname [,arrayname]...*
+
+    @ *arrayname*    The name of an array.
+
+    @ For static arrays, ERASE sets each element of a numeric array to zero
+      and each element of a string array to null.
+    @ For dynamic arrays, ERASE frees the memory used by the array. You must
+      redeclare the array's dimensions with REDIM or DIM before using it.
+
+Example:
+    DIM a%(0)
+    a%(0) = 6
+    PRINT "Before: "; a%(0)
+    ERASE a%
+    PRINT "After: "; a%(0)

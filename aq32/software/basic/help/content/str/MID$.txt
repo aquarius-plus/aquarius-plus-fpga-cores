@@ -1,0 +1,24 @@
+The MID$ function returns part of a string (a substring).
+The MID$ statement replaces part of a string variable with another string.
+
+*MID$(stringexpression$,start%[,length%])*
+*MID$(stringvariable$,start%[,length%])=stringexpression$*
+
+    @ *stringexpression$*    The string from which the MID$ function returns
+                           a substring, or the replacement string used by the
+                           MID$ statement. It can be any string expression.
+    @ *start%*               The position of the first character in the
+                           substring being returned or replaced.
+    @ *length%*              The number of characters in the substring. If the
+                           length is omitted, MID$ returns or replaces all
+                           characters to the right of the start position.
+    @ *stringvariable$*      The string variable being modified by the MID$
+                           statement.
+
+Example:
+    a$ = "Where is Paris?"
+    PRINT MID$(a$, 10, 5)       'Output is:  Paris
+    Text$ = "Paris, France"
+    PRINT Text$                 'Output is:  Paris, France
+    MID$(Text$, 8) = "Texas "
+    PRINT Text$                 'Output is:  Paris, Texas

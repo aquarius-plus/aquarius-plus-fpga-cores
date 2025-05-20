@@ -1,0 +1,37 @@
+Sets the screen display colors.
+
+COLOR [foreground%] [,[background%] [,border%]]    Screen mode 0 (text only)
+COLOR [background%] [,palette%]                    Screen mode 1
+COLOR [foreground%]                                Screen modes 4, 12, 13
+COLOR [foreground%] [,background&]                 Screen modes 7-10
+
+    @ *foreground%*    A number that sets the foreground screen color. In
+      *foreground&*    screen mode 0, foreground% is a color attribute that
+                     sets the text color. In other screen modes, foreground%
+                     a color attribute or 4-bit color value (screen mode 4
+                     only) that sets the text and line-drawing color.
+    @ *background%*    A number that sets the background screen color. In
+      *background&*    screen mode 0, background% is a color attribute. In
+                     screen mode 1, background% is a 4-bit color value. In
+                     screen modes 7-10, background& is a color value.
+    @ *border%*        A color attribute that sets the screen border color.
+    @ *palette%*       A number (0 or 1) that specifies which of two sets
+                     of color attributes to use:
+
+                     palette%    Attribute 1    Attribute 2    Attribute 3
+                     ========    ===========    ===========    ============
+                     0           Green          Red            Brown
+                     1           Cyan           Magenta        Bright white
+
+    @ The available color attributes and values depend on your graphics
+      adapter and the screen mode set by the most recent SCREEN statement.
+    @ If your system is equipped with an EGA, VGA, or MCGA adapter, use the
+      PALETTE statement to change the color assignments of color attributes.
+
+Example:
+    'This example requires a color graphics adapter.
+    SCREEN 7
+    FOR i% = 0 TO 15
+        COLOR i%
+        PRINT i%
+    NEXT i%
