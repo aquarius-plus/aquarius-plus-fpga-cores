@@ -1,3 +1,4 @@
+ASC, CHR$ Functions
 ASC returns the ASCII code for the first character in a string expression.
 CHR$ returns the character corresponding to a specified ASCII code.
 

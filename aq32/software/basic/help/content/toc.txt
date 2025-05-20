@@ -1,1 +1,7 @@
-Table of contents
+Table of Contents
+
+  <Using Help>
+  <Using Menus and Commands>
+  <ASCII Character Codes>
+  <Keyboard Scan Codes>
+  <Run-Time Error Codes>

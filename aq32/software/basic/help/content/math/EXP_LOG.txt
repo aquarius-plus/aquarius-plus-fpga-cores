@@ -1,3 +1,4 @@
+EXP, LOG Functions
 EXP returns e raised to a specified power, where e is the base of natural
 logarithms. LOG returns the natural logarithm of a numeric expression.
 

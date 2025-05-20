@@ -1,3 +1,4 @@
+Boolean Operators
 Boolean operators perform bit manipulations, Boolean operations, or tests on
 multiple relations. They return a true (nonzero) or false (zero) value to be
 used in making a decision.

@@ -1,3 +1,4 @@
+ERASE Statement
 Reinitializes array elements or frees dynamic array storage space.
 
 *ERASE arrayname [,arrayname]...*

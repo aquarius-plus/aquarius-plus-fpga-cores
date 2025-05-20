@@ -1,3 +1,4 @@
+STRING$ Function
 Returns a string of a specified length made up of a repeating character.
 
 *STRING$(length%,{ascii-code% | stringexpression$})*

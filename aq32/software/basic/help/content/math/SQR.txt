@@ -1,3 +1,4 @@
+SQR Function
 Returns the square root of a numeric expression.
 
 *SQR(numeric-expression)*

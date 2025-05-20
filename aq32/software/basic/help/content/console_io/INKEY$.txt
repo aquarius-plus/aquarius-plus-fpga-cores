@@ -1,3 +1,4 @@
+INKEY$ Function
 Reads a character from the keyboard.
 
 *INKEY$*

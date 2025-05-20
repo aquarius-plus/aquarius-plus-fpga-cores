@@ -1,3 +1,4 @@
+COLOR Statement
 Sets the screen display colors.
 
 *COLOR [foreground%] [,[background%] [,border%]]*    Screen mode 0 (text only)

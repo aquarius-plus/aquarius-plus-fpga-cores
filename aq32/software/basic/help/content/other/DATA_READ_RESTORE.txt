@@ -1,3 +1,4 @@
+DATA, READ, RESTORE Statements
 DATA specifies values to be read by subsequent READ statements.
 READ reads those values and assigns them to variables.
 RESTORE allows READ to reread values in specified DATA statements.

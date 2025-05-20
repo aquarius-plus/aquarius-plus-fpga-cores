@@ -1,3 +1,4 @@
+SPC Function
 Skips a specified number of spaces in a PRINT statement.
 
 *SPC(n%)*

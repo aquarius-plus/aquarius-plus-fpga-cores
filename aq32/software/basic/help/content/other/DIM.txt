@@ -1,3 +1,4 @@
+DIM Statement
 DIM declares an array or specifies a data type for a nonarray variable.
 REDIM declares or resizes a dynamic array, erasing any previous values.
 

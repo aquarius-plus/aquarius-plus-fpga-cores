@@ -1,3 +1,4 @@
+ATN, COS, SIN, TAN Functions
 ATN returns the arctangent of a specified numeric expression.
 COS, SIN, and TAN return the cosine, sine, and tangent of a specified angle.
 

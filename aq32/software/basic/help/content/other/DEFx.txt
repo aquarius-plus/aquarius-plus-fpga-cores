@@ -1,3 +1,4 @@
+DEFtype Statements
 Sets the default data type for variables, DEF FN functions, and FUNCTION
 procedures.
 

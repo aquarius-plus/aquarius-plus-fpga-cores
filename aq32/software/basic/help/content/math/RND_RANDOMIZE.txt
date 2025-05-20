@@ -1,3 +1,4 @@
+RANDOMIZE Statement, RND Function
 RANDOMIZE initializes the random-number generator.
 RND returns a single-precision random number between 0 and 1.
 

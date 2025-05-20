@@ -1,3 +1,4 @@
+INSTR Function
 Returns the position of the first occurrence of a string in another string.
 
 *INSTR([start%,]stringexpression1$,stringexpression2$)*

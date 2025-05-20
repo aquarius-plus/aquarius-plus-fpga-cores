@@ -1,3 +1,4 @@
+MOD Arithmetic Operator
 Divides one number by another and returns the remainder.
 
 *numeric-expression1 MOD numeric-expression2*

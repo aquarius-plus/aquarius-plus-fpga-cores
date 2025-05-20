@@ -1,3 +1,4 @@
+SPACE$ Function
 Returns a string of spaces.
 
 *SPACE$(n%)*

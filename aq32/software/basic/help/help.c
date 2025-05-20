@@ -1,14 +1,23 @@
 #include "help.h"
 #include "screen.h"
 #include "basic/common/buffers.h"
+#include "editor/dialog.h"
 
 #define HELP_FILE "/cores/aq32/basic.hlp"
+#define HELP_ROWS 23
 
 struct help_state {
     uint8_t *p_index;
     uint8_t *p_index_end;
     uint8_t *p_content;
     uint8_t *p_content_end;
+
+    char window_title[80];
+
+    int cursor_line;
+    int cursor_pos;
+    int first_line;
+    int num_lines;
 };
 
 static struct help_state state;
@@ -43,10 +52,21 @@ static bool load_topic(const char *topic) {
         unsigned index_max_sz = state.p_index_end - state.p_index;
         uint8_t  hdr[4];
         uint16_t index_data_len;
-        if (fread(hdr, sizeof(hdr), 1, f) != 1 || memcmp(hdr, "HELP", 4) != 0 ||
-            fread(&index_data_len, sizeof(index_data_len), 1, f) != 1 || index_data_len > index_max_sz ||
-            fread(state.p_index, index_data_len, 1, f) != 1)
+        if (fread(hdr, sizeof(hdr), 1, f) != 1)
             goto error;
+        if (memcmp(hdr, "HELP", 4) != 0)
+            goto error;
+        if (fread(&index_data_len, sizeof(index_data_len), 1, f) != 1)
+            goto error;
+        if (index_data_len > index_max_sz)
+            goto error;
+        if (fread(state.p_index, index_data_len, 1, f) != 1)
+            goto error;
+
+        // if (fread(hdr, sizeof(hdr), 1, f) != 1 || memcmp(hdr, "HELP", 4) != 0 ||
+        //     fread(&index_data_len, sizeof(index_data_len), 1, f) != 1 || index_data_len > index_max_sz ||
+        //     fread(state.p_index, index_data_len, 1, f) != 1)
+        //     goto error;
 
         uint8_t *p           = state.p_index;
         uint16_t num_entries = read_u16(p);
@@ -68,10 +88,12 @@ static bool load_topic(const char *topic) {
 
     // Load topic contents
     {
-        uint8_t *p = state.p_content;
-        write_u16(p, 2);
-        p += 2;
-        const char *top_line    = "  <Contents|_toc>  <Index|_index>  <Back|_back>";
+        state.cursor_line       = 0;
+        state.cursor_pos        = 0;
+        state.first_line        = 0;
+        state.num_lines         = 2;
+        uint8_t    *p           = state.p_content;
+        const char *top_line    = "  <Back|_back>  <Contents|_toc>  <Index|_index>";
         int         top_line_sz = strlen(top_line);
         *(p++)                  = top_line_sz;
         for (int i = 0; i < top_line_sz; i++)
@@ -84,11 +106,26 @@ static bool load_topic(const char *topic) {
         uint16_t data_len;
         uint16_t num_lines;
         if (fread(&data_len, sizeof(data_len), 1, f) != 1 || data_len > content_max_sz ||
-            fread(&num_lines, sizeof(num_lines), 1, f) != 1 ||
-            fread(p, data_len, 1, f) != 1)
+            fread(&num_lines, sizeof(num_lines), 1, f) != 1)
+            goto error;
+        data_len -= 2;
+
+        // Read page title
+        uint8_t title_len = fgetc(f);
+        char    tmp[80];
+        if (title_len > sizeof(tmp) - 1)
+            goto error;
+        fread(tmp, title_len, 1, f);
+        tmp[title_len] = 0;
+        data_len -= 1 + title_len;
+        num_lines--;
+        snprintf(state.window_title, sizeof(state.window_title), "Help: %s", tmp);
+
+        // Read remaining lines
+        if (fread(p, data_len, 1, f) != 1)
             goto error;
 
-        write_u16(state.p_content, 2 + num_lines);
+        state.num_lines += num_lines;
     }
 
     fclose(f);
@@ -100,30 +137,37 @@ error:
 }
 
 static void draw_screen(void) {
-    scr_draw_border(0, 0, 80, 25, COLOR_HELP, BORDER_FLAG_NO_SHADOW | BORDER_FLAG_TITLE_INVERSE, "Help");
+    scr_draw_border(0, 0, 80, 25, COLOR_HELP, BORDER_FLAG_NO_SHADOW | BORDER_FLAG_TITLE_INVERSE, state.window_title);
 
-    const uint8_t *p         = state.p_content;
-    unsigned       num_lines = read_u16(p);
-    p += 2;
-    int lines_remaining = num_lines;
+    const uint8_t *p               = state.p_content;
+    int            lines_remaining = state.num_lines;
 
-    for (int i = 1; i <= 23; i++) {
-        scr_locate(i, 1);
+    // Find first line
+    for (int i = 0; i < state.first_line; i++) {
+        p += 1 + p[0];
+        lines_remaining--;
+    }
+
+    int cur_line = state.first_line;
+
+    for (int row = 0; row < HELP_ROWS; row++) {
+        cur_line = state.first_line + row;
+
+        scr_locate(1 + row, 1);
         scr_setcolor(COLOR_HELP);
 
-        int line_len = 0;
+        int cur_pos = 0;
 
         if (lines_remaining > 0) {
-            int len = p[0];
+            int line_len = p[0];
             p++;
-            const uint8_t *p_next = p + len;
+            const uint8_t *p_next = p + line_len;
 
-            scr_setcolor(COLOR_HELP);
-            bool bold     = false;
-            bool escape   = false;
-            int  shortcut = 0;
+            bool bold      = false;
+            bool escape    = false;
+            int  hyperlink = 0;
 
-            for (int i = 0; i < len; i++) {
+            for (int i = 0; i < line_len; i++) {
                 uint8_t val = *(p++);
 
                 if (escape) {
@@ -133,38 +177,150 @@ static void draw_screen(void) {
                     continue;
                 } else if (val == '*') {
                     bold = !bold;
-                    scr_setcolor(bold ? COLOR_HELP_BOLD : COLOR_HELP);
                     continue;
                 } else if (val == '@') {
                     // Bulletpoint
                     val = 136;
                 } else if (val == '<') {
                     // Link start
+                    hyperlink = 1;
+                    continue;
+                } else if (hyperlink > 0 && val == '|') {
+                    hyperlink = 2;
+                    continue;
+                } else if (hyperlink > 0 && val == '>') {
+                    hyperlink = 0;
+                    continue;
+                } else if (hyperlink == 2) {
+                    continue;
+                }
+
+                if (cur_line == state.cursor_line && cur_pos == state.cursor_pos) {
+                    scr_setcolor(COLOR_CURSOR);
+                } else if (hyperlink) {
                     scr_setcolor(COLOR_HELP_LINK);
-                    shortcut = 1;
-                    bold     = false;
-                } else if (shortcut > 0 && val == '|') {
-                    shortcut = 2;
-                } else if (shortcut > 0 && val == '>') {
-                    shortcut = 3;
-                }
-
-                if (shortcut != 2) {
-                    scr_putchar(val);
-                    line_len++;
-                }
-
-                if (shortcut == 3) {
-                    shortcut = 0;
+                } else if (bold) {
+                    scr_setcolor(COLOR_HELP_BOLD);
+                } else {
                     scr_setcolor(COLOR_HELP);
                 }
+
+                scr_putchar(val);
+                cur_pos++;
             }
 
             p = p_next;
             lines_remaining--;
         }
 
-        scr_fillchar(' ', 78 - line_len);
+        while (cur_pos < 78) {
+            if (cur_line == state.cursor_line && cur_pos == state.cursor_pos) {
+                scr_setcolor(COLOR_CURSOR);
+            } else {
+                scr_setcolor(COLOR_HELP);
+            }
+
+            scr_putchar(' ');
+            cur_pos++;
+        }
+    }
+}
+
+static void navigate(bool f1_pressed) {
+    if (state.cursor_line < 0 || state.cursor_line >= state.num_lines ||
+        state.cursor_pos < 0 || state.cursor_pos >= 78)
+        return;
+
+    // Find line cursor is on
+    const uint8_t *p = state.p_content;
+    for (int i = 0; i < state.cursor_line; i++)
+        p += 1 + p[0];
+
+    int line_len = p[0];
+    p++;
+
+    bool bold      = false;
+    bool escape    = false;
+    int  hyperlink = 0;
+    int  cur_pos   = 0;
+    int  first_pos = -1;
+    int  last_pos  = -1;
+    char topic[80];
+    int  topic_len = 0;
+
+    //
+    for (int i = 0; i < line_len; i++) {
+        uint8_t val = *(p++);
+
+        if (escape) {
+            escape = false;
+        } else if (val == '\\') {
+            escape = true;
+            continue;
+
+        } else if (val == '*') {
+            bold = !bold;
+            continue;
+
+        } else if (val == '@') {
+            // Bulletpoint
+            val = 136;
+
+        } else if (val == '<') {
+            // Link start
+            hyperlink = 1;
+            first_pos = cur_pos;
+            continue;
+
+        } else if (hyperlink > 0 && val == '|') {
+            hyperlink = 2;
+            topic_len = 0;
+            continue;
+
+        } else if (hyperlink > 0 && val == '>') {
+            if (topic_len >= 0 && state.cursor_pos >= first_pos && state.cursor_pos <= last_pos) {
+                topic[topic_len] = 0;
+                load_topic(topic);
+                return;
+            }
+            hyperlink = 0;
+            topic_len = 0;
+            first_pos = -1;
+            last_pos  = -1;
+            continue;
+
+        } else if (hyperlink == 2) {
+            topic[topic_len++] = val;
+            continue;
+        }
+
+        if (is_alpha(val) || val == '$' || hyperlink != 0) {
+            if (first_pos < 0)
+                first_pos = cur_pos;
+            last_pos = cur_pos;
+
+            topic[topic_len++] = val;
+
+        } else if (hyperlink == 0) {
+            if (topic_len >= 0 && state.cursor_pos >= first_pos && state.cursor_pos <= last_pos) {
+                topic[topic_len] = 0;
+                if (f1_pressed)
+                    load_topic(topic);
+                return;
+            }
+
+            first_pos = -1;
+            last_pos  = -1;
+            topic_len = 0;
+        }
+        cur_pos++;
+    }
+
+    if (topic_len >= 0 && state.cursor_pos >= first_pos && state.cursor_pos <= last_pos) {
+        topic[topic_len] = 0;
+        if (f1_pressed)
+            load_topic(topic);
+        return;
     }
 }
 
@@ -172,9 +328,12 @@ void help(const char *topic) {
     if (!init() || !load_topic(topic))
         return;
 
-    draw_screen();
+    state.cursor_line = 0;
+    state.cursor_pos  = 0;
 
     while (1) {
+        draw_screen();
+
         int key;
         while ((key = REGS->KEYBUF) < 0);
 
@@ -185,9 +344,32 @@ void help(const char *topic) {
                 return;
         } else {
             uint8_t ch = key & 0xFF;
-            switch (toupper(ch)) {
-                case CH_ENTER: return;
+            switch (ch) {
+                case CH_UP: state.cursor_line--; break;
+                case CH_DOWN: state.cursor_line++; break;
+                case CH_LEFT: state.cursor_pos--; break;
+                case CH_RIGHT: state.cursor_pos++; break;
+                case CH_HOME: {
+                    if (key & KEY_MOD_CTRL)
+                        state.cursor_line = 0;
+                    state.cursor_pos = 0;
+                    break;
+                }
+                case CH_END: {
+                    if (key & KEY_MOD_CTRL)
+                        state.cursor_line = state.num_lines;
+                    state.cursor_pos = 77;
+                    break;
+                }
+                case CH_PAGEUP: state.cursor_line -= HELP_ROWS - 1; break;
+                case CH_PAGEDOWN: state.cursor_line += HELP_ROWS - 1; break;
+                case CH_ENTER: navigate(false); break;
+                case CH_F1: navigate(true); break;
             }
+
+            state.cursor_pos  = clamp(state.cursor_pos, 0, 77);
+            state.cursor_line = clamp(state.cursor_line, 0, state.num_lines);
+            state.first_line  = clamp(state.first_line, max(0, state.cursor_line - (HELP_ROWS - 1)), state.cursor_line);
         }
     }
 }

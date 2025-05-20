@@ -1,8 +1,7 @@
+PRINT Statement
 PRINT writes data to the screen or to a file.
-LPRINT prints data on the printer LPT1.
 
 *PRINT [#filenumber%,] [expressionlist] [{; | ,}]*
-*LPRINT [expressionlist] [{; | ,}]*
 
     @ *filenumber%*       The number of an open file. If you don't specify a
                         file number, PRINT writes to the screen.
@@ -20,6 +19,3 @@ Example:
     OPEN "TEST.DAT" FOR INPUT AS #1
     INPUT #1, a$
     PRINT a$
-    LPRINT "This is a line"; 1
-    LPRINT "This is a line",
-    LPRINT 2

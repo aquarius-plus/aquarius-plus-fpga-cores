@@ -1,3 +1,4 @@
+MKn$, CVn Functions
 MKI$, MKL$, MKS$, and MKD$ convert numbers to numeric strings that can be
 stored in FIELD statement string variables. CVI, CVL, CVS, and CVD convert
 those strings back to numbers.

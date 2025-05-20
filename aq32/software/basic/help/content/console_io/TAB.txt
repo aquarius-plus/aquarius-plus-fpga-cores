@@ -1,3 +1,4 @@
+TAB Function
 Moves the text cursor to a specified print position.
 
 TAB(column%)

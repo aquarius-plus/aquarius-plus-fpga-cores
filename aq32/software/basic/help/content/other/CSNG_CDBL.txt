@@ -1,3 +1,4 @@
+CDBL, CSNG Functions
 CDBL converts a numeric expression to a double-precision value.
 CSNG converts a numeric expression to a single-precision value.
 

@@ -1,3 +1,4 @@
+CLS Statement
 Clears the screen.
 
 *CLS [{0 | 1 | 2}]*

@@ -1,3 +1,4 @@
+INPUT, LINE INPUT Statements
 INPUT reads input from the keyboard or a file. LINE INPUT reads a line of
 up to 255 characters from the keyboard or a file.
 

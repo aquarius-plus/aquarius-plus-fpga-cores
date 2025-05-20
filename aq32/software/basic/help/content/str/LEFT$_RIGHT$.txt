@@ -1,3 +1,4 @@
+LEFT$, RIGHT$ Functions
 Return a specified number of leftmost or rightmost characters in a string.
 
 *LEFT$(stringexpression$,n%)*

@@ -1,3 +1,4 @@
+REM Statement
 Allows explanatory remarks to be inserted in a program.
 
 *REM remark*

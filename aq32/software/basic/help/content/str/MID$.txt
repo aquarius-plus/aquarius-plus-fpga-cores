@@ -1,3 +1,4 @@
+MID$ Function and Statement
 The MID$ function returns part of a string (a substring).
 The MID$ statement replaces part of a string variable with another string.
 

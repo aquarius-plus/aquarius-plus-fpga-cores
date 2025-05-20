@@ -1,3 +1,4 @@
+CINT, CLNG Functions
 CINT rounds a numeric expression to an integer.
 CLNG rounds a numeric expression to a long (4-byte) integer.
 

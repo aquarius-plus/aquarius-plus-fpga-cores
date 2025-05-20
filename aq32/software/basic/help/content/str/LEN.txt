@@ -1,3 +1,4 @@
+LEN Function
 Returns the number of characters in a string or the number of bytes
 required to store a variable.
 

@@ -1,3 +1,4 @@
+LOCATE Statement, CSRLIN, POS Functions
 LOCATE moves the cursor to a specified position on the screen.
 CSRLIN returns the current row position of the cursor.
 POS returns the current column position of the cursor.

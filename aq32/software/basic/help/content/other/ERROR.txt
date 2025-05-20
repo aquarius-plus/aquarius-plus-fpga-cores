@@ -1,3 +1,4 @@
+ERROR Statement
 Simulates an occurrence of a Basic error or a user-defined error.
 
 *ERROR expression%*

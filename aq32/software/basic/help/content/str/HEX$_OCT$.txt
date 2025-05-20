@@ -1,3 +1,4 @@
+HEX$, OCT$ Functions
 HEX$ returns a hexadecimal string representation of a number.
 OCT$ returns an octal string representation of a number.
 

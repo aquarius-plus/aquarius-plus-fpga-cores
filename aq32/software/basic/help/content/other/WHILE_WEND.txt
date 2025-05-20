@@ -1,3 +1,4 @@
+WHILE...WEND Statement
 Executes a series of statements as long as a specified condition is true.
 
 *WHILE condition*
