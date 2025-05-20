@@ -171,6 +171,7 @@ void bytecode_dump(void) {
             case BC_JMP_Z:
             case BC_JSR:
             case BC_STMT_RETURN_TO:
+            case BC_DATA_RESTORE:
             case BC_PUSH_VAR_INT:
             case BC_PUSH_VAR_LONG:
             case BC_PUSH_VAR_SINGLE:

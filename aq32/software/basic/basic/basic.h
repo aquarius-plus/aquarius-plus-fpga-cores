@@ -5,6 +5,7 @@
 enum {
     ERR_SYNTAX_ERROR           = 2,
     ERR_RETURN_WITHOUT_GOSUB   = 3,
+    ERR_OUT_OF_DATA            = 4,
     ERR_ILLEGAL_FUNC_CALL      = 5,
     ERR_OVERFLOW               = 6,
     ERR_OUT_OF_MEM             = 7,

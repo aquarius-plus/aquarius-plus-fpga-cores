@@ -2,13 +2,8 @@
 #include "bytecode_internal.h"
 
 typedef void (*bc_handler_t)(void);
-
-const uint8_t *bc_p_buf;
-const uint8_t *bc_p_cur;
-value_t        bc_stack[STACK_DEPTH];
-int            bc_stack_idx;
-uint8_t       *p_vars;
-static bool    stop;
+static bc_handler_t bc_handlers[];
+struct bc_state     bc_state;
 
 value_t *bc_stack_push_temp_str(unsigned length) {
     value_t *stk = bc_stack_push();
@@ -118,21 +113,21 @@ void bc_line_tag(void) {
     err_line = bc_get_u16();
 }
 void bc_dup(void) {
-    if (bc_stack_idx >= STACK_DEPTH)
+    if (bc_state.stack_idx >= STACK_DEPTH)
         _basic_error(ERR_INTERNAL_ERROR);
-    value_t *stk_from = &bc_stack[bc_stack_idx];
+    value_t *stk_from = &bc_state.stack[bc_state.stack_idx];
     if (stk_from->type == VT_STR)
         _basic_error(ERR_TYPE_MISMATCH);
     value_t *stk_to = bc_stack_push();
     *stk_to         = *stk_from;
 }
 void bc_swap(void) {
-    if (bc_stack_idx >= STACK_DEPTH - 2)
+    if (bc_state.stack_idx >= STACK_DEPTH - 2)
         _basic_error(ERR_INTERNAL_ERROR);
 
-    value_t tmp                = bc_stack[bc_stack_idx];
-    bc_stack[bc_stack_idx]     = bc_stack[bc_stack_idx + 1];
-    bc_stack[bc_stack_idx + 1] = tmp;
+    value_t tmp                            = bc_state.stack[bc_state.stack_idx];
+    bc_state.stack[bc_state.stack_idx]     = bc_state.stack[bc_state.stack_idx + 1];
+    bc_state.stack[bc_state.stack_idx + 1] = tmp;
 }
 
 void bc_push_const_unspecified_param(void) {
@@ -156,26 +151,26 @@ void bc_push_const_string(void) {
     value_t *stk        = bc_stack_push();
     stk->type           = VT_STR;
     stk->val_str.flags  = STR_FLAGS_TYPE_CONST;
-    stk->val_str.p      = (uint8_t *)(bc_p_cur + 1);
-    stk->val_str.length = bc_p_cur[0];
-    bc_p_cur += 1 + bc_p_cur[0];
+    stk->val_str.p      = (uint8_t *)(bc_state.p_cur + 1);
+    stk->val_str.length = bc_state.p_cur[0];
+    bc_state.p_cur += 1 + bc_state.p_cur[0];
 }
 void bc_push_var_int(void) {
-    bc_stack_push_long((int16_t)read_u16(&p_vars[bc_get_u16()]));
+    bc_stack_push_long((int16_t)read_u16(&bc_state.p_vars[bc_get_u16()]));
 }
 void bc_push_var_long(void) {
-    bc_stack_push_long(read_u32(&p_vars[bc_get_u16()]));
+    bc_stack_push_long(read_u32(&bc_state.p_vars[bc_get_u16()]));
 }
 void bc_push_var_single(void) {
-    uint32_t u32 = read_u32(&p_vars[bc_get_u16()]);
+    uint32_t u32 = read_u32(&bc_state.p_vars[bc_get_u16()]);
     bc_stack_push_single(*(float *)&u32);
 }
 void bc_push_var_double(void) {
-    uint64_t u64 = read_u64(&p_vars[bc_get_u16()]);
+    uint64_t u64 = read_u64(&bc_state.p_vars[bc_get_u16()]);
     bc_stack_push_double(*(double *)&u64);
 }
 void bc_push_var_string(void) {
-    uint8_t *p = &p_vars[bc_get_u16()];
+    uint8_t *p = &bc_state.p_vars[bc_get_u16()];
     uint8_t *p_str;
     memcpy(&p_str, p, sizeof(uint8_t *));
 
@@ -190,26 +185,26 @@ void bc_store_var_int(void) {
     bc_to_long_round(val);
     if (val->val_long < INT16_MIN || val->val_long >= INT16_MAX)
         _basic_error(ERR_OVERFLOW);
-    write_u16(&p_vars[bc_get_u16()], val->val_long);
+    write_u16(&bc_state.p_vars[bc_get_u16()], val->val_long);
 }
 void bc_store_var_long(void) {
     value_t *val = bc_stack_pop();
     bc_to_long_round(val);
-    write_u32(&p_vars[bc_get_u16()], val->val_long);
+    write_u32(&bc_state.p_vars[bc_get_u16()], val->val_long);
 }
 void bc_store_var_single(void) {
     value_t *val = bc_stack_pop();
     bc_to_single(val);
-    write_u32(&p_vars[bc_get_u16()], val->val_long);
+    write_u32(&bc_state.p_vars[bc_get_u16()], val->val_long);
 }
 void bc_store_var_double(void) {
     value_t *val = bc_stack_pop();
     bc_to_double(val);
-    write_u64(&p_vars[bc_get_u16()], val->val_longlong);
+    write_u64(&bc_state.p_vars[bc_get_u16()], val->val_longlong);
 }
 void bc_store_var_string(void) {
     value_t *stk = bc_stack_pop_str();
-    uint8_t *p   = &p_vars[bc_get_u16()];
+    uint8_t *p   = &bc_state.p_vars[bc_get_u16()];
 
     uint8_t *p_str;
     memcpy(&p_str, p, sizeof(uint8_t *));
@@ -225,7 +220,7 @@ void bc_store_var_string(void) {
     bc_free_temp_val(stk);
 }
 void bc_jmp(void) {
-    bc_p_cur = bc_p_buf + bc_get_u16();
+    bc_state.p_cur = bc_state.p_buf + bc_get_u16();
 }
 void bc_jmp_nz(void) {
     value_t *val = bc_stack_pop();
@@ -233,7 +228,7 @@ void bc_jmp_nz(void) {
 
     uint16_t offset = bc_get_u16();
     if (val->val_long != 0)
-        bc_p_cur = bc_p_buf + offset;
+        bc_state.p_cur = bc_state.p_buf + offset;
 }
 void bc_jmp_z(void) {
     value_t *val = bc_stack_pop();
@@ -241,24 +236,24 @@ void bc_jmp_z(void) {
 
     uint16_t offset = bc_get_u16();
     if (val->val_long == 0)
-        bc_p_cur = bc_p_buf + offset;
+        bc_state.p_cur = bc_state.p_buf + offset;
 }
 void bc_jsr(void) {
     uint16_t offset = bc_get_u16();
-    bc_stack_push_long(bc_p_cur - bc_p_buf);
-    bc_p_cur = bc_p_buf + offset;
+    bc_stack_push_long(bc_state.p_cur - bc_state.p_buf);
+    bc_state.p_cur = bc_state.p_buf + offset;
 }
 void bc_stmt_return(void) {
-    if (bc_stack_idx >= STACK_DEPTH)
+    if (bc_state.stack_idx >= STACK_DEPTH)
         _basic_error(ERR_RETURN_WITHOUT_GOSUB);
 
-    bc_p_cur = bc_p_buf + (uint16_t)bc_stack_pop_long();
+    bc_state.p_cur = bc_state.p_buf + (uint16_t)bc_stack_pop_long();
 }
 void bc_stmt_return_to(void) {
-    if (bc_stack_idx >= STACK_DEPTH)
+    if (bc_state.stack_idx >= STACK_DEPTH)
         _basic_error(ERR_RETURN_WITHOUT_GOSUB);
     bc_stack_pop_long();
-    bc_p_cur = bc_p_buf + bc_get_u16();
+    bc_state.p_cur = bc_state.p_buf + bc_get_u16();
 }
 
 void bc_func_cint(void) {
@@ -294,12 +289,43 @@ void bc_stmt_error(void) {
     _basic_error(err);
 }
 
+static void _find_next_data(void) {
+    if (bc_state.p_cur == NULL)
+        bc_state.p_cur = bc_state.p_buf;
+
+    while (bc_state.p_cur < bc_state.p_buf_end) {
+        uint8_t bc = bc_get_u8();
+        if (bc == BC_DATA) {
+            bc_state.p_data_end = bc_state.p_buf + bc_get_u16();
+            return;
+        }
+        bc_state.p_cur += bc_arg_size(bc, bc_state.p_cur);
+    }
+    _basic_error(ERR_OUT_OF_DATA);
+}
+
 void bc_data(void) {
     // Skip data
-    bc_p_cur = bc_p_buf + bc_get_u16();
+    bc_state.p_cur = bc_state.p_buf + bc_get_u16();
 }
-void bc_data_read(void) { _basic_error(ERR_UNHANDLED); }
-void bc_data_restore(void) { _basic_error(ERR_UNHANDLED); }
+void bc_data_read(void) {
+    const uint8_t *p_save = bc_state.p_cur;
+    bc_state.p_cur        = bc_state.p_data_cur;
+
+    if (bc_state.p_data_cur == bc_state.p_data_end)
+        _find_next_data();
+
+    uint8_t bc = bc_get_u8();
+    bc_handlers[bc]();
+
+    bc_state.p_data_cur = bc_state.p_cur;
+    bc_state.p_cur      = p_save;
+}
+void bc_data_restore(void) {
+    bc_state.p_data_cur = bc_state.p_buf + bc_get_u16();
+    bc_state.p_data_end = bc_state.p_data_cur;
+}
+
 void bc_stmt_clear(void) { _basic_error(ERR_UNHANDLED); }
 void bc_stmt_dim(void) { _basic_error(ERR_UNHANDLED); }
 void bc_stmt_erase(void) { _basic_error(ERR_UNHANDLED); }
@@ -441,30 +467,61 @@ static bc_handler_t bc_handlers[] = {
 
 static void handle_key(int key) {
     if ((key & KEY_MOD_CTRL) && toupper(key & 0xFF) == 'C') {
-        stop = true;
+        bc_state.stop = true;
     }
 }
 
-void bytecode_run(const uint8_t *p_buf, size_t vars_sz) {
+void bytecode_run(const uint8_t *p_buf, size_t bc_size, size_t vars_sz) {
     buf_reinit();
-    p_vars = buf_calloc(vars_sz);
-    if (!p_vars)
+    memset(&bc_state, 0, sizeof(bc_state));
+
+    bc_state.p_vars = buf_calloc(vars_sz);
+    if (!bc_state.p_vars)
         _basic_error(ERR_OUT_OF_MEM);
 
-    bc_p_buf     = p_buf;
-    bc_p_cur     = p_buf;
-    bc_stack_idx = STACK_DEPTH;
-    stop         = false;
+    bc_state.p_buf     = p_buf;
+    bc_state.p_buf_end = p_buf + bc_size;
+    bc_state.p_cur     = p_buf;
+    bc_state.stack_idx = STACK_DEPTH;
 
-    while (!stop) {
+    while (!bc_state.stop) {
 #ifndef PCDEV
         int key = REGS->KEYBUF;
         if (key >= 0)
             handle_key(key);
 #endif
-        uint8_t      bc      = bc_get_u8();
-        bc_handler_t handler = bc_handlers[bc];
-        handler();
+        uint8_t bc = bc_get_u8();
+        bc_handlers[bc]();
+    }
+}
+
+int bc_arg_size(uint8_t bc, const uint8_t *p) {
+    switch (bc) {
+        case BC_PUSH_CONST_INT: return 2; break;
+        case BC_PUSH_CONST_LONG: return 4; break;
+        case BC_PUSH_CONST_SINGLE: return 4; break;
+        case BC_PUSH_CONST_DOUBLE: return 8; break;
+        case BC_PUSH_CONST_STRING: return 1 + p[0]; break;
+
+        case BC_JMP:
+        case BC_JMP_NZ:
+        case BC_JMP_Z:
+        case BC_JSR:
+        case BC_LINE_TAG:
+        case BC_PUSH_VAR_INT:
+        case BC_PUSH_VAR_LONG:
+        case BC_PUSH_VAR_SINGLE:
+        case BC_PUSH_VAR_DOUBLE:
+        case BC_PUSH_VAR_STRING:
+        case BC_STORE_VAR_INT:
+        case BC_STORE_VAR_LONG:
+        case BC_STORE_VAR_SINGLE:
+        case BC_STORE_VAR_DOUBLE:
+        case BC_STORE_VAR_STRING:
+            return 2;
+
+        default:
+            return 0;
     }
 }
 
@@ -476,33 +533,10 @@ int bytecode_get_line_for_offset(const uint8_t *buf, size_t buf_size, uint16_t o
 
     while (p < p_end && p < p_offset) {
         uint8_t bc = *(p++);
-        if (bc == BC_LINE_TAG) {
-            linenr = p[0] | (p[1] << 8);
-        }
+        if (bc == BC_LINE_TAG)
+            linenr = read_u16(p);
 
-        switch (bc) {
-            case BC_PUSH_CONST_INT: p += 2; break;
-            case BC_PUSH_CONST_LONG: p += 4; break;
-            case BC_PUSH_CONST_SINGLE: p += 4; break;
-            case BC_PUSH_CONST_DOUBLE: p += 8; break;
-            case BC_PUSH_CONST_STRING: p += 1 + p[0]; break;
-
-            case BC_JMP:
-            case BC_JMP_NZ:
-            case BC_JMP_Z:
-            case BC_JSR:
-            case BC_LINE_TAG:
-            case BC_PUSH_VAR_INT:
-            case BC_PUSH_VAR_LONG:
-            case BC_PUSH_VAR_SINGLE:
-            case BC_PUSH_VAR_DOUBLE:
-            case BC_PUSH_VAR_STRING:
-            case BC_STORE_VAR_INT:
-            case BC_STORE_VAR_LONG:
-            case BC_STORE_VAR_SINGLE:
-            case BC_STORE_VAR_DOUBLE:
-            case BC_STORE_VAR_STRING: p += 2; break;
-        }
+        p += bc_arg_size(bc, p);
     }
     return linenr;
 }

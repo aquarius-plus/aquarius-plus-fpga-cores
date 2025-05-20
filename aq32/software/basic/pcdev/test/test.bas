@@ -1,13 +1,18 @@
+lbl1:
+    DATA "A","B","C"
 
-gosub test
-print "No"
+' restore lbl2
 
-bla:
-print "Yes"
+for i = 1 to 3
+read a$
+print a$
+next
+
 end
 
-test:
-return
 
+
+lbl2:
+    DATA 32,64,128
 
 

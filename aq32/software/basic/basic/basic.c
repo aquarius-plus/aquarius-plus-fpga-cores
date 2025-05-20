@@ -104,7 +104,7 @@ int basic_run(void) {
     cur_error = 0;
     if (setjmp(jb_error) == 0) {
         console_init();
-        bytecode_run(buf_bytecode, vars_total_size);
+        bytecode_run(buf_bytecode, buf_bytecode_end - buf_bytecode, vars_total_size);
     } else {
         return cur_error;
     }
