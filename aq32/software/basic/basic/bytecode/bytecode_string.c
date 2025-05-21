@@ -111,8 +111,9 @@ void bc_func_val(void) {
     if (result < 0) {
         bc_stack_push_long(0);
 
-    } else if (result == 0) {
-        int32_t val            = strtol(tmp, NULL, 10);
+    } else if (result > 0) {
+        int     base           = result;
+        int32_t val            = strtol(tmp, NULL, base);
         bool    is_int16_range = (val >= INT16_MIN && val <= INT16_MAX);
 
         if (type == 0) {

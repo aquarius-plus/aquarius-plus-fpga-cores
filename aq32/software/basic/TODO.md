@@ -7,10 +7,10 @@
 
 To be implemented:
 
-- Hexadecimal / octal constants (&H1234 &O777)
+- DIM
+- LINE INPUT
 - INPUT
 - INKEY$
-- DIM
 - ERASE
 - INPUT$
 - ON
@@ -19,3 +19,10 @@ To be implemented:
 - TIMER
 - ERL
 - ERR
+
+- LTRIM$ function
+- RTRIM$ function
+- LSET statement
+- RSET statement
+- DO...LOOP
+- EXIT DO/FOR

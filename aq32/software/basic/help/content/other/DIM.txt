@@ -1,35 +1,11 @@
 DIM Statement
-DIM declares an array or specifies a data type for a nonarray variable.
-REDIM declares or resizes a dynamic array, erasing any previous values.
+DIM declares an array variable and its maximum array subscript value.
+Only single dimensional arrays are supported.
 
-*DIM [SHARED] variable[(subscripts)] [AS type]*
-*             [,variable[(subscripts)] [AS type]]...*
-*REDIM [SHARED] variable(subscripts) [AS type]*
-*               [,variable(subscripts) [AS type]]...*
+*DIM variable(subscript)[,variable(subscript)]...*
 
-    @ *SHARED*        Specifies that variables are shared with all SUB or
-                    FUNCTION procedures in the module.
     @ *variable*      The name of an array or variable.
-    @ *subscripts*    Dimensions of the array, expressed as follows:
-
-                    [lower TO] upper [,[lower TO] upper]...
-
-                    lower    The lower bound of the array's subscripts. The
-                             default lower bound is zero.
-                    upper    The upper bound.
-
-    @ *AS type*       Declares the data type of the array or variable
-                    (INTEGER, LONG, SINGLE, DOUBLE, STRING, or a
-                    user-defined data type).
-
-    @ DIM declares either static or dynamic arrays. Unless array storage has
-      been determined by $STATIC, $DYNAMIC, or COMMON, arrays dimensioned
-      with numbers are static and arrays dimensioned with variables are
-      dynamic. REDIM always declares dynamic arrays.
-    @ Static array storage is allocated when you start a program and
-      remains fixed. Dynamic array storage is allocated while a program runs.
+    @ *subscript*     Highest array subscript index, lowest will be 0.
 
 Example:
-    ' $DYNAMIC
-    DIM A(49, 49)
-    REDIM A(19, 14)
+    DIM A(49)   'Array A has 50 elements ranging from index 0 to 49.

@@ -117,7 +117,9 @@ static inline void write_u64(uint8_t *p, uint64_t val) {
     p[7] = (val >> 56) & 0xFF;
 }
 
+static inline bool is_octal(uint8_t ch) { return (ch >= '0' && ch <= '7'); }
 static inline bool is_decimal(uint8_t ch) { return (ch >= '0' && ch <= '9'); }
+static inline bool is_hexadecimal(uint8_t ch) { return is_decimal(ch) || (ch >= 'A' && ch <= 'F') || (ch >= 'a' && ch <= 'f'); }
 static inline bool is_upper(uint8_t ch) { return (ch >= 'A' && ch <= 'Z'); }
 static inline bool is_lower(uint8_t ch) { return (ch >= 'a' && ch <= 'z'); }
 static inline bool is_alpha(uint8_t ch) { return is_upper(ch) || is_lower(ch); }

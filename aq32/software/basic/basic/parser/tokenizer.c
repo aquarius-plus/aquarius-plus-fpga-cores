@@ -147,8 +147,9 @@ static bool parse_number(void) {
     if (result < 0) {
         return false;
 
-    } else if (result == 0) {
-        tokval_num.val_long = strtol(tmp, NULL, 10);
+    } else if (result > 0) {
+        int base            = result;
+        tokval_num.val_long = strtol(tmp, NULL, base);
         bool is_int16_range = (tokval_num.val_long >= INT16_MIN && tokval_num.val_long <= INT16_MAX);
 
         if (type == 0) {
@@ -265,7 +266,11 @@ static int _get_token(void) {
     }
 
     // Number?
-    if ((state.p_cur[0] == '-' || state.p_cur[0] == '.' || is_decimal(state.p_cur[0])) && parse_number())
+    if ((state.p_cur[0] == '-' ||
+         state.p_cur[0] == '.' ||
+         state.p_cur[0] == '&' ||
+         is_decimal(state.p_cur[0])) &&
+        parse_number())
         return cur_token;
 
     // String?
