@@ -7,13 +7,11 @@
 
 To be implemented:
 
-- ERASE
 - LINE INPUT
 - INPUT
 - INKEY$
 - INPUT$
 - ON
-- OPTION
 - RESUME
 - TIMER
 - ERL

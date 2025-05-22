@@ -964,13 +964,19 @@ void bc_emit_dim(void) {
 }
 
 void bc_emit_erase(void) {
-    expect(TOK_IDENTIFIER);
-    infer_identifier_type();
-    tokval_str[tokval_strlen++] = '(';
-    tokval_str[tokval_strlen]   = 0;
-    uint16_t var_offset         = reloc_var_get(tokval_str, tokval_strlen);
-    bc_emit(BC_FREE_ARRAY);
-    bc_emit_u16(var_offset);
+    while (1) {
+        expect(TOK_IDENTIFIER);
+        infer_identifier_type();
+        tokval_str[tokval_strlen++] = '(';
+        tokval_str[tokval_strlen]   = 0;
+        uint16_t var_offset         = reloc_var_get(tokval_str, tokval_strlen);
+        bc_emit(BC_FREE_ARRAY);
+        bc_emit_u16(var_offset);
+
+        if (get_token() != TOK_COMMA)
+            break;
+        ack_token();
+    }
 }
 
 struct stmt {

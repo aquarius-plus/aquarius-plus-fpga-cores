@@ -166,7 +166,34 @@ static void __dim_array(unsigned element_type) {
 }
 
 static void __free_array(void) {
-    _basic_error(ERR_UNHANDLED);
+    uint8_t *p_var = &bc_state.p_vars[bc_get_u16()];
+    uint8_t *p_arr;
+    memcpy(&p_arr, p_var, sizeof(uint8_t *));
+    memset(p_var, 0, sizeof(uint8_t *));
+
+    if (p_arr == NULL)
+        return;
+
+    if (p_arr[0] == ARRAY_TYPE_STRING) {
+        // String array needs freeing of strings as well
+
+        // Calculate number of elements
+        unsigned num_elements = 1;
+        for (int i = 0; i < p_arr[1]; i++)
+            num_elements *= read_u16(p_arr + 2 + i * sizeof(uint16_t));
+
+        uint8_t *p_data = p_arr + 2 + p_arr[1] * sizeof(uint16_t);
+
+        for (unsigned i = 0; i < num_elements; i++) {
+            uint8_t *p_str;
+            memcpy(&p_str, p_data + i * sizeof(uint8_t *), sizeof(uint8_t *));
+            if (p_str != NULL) {
+                buf_free(p_str);
+            }
+        }
+    }
+
+    buf_free(p_arr);
 }
 
 void bc_push_var_int(void) { __push_var_int(&bc_state.p_vars[bc_get_u16()]); }
