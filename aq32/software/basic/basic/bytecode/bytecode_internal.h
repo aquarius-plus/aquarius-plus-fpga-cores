@@ -177,8 +177,6 @@ void bc_jsr(void);
 
 // Statement tokens
 void bc_stmt_clear(void);
-void bc_stmt_dim(void);
-void bc_stmt_erase(void);
 void bc_stmt_inputs(void);
 void bc_stmt_on(void);
 void bc_stmt_option(void);

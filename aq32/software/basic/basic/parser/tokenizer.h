@@ -120,7 +120,6 @@ enum {
     TOK_INPUTs,
     TOK_LOCATE,
     TOK_ON,
-    TOK_OPTION,
     TOK_PRINT,
     TOK_RANDOMIZE,
     TOK_READ,

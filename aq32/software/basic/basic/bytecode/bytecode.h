@@ -64,11 +64,8 @@ enum {
 
     // Statement tokens (tokenizer.h)
     BC_STMT_CLEAR,
-    BC_STMT_DIM,
-    BC_STMT_ERASE,
     BC_STMT_INPUTs,
     BC_STMT_ON,
-    BC_STMT_OPTION,
     BC_STMT_RETURN,
     BC_STMT_RETURN_TO,
     BC_STMT_TIMER,

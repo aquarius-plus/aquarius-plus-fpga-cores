@@ -81,7 +81,6 @@ static const struct keyword keywords[] = {
     {.name = "OCT$", .token = TOK_OCTs},
     {.name = "OFF", .token = TOK_OFF},
     {.name = "ON", .token = TOK_ON},
-    {.name = "OPTION", .token = TOK_OPTION},
     {.name = "OR", .token = TOK_OR},
     {.name = "POS", .token = TOK_POS},
     {.name = "PRINT", .token = TOK_PRINT},
