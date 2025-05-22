@@ -37,6 +37,12 @@ static const char *bc_names[] = {
     [BC_STORE_ARRAY_SINGLE]           = "STORE_ARRAY_SINGLE",
     [BC_STORE_ARRAY_DOUBLE]           = "STORE_ARRAY_DOUBLE",
     [BC_STORE_ARRAY_STRING]           = "STORE_ARRAY_STRING",
+    [BC_DIM_ARRAY_INT]                = "DIM_ARRAY_INT",
+    [BC_DIM_ARRAY_LONG]               = "DIM_ARRAY_LONG",
+    [BC_DIM_ARRAY_SINGLE]             = "DIM_ARRAY_SINGLE",
+    [BC_DIM_ARRAY_DOUBLE]             = "DIM_ARRAY_DOUBLE",
+    [BC_DIM_ARRAY_STRING]             = "DIM_ARRAY_STRING",
+    [BC_FREE_ARRAY]                   = "FREE_ARRAY",
     [BC_JMP]                          = "JMP",
     [BC_JMP_NZ]                       = "JMP_NZ",
     [BC_JMP_Z]                        = "JMP_Z",
@@ -183,7 +189,8 @@ void bytecode_dump(void) {
             case BC_STORE_VAR_LONG:
             case BC_STORE_VAR_SINGLE:
             case BC_STORE_VAR_DOUBLE:
-            case BC_STORE_VAR_STRING: {
+            case BC_STORE_VAR_STRING:
+            case BC_FREE_ARRAY: {
                 printf(": %u", read_u16(p));
                 p += 2;
                 break;
@@ -198,7 +205,12 @@ void bytecode_dump(void) {
             case BC_STORE_ARRAY_LONG:
             case BC_STORE_ARRAY_SINGLE:
             case BC_STORE_ARRAY_DOUBLE:
-            case BC_STORE_ARRAY_STRING: {
+            case BC_STORE_ARRAY_STRING:
+            case BC_DIM_ARRAY_INT:
+            case BC_DIM_ARRAY_LONG:
+            case BC_DIM_ARRAY_SINGLE:
+            case BC_DIM_ARRAY_DOUBLE:
+            case BC_DIM_ARRAY_STRING: {
                 printf("<%u>: %u", p[0], read_u16(p + 1));
                 p += 3;
                 break;

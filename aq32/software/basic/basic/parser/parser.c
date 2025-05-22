@@ -111,6 +111,19 @@ static void bc_emit_push_array(uint8_t type, uint8_t num_dimensions, uint16_t va
     bc_emit_u16(var_offset);
 }
 
+static void bc_emit_dim_array(uint8_t type, uint8_t num_dimensions, uint16_t var_offset) {
+    switch (type) {
+        case '%': bc_emit(BC_DIM_ARRAY_INT); break;
+        case '&': bc_emit(BC_DIM_ARRAY_LONG); break;
+        case '!': bc_emit(BC_DIM_ARRAY_SINGLE); break;
+        case '#': bc_emit(BC_DIM_ARRAY_DOUBLE); break;
+        case '$': bc_emit(BC_DIM_ARRAY_STRING); break;
+        default: _basic_error(ERR_INTERNAL_ERROR); break;
+    }
+    bc_emit(num_dimensions);
+    bc_emit_u16(var_offset);
+}
+
 static void bc_emit_push_const_int(int16_t val) {
     bc_emit(BC_PUSH_CONST_INT);
     bc_emit_u16(val);
@@ -929,6 +942,37 @@ void bc_emit_stmt_return(void) {
     }
 }
 
+void bc_emit_dim(void) {
+    expect(TOK_IDENTIFIER);
+    infer_identifier_type();
+    uint8_t var_type = tokval_str[tokval_strlen - 1];
+    expect(TOK_LPAREN);
+    tokval_str[tokval_strlen++] = '(';
+    tokval_str[tokval_strlen]   = 0;
+    uint16_t var_offset         = reloc_var_get(tokval_str, tokval_strlen);
+    uint8_t  num_dimensions     = 0;
+
+    while (1) {
+        bc_emit_expr();
+        num_dimensions++;
+        if (get_token() != TOK_COMMA || num_dimensions >= UINT8_MAX)
+            break;
+        expect(TOK_COMMA);
+    }
+    expect(TOK_RPAREN);
+    bc_emit_dim_array(var_type, num_dimensions, var_offset);
+}
+
+void bc_emit_erase(void) {
+    expect(TOK_IDENTIFIER);
+    infer_identifier_type();
+    tokval_str[tokval_strlen++] = '(';
+    tokval_str[tokval_strlen]   = 0;
+    uint16_t var_offset         = reloc_var_get(tokval_str, tokval_strlen);
+    bc_emit(BC_FREE_ARRAY);
+    bc_emit_u16(var_offset);
+}
+
 struct stmt {
     uint8_t bc;
     int     num_params;
@@ -941,9 +985,9 @@ static const struct stmt stmts[TOK_STMT_LAST - TOK_STMT_FIRST + 1] = {
     [TOK_CLS       - TOK_STMT_FIRST] = {.bc = BC_STMT_CLS,       .num_params = 0, .emit_stmt = NULL},
     [TOK_COLOR     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_color},
     [TOK_DATA      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_data},
- // [TOK_DIM       - TOK_STMT_FIRST] = {.bc = BC_STMT_DIM,       .num_params = 0, .emit_stmt = NULL},
+    [TOK_DIM       - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_dim},
     [TOK_END       - TOK_STMT_FIRST] = {.bc = BC_END,            .num_params = 0, .emit_stmt = NULL},
- // [TOK_ERASE     - TOK_STMT_FIRST] = {.bc = BC_STMT_ERASE,     .num_params = 0, .emit_stmt = NULL},
+    [TOK_ERASE     - TOK_STMT_FIRST] = {.bc = BC_STMT_ERASE,     .num_params = 0, .emit_stmt = bc_emit_erase},
     [TOK_ERROR     - TOK_STMT_FIRST] = {.bc = BC_STMT_ERROR,     .num_params = 1, .emit_stmt = NULL},
     [TOK_FOR       - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_for},
     [TOK_GOSUB     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_gosub},

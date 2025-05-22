@@ -250,6 +250,24 @@ void bc_store_array_double(void) {
 void bc_store_array_string(void) {
     _basic_error(ERR_UNHANDLED);
 }
+void bc_dim_array_int(void) {
+    _basic_error(ERR_UNHANDLED);
+}
+void bc_dim_array_long(void) {
+    _basic_error(ERR_UNHANDLED);
+}
+void bc_dim_array_single(void) {
+    _basic_error(ERR_UNHANDLED);
+}
+void bc_dim_array_double(void) {
+    _basic_error(ERR_UNHANDLED);
+}
+void bc_dim_array_string(void) {
+    _basic_error(ERR_UNHANDLED);
+}
+void bc_free_array(void) {
+    _basic_error(ERR_UNHANDLED);
+}
 
 void bc_jmp(void) {
     bc_state.p_cur = bc_state.p_buf + bc_get_u16();
@@ -412,6 +430,14 @@ static bc_handler_t bc_handlers[] = {
     [BC_STORE_ARRAY_SINGLE] = bc_store_array_single,
     [BC_STORE_ARRAY_DOUBLE] = bc_store_array_double,
     [BC_STORE_ARRAY_STRING] = bc_store_array_string,
+
+    [BC_DIM_ARRAY_INT]    = bc_dim_array_int,
+    [BC_DIM_ARRAY_LONG]   = bc_dim_array_long,
+    [BC_DIM_ARRAY_SINGLE] = bc_dim_array_single,
+    [BC_DIM_ARRAY_DOUBLE] = bc_dim_array_double,
+    [BC_DIM_ARRAY_STRING] = bc_dim_array_string,
+
+    [BC_FREE_ARRAY] = bc_free_array,
 
     [BC_JMP]    = bc_jmp,
     [BC_JMP_NZ] = bc_jmp_nz,
