@@ -110,6 +110,16 @@ void bc_print_tab(void) {
         console_putc(' ');
 }
 
+void bc_print_next_field(void) {
+    int w = console_get_num_columns();
+    while (1) {
+        console_putc(' ');
+        int column = console_get_cursor_column();
+        if (column % 14 == 0 && column + 14 < w)
+            break;
+    }
+}
+
 void bc_print_newline(void) {
     console_puts("\r\n");
 }

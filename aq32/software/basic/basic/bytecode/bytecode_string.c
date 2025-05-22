@@ -208,3 +208,44 @@ void bc_func_oct_s(void) {
     stkval_t *stk = bc_stack_push_temp_str(len);
     memcpy(stk->val_str.p, tmp, len);
 }
+
+void bc_func_ltrim_s(void) {
+    stkval_t val_s = *bc_stack_pop_str();
+    int      n     = val_s.val_str.length;
+    int      idx   = 0;
+    while (idx < n && val_s.val_str.p[idx] == ' ')
+        idx++;
+
+    stkval_t *stk = bc_stack_push_temp_str(n - idx);
+    memcpy(stk->val_str.p, val_s.val_str.p + idx, n - idx);
+    bc_free_temp_val(&val_s);
+}
+
+void bc_func_rtrim_s(void) {
+    stkval_t val_s = *bc_stack_pop_str();
+    int      n     = val_s.val_str.length;
+    while (n > 0 && val_s.val_str.p[n - 1] == ' ')
+        n--;
+
+    stkval_t *stk = bc_stack_push_temp_str(n);
+    memcpy(stk->val_str.p, val_s.val_str.p, n);
+    bc_free_temp_val(&val_s);
+}
+
+void bc_func_lcase_s(void) {
+    stkval_t  val_s = *bc_stack_pop_str();
+    int       n     = val_s.val_str.length;
+    stkval_t *stk   = bc_stack_push_temp_str(n);
+    for (int i = 0; i < n; i++)
+        stk->val_str.p[i] = to_lower(val_s.val_str.p[i]);
+    bc_free_temp_val(&val_s);
+}
+
+void bc_func_ucase_s(void) {
+    stkval_t  val_s = *bc_stack_pop_str();
+    int       n     = val_s.val_str.length;
+    stkval_t *stk   = bc_stack_push_temp_str(n);
+    for (int i = 0; i < n; i++)
+        stk->val_str.p[i] = to_upper(val_s.val_str.p[i]);
+    bc_free_temp_val(&val_s);
+}

@@ -132,6 +132,10 @@ enum {
     BC_FUNC_CHRs,
     BC_FUNC_HEXs,
     BC_FUNC_OCTs,
+    BC_FUNC_LTRIMs,
+    BC_FUNC_RTRIMs,
+    BC_FUNC_LCASEs,
+    BC_FUNC_UCASEs,
 
     // Console I/O
     BC_FUNC_INKEYs,
@@ -147,6 +151,7 @@ enum {
     BC_PRINT_VAL,
     BC_PRINT_SPC,
     BC_PRINT_TAB,
+    BC_PRINT_NEXT_FIELD,
     BC_PRINT_NEWLINE,
 
     // Error handling

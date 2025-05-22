@@ -286,9 +286,11 @@ static const struct func funcs[TOK_FUNC_LAST - TOK_FUNC_FIRST + 1] = {
     [TOK_INKEYs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_INKEYs,  .num_params = 0, .emit_func = NULL},
     [TOK_INSTR   - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_instr},
     [TOK_INT     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_INT,     .num_params = 1, .emit_func = NULL},
+    [TOK_LCASEs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LCASEs,  .num_params = 1, .emit_func = NULL},
     [TOK_LEFTs   - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LEFTs,   .num_params = 2, .emit_func = NULL},
     [TOK_LEN     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LEN,     .num_params = 1, .emit_func = NULL},
     [TOK_LOG     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LOG,     .num_params = 1, .emit_func = NULL},
+    [TOK_LTRIMs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LTRIMs,  .num_params = 1, .emit_func = NULL},
     [TOK_MIDs    - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_mid_s},
     [TOK_MKDs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_MKDs,    .num_params = 1, .emit_func = NULL},
     [TOK_MKIs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_MKIs,    .num_params = 1, .emit_func = NULL},
@@ -298,6 +300,7 @@ static const struct func funcs[TOK_FUNC_LAST - TOK_FUNC_FIRST + 1] = {
     [TOK_POS     - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_pos},
     [TOK_RIGHTs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_RIGHTs,  .num_params = 2, .emit_func = NULL},
     [TOK_RND     - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_rnd},
+    [TOK_RTRIMs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_RTRIMs,  .num_params = 1, .emit_func = NULL},
     [TOK_SGN     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SGN,     .num_params = 1, .emit_func = NULL},
     [TOK_SIN     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SIN,     .num_params = 1, .emit_func = NULL},
     [TOK_SPACEs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SPACEs,  .num_params = 1, .emit_func = NULL},
@@ -305,6 +308,7 @@ static const struct func funcs[TOK_FUNC_LAST - TOK_FUNC_FIRST + 1] = {
     [TOK_STRINGs - TOK_FUNC_FIRST] = {.bc = BC_FUNC_STRINGs, .num_params = 2, .emit_func = NULL},
     [TOK_STRs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_STRs,    .num_params = 1, .emit_func = NULL},
     [TOK_TAN     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_TAN,     .num_params = 1, .emit_func = NULL},
+    [TOK_UCASEs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_UCASEs,  .num_params = 1, .emit_func = NULL},
     [TOK_VAL     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_VAL,     .num_params = 1, .emit_func = NULL},
 };
 // clang-format on
@@ -496,6 +500,7 @@ static void bc_emit_stmt_print(void) {
 
         } else if (tok == TOK_COMMA) {
             ack_token();
+            bc_emit(BC_PRINT_NEXT_FIELD);
 
         } else if (tok == TOK_SPC) {
             ack_token();

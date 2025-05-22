@@ -16,10 +16,7 @@ To be implemented:
 - TIMER
 - ERL
 - ERR
+- MID$ statement
 
-- LTRIM$ function
-- RTRIM$ function
-- LSET statement
-- RSET statement
 - DO...LOOP
 - EXIT DO/FOR

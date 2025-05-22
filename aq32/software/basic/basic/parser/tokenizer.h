@@ -156,18 +156,21 @@ enum {
     TOK_INKEYs, // INKEY$
     TOK_INSTR,
     TOK_INT,
+    TOK_LCASEs, // LCASE$
     TOK_LEFTs, // LEFT$
     TOK_LEN,
     TOK_LOG,
-    TOK_MIDs, // MID$
-    TOK_MKDs, // MKD$
-    TOK_MKIs, // MKI$
-    TOK_MKLs, // MKL$
-    TOK_MKSs, // MKS$
-    TOK_OCTs, // OCT$
+    TOK_LTRIMs, // LTRIM$
+    TOK_MIDs,   // MID$
+    TOK_MKDs,   // MKD$
+    TOK_MKIs,   // MKI$
+    TOK_MKLs,   // MKL$
+    TOK_MKSs,   // MKS$
+    TOK_OCTs,   // OCT$
     TOK_POS,
     TOK_RIGHTs, // RIGHT$
     TOK_RND,
+    TOK_RTRIMs, // RTRIM$
     TOK_SGN,
     TOK_SIN,
     TOK_SPACEs, // SPACE$
@@ -175,6 +178,7 @@ enum {
     TOK_STRINGs, // STRING$
     TOK_STRs,    // STR$
     TOK_TAN,
+    TOK_UCASEs, // UCASE$
     TOK_VAL,
     TOK_FUNC_LAST = TOK_VAL,
 };

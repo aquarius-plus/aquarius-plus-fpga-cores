@@ -329,12 +329,13 @@ static bc_handler_t bc_handlers[] = {
     [BC_JMP_Z]  = bc_jmp_z,
     [BC_JSR]    = bc_jsr,
 
-    [BC_PRINT_VAL]     = bc_print_val,
-    [BC_PRINT_SPC]     = bc_print_spc,
-    [BC_PRINT_TAB]     = bc_print_tab,
-    [BC_PRINT_NEWLINE] = bc_print_newline,
+    [BC_PRINT_VAL]        = bc_print_val,
+    [BC_PRINT_SPC]        = bc_print_spc,
+    [BC_PRINT_TAB]        = bc_print_tab,
+    [BC_PRINT_NEXT_FIELD] = bc_print_next_field,
+    [BC_PRINT_NEWLINE]    = bc_print_newline,
 
-    // Keep in same order as operator tokens (tokenizer.h)
+    // Operator tokens
     [BC_OP_POW]    = bc_op_pow,    // TOK_POW
     [BC_OP_MULT]   = bc_op_mult,   // TOK_MULT
     [BC_OP_DIV]    = bc_op_div,    // TOK_DIV
@@ -356,7 +357,7 @@ static bc_handler_t bc_handlers[] = {
     [BC_OP_IMP]    = bc_op_imp,    // TOK_IMP
     [BC_OP_NEGATE] = bc_op_negate,
 
-    // Statement tokens (tokenizer.h)
+    // Statement tokens
     [BC_STMT_CLEAR]     = bc_stmt_clear,
     [BC_STMT_CLS]       = bc_stmt_cls,
     [BC_STMT_COLOR]     = bc_stmt_color,
@@ -372,7 +373,7 @@ static bc_handler_t bc_handlers[] = {
     [BC_STMT_TIMER]     = bc_stmt_timer,
     [BC_STMT_WIDTH]     = bc_stmt_width,
 
-    // Keep in same order as function tokens (tokenizer.h)
+    // Function tokens
     [BC_FUNC_ABS]     = bc_func_abs,
     [BC_FUNC_ASC]     = bc_func_asc,
     [BC_FUNC_ATN]     = bc_func_atn,
@@ -395,18 +396,21 @@ static bc_handler_t bc_handlers[] = {
     [BC_FUNC_INKEYs]  = bc_func_inkey_s, // INKEY$
     [BC_FUNC_INSTR]   = bc_func_instr,
     [BC_FUNC_INT]     = bc_func_int,
-    [BC_FUNC_LEFTs]   = bc_func_left_s, // LEFT$
+    [BC_FUNC_LCASEs]  = bc_func_lcase_s, // LCASE$
+    [BC_FUNC_LEFTs]   = bc_func_left_s,  // LEFT$
     [BC_FUNC_LEN]     = bc_func_len,
     [BC_FUNC_LOG]     = bc_func_log,
-    [BC_FUNC_MIDs]    = bc_func_mid_s, // MID$
-    [BC_FUNC_MKDs]    = bc_func_mkd_s, // MKD$
-    [BC_FUNC_MKIs]    = bc_func_mki_s, // MKI$
-    [BC_FUNC_MKLs]    = bc_func_mkl_s, // MKL$
-    [BC_FUNC_MKSs]    = bc_func_mks_s, // MKS$
-    [BC_FUNC_OCTs]    = bc_func_oct_s, // OCT$
+    [BC_FUNC_LTRIMs]  = bc_func_ltrim_s, // LTRIM$
+    [BC_FUNC_MIDs]    = bc_func_mid_s,   // MID$
+    [BC_FUNC_MKDs]    = bc_func_mkd_s,   // MKD$
+    [BC_FUNC_MKIs]    = bc_func_mki_s,   // MKI$
+    [BC_FUNC_MKLs]    = bc_func_mkl_s,   // MKL$
+    [BC_FUNC_MKSs]    = bc_func_mks_s,   // MKS$
+    [BC_FUNC_OCTs]    = bc_func_oct_s,   // OCT$
     [BC_FUNC_POS]     = bc_func_pos,
     [BC_FUNC_RIGHTs]  = bc_func_right_s, // RIGHT$
     [BC_FUNC_RND]     = bc_func_rnd,
+    [BC_FUNC_RTRIMs]  = bc_func_rtrim_s, // RTRIM$
     [BC_FUNC_SGN]     = bc_func_sgn,
     [BC_FUNC_SIN]     = bc_func_sin,
     [BC_FUNC_SPACEs]  = bc_func_space_s, // SPACE$
@@ -414,6 +418,7 @@ static bc_handler_t bc_handlers[] = {
     [BC_FUNC_STRINGs] = bc_func_string_s, // STRING$
     [BC_FUNC_STRs]    = bc_func_str_s,    // STR$
     [BC_FUNC_TAN]     = bc_func_tan,
+    [BC_FUNC_UCASEs]  = bc_func_ucase_s, // UCASE$
     [BC_FUNC_VAL]     = bc_func_val,
 };
 

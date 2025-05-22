@@ -169,7 +169,7 @@ static void __free_array(void) {
     uint8_t *p_var = &bc_state.p_vars[bc_get_u16()];
     uint8_t *p_arr;
     memcpy(&p_arr, p_var, sizeof(uint8_t *));
-    memset(p_var, 0, sizeof(uint8_t *));
+    memset(p_var, 0, sizeof(*p_var));
 
     if (p_arr == NULL)
         return;

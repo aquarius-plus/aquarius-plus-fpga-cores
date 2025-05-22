@@ -244,6 +244,10 @@ void bc_func_str_s(void);
 void bc_func_chr_s(void);
 void bc_func_hex_s(void);
 void bc_func_oct_s(void);
+void bc_func_ltrim_s(void);
+void bc_func_rtrim_s(void);
+void bc_func_lcase_s(void);
+void bc_func_ucase_s(void);
 
 // Console I/O
 void bc_func_inkey_s(void);
@@ -259,6 +263,7 @@ void bc_stmt_width(void);
 void bc_print_val(void);
 void bc_print_spc(void);
 void bc_print_tab(void);
+void bc_print_next_field(void);
 void bc_print_newline(void);
 
 // Error handling
