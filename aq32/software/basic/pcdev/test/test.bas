@@ -1,10 +1,12 @@
-deflng a-z
+defint a-z
 
-dim a(100)
-erase a
-
-a(1+2) = 5
+dim a$(9)
+' erase a
 
 for i = 0 to 9
-    print a(i)
+    a$(i) = chr$(65+i)
+next
+
+for i = 0 to 9
+    print i, a$(i)
 next

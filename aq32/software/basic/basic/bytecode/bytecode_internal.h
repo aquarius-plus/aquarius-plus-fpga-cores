@@ -4,6 +4,7 @@
 #include "common/buffers.h"
 #include "basic.h"
 #include <math.h>
+#include "bytecode.h"
 
 // Stack values
 enum {
@@ -32,14 +33,14 @@ typedef struct {
             uint8_t *p;
         } val_str;
     };
-} value_t;
+} stkval_t;
 
-void bc_to_long_round(value_t *val);
-void bc_to_single(value_t *val);
-void bc_to_double(value_t *val);
-void bc_promote_type(value_t *val, unsigned type);
-void bc_promote_types(value_t *val_l, value_t *val_r);
-void bc_promote_types_flt(value_t *val_l, value_t *val_r);
+void bc_to_long_round(stkval_t *val);
+void bc_to_single(stkval_t *val);
+void bc_to_double(stkval_t *val);
+void bc_promote_type(stkval_t *val, unsigned type);
+void bc_promote_types(stkval_t *val_l, stkval_t *val_r);
+void bc_promote_types_flt(stkval_t *val_l, stkval_t *val_r);
 int  bc_arg_size(uint8_t bc, const uint8_t *p);
 
 // Stack manipulation
@@ -49,7 +50,7 @@ struct bc_state {
     const uint8_t *p_buf;
     const uint8_t *p_buf_end;
     const uint8_t *p_cur;
-    value_t        stack[STACK_DEPTH];
+    stkval_t       stack[STACK_DEPTH];
     int            stack_idx;
     uint8_t       *p_vars;
     bool           stop;
@@ -58,60 +59,60 @@ struct bc_state {
 };
 extern struct bc_state bc_state;
 
-static inline value_t *bc_stack_push(void) {
+static inline stkval_t *bc_stack_push(void) {
     if (bc_state.stack_idx == 0)
         _basic_error(ERR_FORMULA_TOO_COMPLEX);
     return &bc_state.stack[--bc_state.stack_idx];
 }
-static inline value_t *bc_stack_pop(void) {
+static inline stkval_t *bc_stack_pop(void) {
     if (bc_state.stack_idx >= STACK_DEPTH)
         _basic_error(ERR_INTERNAL_ERROR);
     return &bc_state.stack[bc_state.stack_idx++];
 }
-static inline value_t *bc_stack_pop_num(void) {
+static inline stkval_t *bc_stack_pop_num(void) {
     if (bc_state.stack_idx >= STACK_DEPTH)
         _basic_error(ERR_INTERNAL_ERROR);
-    value_t *stk = &bc_state.stack[bc_state.stack_idx++];
+    stkval_t *stk = &bc_state.stack[bc_state.stack_idx++];
     if (stk->type == VT_STR)
         _basic_error(ERR_TYPE_MISMATCH);
     return stk;
 }
 static inline int32_t bc_stack_pop_long(void) {
-    value_t *stk = bc_stack_pop_num();
+    stkval_t *stk = bc_stack_pop_num();
     bc_to_long_round(stk);
     return stk->val_long;
 }
-static inline value_t *bc_stack_pop_str(void) {
+static inline stkval_t *bc_stack_pop_str(void) {
     if (bc_state.stack_idx >= STACK_DEPTH)
         _basic_error(ERR_INTERNAL_ERROR);
-    value_t *stk = &bc_state.stack[bc_state.stack_idx++];
+    stkval_t *stk = &bc_state.stack[bc_state.stack_idx++];
     if (stk->type != VT_STR)
         _basic_error(ERR_TYPE_MISMATCH);
     return stk;
 }
 static inline void bc_stack_push_bool(bool val) {
-    value_t *stk  = bc_stack_push();
+    stkval_t *stk = bc_stack_push();
     stk->type     = VT_LONG;
     stk->val_long = val ? -1 : 0;
 }
 static inline void bc_stack_push_long(int32_t val) {
-    value_t *stk  = bc_stack_push();
+    stkval_t *stk = bc_stack_push();
     stk->type     = VT_LONG;
     stk->val_long = val;
 }
 static inline void bc_stack_push_single(float val) {
-    value_t *stk    = bc_stack_push();
+    stkval_t *stk   = bc_stack_push();
     stk->type       = VT_SINGLE;
     stk->val_single = val;
 }
 static inline void bc_stack_push_double(double val) {
-    value_t *stk    = bc_stack_push();
+    stkval_t *stk   = bc_stack_push();
     stk->type       = VT_DOUBLE;
     stk->val_double = val;
 }
 
-value_t *bc_stack_push_temp_str(unsigned length);
-void     bc_free_temp_val(value_t *val);
+stkval_t *bc_stack_push_temp_str(unsigned length);
+void      bc_free_temp_val(stkval_t *val);
 
 static inline uint8_t bc_get_u8(void) {
     return *(bc_state.p_cur++);

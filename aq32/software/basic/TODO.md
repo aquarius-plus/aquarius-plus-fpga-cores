@@ -7,11 +7,10 @@
 
 To be implemented:
 
-- DIM
+- ERASE
 - LINE INPUT
 - INPUT
 - INKEY$
-- ERASE
 - INPUT$
 - ON
 - OPTION

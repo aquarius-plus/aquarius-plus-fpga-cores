@@ -62,7 +62,7 @@ void bc_func_pos(void) {
 }
 
 void bc_print_val(void) {
-    value_t *val = bc_stack_pop();
+    stkval_t *val = bc_stack_pop();
     switch (val->type) {
         case VT_LONG: {
             char tmp[64];

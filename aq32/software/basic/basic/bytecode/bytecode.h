@@ -2,6 +2,9 @@
 
 #include "common.h"
 
+#define ARRAY_MAX_DIMENSIONS         8
+#define ARRAY_DEFAULT_DIMENSION_SIZE 11
+
 int  bytecode_get_line_for_offset(const uint8_t *buf, size_t buf_size, uint16_t offset);
 void bytecode_dump(void);
 void bytecode_run(const uint8_t *p_buf, size_t bc_size, size_t vars_sz);

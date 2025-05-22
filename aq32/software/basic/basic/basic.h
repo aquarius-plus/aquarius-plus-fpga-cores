@@ -10,6 +10,8 @@ enum {
     ERR_OVERFLOW               = 6,
     ERR_OUT_OF_MEM             = 7,
     ERR_LABEL_NOT_DEFINED      = 8,
+    ERR_SUBSCRIPT_OUT_OF_RANGE = 9,
+    ERR_DUPLICATE_DEFINITION   = 10,
     ERR_DIV_BY_ZERO            = 11,
     ERR_TYPE_MISMATCH          = 13,
     ERR_FORMULA_TOO_COMPLEX    = 16,

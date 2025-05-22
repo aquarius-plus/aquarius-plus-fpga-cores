@@ -1,8 +1,8 @@
 #include "bytecode_internal.h"
 
 void bc_op_pow(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_promote_types_flt(val_l, val_r);
     switch (val_l->type) {
         case VT_SINGLE: bc_stack_push_single(powf(val_l->val_single, val_r->val_single)); break;
@@ -11,7 +11,7 @@ void bc_op_pow(void) {
 }
 
 void bc_op_negate(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     switch (val->type) {
         case VT_LONG: bc_stack_push_long(-val->val_long); break;
         case VT_SINGLE: bc_stack_push_single(-val->val_single); break;
@@ -20,8 +20,8 @@ void bc_op_negate(void) {
 }
 
 void bc_op_mult(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_promote_types(val_l, val_r);
 
     switch (val_l->type) {
@@ -32,8 +32,8 @@ void bc_op_mult(void) {
 }
 
 void bc_op_div(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_promote_types_flt(val_l, val_r);
     switch (val_l->type) {
         case VT_SINGLE: bc_stack_push_single(val_l->val_single / val_r->val_single); break;
@@ -42,8 +42,8 @@ void bc_op_div(void) {
 }
 
 void bc_op_intdiv(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_to_long_round(val_l);
     bc_to_long_round(val_r);
     if (val_r->val_long == 0)
@@ -53,8 +53,8 @@ void bc_op_intdiv(void) {
 }
 
 void bc_op_mod(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_to_long_round(val_l);
     bc_to_long_round(val_r);
     if (val_r->val_long == 0)
@@ -64,8 +64,8 @@ void bc_op_mod(void) {
 }
 
 void bc_op_add(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_promote_types(val_l, val_r);
 
     switch (val_l->type) {
@@ -76,8 +76,8 @@ void bc_op_add(void) {
 }
 
 void bc_op_sub(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_promote_types(val_l, val_r);
 
     switch (val_l->type) {
@@ -88,8 +88,8 @@ void bc_op_sub(void) {
 }
 
 void bc_op_eq(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_promote_types(val_l, val_r);
 
     switch (val_l->type) {
@@ -100,8 +100,8 @@ void bc_op_eq(void) {
 }
 
 void bc_op_ne(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_promote_types(val_l, val_r);
 
     switch (val_l->type) {
@@ -112,8 +112,8 @@ void bc_op_ne(void) {
 }
 
 void bc_op_lt(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_promote_types(val_l, val_r);
 
     switch (val_l->type) {
@@ -124,8 +124,8 @@ void bc_op_lt(void) {
 }
 
 void bc_op_le(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_promote_types(val_l, val_r);
 
     switch (val_l->type) {
@@ -136,8 +136,8 @@ void bc_op_le(void) {
 }
 
 void bc_op_gt(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_promote_types(val_l, val_r);
 
     switch (val_l->type) {
@@ -148,8 +148,8 @@ void bc_op_gt(void) {
 }
 
 void bc_op_ge(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_promote_types(val_l, val_r);
 
     switch (val_l->type) {
@@ -160,53 +160,53 @@ void bc_op_ge(void) {
 }
 
 void bc_op_not(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     bc_to_long_round(val);
     bc_stack_push_long(-(val->val_long + 1));
 }
 
 void bc_op_and(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_to_long_round(val_l);
     bc_to_long_round(val_r);
     bc_stack_push_long(val_l->val_long & val_r->val_long);
 }
 
 void bc_op_or(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_to_long_round(val_l);
     bc_to_long_round(val_r);
     bc_stack_push_long(val_l->val_long | val_r->val_long);
 }
 
 void bc_op_xor(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_to_long_round(val_l);
     bc_to_long_round(val_r);
     bc_stack_push_long(val_l->val_long ^ val_r->val_long);
 }
 
 void bc_op_eqv(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_to_long_round(val_l);
     bc_to_long_round(val_r);
     bc_stack_push_long(~(val_l->val_long ^ val_r->val_long));
 }
 
 void bc_op_imp(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_to_long_round(val_l);
     bc_to_long_round(val_r);
     bc_stack_push_long(~(val_l->val_long & ~val_r->val_long));
 }
 
 void bc_op_inc(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     switch (val->type) {
         case VT_LONG: bc_stack_push_long(val->val_long + 1); break;
         case VT_SINGLE: bc_stack_push_single(val->val_single + 1.0f); break;
@@ -215,13 +215,13 @@ void bc_op_inc(void) {
 }
 
 void bc_op_le_ge(void) {
-    value_t *val_r = bc_stack_pop_num();
-    value_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop_num();
+    stkval_t *val_l = bc_stack_pop_num();
     bc_promote_types(val_l, val_r);
 
     bool is_neg = false;
 
-    value_t *val_step = bc_stack_pop_num();
+    stkval_t *val_step = bc_stack_pop_num();
     switch (val_step->type) {
         case VT_LONG: is_neg = val_step->val_long < 0; break;
         case VT_SINGLE: is_neg = val_step->val_single < 0.0f; break;
@@ -244,7 +244,7 @@ void bc_op_le_ge(void) {
 }
 
 void bc_func_abs(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     switch (val->type) {
         case VT_LONG: bc_stack_push_long(val->val_long < 0 ? -val->val_long : val->val_long); break;
         case VT_SINGLE: bc_stack_push_single(val->val_single < 0 ? -val->val_single : val->val_single); break;
@@ -253,7 +253,7 @@ void bc_func_abs(void) {
 }
 
 void bc_func_atn(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     bc_to_single(val);
     switch (val->type) {
         case VT_SINGLE: bc_stack_push_single(atanf(val->val_single)); break;
@@ -262,7 +262,7 @@ void bc_func_atn(void) {
 }
 
 void bc_func_tan(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     bc_to_single(val);
     switch (val->type) {
         case VT_SINGLE: bc_stack_push_single(tanf(val->val_single)); break;
@@ -271,7 +271,7 @@ void bc_func_tan(void) {
 }
 
 void bc_func_cos(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     bc_to_single(val);
     switch (val->type) {
         case VT_SINGLE: bc_stack_push_single(cosf(val->val_single)); break;
@@ -280,7 +280,7 @@ void bc_func_cos(void) {
 }
 
 void bc_func_sin(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     bc_to_single(val);
     switch (val->type) {
         case VT_SINGLE: bc_stack_push_single(sinf(val->val_single)); break;
@@ -289,7 +289,7 @@ void bc_func_sin(void) {
 }
 
 void bc_func_sqr(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     bc_to_single(val);
     switch (val->type) {
         case VT_SINGLE:
@@ -306,7 +306,7 @@ void bc_func_sqr(void) {
 }
 
 void bc_func_exp(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     bc_to_single(val);
     switch (val->type) {
         case VT_SINGLE: bc_stack_push_single(expf(val->val_single)); break;
@@ -315,7 +315,7 @@ void bc_func_exp(void) {
 }
 
 void bc_func_fix(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     bc_to_single(val);
     switch (val->type) {
         case VT_SINGLE: bc_stack_push_single(truncf(val->val_single)); break;
@@ -324,7 +324,7 @@ void bc_func_fix(void) {
 }
 
 void bc_func_sgn(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
 
     int result = 0;
     switch (val->type) {
@@ -352,7 +352,7 @@ void bc_func_sgn(void) {
 }
 
 void bc_func_log(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     bc_to_single(val);
     switch (val->type) {
         case VT_SINGLE:
@@ -369,7 +369,7 @@ void bc_func_log(void) {
 }
 
 void bc_func_int(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
 
     int result = 0;
     switch (val->type) {
@@ -420,7 +420,7 @@ static int myrand_r(uint32_t *seed) {
 static uint32_t cur_seed = 0;
 
 void bc_func_rnd(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     bc_to_single(val);
 
     int result;
@@ -441,7 +441,7 @@ void bc_func_rnd(void) {
 }
 
 void bc_stmt_randomize(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     bc_to_long_round(val);
 
     cur_seed = val->val_long;

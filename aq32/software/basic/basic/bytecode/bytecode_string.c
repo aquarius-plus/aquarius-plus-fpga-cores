@@ -2,8 +2,8 @@
 #include "common/parsenum.h"
 
 void bc_func_len(void) {
-    value_t *val = bc_stack_pop_str();
-    int      len = val->val_str.length;
+    stkval_t *val = bc_stack_pop_str();
+    int       len = val->val_str.length;
     bc_free_temp_val(val);
     bc_stack_push_long(len);
 }
@@ -13,9 +13,9 @@ void bc_func_left_s(void) {
     if (n < 0)
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
 
-    value_t val_s = *bc_stack_pop_str();
+    stkval_t val_s = *bc_stack_pop_str();
     if (n < val_s.val_str.length) {
-        value_t *stk = bc_stack_push_temp_str(n);
+        stkval_t *stk = bc_stack_push_temp_str(n);
         memcpy(stk->val_str.p, val_s.val_str.p, n);
         bc_free_temp_val(&val_s);
 
@@ -30,9 +30,9 @@ void bc_func_right_s(void) {
     if (n < 0)
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
 
-    value_t val_s = *bc_stack_pop_str();
+    stkval_t val_s = *bc_stack_pop_str();
     if (n < val_s.val_str.length) {
-        value_t *stk = bc_stack_push_temp_str(n);
+        stkval_t *stk = bc_stack_push_temp_str(n);
         memcpy(stk->val_str.p, val_s.val_str.p + val_s.val_str.length - n, n);
         bc_free_temp_val(&val_s);
 
@@ -49,7 +49,7 @@ void bc_func_mid_s(void) {
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
     start -= 1;
 
-    value_t val_s = *bc_stack_pop_str();
+    stkval_t val_s = *bc_stack_pop_str();
     if (start > 0 || start + n < val_s.val_str.length) {
         if (start > val_s.val_str.length) {
             start = val_s.val_str.length;
@@ -58,7 +58,7 @@ void bc_func_mid_s(void) {
             n = val_s.val_str.length - start;
         }
 
-        value_t *stk = bc_stack_push_temp_str(n);
+        stkval_t *stk = bc_stack_push_temp_str(n);
         memcpy(stk->val_str.p, val_s.val_str.p + start, n);
         bc_free_temp_val(&val_s);
 
@@ -69,7 +69,7 @@ void bc_func_mid_s(void) {
 }
 
 void bc_func_asc(void) {
-    value_t *val = bc_stack_pop_str();
+    stkval_t *val = bc_stack_pop_str();
     if (val->val_str.length == 0)
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
     uint8_t ch = val->val_str.p[0];
@@ -78,10 +78,10 @@ void bc_func_asc(void) {
 }
 
 void bc_func_instr(void) {
-    value_t *val_substr = bc_stack_pop_str();
-    value_t *val_str    = bc_stack_pop_str();
-    int      offset     = bc_stack_pop_long();
-    int      result     = 0;
+    stkval_t *val_substr = bc_stack_pop_str();
+    stkval_t *val_str    = bc_stack_pop_str();
+    int       offset     = bc_stack_pop_long();
+    int       result     = 0;
     if (offset < 1)
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
     offset -= 1;
@@ -99,7 +99,7 @@ void bc_func_instr(void) {
 }
 
 void bc_func_val(void) {
-    value_t        val_str = *bc_stack_pop_str();
+    stkval_t       val_str = *bc_stack_pop_str();
     char           tmp[64];
     char           type   = 0;
     const uint8_t *ps     = val_str.val_str.p;
@@ -135,8 +135,8 @@ void bc_func_val(void) {
 }
 
 void bc_func_string_s(void) {
-    value_t *val_ch = bc_stack_pop();
-    uint8_t  ch;
+    stkval_t *val_ch = bc_stack_pop();
+    uint8_t   ch;
     if (val_ch->type == VT_STR) {
         if (val_ch->val_str.length == 0)
             _basic_error(ERR_ILLEGAL_FUNC_CALL);
@@ -154,7 +154,7 @@ void bc_func_string_s(void) {
     if (n < 0 || n > INT16_MAX)
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
 
-    value_t *stk = bc_stack_push_temp_str(n);
+    stkval_t *stk = bc_stack_push_temp_str(n);
     memset(stk->val_str.p, ch, n);
 }
 
@@ -163,14 +163,14 @@ void bc_func_space_s(void) {
     if (n < 0 || n > INT16_MAX)
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
 
-    value_t *stk = bc_stack_push_temp_str(n);
+    stkval_t *stk = bc_stack_push_temp_str(n);
     memset(stk->val_str.p, ' ', n);
 }
 
 void bc_func_str_s(void) {
-    value_t *val = bc_stack_pop_num();
-    char     tmp[32];
-    int      len = 0;
+    stkval_t *val = bc_stack_pop_num();
+    char      tmp[32];
+    int       len = 0;
 
     switch (val->type) {
         case VT_LONG: len = snprintf(tmp, sizeof(tmp), "%s%d", val->val_long >= 0 ? " " : "", (int)val->val_long); break;
@@ -178,7 +178,7 @@ void bc_func_str_s(void) {
         case VT_DOUBLE: len = snprintf(tmp, sizeof(tmp), "%s%.16lg", val->val_double >= 0 ? " " : "", val->val_double); break;
     }
 
-    value_t *stk = bc_stack_push_temp_str(len);
+    stkval_t *stk = bc_stack_push_temp_str(len);
     memcpy(stk->val_str.p, tmp, len);
 }
 
@@ -187,24 +187,24 @@ void bc_func_chr_s(void) {
     if (ch < 0 || ch > 255)
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
 
-    value_t *stk      = bc_stack_push_temp_str(1);
+    stkval_t *stk     = bc_stack_push_temp_str(1);
     stk->val_str.p[0] = ch;
 }
 
 void bc_func_hex_s(void) {
     uint32_t val = bc_stack_pop_long();
 
-    char     tmp[16];
-    int      len = snprintf(tmp, sizeof(tmp), "%X", (unsigned)val);
-    value_t *stk = bc_stack_push_temp_str(len);
+    char      tmp[16];
+    int       len = snprintf(tmp, sizeof(tmp), "%X", (unsigned)val);
+    stkval_t *stk = bc_stack_push_temp_str(len);
     memcpy(stk->val_str.p, tmp, len);
 }
 
 void bc_func_oct_s(void) {
     uint32_t val = bc_stack_pop_long();
 
-    char     tmp[16];
-    int      len = snprintf(tmp, sizeof(tmp), "%o", (unsigned)val);
-    value_t *stk = bc_stack_push_temp_str(len);
+    char      tmp[16];
+    int       len = snprintf(tmp, sizeof(tmp), "%o", (unsigned)val);
+    stkval_t *stk = bc_stack_push_temp_str(len);
     memcpy(stk->val_str.p, tmp, len);
 }

@@ -366,7 +366,7 @@ static void bc_emit_expr0(void) {
                 while (1) {
                     bc_emit_expr();
                     num_dimensions++;
-                    if (get_token() != TOK_COMMA || num_dimensions >= UINT8_MAX)
+                    if (get_token() != TOK_COMMA || num_dimensions >= ARRAY_MAX_DIMENSIONS)
                         break;
                     expect(TOK_COMMA);
                 }
@@ -955,7 +955,7 @@ void bc_emit_dim(void) {
     while (1) {
         bc_emit_expr();
         num_dimensions++;
-        if (get_token() != TOK_COMMA || num_dimensions >= UINT8_MAX)
+        if (get_token() != TOK_COMMA || num_dimensions >= ARRAY_MAX_DIMENSIONS)
             break;
         expect(TOK_COMMA);
     }
@@ -1048,23 +1048,44 @@ static void parse_statement(void) {
         if (get_token() == TOK_LPAREN) {
             // Array element
             ack_token();
+
+            struct tokenizer_state saved_state;
+            tokenizer_save_state(&saved_state);
+
             tokval_str[tokval_strlen++] = '(';
             tokval_str[tokval_strlen]   = 0;
             uint16_t var_offset         = reloc_var_get(tokval_str, tokval_strlen);
             uint8_t  num_dimensions     = 0;
 
+            bc_emit_disable();
+
             while (1) {
                 bc_emit_expr();
                 num_dimensions++;
-                if (get_token() != TOK_COMMA || num_dimensions >= UINT8_MAX)
+                if (get_token() != TOK_COMMA || num_dimensions >= ARRAY_MAX_DIMENSIONS)
                     break;
                 expect(TOK_COMMA);
             }
             expect(TOK_RPAREN);
 
+            bc_emit_enable();
+
             expect(TOK_EQ);
             bc_emit_expr();
+
+            tokenizer_restore_state(&saved_state);
+            for (int i = 0; i < num_dimensions; i++) {
+                bc_emit_expr();
+                if (i < num_dimensions - 1)
+                    expect(TOK_COMMA);
+            }
+            expect(TOK_RPAREN);
             bc_emit_store_array(var_type, num_dimensions, var_offset);
+
+            bc_emit_disable();
+            expect(TOK_EQ);
+            bc_emit_expr();
+            bc_emit_enable();
 
         } else {
             // Normal variable

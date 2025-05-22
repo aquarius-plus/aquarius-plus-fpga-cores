@@ -5,8 +5,8 @@ typedef void (*bc_handler_t)(void);
 static bc_handler_t bc_handlers[];
 struct bc_state     bc_state;
 
-value_t *bc_stack_push_temp_str(unsigned length) {
-    value_t *stk = bc_stack_push();
+stkval_t *bc_stack_push_temp_str(unsigned length) {
+    stkval_t *stk = bc_stack_push();
 
     if (length > INT16_MAX)
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
@@ -22,7 +22,7 @@ value_t *bc_stack_push_temp_str(unsigned length) {
     return stk;
 }
 
-void bc_free_temp_val(value_t *val) {
+void bc_free_temp_val(stkval_t *val) {
     if (val->type != VT_STR)
         return;
     if ((val->val_str.flags & STR_FLAGS_TYPE_MSK) != STR_FLAGS_TYPE_TEMP)
@@ -31,7 +31,7 @@ void bc_free_temp_val(value_t *val) {
     free(val->val_str.p);
 }
 
-void bc_to_long_round(value_t *val) {
+void bc_to_long_round(stkval_t *val) {
     if (val->type == VT_STR)
         _basic_error(ERR_TYPE_MISMATCH);
 
@@ -43,7 +43,7 @@ void bc_to_long_round(value_t *val) {
         val->val_long = (int32_t)round(val->val_double);
     }
 }
-void bc_to_single(value_t *val) {
+void bc_to_single(stkval_t *val) {
     if (val->type == VT_STR)
         _basic_error(ERR_TYPE_MISMATCH);
 
@@ -55,7 +55,7 @@ void bc_to_single(value_t *val) {
         val->val_single = (float)val->val_double;
     }
 }
-void bc_to_double(value_t *val) {
+void bc_to_double(stkval_t *val) {
     if (val->type == VT_STR)
         _basic_error(ERR_TYPE_MISMATCH);
 
@@ -67,7 +67,7 @@ void bc_to_double(value_t *val) {
         val->val_double = val->val_single;
     }
 }
-void bc_promote_type(value_t *val, unsigned type) {
+void bc_promote_type(stkval_t *val, unsigned type) {
     if (val->type >= type)
         return;
 
@@ -82,7 +82,7 @@ void bc_promote_type(value_t *val, unsigned type) {
     }
     val->type = type;
 }
-void bc_promote_types(value_t *val_l, value_t *val_r) {
+void bc_promote_types(stkval_t *val_l, stkval_t *val_r) {
     if (val_l->type == VT_STR || val_r->type == VT_STR)
         _basic_error(ERR_TYPE_MISMATCH);
 
@@ -92,7 +92,7 @@ void bc_promote_types(value_t *val_l, value_t *val_r) {
         bc_promote_type(val_l, val_r->type);
     }
 }
-void bc_promote_types_flt(value_t *val_l, value_t *val_r) {
+void bc_promote_types_flt(stkval_t *val_l, stkval_t *val_r) {
     if (val_l->type == VT_STR || val_r->type == VT_STR)
         _basic_error(ERR_TYPE_MISMATCH);
 
@@ -115,17 +115,17 @@ void bc_line_tag(void) {
 void bc_dup(void) {
     if (bc_state.stack_idx >= STACK_DEPTH)
         _basic_error(ERR_INTERNAL_ERROR);
-    value_t *stk_from = &bc_state.stack[bc_state.stack_idx];
+    stkval_t *stk_from = &bc_state.stack[bc_state.stack_idx];
     if (stk_from->type == VT_STR)
         _basic_error(ERR_TYPE_MISMATCH);
-    value_t *stk_to = bc_stack_push();
-    *stk_to         = *stk_from;
+    stkval_t *stk_to = bc_stack_push();
+    *stk_to          = *stk_from;
 }
 void bc_swap(void) {
-    if (bc_state.stack_idx >= STACK_DEPTH - 2)
+    if (bc_state.stack_idx > STACK_DEPTH - 2)
         _basic_error(ERR_INTERNAL_ERROR);
 
-    value_t tmp                            = bc_state.stack[bc_state.stack_idx];
+    stkval_t tmp                           = bc_state.stack[bc_state.stack_idx];
     bc_state.stack[bc_state.stack_idx]     = bc_state.stack[bc_state.stack_idx + 1];
     bc_state.stack[bc_state.stack_idx + 1] = tmp;
 }
@@ -148,7 +148,7 @@ void bc_push_const_double(void) {
     bc_stack_push_double(*(double *)&u64);
 }
 void bc_push_const_string(void) {
-    value_t *stk        = bc_stack_push();
+    stkval_t *stk       = bc_stack_push();
     stk->type           = VT_STR;
     stk->val_str.flags  = STR_FLAGS_TYPE_CONST;
     stk->val_str.p      = (uint8_t *)(bc_state.p_cur + 1);
@@ -160,7 +160,7 @@ void bc_jmp(void) {
     bc_state.p_cur = bc_state.p_buf + bc_get_u16();
 }
 void bc_jmp_nz(void) {
-    value_t *val = bc_stack_pop();
+    stkval_t *val = bc_stack_pop();
     bc_to_long_round(val);
 
     uint16_t offset = bc_get_u16();
@@ -168,7 +168,7 @@ void bc_jmp_nz(void) {
         bc_state.p_cur = bc_state.p_buf + offset;
 }
 void bc_jmp_z(void) {
-    value_t *val = bc_stack_pop();
+    stkval_t *val = bc_stack_pop();
     bc_to_long_round(val);
 
     uint16_t offset = bc_get_u16();
@@ -194,7 +194,7 @@ void bc_stmt_return_to(void) {
 }
 
 void bc_func_cint(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     bc_to_long_round(val);
     if (val->val_long < INT16_MIN || val->val_long > INT16_MAX)
         _basic_error(ERR_OVERFLOW);
@@ -202,19 +202,19 @@ void bc_func_cint(void) {
 }
 
 void bc_func_clng(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     bc_to_long_round(val);
     bc_stack_push_long(val->val_long);
 }
 
 void bc_func_csng(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     bc_to_single(val);
     bc_stack_push_single(val->val_single);
 }
 
 void bc_func_cdbl(void) {
-    value_t *val = bc_stack_pop_num();
+    stkval_t *val = bc_stack_pop_num();
     bc_to_double(val);
     bc_stack_push_double(val->val_double);
 }
