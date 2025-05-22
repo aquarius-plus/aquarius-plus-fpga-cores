@@ -8,7 +8,7 @@ static struct tokenizer_state state;
 
 static int          cur_token;
 union tokval_number tokval_num;
-char                tokval_str[MAX_STRLEN + 2];
+char                tokval_str[MAX_STRLEN + 3];
 int                 tokval_strlen;
 
 struct keyword {

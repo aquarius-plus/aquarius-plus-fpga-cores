@@ -219,6 +219,38 @@ void bc_store_var_string(void) {
 
     bc_free_temp_val(stk);
 }
+
+void bc_push_array_int(void) {
+    _basic_error(ERR_UNHANDLED);
+}
+void bc_push_array_long(void) {
+    _basic_error(ERR_UNHANDLED);
+}
+void bc_push_array_single(void) {
+    _basic_error(ERR_UNHANDLED);
+}
+void bc_push_array_double(void) {
+    _basic_error(ERR_UNHANDLED);
+}
+void bc_push_array_string(void) {
+    _basic_error(ERR_UNHANDLED);
+}
+void bc_store_array_int(void) {
+    _basic_error(ERR_UNHANDLED);
+}
+void bc_store_array_long(void) {
+    _basic_error(ERR_UNHANDLED);
+}
+void bc_store_array_single(void) {
+    _basic_error(ERR_UNHANDLED);
+}
+void bc_store_array_double(void) {
+    _basic_error(ERR_UNHANDLED);
+}
+void bc_store_array_string(void) {
+    _basic_error(ERR_UNHANDLED);
+}
+
 void bc_jmp(void) {
     bc_state.p_cur = bc_state.p_buf + bc_get_u16();
 }
@@ -368,6 +400,18 @@ static bc_handler_t bc_handlers[] = {
     [BC_STORE_VAR_SINGLE] = bc_store_var_single,
     [BC_STORE_VAR_DOUBLE] = bc_store_var_double,
     [BC_STORE_VAR_STRING] = bc_store_var_string,
+
+    [BC_PUSH_ARRAY_INT]    = bc_push_array_int,
+    [BC_PUSH_ARRAY_LONG]   = bc_push_array_long,
+    [BC_PUSH_ARRAY_SINGLE] = bc_push_array_single,
+    [BC_PUSH_ARRAY_DOUBLE] = bc_push_array_double,
+    [BC_PUSH_ARRAY_STRING] = bc_push_array_string,
+
+    [BC_STORE_ARRAY_INT]    = bc_store_array_int,
+    [BC_STORE_ARRAY_LONG]   = bc_store_array_long,
+    [BC_STORE_ARRAY_SINGLE] = bc_store_array_single,
+    [BC_STORE_ARRAY_DOUBLE] = bc_store_array_double,
+    [BC_STORE_ARRAY_STRING] = bc_store_array_string,
 
     [BC_JMP]    = bc_jmp,
     [BC_JMP_NZ] = bc_jmp_nz,

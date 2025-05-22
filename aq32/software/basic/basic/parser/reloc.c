@@ -101,6 +101,7 @@ static unsigned get_data_size(uint8_t type) {
         case '!': return sizeof(float);
         case '#': return sizeof(double);
         case '$': return sizeof(char *);
+        case '(': return sizeof(void *);
         default: _basic_error(ERR_INTERNAL_ERROR); return 0;
     }
 }

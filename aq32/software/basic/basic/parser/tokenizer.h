@@ -29,7 +29,7 @@ union tokval_number {
 };
 
 extern union tokval_number tokval_num;
-extern char                tokval_str[MAX_STRLEN + 2];
+extern char                tokval_str[MAX_STRLEN + 3];
 extern int                 tokval_strlen;
 
 enum {

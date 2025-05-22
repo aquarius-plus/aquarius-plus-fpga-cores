@@ -1,6 +1,7 @@
+deflng a-z
 
-print &hFFFF
-print &o777
-print &b1100
+a(1+2) = 5
 
-print(val("&hFF"))
+for i = 0 to 9
+    print a(i)
+next

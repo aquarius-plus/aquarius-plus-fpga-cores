@@ -85,6 +85,32 @@ static void bc_emit_push_var(uint8_t type, uint16_t var_offset) {
     bc_emit_u16(var_offset);
 }
 
+static void bc_emit_store_array(uint8_t type, uint8_t num_dimensions, uint16_t var_offset) {
+    switch (type) {
+        case '%': bc_emit(BC_STORE_ARRAY_INT); break;
+        case '&': bc_emit(BC_STORE_ARRAY_LONG); break;
+        case '!': bc_emit(BC_STORE_ARRAY_SINGLE); break;
+        case '#': bc_emit(BC_STORE_ARRAY_DOUBLE); break;
+        case '$': bc_emit(BC_STORE_ARRAY_STRING); break;
+        default: _basic_error(ERR_INTERNAL_ERROR); break;
+    }
+    bc_emit(num_dimensions);
+    bc_emit_u16(var_offset);
+}
+
+static void bc_emit_push_array(uint8_t type, uint8_t num_dimensions, uint16_t var_offset) {
+    switch (type) {
+        case '%': bc_emit(BC_PUSH_ARRAY_INT); break;
+        case '&': bc_emit(BC_PUSH_ARRAY_LONG); break;
+        case '!': bc_emit(BC_PUSH_ARRAY_SINGLE); break;
+        case '#': bc_emit(BC_PUSH_ARRAY_DOUBLE); break;
+        case '$': bc_emit(BC_PUSH_ARRAY_STRING); break;
+        default: _basic_error(ERR_INTERNAL_ERROR); break;
+    }
+    bc_emit(num_dimensions);
+    bc_emit_u16(var_offset);
+}
+
 static void bc_emit_push_const_int(int16_t val) {
     bc_emit(BC_PUSH_CONST_INT);
     bc_emit_u16(val);
@@ -314,8 +340,32 @@ static void bc_emit_expr0(void) {
         case TOK_IDENTIFIER: {
             ack_token();
             infer_identifier_type();
-            uint16_t var_offset = reloc_var_get(tokval_str, tokval_strlen);
-            bc_emit_push_var(tokval_str[tokval_strlen - 1], var_offset);
+            uint8_t var_type = tokval_str[tokval_strlen - 1];
+
+            if (get_token() == TOK_LPAREN) {
+                // Array element
+                ack_token();
+                tokval_str[tokval_strlen++] = '(';
+                tokval_str[tokval_strlen]   = 0;
+                uint16_t var_offset         = reloc_var_get(tokval_str, tokval_strlen);
+                uint8_t  num_dimensions     = 0;
+
+                while (1) {
+                    bc_emit_expr();
+                    num_dimensions++;
+                    if (get_token() != TOK_COMMA || num_dimensions >= UINT8_MAX)
+                        break;
+                    expect(TOK_COMMA);
+                }
+                expect(TOK_RPAREN);
+
+                bc_emit_push_array(var_type, num_dimensions, var_offset);
+
+            } else {
+                // Normal variable
+                uint16_t var_offset = reloc_var_get(tokval_str, tokval_strlen);
+                bc_emit_push_var(var_type, var_offset);
+            }
             break;
         }
         case TOK_LPAREN: {
@@ -950,12 +1000,37 @@ static void parse_statement(void) {
         }
         ack_token();
         infer_identifier_type();
-        uint8_t  var_type   = tokval_str[tokval_strlen - 1];
-        uint16_t var_offset = reloc_var_get(tokval_str, tokval_strlen);
-        expect(TOK_EQ);
+        uint8_t var_type = tokval_str[tokval_strlen - 1];
 
-        bc_emit_expr();
-        bc_emit_store_var(var_type, var_offset);
+        if (get_token() == TOK_LPAREN) {
+            // Array element
+            ack_token();
+            tokval_str[tokval_strlen++] = '(';
+            tokval_str[tokval_strlen]   = 0;
+            uint16_t var_offset         = reloc_var_get(tokval_str, tokval_strlen);
+            uint8_t  num_dimensions     = 0;
+
+            while (1) {
+                bc_emit_expr();
+                num_dimensions++;
+                if (get_token() != TOK_COMMA || num_dimensions >= UINT8_MAX)
+                    break;
+                expect(TOK_COMMA);
+            }
+            expect(TOK_RPAREN);
+
+            expect(TOK_EQ);
+            bc_emit_expr();
+            bc_emit_store_array(var_type, num_dimensions, var_offset);
+
+        } else {
+            // Normal variable
+            uint16_t var_offset = reloc_var_get(tokval_str, tokval_strlen);
+            expect(TOK_EQ);
+
+            bc_emit_expr();
+            bc_emit_store_var(var_type, var_offset);
+        }
         return;
     }
 

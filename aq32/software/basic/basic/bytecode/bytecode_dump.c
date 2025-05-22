@@ -27,6 +27,16 @@ static const char *bc_names[] = {
     [BC_STORE_VAR_SINGLE]             = "STORE_VAR_SINGLE",
     [BC_STORE_VAR_DOUBLE]             = "STORE_VAR_DOUBLE",
     [BC_STORE_VAR_STRING]             = "STORE_VAR_STRING",
+    [BC_PUSH_ARRAY_INT]               = "PUSH_ARRAY_INT",
+    [BC_PUSH_ARRAY_LONG]              = "PUSH_ARRAY_LONG",
+    [BC_PUSH_ARRAY_SINGLE]            = "PUSH_ARRAY_SINGLE",
+    [BC_PUSH_ARRAY_DOUBLE]            = "PUSH_ARRAY_DOUBLE",
+    [BC_PUSH_ARRAY_STRING]            = "PUSH_ARRAY_STRING",
+    [BC_STORE_ARRAY_INT]              = "STORE_ARRAY_INT",
+    [BC_STORE_ARRAY_LONG]             = "STORE_ARRAY_LONG",
+    [BC_STORE_ARRAY_SINGLE]           = "STORE_ARRAY_SINGLE",
+    [BC_STORE_ARRAY_DOUBLE]           = "STORE_ARRAY_DOUBLE",
+    [BC_STORE_ARRAY_STRING]           = "STORE_ARRAY_STRING",
     [BC_JMP]                          = "JMP",
     [BC_JMP_NZ]                       = "JMP_NZ",
     [BC_JMP_Z]                        = "JMP_Z",
@@ -130,31 +140,23 @@ void bytecode_dump(void) {
 
         switch (bc) {
             case BC_PUSH_CONST_INT: {
-                printf(": %d", (int16_t)(p[0] | (p[1] << 8)));
+                printf(": %d", (int16_t)read_u16(p));
                 p += 2;
                 break;
             }
             case BC_PUSH_CONST_LONG: {
-                printf(": %d", (int)(int32_t)(p[0] | (p[1] << 8) | (p[2] << 16) | (p[3] << 24)));
+                printf(": %d", (int)(int32_t)read_u32(p));
                 p += 4;
                 break;
             }
             case BC_PUSH_CONST_SINGLE: {
-                uint32_t v = p[0] | (p[1] << 8) | (p[2] << 16) | (p[3] << 24);
+                uint32_t v = read_u32(p);
                 p += 4;
                 printf(": %g", (double)*(float *)&v);
                 break;
             }
             case BC_PUSH_CONST_DOUBLE: {
-                uint64_t v =
-                    (uint64_t)p[0] |
-                    ((uint64_t)p[1] << 8) |
-                    ((uint64_t)p[2] << 16) |
-                    ((uint64_t)p[3] << 24) |
-                    ((uint64_t)p[4] << 32) |
-                    ((uint64_t)p[5] << 40) |
-                    ((uint64_t)p[6] << 48) |
-                    ((uint64_t)p[7] << 56);
+                uint64_t v = read_u64(p);
                 p += 8;
                 printf(": %lg", *(double *)&v);
                 break;
@@ -182,13 +184,28 @@ void bytecode_dump(void) {
             case BC_STORE_VAR_SINGLE:
             case BC_STORE_VAR_DOUBLE:
             case BC_STORE_VAR_STRING: {
-                printf(": %u", p[0] | (p[1] << 8));
+                printf(": %u", read_u16(p));
                 p += 2;
                 break;
             }
 
+            case BC_PUSH_ARRAY_INT:
+            case BC_PUSH_ARRAY_LONG:
+            case BC_PUSH_ARRAY_SINGLE:
+            case BC_PUSH_ARRAY_DOUBLE:
+            case BC_PUSH_ARRAY_STRING:
+            case BC_STORE_ARRAY_INT:
+            case BC_STORE_ARRAY_LONG:
+            case BC_STORE_ARRAY_SINGLE:
+            case BC_STORE_ARRAY_DOUBLE:
+            case BC_STORE_ARRAY_STRING: {
+                printf("<%u>: %u", p[0], read_u16(p + 1));
+                p += 3;
+                break;
+            }
+
             case BC_LINE_TAG: {
-                printf(": %u", (p[0] | (p[1] << 8)) + 1);
+                printf(": %u", read_u16(p) + 1);
                 p += 2;
                 break;
             }
