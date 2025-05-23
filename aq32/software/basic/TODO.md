@@ -3,6 +3,8 @@
 - Undo / Redo
 - Replace
 
+- Saving of executable (runtime + bytecode)
+
 ## BASIC
 
 To be implemented:
@@ -11,12 +13,12 @@ To be implemented:
 - INPUT
 - INKEY$
 - INPUT$
+
 - ON
 - RESUME
 - TIMER
 - ERL
 - ERR
-- MID$ statement
 
 - DO...LOOP
 - EXIT DO/FOR

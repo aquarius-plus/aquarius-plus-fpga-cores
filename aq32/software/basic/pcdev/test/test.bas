@@ -1,7 +1,11 @@
-print "0123456789012345678901234567890"
-print 1,2,3,4,5,6,7
-print ,, "bla",;
-print "ja"
+print "bla"+"dinges"
+print "a" = "a"
+print "ab" >= "ab"
+
+' print "0123456789012345678901234567890"
+' print 1,2,3,4,5,6,7
+' print ,, "bla",;
+' print "ja"
 
 ' print ucase$("Hi there")
 ' print lcase$("Hi there")

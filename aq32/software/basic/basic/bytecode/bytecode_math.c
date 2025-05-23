@@ -64,14 +64,23 @@ void bc_op_mod(void) {
 }
 
 void bc_op_add(void) {
-    stkval_t *val_r = bc_stack_pop_num();
-    stkval_t *val_l = bc_stack_pop_num();
-    bc_promote_types(val_l, val_r);
+    stkval_t val_r = *bc_stack_pop();
+    stkval_t val_l = *bc_stack_pop();
+    if (val_l.type == VT_STR && val_r.type == VT_STR) {
+        stkval_t *stk = bc_stack_push_temp_str(val_l.val_str.length + val_r.val_str.length);
+        memcpy(stk->val_str.p, val_l.val_str.p, val_l.val_str.length);
+        memcpy(stk->val_str.p + val_l.val_str.length, val_r.val_str.p, val_r.val_str.length);
+        bc_free_temp_val(&val_l);
+        bc_free_temp_val(&val_r);
+        return;
+    }
 
-    switch (val_l->type) {
-        case VT_LONG: bc_stack_push_long(val_l->val_long + val_r->val_long); break;
-        case VT_SINGLE: bc_stack_push_single(val_l->val_single + val_r->val_single); break;
-        case VT_DOUBLE: bc_stack_push_double(val_l->val_double + val_r->val_double); break;
+    bc_promote_types(&val_l, &val_r);
+
+    switch (val_l.type) {
+        case VT_LONG: bc_stack_push_long(val_l.val_long + val_r.val_long); break;
+        case VT_SINGLE: bc_stack_push_single(val_l.val_single + val_r.val_single); break;
+        case VT_DOUBLE: bc_stack_push_double(val_l.val_double + val_r.val_double); break;
     }
 }
 
@@ -88,8 +97,18 @@ void bc_op_sub(void) {
 }
 
 void bc_op_eq(void) {
-    stkval_t *val_r = bc_stack_pop_num();
-    stkval_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop();
+    stkval_t *val_l = bc_stack_pop();
+    if (val_l->type == VT_STR && val_r->type == VT_STR) {
+        bool result =
+            val_l->val_str.length == val_r->val_str.length &&
+            memcmp(val_l->val_str.p, val_r->val_str.p, val_l->val_str.length) == 0;
+
+        bc_free_temp_val(val_l);
+        bc_free_temp_val(val_r);
+        bc_stack_push_bool(result);
+        return;
+    }
     bc_promote_types(val_l, val_r);
 
     switch (val_l->type) {
@@ -100,8 +119,18 @@ void bc_op_eq(void) {
 }
 
 void bc_op_ne(void) {
-    stkval_t *val_r = bc_stack_pop_num();
-    stkval_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop();
+    stkval_t *val_l = bc_stack_pop();
+    if (val_l->type == VT_STR && val_r->type == VT_STR) {
+        bool result =
+            val_l->val_str.length != val_r->val_str.length ||
+            memcmp(val_l->val_str.p, val_r->val_str.p, val_l->val_str.length) != 0;
+
+        bc_free_temp_val(val_l);
+        bc_free_temp_val(val_r);
+        bc_stack_push_bool(result);
+        return;
+    }
     bc_promote_types(val_l, val_r);
 
     switch (val_l->type) {
@@ -112,8 +141,21 @@ void bc_op_ne(void) {
 }
 
 void bc_op_lt(void) {
-    stkval_t *val_r = bc_stack_pop_num();
-    stkval_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop();
+    stkval_t *val_l = bc_stack_pop();
+    if (val_l->type == VT_STR && val_r->type == VT_STR) {
+        bool result = false;
+
+        int n   = min(val_l->val_str.length, val_r->val_str.length);
+        int res = memcmp(val_l->val_str.p, val_r->val_str.p, n);
+        if (res < 0 || (res == 0 && val_l->val_str.length < val_r->val_str.length))
+            result = true;
+
+        bc_free_temp_val(val_l);
+        bc_free_temp_val(val_r);
+        bc_stack_push_bool(result);
+        return;
+    }
     bc_promote_types(val_l, val_r);
 
     switch (val_l->type) {
@@ -124,8 +166,21 @@ void bc_op_lt(void) {
 }
 
 void bc_op_le(void) {
-    stkval_t *val_r = bc_stack_pop_num();
-    stkval_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop();
+    stkval_t *val_l = bc_stack_pop();
+    if (val_l->type == VT_STR && val_r->type == VT_STR) {
+        bool result = false;
+
+        int n   = min(val_l->val_str.length, val_r->val_str.length);
+        int res = memcmp(val_l->val_str.p, val_r->val_str.p, n);
+        if (res < 0 || (res == 0 && val_l->val_str.length <= val_r->val_str.length))
+            result = true;
+
+        bc_free_temp_val(val_l);
+        bc_free_temp_val(val_r);
+        bc_stack_push_bool(result);
+        return;
+    }
     bc_promote_types(val_l, val_r);
 
     switch (val_l->type) {
@@ -136,8 +191,21 @@ void bc_op_le(void) {
 }
 
 void bc_op_gt(void) {
-    stkval_t *val_r = bc_stack_pop_num();
-    stkval_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop();
+    stkval_t *val_l = bc_stack_pop();
+    if (val_l->type == VT_STR && val_r->type == VT_STR) {
+        bool result = false;
+
+        int n   = min(val_l->val_str.length, val_r->val_str.length);
+        int res = memcmp(val_l->val_str.p, val_r->val_str.p, n);
+        if (res > 0 || (res == 0 && val_l->val_str.length > val_r->val_str.length))
+            result = true;
+
+        bc_free_temp_val(val_l);
+        bc_free_temp_val(val_r);
+        bc_stack_push_bool(result);
+        return;
+    }
     bc_promote_types(val_l, val_r);
 
     switch (val_l->type) {
@@ -148,8 +216,21 @@ void bc_op_gt(void) {
 }
 
 void bc_op_ge(void) {
-    stkval_t *val_r = bc_stack_pop_num();
-    stkval_t *val_l = bc_stack_pop_num();
+    stkval_t *val_r = bc_stack_pop();
+    stkval_t *val_l = bc_stack_pop();
+    if (val_l->type == VT_STR && val_r->type == VT_STR) {
+        bool result = false;
+
+        int n   = min(val_l->val_str.length, val_r->val_str.length);
+        int res = memcmp(val_l->val_str.p, val_r->val_str.p, n);
+        if (res > 0 || (res == 0 && val_l->val_str.length >= val_r->val_str.length))
+            result = true;
+
+        bc_free_temp_val(val_l);
+        bc_free_temp_val(val_r);
+        bc_stack_push_bool(result);
+        return;
+    }
     bc_promote_types(val_l, val_r);
 
     switch (val_l->type) {

@@ -17,35 +17,35 @@ static uint8_t at_sizes[] = {
 };
 
 // Simple types
-static void __push_var_int(uint8_t *p_var) { bc_stack_push_long((int16_t)read_u16(p_var)); }
-static void __push_var_long(uint8_t *p_var) { bc_stack_push_long((int32_t)read_u32(p_var)); }
-static void __push_var_single(uint8_t *p_var) {
+static void _push_var_int(uint8_t *p_var) { bc_stack_push_long((int16_t)read_u16(p_var)); }
+static void _push_var_long(uint8_t *p_var) { bc_stack_push_long((int32_t)read_u32(p_var)); }
+static void _push_var_single(uint8_t *p_var) {
     uint32_t u32 = read_u32(p_var);
     bc_stack_push_single(*(float *)&u32);
 }
-static void __push_var_double(uint8_t *p_var) {
+static void _push_var_double(uint8_t *p_var) {
     uint64_t u64 = read_u64(p_var);
     bc_stack_push_double(*(double *)&u64);
 }
 
-static void __store_var_int(uint8_t *p_var) {
+static void _store_var_int(uint8_t *p_var) {
     stkval_t *val = bc_stack_pop();
     bc_to_long_round(val);
     if (val->val_long < INT16_MIN || val->val_long >= INT16_MAX)
         _basic_error(ERR_OVERFLOW);
     write_u16(p_var, val->val_long);
 }
-static void __store_var_long(uint8_t *p_var) {
+static void _store_var_long(uint8_t *p_var) {
     stkval_t *val = bc_stack_pop();
     bc_to_long_round(val);
     write_u32(p_var, val->val_long);
 }
-static void __store_var_single(uint8_t *p_var) {
+static void _store_var_single(uint8_t *p_var) {
     stkval_t *val = bc_stack_pop();
     bc_to_single(val);
     write_u32(p_var, val->val_long);
 }
-static void __store_var_double(uint8_t *p_var) {
+static void _store_var_double(uint8_t *p_var) {
     stkval_t *val = bc_stack_pop();
     bc_to_double(val);
     write_u64(p_var, val->val_longlong);
@@ -55,7 +55,7 @@ static void __store_var_double(uint8_t *p_var) {
 // u16        length
 // u8[length] str
 
-static void __push_var_string(uint8_t *p_var) {
+static void _push_var_string(uint8_t *p_var) {
     uint8_t *p_str;
     memcpy(&p_str, p_var, sizeof(uint8_t *));
 
@@ -66,7 +66,7 @@ static void __push_var_string(uint8_t *p_var) {
     stk->val_str.length = (p_str == NULL) ? 0 : read_u16(p_str);
 }
 
-static void __store_var_string(uint8_t *p_var) {
+static void _store_var_string(uint8_t *p_var) {
     stkval_t *stk = bc_stack_pop_str();
 
     uint8_t *p_str;
@@ -91,7 +91,7 @@ static void __store_var_string(uint8_t *p_var) {
 // u16[num_dimensions]  dimension_size
 // u8[...]              array_data
 
-static void __allocate_array(uint8_t *p_var, uint8_t element_type, uint8_t num_dimensions, const int *dimension_sizes) {
+static void _allocate_array(uint8_t *p_var, uint8_t element_type, uint8_t num_dimensions, const int *dimension_sizes) {
     uint8_t *p_arr;
     memcpy(&p_arr, p_var, sizeof(uint8_t *));
 
@@ -118,13 +118,13 @@ static void __allocate_array(uint8_t *p_var, uint8_t element_type, uint8_t num_d
         write_u16(p_arr + 2 + i * 2, (dimension_sizes != NULL) ? dimension_sizes[i] : ARRAY_DEFAULT_DIMENSION_SIZE);
 }
 
-static void *__get_array_val_p(unsigned element_type) {
+static void *_get_array_val_p(unsigned element_type) {
     uint8_t  num_dimensions = bc_get_u8();
     uint8_t *p_var          = &bc_state.p_vars[bc_get_u16()];
     uint8_t *p_arr;
     memcpy(&p_arr, p_var, sizeof(uint8_t *));
     if (p_arr == NULL) {
-        __allocate_array(p_var, element_type, num_dimensions, NULL);
+        _allocate_array(p_var, element_type, num_dimensions, NULL);
         memcpy(&p_arr, p_var, sizeof(uint8_t *));
     }
     if (p_arr[0] != element_type)
@@ -156,16 +156,16 @@ static void *__get_array_val_p(unsigned element_type) {
     return p_data;
 }
 
-static void __dim_array(unsigned element_type) {
+static void _dim_array(unsigned element_type) {
     uint8_t num_dimensions = bc_get_u8();
     int     dimension_sizes[ARRAY_MAX_DIMENSIONS];
     for (int i = num_dimensions - 1; i >= 0; i--)
         dimension_sizes[i] = bc_stack_pop_long() + 1;
 
-    __allocate_array(&bc_state.p_vars[bc_get_u16()], element_type, num_dimensions, dimension_sizes);
+    _allocate_array(&bc_state.p_vars[bc_get_u16()], element_type, num_dimensions, dimension_sizes);
 }
 
-static void __free_array(void) {
+static void _free_array(void) {
     uint8_t *p_var = &bc_state.p_vars[bc_get_u16()];
     uint8_t *p_arr;
     memcpy(&p_arr, p_var, sizeof(uint8_t *));
@@ -196,29 +196,29 @@ static void __free_array(void) {
     buf_free(p_arr);
 }
 
-void bc_push_var_int(void) { __push_var_int(&bc_state.p_vars[bc_get_u16()]); }
-void bc_push_var_long(void) { __push_var_long(&bc_state.p_vars[bc_get_u16()]); }
-void bc_push_var_single(void) { __push_var_single(&bc_state.p_vars[bc_get_u16()]); }
-void bc_push_var_double(void) { __push_var_double(&bc_state.p_vars[bc_get_u16()]); }
-void bc_push_var_string(void) { __push_var_string(&bc_state.p_vars[bc_get_u16()]); }
-void bc_store_var_int(void) { __store_var_int(&bc_state.p_vars[bc_get_u16()]); }
-void bc_store_var_long(void) { __store_var_long(&bc_state.p_vars[bc_get_u16()]); }
-void bc_store_var_single(void) { __store_var_single(&bc_state.p_vars[bc_get_u16()]); }
-void bc_store_var_double(void) { __store_var_double(&bc_state.p_vars[bc_get_u16()]); }
-void bc_store_var_string(void) { __store_var_string(&bc_state.p_vars[bc_get_u16()]); }
-void bc_push_array_int(void) { __push_var_int(__get_array_val_p(ARRAY_TYPE_INT)); }
-void bc_push_array_long(void) { __push_var_long(__get_array_val_p(ARRAY_TYPE_LONG)); }
-void bc_push_array_single(void) { __push_var_single(__get_array_val_p(ARRAY_TYPE_SINGLE)); }
-void bc_push_array_double(void) { __push_var_double(__get_array_val_p(ARRAY_TYPE_DOUBLE)); }
-void bc_push_array_string(void) { __push_var_string(__get_array_val_p(ARRAY_TYPE_STRING)); }
-void bc_store_array_int(void) { __store_var_int(__get_array_val_p(ARRAY_TYPE_INT)); }
-void bc_store_array_long(void) { __store_var_long(__get_array_val_p(ARRAY_TYPE_LONG)); }
-void bc_store_array_single(void) { __store_var_single(__get_array_val_p(ARRAY_TYPE_SINGLE)); }
-void bc_store_array_double(void) { __store_var_double(__get_array_val_p(ARRAY_TYPE_DOUBLE)); }
-void bc_store_array_string(void) { __store_var_string(__get_array_val_p(ARRAY_TYPE_STRING)); }
-void bc_dim_array_int(void) { __dim_array(ARRAY_TYPE_INT); }
-void bc_dim_array_long(void) { __dim_array(ARRAY_TYPE_LONG); }
-void bc_dim_array_single(void) { __dim_array(ARRAY_TYPE_SINGLE); }
-void bc_dim_array_double(void) { __dim_array(ARRAY_TYPE_DOUBLE); }
-void bc_dim_array_string(void) { __dim_array(ARRAY_TYPE_STRING); }
-void bc_free_array(void) { __free_array(); }
+void bc_push_var_int(void) { _push_var_int(&bc_state.p_vars[bc_get_u16()]); }
+void bc_push_var_long(void) { _push_var_long(&bc_state.p_vars[bc_get_u16()]); }
+void bc_push_var_single(void) { _push_var_single(&bc_state.p_vars[bc_get_u16()]); }
+void bc_push_var_double(void) { _push_var_double(&bc_state.p_vars[bc_get_u16()]); }
+void bc_push_var_string(void) { _push_var_string(&bc_state.p_vars[bc_get_u16()]); }
+void bc_store_var_int(void) { _store_var_int(&bc_state.p_vars[bc_get_u16()]); }
+void bc_store_var_long(void) { _store_var_long(&bc_state.p_vars[bc_get_u16()]); }
+void bc_store_var_single(void) { _store_var_single(&bc_state.p_vars[bc_get_u16()]); }
+void bc_store_var_double(void) { _store_var_double(&bc_state.p_vars[bc_get_u16()]); }
+void bc_store_var_string(void) { _store_var_string(&bc_state.p_vars[bc_get_u16()]); }
+void bc_push_array_int(void) { _push_var_int(_get_array_val_p(ARRAY_TYPE_INT)); }
+void bc_push_array_long(void) { _push_var_long(_get_array_val_p(ARRAY_TYPE_LONG)); }
+void bc_push_array_single(void) { _push_var_single(_get_array_val_p(ARRAY_TYPE_SINGLE)); }
+void bc_push_array_double(void) { _push_var_double(_get_array_val_p(ARRAY_TYPE_DOUBLE)); }
+void bc_push_array_string(void) { _push_var_string(_get_array_val_p(ARRAY_TYPE_STRING)); }
+void bc_store_array_int(void) { _store_var_int(_get_array_val_p(ARRAY_TYPE_INT)); }
+void bc_store_array_long(void) { _store_var_long(_get_array_val_p(ARRAY_TYPE_LONG)); }
+void bc_store_array_single(void) { _store_var_single(_get_array_val_p(ARRAY_TYPE_SINGLE)); }
+void bc_store_array_double(void) { _store_var_double(_get_array_val_p(ARRAY_TYPE_DOUBLE)); }
+void bc_store_array_string(void) { _store_var_string(_get_array_val_p(ARRAY_TYPE_STRING)); }
+void bc_dim_array_int(void) { _dim_array(ARRAY_TYPE_INT); }
+void bc_dim_array_long(void) { _dim_array(ARRAY_TYPE_LONG); }
+void bc_dim_array_single(void) { _dim_array(ARRAY_TYPE_SINGLE); }
+void bc_dim_array_double(void) { _dim_array(ARRAY_TYPE_DOUBLE); }
+void bc_dim_array_string(void) { _dim_array(ARRAY_TYPE_STRING); }
+void bc_free_array(void) { _free_array(); }
