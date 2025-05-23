@@ -1,5 +1,6 @@
 #include "bytecode.h"
 #include "bytecode_internal.h"
+#include "console.h"
 
 typedef void (*bc_handler_t)(void);
 static bc_handler_t bc_handlers[];
@@ -11,8 +12,8 @@ stkval_t *bc_stack_push_temp_str(unsigned length) {
     if (length > INT16_MAX)
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
 
-    uint8_t *p = malloc(length);
-    if (p == NULL)
+    uint8_t *p = NULL;
+    if (length > 0 && (p = malloc(length)) == NULL)
         _basic_error(ERR_OUT_OF_MEM);
 
     stk->type           = VT_STR;
@@ -422,12 +423,6 @@ static bc_handler_t bc_handlers[] = {
     [BC_FUNC_VAL]     = bc_func_val,
 };
 
-static void handle_key(int key) {
-    if ((key & KEY_MOD_CTRL) && toupper(key & 0xFF) == 'C') {
-        bc_state.stop = true;
-    }
-}
-
 void bytecode_run(const uint8_t *p_buf, size_t bc_size, size_t vars_sz) {
     buf_reinit();
     memset(&bc_state, 0, sizeof(bc_state));
@@ -445,7 +440,7 @@ void bytecode_run(const uint8_t *p_buf, size_t bc_size, size_t vars_sz) {
 #ifndef PCDEV
         int key = REGS->KEYBUF;
         if (key >= 0)
-            handle_key(key);
+            _console_handle_key(key);
 #endif
         uint8_t bc = bc_get_u8();
         bc_handlers[bc]();

@@ -131,4 +131,13 @@ void bc_stmt_width(void) {
 }
 
 void bc_stmt_input(void) { _basic_error(ERR_UNHANDLED); }
-void bc_func_inkey_s(void) { _basic_error(ERR_UNHANDLED); }
+
+void bc_func_inkey_s(void) {
+    uint8_t ch = console_getc();
+    if (ch == 0) {
+        bc_stack_push_temp_str(0);
+    } else {
+        stkval_t *stk     = bc_stack_push_temp_str(1);
+        stk->val_str.p[0] = ch;
+    }
+}

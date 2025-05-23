@@ -1,4 +1,5 @@
 #include "console.h"
+#include "bytecode/bytecode_internal.h"
 
 #define DEF_FGCOL    (0)
 #define DEF_BGCOL    (3)
@@ -163,4 +164,39 @@ void console_puts(const char *s) {
     while (*s)
         _putc(*(s++));
     show_cursor();
+}
+
+static uint8_t kb_buf[16];
+static uint8_t kb_wridx;
+static uint8_t kb_rdidx;
+static uint8_t kb_cnt;
+
+uint8_t console_getc(void) {
+    if (kb_cnt == 0)
+        return 0;
+
+    uint8_t ch = kb_buf[kb_rdidx++];
+    if (kb_rdidx == sizeof(kb_buf))
+        kb_rdidx = 0;
+    kb_cnt--;
+
+    return ch;
+}
+
+void _console_handle_key(int key) {
+    if (key & KEY_IS_SCANCODE)
+        return;
+
+    uint8_t ch = key & 0xFF;
+    if ((key & KEY_MOD_CTRL) && toupper(ch) == 'C') {
+        bc_state.stop = true;
+        return;
+    }
+
+    if (kb_cnt < sizeof(kb_buf) && ch > 0) {
+        kb_buf[kb_wridx++] = ch;
+        if (kb_wridx == sizeof(kb_buf))
+            kb_wridx = 0;
+        kb_cnt++;
+    }
 }

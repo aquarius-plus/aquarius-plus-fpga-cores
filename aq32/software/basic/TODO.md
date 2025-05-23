@@ -11,7 +11,6 @@ To be implemented:
 
 - LINE INPUT
 - INPUT
-- INKEY$
 - INPUT$
 
 - ON

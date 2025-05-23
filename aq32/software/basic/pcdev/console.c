@@ -38,3 +38,7 @@ void console_puts(const char *s) {
     while (*s)
         console_putc(*(s++));
 }
+
+uint8_t console_getc(void) {
+    return 'A';
+}

@@ -22,3 +22,7 @@ void console_set_border_color(int val);
 
 void console_putc(char ch);
 void console_puts(const char *s);
+
+uint8_t console_getc(void);
+
+void _console_handle_key(int key);
