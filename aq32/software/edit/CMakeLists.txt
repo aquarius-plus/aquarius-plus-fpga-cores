@@ -59,11 +59,14 @@ target_sources(${PROJECT_NAME} PRIVATE
     main.c
 
     ../lib/start.S
-    ../lib/syscalls.c
-    ../lib/esp.c
     ../lib/common.c
+    ../lib/console.c
+    ../lib/esp.c
     ../lib/malloc.c
+    ../lib/syscalls.c
     
+    ../basic/video_save.c
+
     ../basic/editor/cmd_edit.c
     ../basic/editor/cmd_file.c
     ../basic/editor/ctrl_edit_field.c

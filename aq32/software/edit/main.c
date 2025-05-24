@@ -1,5 +1,6 @@
 #include "common.h"
 #include "editor/editor.h"
+#include "video_save.h"
 
 static void cmd_help_about(void);
 
@@ -50,6 +51,7 @@ static void cmd_help_about(void) {
 }
 
 void main(void) {
+    save_video();
     editbuf_init(&editbuf, buf_edit, sizeof(buf_edit));
     editor(&editbuf);
 }

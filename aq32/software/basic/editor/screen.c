@@ -1,6 +1,6 @@
 #include "screen.h"
 
-volatile uint16_t *p_scr = TRAM;
+volatile uint16_t *p_scr = TRAM->text;
 uint16_t           color;
 
 void scr_draw_border(int y, int x, int w, int h, uint8_t border_color, unsigned flags, const char *title) {

@@ -97,6 +97,7 @@ static void cmd_run_start(void) {
         show_basic_error(result);
         return;
     }
+    restore_video();
     result = basic_run();
     save_video();
     if (result != 0) {

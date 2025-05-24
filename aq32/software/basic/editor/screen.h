@@ -7,7 +7,7 @@ extern volatile uint16_t *p_scr;
 extern uint16_t           color;
 
 static inline void scr_locate(int row, int column) {
-    p_scr = TRAM + 80 * row + column;
+    p_scr = &TRAM->text[80 * row + column];
 }
 
 static inline void scr_putchar(uint8_t ch) {

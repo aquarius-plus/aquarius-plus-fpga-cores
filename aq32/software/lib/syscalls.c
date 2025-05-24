@@ -172,6 +172,7 @@ int _close(int fd) {
 }
 
 noreturn void _exit(int status) {
+    load_executable("/cores/aq32/shell.aq32");
     while (1);
 }
 
@@ -306,7 +307,11 @@ int _unlink(const char *path) {
 
 void _lib_init(void) {
     // Disable buffering of stdio
+#ifndef NO_LIB_INIT
     setbuf(stdin, NULL);
     setbuf(stdout, NULL);
     setbuf(stderr, NULL);
+
+    console_init();
+#endif
 }

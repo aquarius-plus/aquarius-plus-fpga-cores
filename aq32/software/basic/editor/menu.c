@@ -116,7 +116,7 @@ void menubar_render(const struct menu *menus, bool show_accel, const struct menu
     }
 
     scr_setcolor(COLOR_MENU);
-    scr_fillchar(' ', TRAM + 80 - p_scr);
+    scr_fillchar(' ', TRAM->text + 80 - p_scr);
 }
 
 static int get_menu_offset(const struct menu *menus, const struct menu *active_menu) {

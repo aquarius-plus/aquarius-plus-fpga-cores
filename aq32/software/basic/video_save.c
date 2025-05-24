@@ -8,7 +8,7 @@ static uint32_t saved_reg_vctrl;
 
 void save_video(void) {
     for (int i = 0; i < 2048; i++)
-        saved_tram[i] = TRAM[i];
+        saved_tram[i] = ((uint16_t *)TRAM)[i];
     for (int i = 0; i < 2048; i++)
         saved_chram[i] = CHRAM[i];
     for (int i = 0; i < 64; i++)
@@ -16,9 +16,13 @@ void save_video(void) {
     saved_reg_vctrl = REGS->VCTRL;
 }
 
-void restore_video(void) {
+void restore_video_text(void) {
     for (int i = 0; i < 2048; i++)
-        TRAM[i] = saved_tram[i];
+        ((uint16_t *)TRAM)[i] = saved_tram[i];
+}
+
+void restore_video(void) {
+    restore_video_text();
     for (int i = 0; i < 2048; i++)
         CHRAM[i] = saved_chram[i];
     for (int i = 0; i < 64; i++)

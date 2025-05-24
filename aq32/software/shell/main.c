@@ -191,8 +191,6 @@ int cmd_rm(int argc, char **argv) {
     return result;
 }
 
-void load_executable(const char *path);
-
 int execute(int argc, char **argv) {
     char path[256];
     snprintf(path, sizeof(path) - 5, argv[0]);
@@ -241,9 +239,6 @@ done:
 
 // called from start.S
 void main(void) {
-    console_init();
-    printf("\n Aquarius32 System V0.1\n\n");
-
     char prompt[PATH_MAX + 16];
     char line[128];
 

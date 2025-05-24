@@ -90,8 +90,11 @@ void cmd_file_save_as(void) {
     }
 }
 
+#include "video_save.h"
+
 void cmd_file_exit(void) {
     if (check_modified()) {
-        asm("j 0");
+        restore_video_text();
+        exit(0);
     }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <assert.h>
 
 // KEYBUF
 // | Bit | Description                  |
@@ -34,10 +35,27 @@ struct regs {
     volatile int32_t  KEYBUF;
 };
 
+struct tram {
+    uint16_t text[80 * 25];
+    uint16_t init_val1;
+    uint16_t text_color;
+    uint16_t saved_color;
+    uint16_t cursor_color;
+    uint8_t  cursor_row;
+    uint8_t  cursor_column;
+    uint8_t  cursor_visible;
+    uint8_t  cursor_enabled;
+    uint8_t  pad[80];
+    uint16_t init_val2;
+    uint16_t border_ch;
+};
+
+static_assert(sizeof(struct tram) == 4096);
+
 #define REGS    ((struct regs *)0x2000)
 #define PALETTE ((volatile uint16_t *)0x04000)
 #define CHRAM   ((volatile uint8_t *)0x05000)
-#define TRAM    ((volatile uint16_t *)0x06000)
+#define TRAM    ((struct tram *)0x06000)
 #define VRAM    ((volatile uint8_t *)0x08000)
 
 enum {

@@ -152,4 +152,4 @@ _esp_get_byte:      // result in a0, clobbers t1
     lw      a0, 4(t0)
     ret
 
-_fn: .ascii "/cores/aq32/shell.aq32\0"
+_fn: .ascii "/cores/aq32/boot.aq32\0"

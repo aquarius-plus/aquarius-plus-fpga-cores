@@ -58,6 +58,7 @@ static inline int clamp(int val, int _min, int _max) {
 }
 
 void reinit_video(void);
+void load_executable(const char *path);
 
 void hexdump(const void *buf, int length);
 
