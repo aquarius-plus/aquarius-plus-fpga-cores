@@ -8,7 +8,7 @@ _start:
 .option pop
 
     // Initialize SP
-    la      sp, __ram_end
+    la      sp, __stack_end
 
     // Initialize BSS
     la      t0, __bss_start

@@ -6,3 +6,7 @@
 ## Video
 
 - Increase video memory to 32kB
+
+## Other
+
+- Time keeping for TIMER

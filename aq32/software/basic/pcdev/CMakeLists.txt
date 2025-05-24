@@ -11,7 +11,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE PCDEV)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     .
-    ../lib
+    ../../lib
     ../basic
     ..
 )
@@ -21,7 +21,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     console.c
     buffers.c
 
-    ../lib/common.c
+    ../../lib/common.c
 
     ../editor/editbuf.c
 

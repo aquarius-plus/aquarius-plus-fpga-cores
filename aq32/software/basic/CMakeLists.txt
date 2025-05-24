@@ -47,12 +47,12 @@ target_link_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestan
 target_link_options(${PROJECT_NAME} PRIVATE -nostartfiles)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--gc-sections)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--print-memory-usage)
-target_link_options(${PROJECT_NAME} PRIVATE -Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/default.ld)
+target_link_options(${PROJECT_NAME} PRIVATE -Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/../lib/default.ld)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     .
     basic
-    lib
+    ../lib
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
@@ -60,12 +60,12 @@ target_sources(${PROJECT_NAME} PRIVATE
     console.c
     video_save.c
 
-    lib/start.S
-    lib/syscalls.c
-    lib/screen.c
-    lib/esp.c
-    lib/common.c
-    lib/malloc.c
+    ../lib/start.S
+    ../lib/syscalls.c
+    ../lib/screen.c
+    ../lib/esp.c
+    ../lib/common.c
+    ../lib/malloc.c
 
     editor/ctrl_edit_field.c
     editor/ctrl_file_list.c

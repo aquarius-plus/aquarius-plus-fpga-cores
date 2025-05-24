@@ -9,6 +9,12 @@ PROVIDE(__stack_end   = ORIGIN(stack) + LENGTH(stack));
 
 ENTRY(_start)
 
+PHDRS {
+  text   PT_LOAD FLAGS(5);
+  rodata PT_LOAD FLAGS(4);
+  data   PT_LOAD FLAGS(6);
+  bss    PT_LOAD FLAGS(6);
+}
 
 SECTIONS {
     /DISCARD/ : {
@@ -51,14 +57,14 @@ SECTIONS {
         KEEP(*(.fini_array))
         KEEP(*(SORT(.fini_array.*)))
         PROVIDE_HIDDEN(__fini_array_end = .);
-    } > ram
+    } > ram :text
 
     .rodata : ALIGN(16) {
         *(.rdata)
         *(.rodata .rodata.*)
         *(.gnu.linkonce.r.*)
         *(.srodata.*)
-    } > ram
+    } > ram :rodata
 
     .data : ALIGN(16) {
         *(.data .data.*)
@@ -68,12 +74,12 @@ SECTIONS {
         *(.sdata .sdata.* .sdata2.*)
         *(.gnu.linkonce.s.*)
         . = ALIGN(16);
-    } > ram
+    } > ram :data
 
     .tdata : ALIGN(16) {
         PROVIDE( __tls_base = . );
 	    *(.tdata .tdata.* .gnu.linkonce.td.*)
-    } > ram
+    } > ram :data
 
     .bss : ALIGN(16) {
         PROVIDE(__bss_start = .);
@@ -84,11 +90,11 @@ SECTIONS {
         *(COMMON)
         . = ALIGN(16);
         PROVIDE(__bss_end = .);
-    } > ram
+    } > ram :bss
 
     .noinit (NOLOAD) : ALIGN(16) {
         KEEP(*(*.noinit*))
-    } > ram
+    } > ram :bss
 
     _end = .;
 }

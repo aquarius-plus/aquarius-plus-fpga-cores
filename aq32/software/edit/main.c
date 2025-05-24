@@ -16,21 +16,22 @@ static const struct menu_item menu_file_items[] = {
     {.title = NULL},
 };
 
-// static const struct menu_item menu_edit_items[] = {
-//     {.title = "Cu&t", .shortcut = KEY_MOD_CTRL | 'X'},
-//     {.title = "&Copy", .shortcut = KEY_MOD_CTRL | 'C'},
-//     {.title = "&Paste", .shortcut = KEY_MOD_CTRL | 'V'},
-//     {.title = "-"},
-//     {.title = "&Find", .shortcut = KEY_MOD_CTRL | 'F'},
-//     {.title = "&Replace", .shortcut = KEY_MOD_CTRL | 'H'},
-//     {.title = "-"},
-//     {.title = "&Select all", .shortcut = KEY_MOD_CTRL | 'A'},
-//     {.title = "-"},
-//     {.title = "Format document", .shortcut = KEY_MOD_SHIFT | KEY_MOD_ALT | 'F'},
-//     {.title = "Format selection"},
-//     {.title = "Trim trailing whitespace"},
-//     {.title = NULL},
-// };
+static const struct menu_item menu_edit_items[] = {
+    {.title = "Cu&t", .shortcut = KEY_MOD_CTRL | 'X', .status = "Deletes and copies selected text to clipboard", .handler = cmd_edit_cut, .is_active_handler = cmd_edit_cut_copy_active},
+    {.title = "&Copy", .shortcut = KEY_MOD_CTRL | 'C', .status = "Copies selected text to clipboard", .handler = cmd_edit_copy, .is_active_handler = cmd_edit_cut_copy_active},
+    {.title = "&Paste", .shortcut = KEY_MOD_CTRL | 'V', .status = "Inserts clipboard contents at cursor", .handler = cmd_edit_paste},
+    {.title = "-"},
+    {.title = "&Select all", .shortcut = KEY_MOD_CTRL | 'A', .status = "Selects all text in document", .handler = cmd_edit_select_all},
+    {.title = "-"},
+    {.title = "&Find...", .shortcut = KEY_MOD_CTRL | 'F', .status = "Finds specified text", .handler = cmd_edit_find},
+    {.title = "&Repeat Last Find", .shortcut = CH_F3, .status = "Finds next occurence of previously specified text", .handler = cmd_edit_find_next},
+    // {.title = "&Replace", .shortcut = KEY_MOD_CTRL | 'H'},
+    // {.title = "-"},
+    // {.title = "Format document", .shortcut = KEY_MOD_SHIFT | KEY_MOD_ALT | 'F'},
+    // {.title = "Format selection"},
+    // {.title = "Trim trailing whitespace"},
+    {.title = NULL},
+};
 
 static const struct menu_item menu_help_items[] = {
     {.title = "&About...", .status = "Displays product version", .handler = cmd_help_about},
@@ -39,7 +40,7 @@ static const struct menu_item menu_help_items[] = {
 
 const struct menu menubar_menus[] = {
     {.title = "&File", .items = menu_file_items},
-    // {.title = "&Edit", .items = menu_edit_items},
+    {.title = "&Edit", .items = menu_edit_items},
     {.title = "&Help", .items = menu_help_items},
     {.title = NULL},
 };

@@ -47,23 +47,23 @@ target_link_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestan
 target_link_options(${PROJECT_NAME} PRIVATE -nostartfiles)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--gc-sections)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--print-memory-usage)
-target_link_options(${PROJECT_NAME} PRIVATE -Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/default.ld)
+target_link_options(${PROJECT_NAME} PRIVATE -Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/../lib/default.ld)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     .
-    ../basic/lib
+    ../lib
     ../basic
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
     main.c
 
-    ../basic/lib/start.S
-    ../basic/lib/syscalls.c
-    ../basic/lib/screen.c
-    ../basic/lib/esp.c
-    ../basic/lib/common.c
-    ../basic/lib/malloc.c
+    ../lib/start.S
+    ../lib/syscalls.c
+    ../lib/screen.c
+    ../lib/esp.c
+    ../lib/common.c
+    ../lib/malloc.c
 
     ../basic/editor/ctrl_edit_field.c
     ../basic/editor/ctrl_file_list.c
@@ -71,4 +71,6 @@ target_sources(${PROJECT_NAME} PRIVATE
     ../basic/editor/editbuf.c
     ../basic/editor/editor.c
     ../basic/editor/menu.c
+    ../basic/editor/cmd_file.c
+    ../basic/editor/cmd_edit.c
 )

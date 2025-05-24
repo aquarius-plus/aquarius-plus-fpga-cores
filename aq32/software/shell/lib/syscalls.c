@@ -7,9 +7,50 @@
 #include <sys/timeb.h>
 #include <sys/time.h>
 #include "esp.h"
+#include "malloc.h"
+
+#ifndef SIZE_BUF_HEAP
+#define SIZE_BUF_HEAP 0x1000
+#endif
 
 #define FD_ESP_START 10
 #define XFER_MAX     0xF000
+
+static __attribute__((section(".noinit"))) uint8_t buf_heap[SIZE_BUF_HEAP];
+static mspace                                     *heap_space;
+
+static void assure_init(void) {
+    if (!heap_space) {
+        heap_space = create_mspace_with_base(buf_heap, sizeof(buf_heap), 0);
+    }
+}
+
+static void *_malloc(size_t sz) {
+    assure_init();
+    return mspace_malloc(heap_space, sz);
+}
+static void *_calloc(size_t n_elem, size_t elem_sz) {
+    assure_init();
+    return mspace_calloc(heap_space, n_elem, elem_sz);
+}
+static void *_realloc(void *p, size_t sz) {
+    assure_init();
+    return mspace_realloc(heap_space, p, sz);
+}
+static void _free(void *p) {
+    assure_init();
+    return mspace_free(heap_space, p);
+}
+
+void *_malloc_r(struct _reent *, size_t sz) { return _malloc(sz); }
+void *_calloc_r(struct _reent *, size_t n_elem, size_t elem_sz) { return _calloc(n_elem, elem_sz); }
+void *_realloc_r(struct _reent *, void *p, size_t sz) { return _realloc(p, sz); }
+void  _free_r(struct _reent *, void *p) { _free(p); }
+
+void *malloc(size_t sz) { return _malloc(sz); }
+void *calloc(size_t n_elem, size_t elem_sz) { return _calloc(n_elem, elem_sz); }
+void *realloc(void *p, size_t sz) { return _realloc(p, sz); }
+void  free(void *p) { return _free(p); }
 
 static uint8_t input_buffer[128];
 static uint8_t input_buffer_rdidx;
@@ -43,7 +84,11 @@ static int input_buffer_pop(void) {
 }
 
 int _isatty(int fd) {
+#ifdef SYSCALL_STDINOUT
     return (fd == STDIN_FILENO || fd == STDOUT_FILENO || fd == STDERR_FILENO);
+#else
+    return false;
+#endif
 }
 
 int _open(const char *path, int flags) {
@@ -70,6 +115,7 @@ int _open(const char *path, int flags) {
     return FD_ESP_START + result;
 }
 
+#ifdef SYSCALL_STDINOUT
 static void process_keybuf(void) {
     while (1) {
         int key = REGS->KEYBUF;
@@ -105,6 +151,7 @@ static void process_keybuf(void) {
         }
     }
 }
+#endif
 
 ssize_t _read(int fd, void *buf, size_t count) {
     if (fd >= FD_ESP_START) {
@@ -117,7 +164,9 @@ ssize_t _read(int fd, void *buf, size_t count) {
 
         return result;
 
-    } else if (fd == STDIN_FILENO) {
+    }
+#ifdef SYSCALL_STDINOUT
+    else if (fd == STDIN_FILENO) {
         uint8_t *p = buf;
 
         while (count) {
@@ -136,7 +185,9 @@ ssize_t _read(int fd, void *buf, size_t count) {
         }
         return p - (uint8_t *)buf;
 
-    } else {
+    }
+#endif
+    else {
         errno = EINVAL;
         return -1;
     }
@@ -149,7 +200,9 @@ int _write(int fd, const void *buf, size_t count) {
             return esp_set_errno(result);
         return result;
 
-    } else if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
+    }
+#ifdef SYSCALL_STDINOUT
+    else if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
         const uint8_t *p = buf;
         while (count--) {
             uint8_t ch = *(p++);
@@ -160,7 +213,9 @@ int _write(int fd, const void *buf, size_t count) {
         }
         return p - (uint8_t *)buf;
 
-    } else {
+    }
+#endif
+    else {
         errno = EINVAL;
         return -1;
     }
@@ -213,19 +268,6 @@ int _getpid(void) {
 int _fstat(int fd, struct stat *st) {
     errno = ENOENT;
     return -1;
-}
-
-void *_sbrk(intptr_t incr) {
-    extern char  _end;
-    static char *heap_end;
-
-    if (heap_end == NULL)
-        heap_end = &_end;
-
-    char *prev_heap_end = heap_end;
-    heap_end += incr;
-
-    return prev_heap_end;
 }
 
 int _lstat(const char *path, struct stat *st) {

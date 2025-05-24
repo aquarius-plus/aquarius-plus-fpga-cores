@@ -192,9 +192,9 @@ int esp_lseek(int fd, int offset, int whence) {
     esp_cmd(ESPCMD_LSEEK);
     esp_send_byte(fd);
     esp_send_byte(offset & 0xFF);
-    esp_send_byte(offset >> 8);
-    esp_send_byte(offset >> 8);
-    esp_send_byte(offset >> 8);
+    esp_send_byte((offset >> 8) & 0xFF);
+    esp_send_byte((offset >> 16) & 0xFF);
+    esp_send_byte((offset >> 24) & 0xFF);
     esp_send_byte(whence);
     int32_t result = (int8_t)esp_get_byte();
     if (result < 0)

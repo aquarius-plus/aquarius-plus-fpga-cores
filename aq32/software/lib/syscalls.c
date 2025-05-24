@@ -8,7 +8,12 @@
 #include "esp.h"
 #include "malloc.h"
 
+#ifndef SIZE_BUF_HEAP
 #define SIZE_BUF_HEAP 0x1000
+#endif
+
+#define FD_ESP_START 10
+#define XFER_MAX     0xF000
 
 static __attribute__((section(".noinit"))) uint8_t buf_heap[SIZE_BUF_HEAP];
 static mspace                                     *heap_space;
@@ -46,27 +51,12 @@ void *calloc(size_t n_elem, size_t elem_sz) { return _calloc(n_elem, elem_sz); }
 void *realloc(void *p, size_t sz) { return _realloc(p, sz); }
 void  free(void *p) { return _free(p); }
 
-#define FD_ESP_START 10
-#define XFER_MAX     0xF000
-
 int _isatty(int fd) {
+#ifdef SYSCALL_STDINOUT
+    return (fd == STDIN_FILENO || fd == STDOUT_FILENO || fd == STDERR_FILENO);
+#else
     return false;
-}
-
-static int set_errno(int esp_err) {
-    switch (esp_err) {
-        case ERR_NOT_FOUND: errno = ENOENT; break;     // File / directory not found
-        case ERR_TOO_MANY_OPEN: errno = ENFILE; break; // Too many open files / directories
-        case ERR_PARAM: errno = EINVAL; break;         // Invalid parameter
-        case ERR_EXISTS: errno = EEXIST; break;        // File already exists
-        case ERR_OTHER: errno = EIO; break;            // Other error
-        case ERR_NO_DISK: errno = ENODEV; break;       // No disk
-        case ERR_NOT_EMPTY: errno = ENOTEMPTY; break;  // Not empty
-        case ERR_WRITE_PROTECT: errno = EROFS; break;  // Write protected SD-card
-        case ERR_EOF:                                  // End of file / directory
-        default: errno = EIO; break;
-    }
-    return -1;
+#endif
 }
 
 int _open(const char *path, int flags) {
@@ -88,10 +78,48 @@ int _open(const char *path, int flags) {
 
     int result = esp_open(path, esp_flags);
     if (result < 0)
-        return set_errno(result);
+        return esp_set_errno(result);
 
     return FD_ESP_START + result;
 }
+
+#ifdef SYSCALL_STDINOUT
+static void process_keybuf(void) {
+    while (1) {
+        int key = REGS->KEYBUF;
+        if (key < 0)
+            return;
+
+        if ((key & KEY_IS_SCANCODE))
+            continue;
+
+        switch (key & 0xFF) {
+            case CH_UP: input_buffer_push_str("\033[A"); break;
+            case CH_DOWN: input_buffer_push_str("\033[B"); break;
+            case CH_RIGHT: input_buffer_push_str("\033[C"); break;
+            case CH_LEFT: input_buffer_push_str("\033[D"); break;
+            case CH_DELETE: input_buffer_push_str("\033[3~"); break;
+            case CH_PAGEUP: input_buffer_push_str("\033[5~"); break;
+            case CH_PAGEDOWN: input_buffer_push_str("\033[6~"); break;
+            case CH_HOME: input_buffer_push_str("\033[H"); break;
+            case CH_END: input_buffer_push_str("\033[F"); break;
+            default:
+                uint8_t ch = key & 0xFF;
+
+                if (key & KEY_MOD_CTRL) {
+                    uint8_t ch_upper = toupper(ch);
+
+                    if (ch_upper >= '@' && ch_upper <= '_')
+                        ch = ch_upper - '@';
+                    else if (ch_upper == 0x7F)
+                        ch = '\b';
+                }
+                input_buffer_push(ch);
+                break;
+        }
+    }
+}
+#endif
 
 ssize_t _read(int fd, void *buf, size_t count) {
     if (fd >= FD_ESP_START) {
@@ -100,11 +128,34 @@ ssize_t _read(int fd, void *buf, size_t count) {
             result = 0;
 
         if (result < 0 && result != ERR_EOF)
-            return set_errno(result);
+            return esp_set_errno(result);
 
         return result;
 
-    } else {
+    }
+#ifdef SYSCALL_STDINOUT
+    else if (fd == STDIN_FILENO) {
+        uint8_t *p = buf;
+
+        while (count) {
+            process_keybuf();
+            int val = input_buffer_pop();
+            if (val < 0) {
+                // No data
+                if (p > (uint8_t *)buf) {
+                    // Return what we got so far
+                    break;
+                }
+            } else {
+                *(p++) = val;
+                count--;
+            }
+        }
+        return p - (uint8_t *)buf;
+
+    }
+#endif
+    else {
         errno = EINVAL;
         return -1;
     }
@@ -114,10 +165,25 @@ int _write(int fd, const void *buf, size_t count) {
     if (fd >= FD_ESP_START) {
         int result = esp_write(fd - FD_ESP_START, buf, count);
         if (result < 0)
-            return set_errno(result);
+            return esp_set_errno(result);
         return result;
 
-    } else {
+    }
+#ifdef SYSCALL_STDINOUT
+    else if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
+        const uint8_t *p = buf;
+        while (count--) {
+            uint8_t ch = *(p++);
+            if (ch == '\n') {
+                console_putc('\r');
+            }
+            console_putc(ch);
+        }
+        return p - (uint8_t *)buf;
+
+    }
+#endif
+    else {
         errno = EINVAL;
         return -1;
     }
@@ -132,7 +198,7 @@ off_t _lseek(int fd, off_t offset, int whence) {
     if (fd >= FD_ESP_START) {
         int result = esp_lseek(fd - FD_ESP_START, offset, whence);
         if (result < 0)
-            return set_errno(result);
+            return esp_set_errno(result);
 
         return result;
 
@@ -147,7 +213,7 @@ int _close(int fd) {
     if (fd >= FD_ESP_START) {
         int result = esp_close(fd - FD_ESP_START);
         if (result < 0)
-            return set_errno(result);
+            return esp_set_errno(result);
         return 0;
     }
 
@@ -180,13 +246,6 @@ int _lstat(const char *path, struct stat *st) {
 int _ftime(struct timeb *tp) {
     errno = EIO;
     return -1;
-}
-
-int _unlink(const char *name) {
-    int result = esp_delete(name);
-    if (result < 0)
-        return set_errno(result);
-    return 0;
 }
 
 int _access(const char *file, int mode) {
@@ -228,7 +287,7 @@ char *getcwd(char *buf, size_t size) {
     esp_cmd(ESPCMD_GETCWD);
     int result = (int8_t)esp_get_byte();
     if (result < 0) {
-        set_errno(result);
+        esp_set_errno(result);
         return NULL;
     }
 
@@ -245,4 +304,52 @@ char *getcwd(char *buf, size_t size) {
         }
     }
     return buf;
+}
+
+int chdir(const char *path) {
+    int result = esp_chdir(path);
+    if (result < 0)
+        return esp_set_errno(result);
+    return 0;
+}
+
+int mkdir(const char *path, mode_t mode) {
+    int result = esp_mkdir(path);
+    if (result < 0)
+        return esp_set_errno(result);
+    return 0;
+}
+
+int rmdir(const char *path) {
+    struct esp_stat st;
+    int             result = esp_stat(path, &st);
+    if (result < 0)
+        return esp_set_errno(result);
+
+    if ((st.attr & DE_ATTR_DIR) == 0) {
+        errno = ENOTDIR;
+        return -1;
+    }
+
+    result = esp_delete(path);
+    if (result < 0)
+        return esp_set_errno(result);
+    return 0;
+}
+
+int _unlink(const char *path) {
+    struct esp_stat st;
+    int             result = esp_stat(path, &st);
+    if (result < 0)
+        return esp_set_errno(result);
+
+    if ((st.attr & DE_ATTR_DIR) != 0) {
+        errno = EISDIR;
+        return -1;
+    }
+
+    result = esp_delete(path);
+    if (result < 0)
+        return esp_set_errno(result);
+    return 0;
 }
