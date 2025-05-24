@@ -424,6 +424,12 @@ static bc_handler_t bc_handlers[] = {
     [BC_FUNC_VAL]     = bc_func_val,
 };
 
+#ifndef PCDEV
+void console_ctrl_c_pressed(void) {
+    bc_state.stop = true;
+}
+#endif
+
 void bytecode_run(const uint8_t *p_buf, size_t bc_size, size_t vars_sz) {
     buf_reinit();
     memset(&bc_state, 0, sizeof(bc_state));

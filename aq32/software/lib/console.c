@@ -198,6 +198,9 @@ void console_flush_input(void) {
     kb_cnt   = 0;
 }
 
+static void _dummy() {}
+void        console_ctrl_c_pressed(void) __attribute__((weak, alias("_dummy")));
+
 void _console_handle_key(int key) {
     if (key < 0)
         return;
@@ -213,10 +216,8 @@ void _console_handle_key(int key) {
             ch = '\b';
     }
 
-    // if ((key & KEY_MOD_CTRL) && toupper(ch) == 'C') {
-    //     bc_state.stop = true;
-    //     return;
-    // }
+    if (ch == 3)
+        console_ctrl_c_pressed();
 
     if (kb_cnt < sizeof(kb_buf) && ch > 0) {
         kb_buf[kb_wridx++] = ch;

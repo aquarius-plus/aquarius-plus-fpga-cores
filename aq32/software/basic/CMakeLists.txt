@@ -57,15 +57,15 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_sources(${PROJECT_NAME} PRIVATE
     main.c
-    console.c
     video_save.c
 
     ../lib/start.S
-    ../lib/syscalls.c
-    ../lib/esp.c
     ../lib/common.c
+    ../lib/console.c
+    ../lib/esp.c
     ../lib/malloc.c
-    
+    ../lib/syscalls.c
+
     editor/cmd_edit.c
     editor/cmd_file.c
     editor/ctrl_edit_field.c
@@ -79,7 +79,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     help/help.c
 
     basic/basic.c
-    
+
     basic/common/buffers.c
     basic/common/parsenum.c
 
