@@ -180,7 +180,20 @@ static uint8_t kb_wridx;
 static uint8_t kb_rdidx;
 static uint8_t kb_cnt;
 
+static void _process_keybuf(void) {
+    while (1) {
+        int key = REGS->KEYBUF;
+        if (key < 0)
+            return;
+        _console_handle_key(key);
+        if ((key & KEY_IS_SCANCODE))
+            continue;
+    }
+}
+
 uint8_t console_getc(void) {
+    _process_keybuf();
+
     if (kb_cnt == 0)
         return 0;
 

@@ -80,17 +80,6 @@ int _open(const char *path, int flags) {
     return FD_ESP_START + result;
 }
 
-static void process_keybuf(void) {
-    while (1) {
-        int key = REGS->KEYBUF;
-        if (key < 0)
-            return;
-        _console_handle_key(key);
-        if ((key & KEY_IS_SCANCODE))
-            continue;
-    }
-}
-
 ssize_t _read(int fd, void *buf, size_t count) {
     if (fd >= FD_ESP_START) {
         int result = esp_read(fd - FD_ESP_START, buf, count);
@@ -106,8 +95,6 @@ ssize_t _read(int fd, void *buf, size_t count) {
         uint8_t *p = buf;
 
         while (count) {
-            process_keybuf();
-
             uint8_t val = console_getc();
             if (val == 0) {
                 // No data
@@ -315,4 +302,11 @@ int _unlink(const char *path) {
     if (result < 0)
         return esp_set_errno(result);
     return 0;
+}
+
+void _lib_init(void) {
+    // Disable buffering of stdio
+    setbuf(stdin, NULL);
+    setbuf(stdout, NULL);
+    setbuf(stderr, NULL);
 }

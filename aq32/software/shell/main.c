@@ -242,27 +242,19 @@ done:
 // called from start.S
 void main(void) {
     console_init();
-
     printf("\n Aquarius32 System V0.1\n\n");
 
-    char  prompt[PATH_MAX + 16];
-    char *line = NULL;
+    char prompt[PATH_MAX + 16];
+    char line[128];
 
     while (1) {
-        // Free line buffer if in use
-        if (line) {
-            free(line);
-            line = NULL;
-        }
-
         // Compose prompt
         getcwd(prompt, PATH_MAX);
         strcat(prompt, "> ");
         fputs(prompt, stdout);
-        line = readline();
-        if (line == NULL) {
+        int result = readline(line, sizeof(line));
+        if (result <= 0)
             continue;
-        }
 
         // Parse line
         char *p   = line;
