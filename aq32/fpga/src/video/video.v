@@ -43,7 +43,7 @@ module video(
     input  wire        pal_wren,
 
     // Video RAM interface
-    input  wire [11:0] vram_addr,
+    input  wire [12:0] vram_addr,
     output wire [31:0] vram_rddata,
     input  wire [31:0] vram_wrdata,
     input  wire  [3:0] vram_bytesel,
@@ -270,7 +270,7 @@ module video(
 
         // Second port - Video access
         .p2_clk(vclk),
-        .p2_addr(vram_addr2),
+        .p2_addr({1'b0, vram_addr2}),
         .p2_rddata(vram_rddata2));
 
     //////////////////////////////////////////////////////////////////////////

@@ -487,7 +487,7 @@ module aq32_top(
         .pal_wrdata(cpu_wrdata[15:0]),
         .pal_wren(pal_wren),
 
-        .vram_addr(cpu_addr[13:2]),
+        .vram_addr(cpu_addr[14:2]),
         .vram_rddata(rddata_vram),
         .vram_wrdata(cpu_wrdata),
         .vram_bytesel(cpu_bytesel),
