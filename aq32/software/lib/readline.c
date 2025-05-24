@@ -200,9 +200,7 @@ static void do_right(struct readline_context *ctx) {
     print_char(ctx->buf[ctx->idx++]);
 }
 
-char *readline(const char *prompt) {
-    fputs(prompt, stdout);
-
+char *readline(void) {
     struct readline_context ctx;
     memset(&ctx, 0, sizeof(ctx));
     ctx.buf_len = BUF_SIZE;

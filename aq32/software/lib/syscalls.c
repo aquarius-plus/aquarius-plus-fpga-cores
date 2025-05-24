@@ -1,4 +1,5 @@
 #include "common.h"
+#include "console.h"
 #include <errno.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -52,11 +53,7 @@ void *realloc(void *p, size_t sz) { return _realloc(p, sz); }
 void  free(void *p) { return _free(p); }
 
 int _isatty(int fd) {
-#ifdef SYSCALL_STDINOUT
     return (fd == STDIN_FILENO || fd == STDOUT_FILENO || fd == STDERR_FILENO);
-#else
-    return false;
-#endif
 }
 
 int _open(const char *path, int flags) {
@@ -83,43 +80,16 @@ int _open(const char *path, int flags) {
     return FD_ESP_START + result;
 }
 
-#ifdef SYSCALL_STDINOUT
 static void process_keybuf(void) {
     while (1) {
         int key = REGS->KEYBUF;
         if (key < 0)
             return;
-
+        _console_handle_key(key);
         if ((key & KEY_IS_SCANCODE))
             continue;
-
-        switch (key & 0xFF) {
-            case CH_UP: input_buffer_push_str("\033[A"); break;
-            case CH_DOWN: input_buffer_push_str("\033[B"); break;
-            case CH_RIGHT: input_buffer_push_str("\033[C"); break;
-            case CH_LEFT: input_buffer_push_str("\033[D"); break;
-            case CH_DELETE: input_buffer_push_str("\033[3~"); break;
-            case CH_PAGEUP: input_buffer_push_str("\033[5~"); break;
-            case CH_PAGEDOWN: input_buffer_push_str("\033[6~"); break;
-            case CH_HOME: input_buffer_push_str("\033[H"); break;
-            case CH_END: input_buffer_push_str("\033[F"); break;
-            default:
-                uint8_t ch = key & 0xFF;
-
-                if (key & KEY_MOD_CTRL) {
-                    uint8_t ch_upper = toupper(ch);
-
-                    if (ch_upper >= '@' && ch_upper <= '_')
-                        ch = ch_upper - '@';
-                    else if (ch_upper == 0x7F)
-                        ch = '\b';
-                }
-                input_buffer_push(ch);
-                break;
-        }
     }
 }
-#endif
 
 ssize_t _read(int fd, void *buf, size_t count) {
     if (fd >= FD_ESP_START) {
@@ -132,15 +102,14 @@ ssize_t _read(int fd, void *buf, size_t count) {
 
         return result;
 
-    }
-#ifdef SYSCALL_STDINOUT
-    else if (fd == STDIN_FILENO) {
+    } else if (fd == STDIN_FILENO) {
         uint8_t *p = buf;
 
         while (count) {
             process_keybuf();
-            int val = input_buffer_pop();
-            if (val < 0) {
+
+            uint8_t val = console_getc();
+            if (val == 0) {
                 // No data
                 if (p > (uint8_t *)buf) {
                     // Return what we got so far
@@ -153,9 +122,7 @@ ssize_t _read(int fd, void *buf, size_t count) {
         }
         return p - (uint8_t *)buf;
 
-    }
-#endif
-    else {
+    } else {
         errno = EINVAL;
         return -1;
     }
@@ -168,9 +135,7 @@ int _write(int fd, const void *buf, size_t count) {
             return esp_set_errno(result);
         return result;
 
-    }
-#ifdef SYSCALL_STDINOUT
-    else if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
+    } else if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
         const uint8_t *p = buf;
         while (count--) {
             uint8_t ch = *(p++);
@@ -181,9 +146,7 @@ int _write(int fd, const void *buf, size_t count) {
         }
         return p - (uint8_t *)buf;
 
-    }
-#endif
-    else {
+    } else {
         errno = EINVAL;
         return -1;
     }

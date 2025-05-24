@@ -258,7 +258,8 @@ void main(void) {
         // Compose prompt
         getcwd(prompt, PATH_MAX);
         strcat(prompt, "> ");
-        line = readline(prompt);
+        fputs(prompt, stdout);
+        line = readline();
         if (line == NULL) {
             continue;
         }

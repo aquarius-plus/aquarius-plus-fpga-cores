@@ -2,22 +2,14 @@
 
 #define DEF_FGCOL    (0)
 #define DEF_BGCOL    (3)
-#define CURSOR_COLOR (0x70)
+#define CURSOR_COLOR (0x80)
 
-struct terminal_data {
-    uint16_t *buffer;
-    int       rows, columns;
-    int       cursor_row, cursor_col;
-    uint8_t   saved_color;
-    uint8_t   escape_idx;
-    uint8_t   escape_cmd[16];
-    uint8_t  *cmd_params;
-    uint8_t   last_char;
-    uint8_t   attributes;
-    uint8_t   fg_col;
-    uint8_t   bg_col;
-    uint8_t   text_color;
-};
+static int      num_rows, num_columns;
+static int      cursor_row, cursor_column;
+static uint16_t saved_color;
+static uint16_t text_color;
+static bool     cursor_visible;
+static bool     cursor_enabled;
 
 static void memmove16(uint16_t *dst, const uint16_t *src, unsigned count) {
     uint16_t       *d = dst;
@@ -40,504 +32,196 @@ static void memset16(uint16_t *dst, uint16_t val, unsigned count) {
         *(dst++) = val;
 }
 
-static void clear_display(struct terminal_data *td, int n) {
-    if (n == 0) {
-        // erase from begin of display up to and including current cursor position
-        memset16(
-            td->buffer,
-            (td->text_color << 8) | ' ',
-            td->columns * td->cursor_row + td->cursor_col + 1);
-
-    } else if (n == 1) {
-        // erase from current cursor position (inclusive) to end of display
-        memset16(
-            td->buffer + td->columns * td->cursor_row + td->cursor_col,
-            (td->text_color << 8) | ' ',
-            (td->columns * td->rows) - (td->columns * td->cursor_row + td->cursor_col));
-
-    } else { // 2
-        // erase entire display
-        memset16(
-            td->buffer,
-            (td->text_color << 8) | ' ',
-            td->columns * td->rows);
+static void hide_cursor(void) {
+    if (cursor_visible) {
+        uint16_t *p_cursor = (uint16_t *)&TRAM[cursor_row * num_columns + cursor_column];
+        *p_cursor          = saved_color | (*p_cursor & 0xFF);
+        cursor_visible     = false;
     }
 }
 
-static void clear_line(struct terminal_data *td, int n) {
-    if (n == 0) {
-        // erase from begin of line up to and including current cursor position
-        memset16(
-            td->buffer + td->columns * td->cursor_row,
-            (td->text_color << 8) | ' ',
-            td->cursor_col + 1);
-
-    } else if (n == 1) {
-        // erase from current cursor position (inclusive) to end of line
-        memset16(
-            td->buffer + td->columns * td->cursor_row + td->cursor_col,
-            (td->text_color << 8) | ' ',
-            td->columns - td->cursor_col);
-
-    } else { // 2
-        // erase entire line
-        memset16(
-            td->buffer + td->columns * td->cursor_row,
-            (td->text_color << 8) | ' ',
-            td->columns);
+static void show_cursor(void) {
+    if (cursor_enabled && !cursor_visible) {
+        uint16_t *p_cursor = (uint16_t *)&TRAM[cursor_row * num_columns + cursor_column];
+        uint16_t  val      = *p_cursor;
+        saved_color        = val & 0xFF00;
+        *p_cursor          = (CURSOR_COLOR << 8) | (val & 0xFF);
+        cursor_visible     = true;
     }
 }
 
-static void insert_line(struct terminal_data *td, int n) {
-    if (n < 1)
-        return;
-    if (n > td->rows)
-        n = td->rows;
-
-    // Inserts <n> lines into the buffer at the cursor position.
-    // The line the cursor is on, and lines below it, will be shifted downwards.
-
-    int row1 = td->cursor_row;
-    int row2 = td->cursor_row + n;
-    if (row2 > td->rows)
-        row2 = td->rows;
-
-    uint16_t *p1     = td->buffer + td->columns * row1;
-    uint16_t *p2     = td->buffer + td->columns * row2;
-    int       count1 = td->rows - row2;
-    int       count2 = row2 - row1;
-
-    if (count1 > 0)
-        memmove16(p2, p1, count1 * td->columns);
-    if (count2 > 0)
-        memset16(p1, (td->text_color << 8) | ' ', count2 * td->columns);
+void _clear_screen(void) {
+    cursor_row    = 0;
+    cursor_column = 0;
+    memset16((uint16_t *)TRAM, text_color | ' ', num_columns * num_rows);
 }
 
-static void insert_char(struct terminal_data *td, int n) {
-    if (n < 1)
-        return;
+void console_init(void) {
+    num_rows       = 25;
+    num_columns    = 80;
+    text_color     = (DEF_FGCOL << 12) | (DEF_BGCOL << 8);
+    cursor_visible = false;
+    cursor_enabled = true;
 
-    uint16_t *p    = td->buffer + td->cursor_col * td->columns;
-    int       col1 = td->cursor_col;
-    int       col2 = td->cursor_col + n;
-    if (col2 > td->columns)
-        col2 = td->columns;
-
-    uint16_t *p1     = p + col1;
-    uint16_t *p2     = p + col2;
-    int       count1 = td->columns - col2;
-    int       count2 = col2 - col1;
-
-    if (count1 > 0)
-        memmove16(p2, p1, count1);
-    if (count2 > 0)
-        memset16(p1, (td->text_color << 8) | ' ', count2);
+    reinit_video();
+    _clear_screen();
+    show_cursor();
 }
 
-static void delete_line(struct terminal_data *td, int n) {
-    if (n < 1)
-        return;
-    if (n > td->rows)
-        n = td->rows;
-
-    int y1 = td->cursor_row;
-    int y2 = td->cursor_row + n;
-    int y3 = td->rows - n;
-    if (y3 < td->cursor_row)
-        y3 = td->cursor_row;
-
-    uint16_t *p1     = td->buffer + td->columns * y1;
-    uint16_t *p2     = td->buffer + td->columns * y2;
-    uint16_t *p3     = td->buffer + td->columns * y3;
-    int       count1 = td->rows - y2;
-    int       count2 = td->rows - y3;
-
-    if (count1 > 0)
-        memmove16(p1, p2, count1 * td->columns);
-    if (count2 > 0)
-        memset16(p3, (td->text_color << 8) | ' ', count2 * td->columns);
+bool console_set_width(int width) {
+    if (width != 40 && width != 80)
+        return false;
+    return true;
 }
 
-static void delete_char(struct terminal_data *td, int n) {
-    if (n < 1)
-        return;
-
-    uint16_t *p  = td->buffer + td->cursor_row * td->columns;
-    int       x1 = td->cursor_col;
-    int       x2 = td->cursor_col + n;
-    int       x3 = td->columns - n;
-    if (x3 < td->cursor_col)
-        x3 = td->cursor_col;
-
-    uint16_t *p1     = p + x1;
-    uint16_t *p2     = p + x2;
-    uint16_t *p3     = p + x3;
-    int       count1 = td->columns - x2;
-    int       count2 = td->columns - x3;
-
-    if (count1 > 0)
-        memmove16(p1, p2, count1);
-    if (count2 > 0)
-        memset16(p3, (td->text_color << 8) | ' ', count2);
+void console_clear_screen(void) {
+    hide_cursor();
+    _clear_screen();
+    show_cursor();
 }
 
-static void scroll_up(struct terminal_data *td, int n) {
-    if (n < 1)
-        return;
-    if (n > td->rows)
-        n = td->rows;
-
-    memmove16(td->buffer, td->buffer + td->columns * n, td->columns * (td->rows - n));
-    memset16(td->buffer + td->columns * (td->rows - n), (td->text_color << 8) | ' ', td->columns * n);
+void console_show_cursor(bool en) {
+    hide_cursor();
+    cursor_enabled = en;
+    show_cursor();
 }
 
-static void scroll_down(struct terminal_data *td, int n) {
-    if (n < 1)
-        return;
-    if (n > td->rows)
-        n = td->rows;
+void console_set_cursor_row(int val) {
+    if (val < 0)
+        val = 0;
+    if (val > num_rows - 1)
+        val = num_rows - 1;
 
-    memmove16(td->buffer + td->columns * n, td->buffer, td->columns * (td->rows - n));
-    memset16(td->buffer, (td->text_color << 8) | ' ', td->columns * n);
+    hide_cursor();
+    cursor_row = val;
+    show_cursor();
+}
+int console_get_cursor_row(void) { return cursor_row; }
+int console_get_num_rows(void) { return num_rows; }
+
+void console_set_cursor_column(int val) {
+    if (val < 0)
+        val = 0;
+    if (val > num_columns - 1)
+        val = num_columns - 1;
+
+    hide_cursor();
+    cursor_column = val;
+    show_cursor();
+}
+int console_get_num_columns(void) { return num_columns; }
+int console_get_cursor_column(void) { return cursor_column; }
+
+void console_set_foreground_color(int val) {
+    text_color = ((val & 0xF) << 12) | (text_color & 0x0F00);
+}
+void console_set_background_color(int val) {
+    text_color = (text_color & 0xF000) | ((val & 0xF) << 8);
+}
+void console_set_border_color(int val) {
+    TRAM[2047] = ((val & 0xF) << 12) | ((val & 0xF) << 8) | ' ';
 }
 
-static void check_cursor(struct terminal_data *td) {
-    if (td->cursor_row < 0) {
-        td->cursor_row = 0;
-    }
-    if (td->cursor_col < 0) {
-        td->cursor_col = 0;
-    }
-
-    if (td->cursor_col >= td->columns) {
-        td->cursor_col = 0;
-        td->cursor_row++;
-    }
-
-    if (td->cursor_row >= td->rows) {
-        scroll_up(td, td->cursor_row - td->rows + 1);
-        td->cursor_row = td->rows - 1;
-    }
-}
-
-static void hide_cursor(struct terminal_data *td) {
-    if (td->buffer == NULL ||
-        td->cursor_row < 0 || td->cursor_row >= td->rows ||
-        td->cursor_col < 0 || td->cursor_col >= td->columns)
-        return;
-
-    uint16_t *p = &td->buffer[td->cursor_row * td->columns + td->cursor_col];
-    *p          = (*p & 0xFF) | (td->saved_color << 8);
-}
-
-static void show_cursor(struct terminal_data *td) {
-    if (td->buffer == NULL ||
-        td->cursor_row < 0 || td->cursor_row >= td->rows ||
-        td->cursor_col < 0 || td->cursor_col >= td->columns)
-        return;
-
-    uint16_t *p     = &td->buffer[td->cursor_row * td->columns + td->cursor_col];
-    td->saved_color = *p >> 8;
-    *p              = (*p & 0xFF) | (CURSOR_COLOR << 8);
-}
-
-static inline int imin(int a, int b) { return a < b ? a : b; }
-static inline int imax(int a, int b) { return a > b ? a : b; }
-
-static inline void cursor_set(struct terminal_data *td, int col, int row) {
-    td->cursor_col = imax(0, imin(col, td->columns - 1));
-    td->cursor_row = imax(0, imin(row, td->rows - 1));
-}
-
-static void drawchar(struct terminal_data *td, char ch) {
-    if (ch < ' ')
-        return;
-
-    td->last_char = ch;
-
-    td->buffer[td->cursor_row * td->columns + td->cursor_col] = (td->text_color << 8) | ch;
-    td->cursor_col++;
-    check_cursor(td);
-}
-
-static int get_param(struct terminal_data *td, int defval) {
-    if (td->cmd_params[0] < '0' || td->cmd_params[0] > '9')
-        return defval;
-
-    int n = 0;
-    while (td->cmd_params[0] >= '0' && td->cmd_params[0] <= '9') {
-        n = n * 10 + (td->cmd_params[0] - '0');
-        td->cmd_params++;
-    }
-    return n;
-}
-
-static void handle_sgr(struct terminal_data *td) {
-    while (1) {
-        int n = get_param(td, 0);
-        // printf("- %d\n", n);
-
-        if (n == 0) {
-            // Reset
-            td->attributes = 0;
-            td->fg_col     = 7;
-            td->bg_col     = 0;
-        } else if (n == 1) {
-            // Bold
-            td->attributes |= 1;
-        } else if (n == 4) {
-            // Underline
-        } else if (n == 7) {
-            // Reverse video
-            td->attributes |= 2;
-        } else if (n == 10) {
-            // Primary (default) font
-            td->attributes = 0;
-        } else if (n == 22) {
-            // Normal intensity
-            td->attributes &= ~1;
-        } else if (n == 24) {
-            // Not underlined
-        } else if (n == 27) {
-            // Not reversed
-            td->attributes &= ~2;
-        } else if (n >= 30 && n <= 37) {
-            // Foreground color
-            td->fg_col = n - 30;
-        } else if (n == 39) {
-            // Default foreground color
-            td->fg_col = 7;
-        } else if (n >= 40 && n <= 47) {
-            // Background color
-            td->bg_col = n - 40;
-        } else if (n == 49) {
-            // Default background color
-            td->fg_col = 0;
-        } else if (n >= 90 && n <= 97) {
-            // Bright foreground color
-            td->fg_col = n - 90 + 8;
-        } else if (n >= 100 && n <= 107) {
-            // Bright background color
-            td->bg_col = n - 100 + 8;
+static void _putc(char ch) {
+    if (ch == '\b') {
+        if (cursor_column > 0) {
+            cursor_column--;
         } else {
-            // Unknown
-        }
-
-        if (td->cmd_params[0] != ';')
-            break;
-
-        td->cmd_params++;
-    }
-
-    if (td->attributes & 2) {
-        td->text_color = (td->bg_col << 4) | td->fg_col;
-        if (td->attributes & 1) {
-            td->text_color |= 0x80;
-        }
-    } else {
-        td->text_color = (td->fg_col << 4) | td->bg_col;
-        if (td->attributes & 1) {
-            td->text_color |= 0x80;
-        }
-    }
-}
-
-static void handle_csi(struct terminal_data *td) {
-    td->cmd_params          = td->escape_cmd + 2;
-    int  len                = strlen((const char *)td->escape_cmd);
-    char cmd                = td->escape_cmd[len - 1];
-    td->escape_cmd[len - 1] = 0;
-
-    switch (cmd) {
-        case 'A': cursor_set(td, td->cursor_col, td->cursor_row - get_param(td, 1)); break;
-        case 'B': cursor_set(td, td->cursor_col, td->cursor_row + get_param(td, 1)); break;
-        case 'C': cursor_set(td, td->cursor_col + get_param(td, 1), td->cursor_row); break;
-        case 'D': cursor_set(td, td->cursor_col - get_param(td, 1), td->cursor_row); break;
-        case 'E': cursor_set(td, 0, td->cursor_row + get_param(td, 1)); break;
-        case 'F': cursor_set(td, 0, td->cursor_row - get_param(td, 1)); break;
-        case 'G': cursor_set(td, get_param(td, 1) - 1, td->cursor_row); break;
-        case 'd': cursor_set(td, td->cursor_col, get_param(td, 1) - 1); break;
-        case 'f': // Same as 'H', but not quite?
-        case 'H': {
-            int n = get_param(td, 1);
-            if (td->cmd_params[0] == ';')
-                td->cmd_params++;
-            int m = get_param(td, 1);
-            cursor_set(td, m - 1, n - 1);
-            break;
-        }
-        case 'J': clear_display(td, get_param(td, 0)); break;
-        case 'K': clear_line(td, get_param(td, 0)); break;
-        case 'I': insert_line(td, get_param(td, 1)); break;
-        case '@': insert_char(td, get_param(td, 1)); break;
-        case 'P': delete_char(td, get_param(td, 1)); break;
-        case 'M': delete_line(td, get_param(td, 1)); break;
-        case 'S': scroll_up(td, get_param(td, 1)); break;
-        case 'T': scroll_down(td, get_param(td, 1)); break;
-        case 'm': handle_sgr(td); return;
-        case 'b': {
-            // Repeat last character n times
-            int n = get_param(td, 1);
-            while (n > 0) {
-                drawchar(td, td->last_char);
-                n--;
-            }
-            break;
-        }
-        case 'X': {
-            // write N spaces w/o moving cursor
-            int n = get_param(td, 1);
-            if (n > td->columns - td->cursor_col)
-                n = td->columns - td->cursor_col;
-
-            memset16(td->buffer + td->columns * td->cursor_row + td->cursor_col, (td->text_color << 8) | ' ', n);
-            break;
-        }
-
-        case 'h': {
-            // if (cmd_params[0] == '?') {
-            //     cmd_params++;
-            //     int mode = get_param(0);
-            //     if (mode == 1) {
-            //         // Cursor Keys Mode - set: application sequences
-            //         term_flags |= 1;
-            //     } else if (mode == 25) {
-            //         // Cursor - set: show cursor
-            //         term_flags |= 2;
-            //     }
-            // }
-            break;
-        }
-
-        case 'l':
-            // if (cmd_params[0] == '?') {
-            //     cmd_params++;
-            //     int mode = get_param(0);
-            //     if (mode == 1) {
-            //         // Cursor Keys Mode - reset: cursor sequences
-            //         term_flags &= ~1;
-            //     } else if (mode == 25) {
-            //         // Cursor - set: show cursor
-            //         term_flags &= ~2;
-            //     }
-            // }
-            break;
-
-        case 'r': // DECSTBM: Set Top and Bottom Margins
-            break;
-        case 't': // DECSLPP: set page size - ie window height
-            break;
-        case 'n': // DSR: cursor position query
-            break;
-        case 'c': // RIS: restore power-on settings
-            // text_color = 0x70;
-            // attributes = 0;
-            // term_flags = 0;
-            break;
-        case 's': // save cursor
-            break;
-        case 'u': // restore cursor
-            break;
-
-        default: {
-            // text_color = 0xF5;
-            // printf("\nCSI:'%c' - '%s'\n", cmd, cmd_params);
-            // while (1)
-            //     ;
-            break;
-        }
-    }
-}
-
-static void terminal_process(struct terminal_data *td, char ch) {
-    if (td->buffer == NULL || td->columns == 0 || td->rows == 0) {
-        return;
-    }
-
-    if (td->escape_idx) {
-        if (td->escape_idx < sizeof(td->escape_cmd) - 1)
-            td->escape_cmd[td->escape_idx++] = ch;
-
-        if (td->escape_cmd[1] == '[') {
-            // CSI: Control Sequence Introducer
-            if (td->escape_idx > 2 && ch >= '@' && ch <= '~') {
-                td->escape_cmd[td->escape_idx] = 0;
-                td->escape_idx                 = 0;
-                handle_csi(td);
-            }
-
-        } else if (td->escape_cmd[1] == '[') {
-            // Ignore OSC
-            if (ch == 7 || ch == '\\') {
-                td->escape_idx = 0;
-            }
-
-        } else if (td->escape_cmd[1] == 'M') {
-            // insert_line(1);
-            td->escape_idx = 0;
-
-        } else {
-            td->escape_idx = 0;
-        }
-        return;
-    }
-
-    if (ch == '\a') {
-        // Terminal bell
-
-    } else if (ch == '\b') {
-        // Backspace
-        if (td->cursor_col > 0) {
-            td->cursor_col--;
-        } else {
-            if (td->cursor_row > 0) {
-                td->cursor_col = td->columns - 1;
-                td->cursor_row--;
+            if (cursor_row > 0) {
+                cursor_column = num_columns - 1;
+                cursor_row--;
             }
         }
-        check_cursor(td);
 
     } else if (ch == '\t') {
         // Horizontal TAB
-        td->cursor_col = (td->cursor_col + 8) & ~7;
-        check_cursor(td);
+        cursor_column = (cursor_column + 8) & ~7;
 
     } else if (ch == '\n') {
         // Newline
-        td->cursor_row++;
-        check_cursor(td);
+        cursor_row++;
 
     } else if (ch == '\r') {
         // Carriage return
-        td->cursor_col = 0;
-
-    } else if (ch == 0x1B) {
-        // Escape
-        td->escape_cmd[td->escape_idx++] = ch;
+        cursor_column = 0;
 
     } else {
-        drawchar(td, ch);
+        // Regular character
+        TRAM[cursor_row * num_columns + cursor_column] = text_color | ch;
+        cursor_column++;
+    }
+
+    if (cursor_column >= num_columns) {
+        cursor_column = 0;
+        cursor_row++;
+    }
+    if (cursor_row >= num_rows) {
+        memmove16((uint16_t *)TRAM, (uint16_t *)TRAM + num_columns, num_columns * (num_rows - 1));
+        memset16((uint16_t *)TRAM + num_columns * (num_rows - 1), text_color | ' ', num_columns);
+        cursor_row = num_rows - 1;
     }
 }
 
-static struct terminal_data terminal = {
-    .buffer     = (uint16_t *)TRAM,
-    .rows       = 25,
-    .columns    = 80,
-    .text_color = (DEF_FGCOL << 4) | DEF_BGCOL,
-    .fg_col     = DEF_FGCOL,
-    .bg_col     = DEF_BGCOL,
-};
-
-void console_init(void) {
-    reinit_video();
-    hide_cursor(&terminal);
-    clear_display(&terminal, 2);
-    show_cursor(&terminal);
+void console_putc(char ch) {
+    hide_cursor();
+    _putc(ch);
+    show_cursor();
 }
 
-void console_putc(char ch) {
-    hide_cursor(&terminal);
-    terminal_process(&terminal, ch);
-    show_cursor(&terminal);
+void console_puts(const char *s) {
+    hide_cursor();
+    while (*s)
+        _putc(*(s++));
+    show_cursor();
+}
+
+static uint8_t kb_buf[64];
+static uint8_t kb_wridx;
+static uint8_t kb_rdidx;
+static uint8_t kb_cnt;
+
+uint8_t console_getc(void) {
+    if (kb_cnt == 0)
+        return 0;
+
+    uint8_t ch = kb_buf[kb_rdidx++];
+    if (kb_rdidx == sizeof(kb_buf))
+        kb_rdidx = 0;
+    kb_cnt--;
+
+    return ch;
+}
+
+void console_flush_input(void) {
+    kb_wridx = 0;
+    kb_rdidx = 0;
+    kb_cnt   = 0;
+}
+
+void _console_handle_key(int key) {
+    if (key < 0)
+        return;
+    if (key & KEY_IS_SCANCODE)
+        return;
+
+    uint8_t ch = key & 0xFF;
+    if (key & KEY_MOD_CTRL) {
+        uint8_t ch_upper = toupper(ch);
+        if (ch_upper >= '@' && ch_upper <= '_')
+            ch = ch_upper - '@';
+        else if (ch_upper == 0x7F)
+            ch = '\b';
+    }
+
+    // if ((key & KEY_MOD_CTRL) && toupper(ch) == 'C') {
+    //     bc_state.stop = true;
+    //     return;
+    // }
+
+    if (kb_cnt < sizeof(kb_buf) && ch > 0) {
+        kb_buf[kb_wridx++] = ch;
+        if (kb_wridx == sizeof(kb_buf))
+            kb_wridx = 0;
+        kb_cnt++;
+    }
 }

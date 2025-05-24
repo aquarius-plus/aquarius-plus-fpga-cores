@@ -49,8 +49,6 @@ target_link_options(${PROJECT_NAME} PRIVATE -Wl,--gc-sections)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--print-memory-usage)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/../lib/default.ld)
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE SYSCALL_STDINOUT)
-
 target_include_directories(${PROJECT_NAME} PRIVATE
     .
     ../lib
@@ -60,11 +58,10 @@ target_sources(${PROJECT_NAME} PRIVATE
     main.c
     
     ../lib/start.S
-    lib/syscalls.c
-    lib/screen.c
+    ../lib/syscalls.c
     ../lib/esp.c
     ../lib/common.c
     ../lib/malloc.c
-    lib/console.c
+    ../lib/console.c
     ../lib/readline.c
 )

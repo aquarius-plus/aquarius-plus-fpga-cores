@@ -62,19 +62,19 @@ target_sources(${PROJECT_NAME} PRIVATE
 
     ../lib/start.S
     ../lib/syscalls.c
-    ../lib/screen.c
     ../lib/esp.c
     ../lib/common.c
     ../lib/malloc.c
-
+    
+    editor/cmd_edit.c
+    editor/cmd_file.c
     editor/ctrl_edit_field.c
     editor/ctrl_file_list.c
     editor/dialog.c
     editor/editbuf.c
     editor/editor.c
     editor/menu.c
-    editor/cmd_file.c
-    editor/cmd_edit.c
+    editor/screen.c
 
     help/help.c
 

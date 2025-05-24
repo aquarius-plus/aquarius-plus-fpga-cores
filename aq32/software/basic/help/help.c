@@ -1,5 +1,5 @@
 #include "help.h"
-#include "screen.h"
+#include "editor/screen.h"
 #include "basic/common/buffers.h"
 #include "editor/dialog.h"
 

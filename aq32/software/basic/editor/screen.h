@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "colors.h"
 
 extern volatile uint16_t *p_scr;
 extern uint16_t           color;

@@ -7,5 +7,13 @@
       "name": "pcdev",
       "path": "pcdev"
     }
-  ]
+  ],
+  "settings": {
+    "files.associations": {
+      "dialog.h": "c",
+      "screen.h": "c",
+      "common.h": "c",
+      "console.h": "c"
+    }
+  }
 }
