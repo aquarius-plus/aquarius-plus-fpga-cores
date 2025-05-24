@@ -2,7 +2,7 @@
 //
 // Fully written in assembly to make sure no stack pointer is needed.
 
-#define LOADADDR 0x80000
+#define LOADADDR 0x80400
 
 #define REG_ESP_CTRL 0x2000
 #define REG_ESP_DATA 0x2004

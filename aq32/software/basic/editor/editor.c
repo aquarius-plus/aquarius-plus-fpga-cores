@@ -237,11 +237,18 @@ static int unindent_line(int line) {
     return count;
 }
 
-void editor(struct editbuf *eb) {
+void editor(struct editbuf *eb, const char *path) {
     state.editbuf = eb;
 
     reinit_video();
     reset_state();
+
+    if (path != NULL) {
+        snprintf(state.filename, sizeof(state.filename), "%s", path);
+        if (!editbuf_load(state.editbuf, path)) {
+            state.editbuf->modified = true;
+        }
+    }
 
     while (1) {
         editor_redraw_screen();

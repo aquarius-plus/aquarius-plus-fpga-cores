@@ -8,7 +8,6 @@ module video(
     input  wire        vclk,
 
     // Register interface
-    input  wire        vctrl_tram_page,
     input  wire        vctrl_80_columns,
     input  wire        vctrl_text_priority,
     input  wire        vctrl_sprites_enable,
@@ -165,7 +164,7 @@ module video(
             d_char_addr = q_char_addr + 11'd1;
 
         if (!q_mode80)
-            d_char_addr[10] = vctrl_tram_page;
+            d_char_addr[10] = 0;
     end
 
     always @(posedge(vclk)) q_char_addr <= d_char_addr;

@@ -19,10 +19,7 @@ _start:
 2:  bltu    t0, t1, 1b
 
     call    __libc_init_array
-    call    _lib_init
-    jal     main
-    j       exit
-
+    j       _c_start
 
     .global load_executable
 load_executable:

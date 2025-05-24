@@ -237,8 +237,7 @@ done:
     return 1;
 }
 
-// called from start.S
-void main(void) {
+int main(void) {
     char prompt[PATH_MAX + 16];
     char line[128];
 
@@ -252,46 +251,57 @@ void main(void) {
             continue;
 
         // Parse line
-        char *p   = line;
-        char *cmd = parse_param(&p);
-        if (cmd[0] == 0)
-            continue;
+        char *p         = line;
+        char *pd        = (char *)(STARTDATA + 1);
+        char *pd_end    = (char *)0x80400;
+        STARTDATA->argc = 0;
 
-        char *cmd_argv[16];
-        int   cmd_argc       = 0;
-        cmd_argv[cmd_argc++] = cmd;
+        {
+            char *cmd = parse_param(&p);
+            if (cmd[0] == 0)
+                continue;
+            unsigned len = strlen(cmd) + 1;
+
+            STARTDATA->argv[STARTDATA->argc++] = pd;
+            memcpy(pd, cmd, len);
+            pd += len;
+        }
 
         while (1) {
             char *arg = parse_param(&p);
             if (arg[0] == 0)
                 break;
+            unsigned len = strlen(arg) + 1;
 
-            if (cmd_argc >= (int)(sizeof(cmd_argv) / sizeof(*cmd_argv)) - 1) {
-                cmd_argc = -1;
+            if (STARTDATA->argc >= MAX_ARGS - 1 || pd + len > pd_end) {
+                STARTDATA->argc = -1;
                 break;
             }
 
-            cmd_argv[cmd_argc++] = arg;
+            STARTDATA->argv[STARTDATA->argc++] = pd;
+            memcpy(pd, arg, len);
+            pd += len;
         }
-        if (cmd_argc < 0) {
+        if (STARTDATA->argc < 0) {
             fprintf(stderr, "Parameter limit exceeded\n");
             continue;
         }
-        cmd_argv[cmd_argc] = NULL;
+        STARTDATA->argv[STARTDATA->argc] = NULL;
 
-        if (strcmp(cmd, "cd") == 0) {
-            cmd_cd(cmd_argc, cmd_argv);
-        } else if (strcmp(cmd, "ls") == 0 || strcmp(cmd, "dir") == 0) {
-            cmd_ls(cmd_argc, cmd_argv);
-        } else if (strcmp(cmd, "mkdir") == 0) {
-            cmd_mkdir(cmd_argc, cmd_argv);
-        } else if (strcmp(cmd, "rmdir") == 0) {
-            cmd_rmdir(cmd_argc, cmd_argv);
-        } else if (strcmp(cmd, "rm") == 0 || strcmp(cmd, "del") == 0) {
-            cmd_rm(cmd_argc, cmd_argv);
-        } else if (strcmp(cmd, "cp") == 0) {
+        if (strcmp(STARTDATA->argv[0], "cd") == 0) {
+            cmd_cd(STARTDATA->argc, STARTDATA->argv);
+        } else if (strcmp(STARTDATA->argv[0], "ls") == 0 || strcmp(STARTDATA->argv[0], "dir") == 0) {
+            cmd_ls(STARTDATA->argc, STARTDATA->argv);
+        } else if (strcmp(STARTDATA->argv[0], "mkdir") == 0) {
+            cmd_mkdir(STARTDATA->argc, STARTDATA->argv);
+        } else if (strcmp(STARTDATA->argv[0], "rmdir") == 0) {
+            cmd_rmdir(STARTDATA->argc, STARTDATA->argv);
+        } else if (strcmp(STARTDATA->argv[0], "rm") == 0 || strcmp(STARTDATA->argv[0], "del") == 0) {
+            cmd_rm(STARTDATA->argc, STARTDATA->argv);
+        } else if (strcmp(STARTDATA->argv[0], "cp") == 0) {
         } else {
-            execute(cmd_argc, cmd_argv);
+            execute(STARTDATA->argc, STARTDATA->argv);
         }
     }
+    return 0;
 }

@@ -114,9 +114,16 @@ enum {
 #define VCTRL_TEXT_EN        (1 << 0)
 #define VCTRL_GFXMODE_OFF    (0 << 1)
 #define VCTRL_GFXMODE_TILE   (1 << 1)
-#define VCTRL_GFXMODE_BM1BPP (2 << 1)
 #define VCTRL_GFXMODE_BM4BPP (3 << 1)
 #define VCTRL_SPR_EN         (1 << 3)
 #define VCTRL_TEXT_PRIO      (1 << 4)
 #define VCTRL_80COLUMNS      (1 << 6)
-#define VCTRL_TEXTPAGE2      (1 << 7)
+
+#define MAX_ARGS 64
+struct start_data {
+    int   exit_status;
+    int   argc;
+    char *argv[MAX_ARGS];
+};
+
+#define STARTDATA ((struct start_data *)0x80000)

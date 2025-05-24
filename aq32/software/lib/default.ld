@@ -1,7 +1,7 @@
 STACK_SIZE = 8k;
 
 MEMORY {
-    ram   (rwx) : ORIGIN = 0x80000,                   LENGTH = 512k - STACK_SIZE
+    ram   (rwx) : ORIGIN = 0x80400,                   LENGTH = 512k - 1k - STACK_SIZE
     stack (rw)  : ORIGIN = ORIGIN(ram) + LENGTH(ram), LENGTH = STACK_SIZE
 }
 PROVIDE(__stack_start = ORIGIN(stack));

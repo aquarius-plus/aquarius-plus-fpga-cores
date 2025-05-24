@@ -436,7 +436,6 @@ module aq32_top(
     wire [15:0] rddata_pal;
     wire [31:0] rddata_vram;
 
-    reg        q_vctrl_tram_page;
     reg        q_vctrl_80_columns;
     reg        q_vctrl_text_priority;
     reg        q_vctrl_sprites_enable;
@@ -455,7 +454,6 @@ module aq32_top(
 
         .vclk(video_clk),
 
-        .vctrl_tram_page(q_vctrl_tram_page),
         .vctrl_80_columns(q_vctrl_80_columns),
         .vctrl_text_priority(q_vctrl_text_priority),
         .vctrl_sprites_enable(q_vctrl_sprites_enable),
@@ -593,7 +591,7 @@ module aq32_top(
         regs_rddata = 0;
         if (sel_reg_espctrl)  regs_rddata = {27'b0, q_esp_rx_fifo_overflow, q_esp_rx_framing_error, 1'b0, esp_tx_fifo_full, !esp_rx_empty};
         if (sel_reg_espdata)  regs_rddata = {23'b0, esp_rx_data};
-        if (sel_reg_vctrl)    regs_rddata = {24'b0, q_vctrl_tram_page, q_vctrl_80_columns, 1'b0, q_vctrl_text_priority, q_vctrl_sprites_enable, q_vctrl_gfx_mode, q_vctrl_text_enable};
+        if (sel_reg_vctrl)    regs_rddata = {24'b0, 1'b0, q_vctrl_80_columns, 1'b0, q_vctrl_text_priority, q_vctrl_sprites_enable, q_vctrl_gfx_mode, q_vctrl_text_enable};
         if (sel_reg_vscrx)    regs_rddata = {23'b0, q_vscrx};
         if (sel_reg_vscry)    regs_rddata = {24'b0, q_vscry};
         if (sel_reg_vline)    regs_rddata = {24'b0, vline};
@@ -613,7 +611,6 @@ module aq32_top(
             q_esp_rx_fifo_overflow <= 0;
             q_esp_rx_framing_error <= 0;
 
-            q_vctrl_tram_page      <= 0;
             q_vctrl_80_columns     <= 0;
             q_vctrl_text_priority  <= 0;
             q_vctrl_sprites_enable <= 0;
@@ -630,7 +627,6 @@ module aq32_top(
                     q_esp_rx_framing_error <= q_esp_rx_framing_error & ~cpu_wrdata[3];
                 end
                 if (sel_reg_vctrl) begin
-                    q_vctrl_tram_page      <= cpu_wrdata[7];
                     q_vctrl_80_columns     <= cpu_wrdata[6];
                     q_vctrl_text_priority  <= cpu_wrdata[4];
                     q_vctrl_sprites_enable <= cpu_wrdata[3];

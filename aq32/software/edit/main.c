@@ -50,8 +50,9 @@ static void cmd_help_about(void) {
     dialog_message("About", "Aquarius32 text editor v0.1");
 }
 
-void main(void) {
+int main(int argc, const char **argv) {
     save_video();
     editbuf_init(&editbuf, buf_edit, sizeof(buf_edit));
-    editor(&editbuf);
+    editor(&editbuf, (argc == 2) ? argv[1] : NULL);
+    return 0;
 }
