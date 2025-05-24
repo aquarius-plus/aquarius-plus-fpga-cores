@@ -10,7 +10,6 @@ module video(
     // Register interface
     input  wire        vctrl_tram_page,
     input  wire        vctrl_80_columns,
-    input  wire        vctrl_border_remap,
     input  wire        vctrl_text_priority,
     input  wire        vctrl_sprites_enable,
     input  wire  [1:0] vctrl_gfx_mode,
@@ -137,7 +136,7 @@ module video(
 
     wire        next_row         = (vpos >= 8'd23) && vnext && (vpos[2:0] == 3'd7);
     wire [10:0] d_row_addr       = q_row_addr + (q_mode80 ? 11'd80 : 11'd40);
-    wire [10:0] border_char_addr = vctrl_border_remap ? (q_mode80 ? 11'h7FF : 11'h3FF) : 11'h0;
+    wire [10:0] border_char_addr = 11'h7FF;
 
     always @(posedge(vclk))
         if (vblank) begin
@@ -256,7 +255,7 @@ module video(
     //////////////////////////////////////////////////////////////////////////
     // VRAM
     //////////////////////////////////////////////////////////////////////////
-    wire [12:0] vram_addr2;
+    wire [13:0] vram_addr2;
     wire [15:0] vram_rddata2;
 
     vram vram(
@@ -270,7 +269,7 @@ module video(
 
         // Second port - Video access
         .p2_clk(vclk),
-        .p2_addr({1'b0, vram_addr2}),
+        .p2_addr(vram_addr2),
         .p2_rddata(vram_rddata2));
 
     //////////////////////////////////////////////////////////////////////////
