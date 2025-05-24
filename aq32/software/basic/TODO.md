@@ -9,13 +9,16 @@
 
 To be implemented:
 
-- LINE INPUT
-- INPUT
-- INPUT$
+- LINE INPUT statement
+- INPUT statement
+- INPUT$ function
+- TIMER function
+- TIMER statement
+- ON TIMER statement
+- ON expr GOSUB
+- ON expr GOTO
 
-- ON
 - RESUME
-- TIMER
 - ERL
 - ERR
 

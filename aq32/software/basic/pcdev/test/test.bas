@@ -1,10 +1,11 @@
-? inkey$
+print inkey$
 
 print "bla"+"dinges"
 print "a" = "a"
 print "ab" >= "ab"
 
 print inkey$
+' print timer
 
 ' print "0123456789012345678901234567890"
 ' print 1,2,3,4,5,6,7

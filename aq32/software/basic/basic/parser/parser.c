@@ -225,6 +225,11 @@ static void bc_emit_func_instr(void) {
     bc_emit(BC_FUNC_INSTR);
 }
 
+static void bc_emit_func_input_s(void) {
+    _basic_error(ERR_UNHANDLED);
+    bc_emit(BC_FUNC_INPUTs);
+}
+
 static void bc_emit_func_mid_s(void) {
     expect(TOK_LPAREN);
     bc_emit_expr();
@@ -264,52 +269,54 @@ static void bc_emit_func_pos(void) {
 
 // clang-format off
 static const struct func funcs[TOK_FUNC_LAST - TOK_FUNC_FIRST + 1] = {
-    [TOK_ABS     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ABS,     .num_params = 1, .emit_func = NULL},
-    [TOK_ASC     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ASC,     .num_params = 1, .emit_func = NULL},
-    [TOK_ATN     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ATN,     .num_params = 1, .emit_func = NULL},
-    [TOK_CDBL    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CDBL,    .num_params = 1, .emit_func = NULL},
-    [TOK_CHRs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CHRs,    .num_params = 1, .emit_func = NULL},
-    [TOK_CINT    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CINT,    .num_params = 1, .emit_func = NULL},
-    [TOK_CLNG    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CLNG,    .num_params = 1, .emit_func = NULL},
-    [TOK_COS     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_COS,     .num_params = 1, .emit_func = NULL},
-    [TOK_CSNG    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CSNG,    .num_params = 1, .emit_func = NULL},
-    [TOK_CSRLIN  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CSRLIN,  .num_params = 0, .emit_func = NULL},
-    [TOK_CVD     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CVD,     .num_params = 1, .emit_func = NULL},
-    [TOK_CVI     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CVI,     .num_params = 1, .emit_func = NULL},
-    [TOK_CVL     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CVL,     .num_params = 1, .emit_func = NULL},
-    [TOK_CVS     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CVS,     .num_params = 1, .emit_func = NULL},
-    [TOK_ERL     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ERL,     .num_params = 0, .emit_func = NULL},
-    [TOK_ERR     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ERR,     .num_params = 0, .emit_func = NULL},
-    [TOK_EXP     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_EXP,     .num_params = 1, .emit_func = NULL},
-    [TOK_FIX     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_FIX,     .num_params = 1, .emit_func = NULL},
-    [TOK_HEXs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_HEXs,    .num_params = 1, .emit_func = NULL},
-    [TOK_INKEYs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_INKEYs,  .num_params = 0, .emit_func = NULL},
-    [TOK_INSTR   - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_instr},
-    [TOK_INT     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_INT,     .num_params = 1, .emit_func = NULL},
-    [TOK_LCASEs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LCASEs,  .num_params = 1, .emit_func = NULL},
-    [TOK_LEFTs   - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LEFTs,   .num_params = 2, .emit_func = NULL},
-    [TOK_LEN     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LEN,     .num_params = 1, .emit_func = NULL},
-    [TOK_LOG     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LOG,     .num_params = 1, .emit_func = NULL},
-    [TOK_LTRIMs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LTRIMs,  .num_params = 1, .emit_func = NULL},
-    [TOK_MIDs    - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_mid_s},
-    [TOK_MKDs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_MKDs,    .num_params = 1, .emit_func = NULL},
-    [TOK_MKIs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_MKIs,    .num_params = 1, .emit_func = NULL},
-    [TOK_MKLs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_MKLs,    .num_params = 1, .emit_func = NULL},
-    [TOK_MKSs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_MKSs,    .num_params = 1, .emit_func = NULL},
-    [TOK_OCTs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_OCTs,    .num_params = 1, .emit_func = NULL},
-    [TOK_POS     - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_pos},
-    [TOK_RIGHTs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_RIGHTs,  .num_params = 2, .emit_func = NULL},
-    [TOK_RND     - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_rnd},
-    [TOK_RTRIMs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_RTRIMs,  .num_params = 1, .emit_func = NULL},
-    [TOK_SGN     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SGN,     .num_params = 1, .emit_func = NULL},
-    [TOK_SIN     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SIN,     .num_params = 1, .emit_func = NULL},
-    [TOK_SPACEs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SPACEs,  .num_params = 1, .emit_func = NULL},
-    [TOK_SQR     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SQR,     .num_params = 1, .emit_func = NULL},
-    [TOK_STRINGs - TOK_FUNC_FIRST] = {.bc = BC_FUNC_STRINGs, .num_params = 2, .emit_func = NULL},
-    [TOK_STRs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_STRs,    .num_params = 1, .emit_func = NULL},
-    [TOK_TAN     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_TAN,     .num_params = 1, .emit_func = NULL},
-    [TOK_UCASEs  - TOK_FUNC_FIRST] = {.bc = BC_FUNC_UCASEs,  .num_params = 1, .emit_func = NULL},
-    [TOK_VAL     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_VAL,     .num_params = 1, .emit_func = NULL},
+    [TOK_ABS        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ABS,     .num_params = 1, .emit_func = NULL},
+    [TOK_ASC        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ASC,     .num_params = 1, .emit_func = NULL},
+    [TOK_ATN        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ATN,     .num_params = 1, .emit_func = NULL},
+    [TOK_CDBL       - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CDBL,    .num_params = 1, .emit_func = NULL},
+    [TOK_CHRs       - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CHRs,    .num_params = 1, .emit_func = NULL},
+    [TOK_CINT       - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CINT,    .num_params = 1, .emit_func = NULL},
+    [TOK_CLNG       - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CLNG,    .num_params = 1, .emit_func = NULL},
+    [TOK_COS        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_COS,     .num_params = 1, .emit_func = NULL},
+    [TOK_CSNG       - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CSNG,    .num_params = 1, .emit_func = NULL},
+    [TOK_CSRLIN     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CSRLIN,  .num_params = 0, .emit_func = NULL},
+    [TOK_CVD        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CVD,     .num_params = 1, .emit_func = NULL},
+    [TOK_CVI        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CVI,     .num_params = 1, .emit_func = NULL},
+    [TOK_CVL        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CVL,     .num_params = 1, .emit_func = NULL},
+    [TOK_CVS        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CVS,     .num_params = 1, .emit_func = NULL},
+    [TOK_ERL        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ERL,     .num_params = 0, .emit_func = NULL},
+    [TOK_ERR        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ERR,     .num_params = 0, .emit_func = NULL},
+    [TOK_EXP        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_EXP,     .num_params = 1, .emit_func = NULL},
+    [TOK_FIX        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_FIX,     .num_params = 1, .emit_func = NULL},
+    [TOK_HEXs       - TOK_FUNC_FIRST] = {.bc = BC_FUNC_HEXs,    .num_params = 1, .emit_func = NULL},
+    [TOK_INKEYs     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_INKEYs,  .num_params = 0, .emit_func = NULL},
+    [TOK_INPUTs     - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_input_s},
+    [TOK_INSTR      - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_instr},
+    [TOK_INT        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_INT,     .num_params = 1, .emit_func = NULL},
+    [TOK_LCASEs     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LCASEs,  .num_params = 1, .emit_func = NULL},
+    [TOK_LEFTs      - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LEFTs,   .num_params = 2, .emit_func = NULL},
+    [TOK_LEN        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LEN,     .num_params = 1, .emit_func = NULL},
+    [TOK_LOG        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LOG,     .num_params = 1, .emit_func = NULL},
+    [TOK_LTRIMs     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LTRIMs,  .num_params = 1, .emit_func = NULL},
+    [TOK_MIDs       - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_mid_s},
+    [TOK_MKDs       - TOK_FUNC_FIRST] = {.bc = BC_FUNC_MKDs,    .num_params = 1, .emit_func = NULL},
+    [TOK_MKIs       - TOK_FUNC_FIRST] = {.bc = BC_FUNC_MKIs,    .num_params = 1, .emit_func = NULL},
+    [TOK_MKLs       - TOK_FUNC_FIRST] = {.bc = BC_FUNC_MKLs,    .num_params = 1, .emit_func = NULL},
+    [TOK_MKSs       - TOK_FUNC_FIRST] = {.bc = BC_FUNC_MKSs,    .num_params = 1, .emit_func = NULL},
+    [TOK_OCTs       - TOK_FUNC_FIRST] = {.bc = BC_FUNC_OCTs,    .num_params = 1, .emit_func = NULL},
+    [TOK_POS        - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_pos},
+    [TOK_RIGHTs     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_RIGHTs,  .num_params = 2, .emit_func = NULL},
+    [TOK_RND        - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_rnd},
+    [TOK_RTRIMs     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_RTRIMs,  .num_params = 1, .emit_func = NULL},
+    [TOK_SGN        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SGN,     .num_params = 1, .emit_func = NULL},
+    [TOK_SIN        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SIN,     .num_params = 1, .emit_func = NULL},
+    [TOK_SPACEs     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SPACEs,  .num_params = 1, .emit_func = NULL},
+    [TOK_SQR        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SQR,     .num_params = 1, .emit_func = NULL},
+    [TOK_STRINGs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_STRINGs, .num_params = 2, .emit_func = NULL},
+    [TOK_STRs       - TOK_FUNC_FIRST] = {.bc = BC_FUNC_STRs,    .num_params = 1, .emit_func = NULL},
+    [TOK_TAN        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_TAN,     .num_params = 1, .emit_func = NULL},
+    [TOK_TIMER_FUNC - TOK_FUNC_FIRST] = {.bc = BC_FUNC_TIMER,   .num_params = 0, .emit_func = NULL},
+    [TOK_UCASEs     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_UCASEs,  .num_params = 1, .emit_func = NULL},
+    [TOK_VAL        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_VAL,     .num_params = 1, .emit_func = NULL},
 };
 // clang-format on
 
@@ -392,6 +399,11 @@ static void bc_emit_expr0(void) {
             break;
         }
         default: {
+            if (tok == TOK_TIMER) {
+                // TIMER can also be a statement
+                tok = TOK_TIMER_FUNC;
+            }
+
             if (tok >= TOK_FUNC_FIRST && tok <= TOK_FUNC_LAST) {
                 ack_token();
 
@@ -698,7 +710,7 @@ static void bc_emit_stmt_while(void) {
     buf_bytecode_patch_u16(if_false_offset, buf_bytecode_get_cur_offset());
 }
 
-static void bc_emit_for(void) {
+static void bc_emit_stmt_for(void) {
     expect(TOK_IDENTIFIER);
     infer_identifier_type();
     uint8_t var_type = tokval_str[tokval_strlen - 1];
@@ -805,7 +817,7 @@ static void bc_emit_for(void) {
     buf_bytecode_patch_u16(jmp_done_offset, buf_bytecode_get_cur_offset());
 }
 
-static void bc_emit_data(void) {
+static void bc_emit_stmt_data(void) {
     bc_emit(BC_DATA);
     uint16_t data_size_offset = buf_bytecode_get_cur_offset();
     bc_emit_u16(0xFFFF);
@@ -869,7 +881,7 @@ static void bc_emit_stmt_swap(void) {
     bc_emit_store_var(var2_type, var2_offset);
 }
 
-static void bc_emit_color(void) {
+static void bc_emit_stmt_color(void) {
     if (get_token() != TOK_COMMA) {
         bc_emit_expr();
     } else {
@@ -903,7 +915,7 @@ static void bc_emit_color(void) {
     bc_emit(BC_STMT_COLOR);
 }
 
-static void bc_emit_locate(void) {
+static void bc_emit_stmt_locate(void) {
     if (get_token() != TOK_COMMA) {
         bc_emit_expr();
     } else {
@@ -940,14 +952,15 @@ static void bc_emit_locate(void) {
 void bc_emit_stmt_return(void) {
     uint8_t tok = get_token();
     if (tok == TOK_COLON || tok == TOK_EOL) {
-        bc_emit(BC_STMT_RETURN);
+        bc_emit(BC_RETURN);
     } else {
-        bc_emit(BC_STMT_RETURN_TO);
+        bc_emit(BC_DROP);
+        bc_emit(BC_JMP);
         _bc_emit_target();
     }
 }
 
-void bc_emit_dim(void) {
+void bc_emit_stmt_dim(void) {
     expect(TOK_IDENTIFIER);
     infer_identifier_type();
     uint8_t var_type = tokval_str[tokval_strlen - 1];
@@ -984,6 +997,16 @@ void bc_emit_erase(void) {
     }
 }
 
+static void bc_emit_stmt_input(void) {
+    _basic_error(ERR_UNHANDLED);
+    // BC_STMT_INPUT
+}
+
+static void bc_emit_stmt_line_input(void) {
+    _basic_error(ERR_UNHANDLED);
+    // BC_STMT_INPUT
+}
+
 struct stmt {
     uint8_t bc;
     int     num_params;
@@ -992,32 +1015,31 @@ struct stmt {
 
 // clang-format off
 static const struct stmt stmts[TOK_STMT_LAST - TOK_STMT_FIRST + 1] = {
-    [TOK_CLEAR     - TOK_STMT_FIRST] = {.bc = BC_STMT_CLEAR,     .num_params = 0, .emit_stmt = NULL},
-    [TOK_CLS       - TOK_STMT_FIRST] = {.bc = BC_STMT_CLS,       .num_params = 0, .emit_stmt = NULL},
-    [TOK_COLOR     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_color},
-    [TOK_DATA      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_data},
-    [TOK_DIM       - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_dim},
-    [TOK_END       - TOK_STMT_FIRST] = {.bc = BC_END,            .num_params = 0, .emit_stmt = NULL},
-    [TOK_ERASE     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_erase},
-    [TOK_ERROR     - TOK_STMT_FIRST] = {.bc = BC_STMT_ERROR,     .num_params = 1, .emit_stmt = NULL},
-    [TOK_FOR       - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_for},
-    [TOK_GOSUB     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_gosub},
-    [TOK_GOTO      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_goto},
-    [TOK_IF        - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_if},
- // [TOK_INPUT     - TOK_STMT_FIRST] = {.bc = BC_STMT_INPUT,     .num_params = 0, .emit_stmt = NULL},
- // [TOK_INPUTs    - TOK_STMT_FIRST] = {.bc = BC_STMT_INPUTs,    .num_params = 0, .emit_stmt = NULL},
-    [TOK_LOCATE    - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_locate},
- // [TOK_ON        - TOK_STMT_FIRST] = {.bc = BC_STMT_ON,        .num_params = 0, .emit_stmt = NULL},
-    [TOK_PRINT     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_print},
-    [TOK_RANDOMIZE - TOK_STMT_FIRST] = {.bc = BC_STMT_RANDOMIZE, .num_params = 1, .emit_stmt = NULL},
-    [TOK_READ      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_read},
-    [TOK_RESTORE   - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_restore},
- // [TOK_RESUME    - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = NULL},
-    [TOK_RETURN    - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_return},
-    [TOK_SWAP      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_swap},
- // [TOK_TIMER     - TOK_STMT_FIRST] = {.bc = BC_STMT_TIMER,     .num_params = 0, .emit_stmt = NULL},
-    [TOK_WHILE     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_while},
-    [TOK_WIDTH     - TOK_STMT_FIRST] = {.bc = BC_STMT_WIDTH,     .num_params = 1, .emit_stmt = NULL},
+    [TOK_CLEAR      - TOK_STMT_FIRST] = {.bc = BC_STMT_CLEAR,     .num_params = 0, .emit_stmt = NULL},
+    [TOK_CLS        - TOK_STMT_FIRST] = {.bc = BC_STMT_CLS,       .num_params = 0, .emit_stmt = NULL},
+    [TOK_COLOR      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_color},
+    [TOK_DATA       - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_data},
+    [TOK_DIM        - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_dim},
+    [TOK_END        - TOK_STMT_FIRST] = {.bc = BC_END,            .num_params = 0, .emit_stmt = NULL},
+    [TOK_ERASE      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_erase},
+    [TOK_ERROR      - TOK_STMT_FIRST] = {.bc = BC_STMT_ERROR,     .num_params = 1, .emit_stmt = NULL},
+    [TOK_FOR        - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_for},
+    [TOK_GOSUB      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_gosub},
+    [TOK_GOTO       - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_goto},
+    [TOK_IF         - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_if},
+    [TOK_INPUT      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_input},
+    [TOK_LINE_INPUT - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_line_input},
+    [TOK_LOCATE     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_locate},
+    [TOK_PRINT      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_print},
+    [TOK_RANDOMIZE  - TOK_STMT_FIRST] = {.bc = BC_STMT_RANDOMIZE, .num_params = 1, .emit_stmt = NULL},
+    [TOK_READ       - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_read},
+    [TOK_RESTORE    - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_restore},
+ // [TOK_RESUME     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = NULL},
+    [TOK_RETURN     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_return},
+    [TOK_SWAP       - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_swap},
+ // [TOK_TIMER      - TOK_STMT_FIRST] = {.bc = BC_STMT_TIMER,     .num_params = 0, .emit_stmt = NULL},
+    [TOK_WHILE      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_while},
+    [TOK_WIDTH      - TOK_STMT_FIRST] = {.bc = BC_STMT_WIDTH,     .num_params = 1, .emit_stmt = NULL},
 };
 // clang-format on
 

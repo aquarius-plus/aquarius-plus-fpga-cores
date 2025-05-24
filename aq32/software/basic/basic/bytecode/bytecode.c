@@ -130,6 +130,11 @@ void bc_swap(void) {
     bc_state.stack[bc_state.stack_idx]     = bc_state.stack[bc_state.stack_idx + 1];
     bc_state.stack[bc_state.stack_idx + 1] = tmp;
 }
+void bc_drop(void) {
+    if (bc_state.stack_idx >= STACK_DEPTH)
+        _basic_error(ERR_INTERNAL_ERROR);
+    bc_state.stack_idx++;
+}
 
 void bc_push_const_unspecified_param(void) {
     bc_stack_push_long(INT32_MIN);
@@ -181,17 +186,11 @@ void bc_jsr(void) {
     bc_stack_push_long(bc_state.p_cur - bc_state.p_buf);
     bc_state.p_cur = bc_state.p_buf + offset;
 }
-void bc_stmt_return(void) {
+void bc_return(void) {
     if (bc_state.stack_idx >= STACK_DEPTH)
         _basic_error(ERR_RETURN_WITHOUT_GOSUB);
 
     bc_state.p_cur = bc_state.p_buf + (uint16_t)bc_stack_pop_long();
-}
-void bc_stmt_return_to(void) {
-    if (bc_state.stack_idx >= STACK_DEPTH)
-        _basic_error(ERR_RETURN_WITHOUT_GOSUB);
-    bc_stack_pop_long();
-    bc_state.p_cur = bc_state.p_buf + bc_get_u16();
 }
 
 void bc_func_cint(void) {
@@ -265,13 +264,16 @@ void bc_data_restore(void) {
 }
 
 void bc_stmt_clear(void) { _basic_error(ERR_UNHANDLED); }
-void bc_stmt_input_s(void) { _basic_error(ERR_UNHANDLED); }
-void bc_stmt_on(void) { _basic_error(ERR_UNHANDLED); }
 void bc_stmt_option(void) { _basic_error(ERR_UNHANDLED); }
 void bc_stmt_resume(void) { _basic_error(ERR_UNHANDLED); }
 void bc_stmt_timer(void) { _basic_error(ERR_UNHANDLED); }
 void bc_func_erl(void) { _basic_error(ERR_UNHANDLED); }
 void bc_func_err(void) { _basic_error(ERR_UNHANDLED); }
+
+void bc_func_timer(void) {
+    bc_stack_push_long(12345);
+    _basic_error(ERR_UNHANDLED);
+}
 
 static bc_handler_t bc_handlers[] = {
     [BC_END]      = bc_end,
@@ -279,6 +281,7 @@ static bc_handler_t bc_handlers[] = {
 
     [BC_DUP]  = bc_dup,
     [BC_SWAP] = bc_swap,
+    [BC_DROP] = bc_drop,
 
     [BC_OP_INC]       = bc_op_inc,
     [BC_OP_LE_GE]     = bc_op_le_ge, // Used in for loop with step, takes 3 params: step/var/end
@@ -364,13 +367,10 @@ static bc_handler_t bc_handlers[] = {
     [BC_STMT_COLOR]     = bc_stmt_color,
     [BC_STMT_ERROR]     = bc_stmt_error,
     [BC_STMT_INPUT]     = bc_stmt_input,
-    [BC_STMT_INPUTs]    = bc_stmt_input_s,
     [BC_STMT_LOCATE]    = bc_stmt_locate,
-    [BC_STMT_ON]        = bc_stmt_on,
     [BC_STMT_RANDOMIZE] = bc_stmt_randomize,
     [BC_STMT_RESUME]    = bc_stmt_resume,
-    [BC_STMT_RETURN]    = bc_stmt_return,
-    [BC_STMT_RETURN_TO] = bc_stmt_return_to,
+    [BC_RETURN]         = bc_return,
     [BC_STMT_TIMER]     = bc_stmt_timer,
     [BC_STMT_WIDTH]     = bc_stmt_width,
 
@@ -418,6 +418,7 @@ static bc_handler_t bc_handlers[] = {
     [BC_FUNC_SQR]     = bc_func_sqr,
     [BC_FUNC_STRINGs] = bc_func_string_s, // STRING$
     [BC_FUNC_STRs]    = bc_func_str_s,    // STR$
+    [BC_FUNC_TIMER]   = bc_func_timer,
     [BC_FUNC_TAN]     = bc_func_tan,
     [BC_FUNC_UCASEs]  = bc_func_ucase_s, // UCASE$
     [BC_FUNC_VAL]     = bc_func_val,

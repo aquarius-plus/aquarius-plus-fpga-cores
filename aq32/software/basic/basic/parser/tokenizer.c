@@ -69,6 +69,7 @@ static const struct keyword keywords[] = {
     {.name = "LEFT$", .token = TOK_LEFTs},
     {.name = "LEN", .token = TOK_LEN},
     {.name = "LET", .token = TOK_LET},
+    {.name = "LINE", .token = TOK_LINE},
     {.name = "LOCATE", .token = TOK_LOCATE},
     {.name = "LOG", .token = TOK_LOG},
     {.name = "LTRIM$", .token = TOK_LTRIMs},
@@ -363,6 +364,22 @@ static int _get_token(void) {
             }
 
             if (cur_token == TOK_END) {
+                // No keyword following END, so estore position
+                state.p_cur = p_save;
+            }
+
+        } else if (cur_token == TOK_LINE) {
+            const uint8_t *p_save = state.p_cur;
+
+            skip_whitespace();
+            if (parse_identifier(false)) {
+                // LINE INPUT?
+                if (strcmp(tokval_str, "INPUT") == 0) {
+                    cur_token = TOK_LINE_INPUT;
+                }
+            }
+
+            if (cur_token == TOK_LINE) {
                 // No keyword following END, so estore position
                 state.p_cur = p_save;
             }

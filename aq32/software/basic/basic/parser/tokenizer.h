@@ -117,7 +117,8 @@ enum {
     TOK_GOTO,
     TOK_IF,
     TOK_INPUT,
-    TOK_INPUTs,
+    TOK_LINE,
+    TOK_LINE_INPUT,
     TOK_LOCATE,
     TOK_ON,
     TOK_PRINT,
@@ -154,10 +155,11 @@ enum {
     TOK_FIX,
     TOK_HEXs,   // HEX$
     TOK_INKEYs, // INKEY$
+    TOK_INPUTs, // INPUT$
     TOK_INSTR,
     TOK_INT,
     TOK_LCASEs, // LCASE$
-    TOK_LEFTs, // LEFT$
+    TOK_LEFTs,  // LEFT$
     TOK_LEN,
     TOK_LOG,
     TOK_LTRIMs, // LTRIM$
@@ -178,6 +180,7 @@ enum {
     TOK_STRINGs, // STRING$
     TOK_STRs,    // STR$
     TOK_TAN,
+    TOK_TIMER_FUNC,
     TOK_UCASEs, // UCASE$
     TOK_VAL,
     TOK_FUNC_LAST = TOK_VAL,

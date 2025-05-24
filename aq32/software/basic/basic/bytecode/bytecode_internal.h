@@ -137,6 +137,8 @@ static inline uint64_t bc_get_u64(void) {
 void bc_end(void);
 void bc_line_tag(void);
 void bc_dup(void);
+void bc_swap(void);
+void bc_drop(void);
 void bc_data(void);
 void bc_data_read(void);
 void bc_data_restore(void);
@@ -175,14 +177,12 @@ void bc_jmp(void);
 void bc_jmp_nz(void);
 void bc_jmp_z(void);
 void bc_jsr(void);
+void bc_return(void);
 
 // Statement tokens
 void bc_stmt_clear(void);
 void bc_stmt_inputs(void);
-void bc_stmt_on(void);
 void bc_stmt_option(void);
-void bc_stmt_return(void);
-void bc_stmt_return_to(void);
 void bc_stmt_timer(void);
 
 // Math operators
@@ -282,3 +282,6 @@ void bc_func_cvi(void);
 void bc_func_cvl(void);
 void bc_func_cvs(void);
 void bc_func_cvd(void);
+
+// Time
+void bc_func_timer(void);

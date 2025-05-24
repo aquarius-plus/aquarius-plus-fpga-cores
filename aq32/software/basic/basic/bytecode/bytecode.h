@@ -16,6 +16,7 @@ enum {
 
     BC_DUP,
     BC_SWAP,
+    BC_DROP,
 
     BC_PUSH_CONST_UNSPECIFIED_PARAM,
     BC_PUSH_CONST_INT,
@@ -60,6 +61,7 @@ enum {
     BC_JMP_NZ,
     BC_JMP_Z,
     BC_JSR,
+    BC_RETURN,
 
     BC_DATA,
     BC_DATA_READ,
@@ -67,10 +69,6 @@ enum {
 
     // Statement tokens (tokenizer.h)
     BC_STMT_CLEAR,
-    BC_STMT_INPUTs,
-    BC_STMT_ON,
-    BC_STMT_RETURN,
-    BC_STMT_RETURN_TO,
     BC_STMT_TIMER,
 
     // Math operators
@@ -170,4 +168,7 @@ enum {
     BC_FUNC_CVL,
     BC_FUNC_CVS,
     BC_FUNC_CVD,
+
+    BC_FUNC_INPUTs,
+    BC_FUNC_TIMER,
 };

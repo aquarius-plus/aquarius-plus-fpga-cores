@@ -6,6 +6,7 @@ static const char *bc_names[] = {
     [BC_LINE_TAG]                     = "LINE_TAG",
     [BC_DUP]                          = "DUP",
     [BC_SWAP]                         = "SWAP",
+    [BC_DROP]                         = "DROP",
     [BC_PUSH_CONST_UNSPECIFIED_PARAM] = "PUSH_CONST_UNSPECIFIED_PARAM",
     [BC_OP_INC]                       = "OP_INC",
     [BC_OP_LE_GE]                     = "OP_LE_GE",
@@ -76,13 +77,10 @@ static const char *bc_names[] = {
     [BC_STMT_COLOR]                   = "STMT_COLOR",
     [BC_STMT_ERROR]                   = "STMT_ERROR",
     [BC_STMT_INPUT]                   = "STMT_INPUT",
-    [BC_STMT_INPUTs]                  = "STMT_INPUT$",
     [BC_STMT_LOCATE]                  = "STMT_LOCATE",
-    [BC_STMT_ON]                      = "STMT_ON",
     [BC_STMT_RANDOMIZE]               = "STMT_RANDOMIZE",
     [BC_STMT_RESUME]                  = "STMT_RESUME",
-    [BC_STMT_RETURN]                  = "STMT_RETURN",
-    [BC_STMT_RETURN_TO]               = "STMT_RETURN_TO",
+    [BC_RETURN]                       = "STMT_RETURN",
     [BC_STMT_TIMER]                   = "STMT_TIMER",
     [BC_STMT_WIDTH]                   = "STMT_WIDTH",
     [BC_FUNC_ABS]                     = "FUNC_ABS",
@@ -105,6 +103,7 @@ static const char *bc_names[] = {
     [BC_FUNC_FIX]                     = "FUNC_FIX",
     [BC_FUNC_HEXs]                    = "FUNC_HEX$",
     [BC_FUNC_INKEYs]                  = "FUNC_INKEY$",
+    [BC_FUNC_INPUTs]                  = "FUNC_INPUT$",
     [BC_FUNC_INSTR]                   = "FUNC_INSTR",
     [BC_FUNC_INT]                     = "FUNC_INT",
     [BC_FUNC_LCASEs]                  = "FUNC_LCASE$",
@@ -128,6 +127,7 @@ static const char *bc_names[] = {
     [BC_FUNC_SQR]                     = "FUNC_SQR",
     [BC_FUNC_STRINGs]                 = "FUNC_STRING$",
     [BC_FUNC_STRs]                    = "FUNC_STR$",
+    [BC_FUNC_TIMER]                   = "FUNC_TIMER",
     [BC_FUNC_TAN]                     = "FUNC_TAN",
     [BC_FUNC_UCASEs]                  = "FUNC_UCASE$",
     [BC_FUNC_VAL]                     = "FUNC_VAL",
@@ -179,7 +179,6 @@ void bytecode_dump(void) {
             case BC_JMP_NZ:
             case BC_JMP_Z:
             case BC_JSR:
-            case BC_STMT_RETURN_TO:
             case BC_DATA_RESTORE:
             case BC_PUSH_VAR_INT:
             case BC_PUSH_VAR_LONG:
