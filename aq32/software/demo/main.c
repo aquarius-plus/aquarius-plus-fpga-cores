@@ -10,9 +10,28 @@ int main(void) {
 
     REGS->VCTRL = VCTRL_GFXMODE_BM4BPP;
 
+    // printf("%X\n", REGS->VCTRL);
+
+    // for (int i = 0; i < 10; i++) {
+    //     for (int i = 0; i < 32768; i++) {
+    //         VRAM[i] = i ^ (i >> 8);
+    //     }
+
+    //     for (int i = 0; i < 32768; i++) {
+    //         uint8_t bla = i ^ (i >> 8);
+    //         if (VRAM[i] != bla) {
+    //             printf("Iek!\n");
+    //             break;
+    //         }
+    //     }
+    //     printf("Done.\n");
+    // }
+
     for (int j = 0; j < 200; j++)
         for (int i = 0; i < 160; i++)
             VRAM[j * 160 + i] = j ^ i;
+
+    // REGS->VCTRL = VCTRL_80COLUMNS | VCTRL_TEXT_EN;
 
     while (1) {
     }

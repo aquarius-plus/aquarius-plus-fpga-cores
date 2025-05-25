@@ -222,7 +222,7 @@ module video(
 
     always @(posedge(vclk))
         if (vblank) begin
-            q_mode80 <= q_vctrl_80_columns;
+            q_mode80   <= q_vctrl_80_columns;
             q_row_addr <= 11'd0;
         end else if (next_row) begin
             q_row_addr <= d_row_addr;

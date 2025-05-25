@@ -80,9 +80,9 @@ module renderer(
         if (render_start) begin
             d_render_data = render_data;
             d_palette     = palette;
-            d_datasel     = 3'b00;
-            d_wren        = 0;
-            d_busy        = 0;
+            d_datasel     = 0;
+            d_wren        = 1;
+            d_busy        = 1;
             d_wridx       = render_idx;
             d_is_sprite   = is_sprite;
             d_hflip       = hflip;

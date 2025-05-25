@@ -52,11 +52,12 @@ struct tram {
 
 static_assert(sizeof(struct tram) == 4096);
 
-#define REGS    ((struct regs *)0x2000)
-#define PALETTE ((volatile uint16_t *)0x04000)
-#define CHRAM   ((volatile uint8_t *)0x05000)
-#define TRAM    ((struct tram *)0x06000)
-#define VRAM    ((volatile uint8_t *)0x08000)
+#define REGS     ((struct regs *)0x2000)
+#define PALETTE  ((volatile uint16_t *)0x04000)
+#define CHRAM    ((volatile uint8_t *)0x05000)
+#define TRAM     ((struct tram *)0x06000)
+#define VRAM     ((volatile uint8_t *)0x08000)
+#define VRAM4BPP ((volatile uint8_t *)0x10000)
 
 enum {
     ESPCMD_RESET       = 0x01, // Reset ESP

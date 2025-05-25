@@ -5,7 +5,7 @@
 
 ## Video
 
-- Increase video memory to 32kB
+- Rewrite video memory to have 4 bit nibble-enable
 
 ## Other
 
