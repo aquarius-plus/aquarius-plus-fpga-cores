@@ -42,10 +42,10 @@ module video(
 
     // Video RAM interface
     input  wire [12:0] vram_addr,
-    output wire [31:0] vram_rddata,
     input  wire [31:0] vram_wrdata,
-    input  wire  [3:0] vram_bytesel,
+    input  wire  [7:0] vram_wrsel,
     input  wire        vram_wren,
+    output wire [31:0] vram_rddata,
 
     // VGA output
     output reg   [3:0] video_r,
@@ -255,21 +255,28 @@ module video(
     // VRAM
     //////////////////////////////////////////////////////////////////////////
     wire [13:0] vram_addr2;
+    wire [31:0] vram_rddata2_32;
     wire [15:0] vram_rddata2;
 
-    vram vram(
-        // First port - CPU access
-        .p1_clk(clk),
-        .p1_addr(vram_addr),
-        .p1_rddata(vram_rddata),
-        .p1_wrdata(vram_wrdata),
-        .p1_bytesel(vram_bytesel),
-        .p1_wren(vram_wren),
+    reg q_vram_addr2_0;
+    always @(posedge vclk) q_vram_addr2_0 <= vram_addr2[0];
 
-        // Second port - Video access
-        .p2_clk(vclk),
-        .p2_addr(vram_addr2),
-        .p2_rddata(vram_rddata2));
+    dpram32k vram(
+        .a_clk(clk),
+        .a_addr(vram_addr),
+        .a_wrdata(vram_wrdata),
+        .a_wrsel(vram_wrsel),
+        .a_wren(vram_wren),
+        .a_rddata(vram_rddata),
+
+        .b_clk(vclk),
+        .b_addr(vram_addr2[13:1]),
+        .b_wrdata(32'b0),
+        .b_wrsel(8'b0),
+        .b_wren(1'b0),
+        .b_rddata(vram_rddata2_32));
+
+    assign vram_rddata2 = q_vram_addr2_0 ? vram_rddata2_32[31:16] : vram_rddata2_32[15:0];
 
     //////////////////////////////////////////////////////////////////////////
     // Graphics

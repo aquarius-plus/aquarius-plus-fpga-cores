@@ -424,17 +424,16 @@ module aq32_top(
     wire       tram_strobe;
     wire       chram_strobe;
     wire       pal_strobe;
-    wire       vram_strobe;
+    wire       vram_strobe, vram4bpp_strobe;
 
     wire       tram_wren     = cpu_wren && tram_strobe;
     wire       chram_wren    = cpu_wren && chram_strobe;
     wire       pal_wren      = cpu_wren && pal_strobe;
-    wire       vram_wren     = cpu_wren && vram_strobe;
 
     wire [15:0] rddata_tram;
     wire  [7:0] rddata_chram;
     wire [15:0] rddata_pal;
-    wire [31:0] rddata_vram;
+    wire [31:0] rddata_vram, rddata_vram4bpp;
 
     reg        q_vctrl_80_columns;
     reg        q_vctrl_text_priority;
@@ -447,6 +446,40 @@ module aq32_top(
     reg  [7:0] q_virqline;
 
     wire irq_line, irq_vblank;
+
+    wire [12:0] vram_addr = vram4bpp_strobe ? cpu_addr[15:3] : cpu_addr[14:2];
+    reg  [31:0] vram_wrdata;
+    reg   [7:0] vram_wrsel;
+    wire        vram_wren = cpu_wren && (vram_strobe || vram4bpp_strobe);
+    wire [31:0] vram_rddata;
+
+    always @* begin
+        vram_wrdata = cpu_wrdata;
+        vram_wrsel = {
+            cpu_bytesel[3], cpu_bytesel[3],
+            cpu_bytesel[2], cpu_bytesel[2],
+            cpu_bytesel[1], cpu_bytesel[1],
+            cpu_bytesel[0], cpu_bytesel[0]
+        };
+
+        if (vram4bpp_strobe) begin
+            vram_wrdata = {
+                cpu_wrdata[19:16], cpu_wrdata[27:24], cpu_wrdata[3:0], cpu_wrdata[11:8],
+                cpu_wrdata[19:16], cpu_wrdata[27:24], cpu_wrdata[3:0], cpu_wrdata[11:8]
+            };
+            vram_wrsel = cpu_addr[2] ?
+                {      cpu_bytesel[2], cpu_bytesel[3], cpu_bytesel[0], cpu_bytesel[1], 4'b0} :
+                {4'b0, cpu_bytesel[2], cpu_bytesel[3], cpu_bytesel[0], cpu_bytesel[1]      };
+        end
+    end
+
+    assign rddata_vram = vram_rddata;
+
+    reg    q_vram_addr0;
+    always @(posedge clk) q_vram_addr0 <= cpu_addr[2];
+    assign rddata_vram4bpp = q_vram_addr0 ?
+        {4'b0, vram_rddata[27:24], 4'b0, vram_rddata[31:28], 4'b0, vram_rddata[19:16], 4'b0, vram_rddata[23:20]} :
+        {4'b0, vram_rddata[11: 8], 4'b0, vram_rddata[15:12], 4'b0, vram_rddata[ 3: 0], 4'b0, vram_rddata[ 7: 4]};
 
     video video(
         .clk(clk),
@@ -483,11 +516,11 @@ module aq32_top(
         .pal_wrdata(cpu_wrdata[15:0]),
         .pal_wren(pal_wren),
 
-        .vram_addr(cpu_addr[14:2]),
-        .vram_rddata(rddata_vram),
-        .vram_wrdata(cpu_wrdata),
-        .vram_bytesel(cpu_bytesel),
+        .vram_addr(vram_addr),
+        .vram_wrdata(vram_wrdata),
+        .vram_wrsel(vram_wrsel),
         .vram_wren(vram_wren),
+        .vram_rddata(vram_rddata),
 
         .video_r(video_r),
         .video_g(video_g),
@@ -546,6 +579,7 @@ module aq32_top(
     assign chram_strobe     = cpu_strobe && cpu_addr[31:12] == 20'h00005;
     assign tram_strobe      = cpu_strobe && cpu_addr[31:12] == 20'h00006;
     assign vram_strobe      = cpu_strobe && cpu_addr[31:15] == {16'h0000, 1'b1};
+    assign vram4bpp_strobe  = cpu_strobe && cpu_addr[31:16] == 16'h0001;
     assign sram_ctrl_strobe = cpu_strobe && cpu_addr[31:19] == {12'h000, 1'b1};
 
     reg [31:0] regs_rddata;
@@ -559,6 +593,7 @@ module aq32_top(
         if (chram_strobe)     cpu_wait = !cpu_wren && q_cpu_addr[11:0] != cpu_addr[11:0];
         if (tram_strobe)      cpu_wait = !cpu_wren && q_cpu_addr[11:0] != cpu_addr[11:0];
         if (vram_strobe)      cpu_wait = !cpu_wren && q_cpu_addr[14:0] != cpu_addr[14:0];
+        if (vram4bpp_strobe)  cpu_wait = !cpu_wren && q_cpu_addr[15:0] != cpu_addr[15:0];
         if (sram_ctrl_strobe) cpu_wait = sram_ctrl_wait;
     end
 
@@ -570,6 +605,7 @@ module aq32_top(
         if (chram_strobe)     cpu_rddata = {rddata_chram,    rddata_chram,    rddata_chram,    rddata_chram};
         if (tram_strobe)      cpu_rddata = {rddata_tram,     rddata_tram};
         if (vram_strobe)      cpu_rddata = rddata_vram;
+        if (vram4bpp_strobe)  cpu_rddata = rddata_vram4bpp;
         if (sram_ctrl_strobe) cpu_rddata = sram_ctrl_rddata;
     end
 

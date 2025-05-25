@@ -249,7 +249,7 @@ module gfx(
                     if (q_col_cnt == 6'd40) begin
                         d_state       = sprites_enable ? ST_SPR : ST_DONE;
                     end else begin
-                        d_vaddr       = (line_idx * 13'd40) + {6'b0, q_col_cnt, 1'b0};
+                        d_vaddr       = (line_idx * 13'd80) + {6'b0, q_col_cnt, 1'b0};
                         d_state       = ST_BM4BPP2;
                     end
 
@@ -260,13 +260,13 @@ module gfx(
                 end
 
                 ST_BM4BPP2: begin
-                    d_render_data[15:0] = vdata2;
-                    d_vaddr[0]          = 1;
-                    d_state             = ST_BM4BPP3;
+                    d_render_data[31:16] = {vdata2[7:0], vdata2[15:8]};
+                    d_vaddr[0]           = 1;
+                    d_state              = ST_BM4BPP3;
                 end
 
                 ST_BM4BPP3: begin
-                    d_render_data[31:16] = vdata2;
+                    d_render_data[15:0] = {vdata2[7:0], vdata2[15:8]};
                     if (!render_busy || render_last_pixel) begin
                         render_start = 1;
                         d_state      = ST_BM4BPP;
