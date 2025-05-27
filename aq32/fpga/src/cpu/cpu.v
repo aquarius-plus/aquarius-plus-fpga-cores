@@ -1,9 +1,7 @@
 `default_nettype none
 `timescale 1 ns / 1 ps
 
-module cpu #(
-    parameter VEC_RESET = 32'hFF100000
-) (
+module cpu #(parameter VEC_RESET = 32'hFF10000) (
     input  wire        clk,
     input  wire        reset,
 
@@ -21,70 +19,60 @@ module cpu #(
 
     localparam [1:0]
         StFetch = 2'd0,
-        StExec  = 2'd1,
+        StDiv   = 2'd1,
         StMemRd = 2'd2,
         StMemWr = 2'd3;
 
     localparam [4:0]
-        TrapInstrAddrMisaligned = 5'd0,
-     // TrapInstrAccessFault    = 5'd1,
         TrapIllegalInstruction  = 5'd2,
         TrapBreakpoint          = 5'd3,
         TrapLoadAddrMisaligned  = 5'd4,
-     // TrapLoadAccessFault     = 5'd5,
         TrapStoreAddrMisaligned = 5'd6,
-     // TrapStoreAccessFault    = 5'd7,
-     // TrapEcallU              = 5'd8,
-     // TrapEcallS              = 5'd9,
         TrapEcallM              = 5'd11;
-     // TrapInstrPageFault      = 5'd12,
-     // TrapLoadPageFault       = 5'd13,
-     // TrapStorePageFault      = 5'd15;
 
-    reg [31:0] d_pc,            q_pc;
-    reg [31:0] d_instr,         q_instr;
-    reg        d_exec_first,    q_exec_first;
-    reg  [1:0] d_state,         q_state;
+    reg [31:0] d_pc,           q_pc;
+    reg [31:0] d_instr,        q_instr;
+    reg  [1:0] d_state,        q_state;
 
     // Bus interface
-    reg [31:0] d_addr,          q_addr;
-    reg [31:0] d_wrdata,        q_wrdata;
-    reg  [3:0] d_bytesel,       q_bytesel;
-    reg        d_wren,          q_wren;
-    reg        d_stb,           q_stb;
+    reg [31:0] d_addr,         q_addr;
+    reg [31:0] d_wrdata,       q_wrdata;
+    reg  [3:0] d_bytesel,      q_bytesel;
+    reg        d_wren,         q_wren;
+    reg        d_stb,          q_stb;
 
     // CSRs
-    reg        d_mstatus_mie,   q_mstatus_mie;  // 0x300 Machine status register:  <3> Machine interrupt enable
-    reg        d_mstatus_mpie,  q_mstatus_mpie; // 0x300 Machine status register:  <7> Machine pre-trap interrupt enable
-    reg [15:0] d_mie,           q_mie;          // 0x304 Machine interrupt-enable register
-    reg [31:0] d_mtvec,         q_mtvec;        // 0x305 Machine trap-handler base address
-    reg [31:0] d_mscratch,      q_mscratch;     // 0x340 Scratch register for machine trap handlers
-    reg [31:0] d_mepc,          q_mepc;         // 0x341 Machine exception program counter
-    reg        d_mcause_irq,    q_mcause_irq;   // 0x342 Machine trap cause
-    reg  [4:0] d_mcause_code,   q_mcause_code;  // 0x342 Machine trap cause
-    reg [31:0] d_mtval,         q_mtval;        // 0x343 Machine bad address or instruction
+    reg        d_mstatus_mie,  q_mstatus_mie;  // 0x300 Machine status register:  <3> Machine interrupt enable
+    reg        d_mstatus_mpie, q_mstatus_mpie; // 0x300 Machine status register:  <7> Machine pre-trap interrupt enable
+    reg [15:0] d_mie,          q_mie;          // 0x304 Machine interrupt-enable register
+    reg [31:0] d_mtvec,        q_mtvec;        // 0x305 Machine trap-handler base address
+    reg [31:0] d_mscratch,     q_mscratch;     // 0x340 Scratch register for machine trap handlers
+    reg [31:0] d_mepc,         q_mepc;         // 0x341 Machine exception program counter
+    reg        d_mcause_irq,   q_mcause_irq;   // 0x342 Machine trap cause
+    reg  [4:0] d_mcause_code,  q_mcause_code;  // 0x342 Machine trap cause
+    reg [31:0] d_mtval,        q_mtval;        // 0x343 Machine bad address or instruction
 
-    assign bus_addr     = q_addr;
-    assign bus_wrdata   = q_wrdata;
-    assign bus_bytesel  = q_bytesel;
-    assign bus_wren     = q_wren;
-    assign bus_strobe   = q_stb;
+    assign bus_addr    = q_addr;
+    assign bus_wrdata  = q_wrdata;
+    assign bus_bytesel = q_bytesel;
+    assign bus_wren    = q_wren;
+    assign bus_strobe  = q_stb;
 
     //////////////////////////////////////////////////////////////////////////
     // Instruction decoding
     //////////////////////////////////////////////////////////////////////////
-    wire  [6:0] opcode  = q_instr[6:0];
-    wire  [2:0] funct3  = q_instr[14:12];
-    wire  [6:0] funct7  = q_instr[31:25];
-    wire  [4:0] rs1_idx = q_instr[19:15];
-    wire  [4:0] rs2_idx = q_instr[24:20];
-    wire  [4:0] rd_idx  = q_instr[11:7];
-    wire [31:0] imm_i   = {{21{q_instr[31]}}, q_instr[30:20]};
-    wire [31:0] imm_s   = {{21{q_instr[31]}}, q_instr[30:25], q_instr[11:7]};
-    wire [31:0] imm_b   = {{20{q_instr[31]}}, q_instr[7], q_instr[30:25], q_instr[11:8], 1'b0};
-    wire [31:0] imm_u   = {q_instr[31:12], 12'b0};
-    wire [31:0] imm_j   = {{12{q_instr[31]}}, q_instr[19:12], q_instr[20], q_instr[30:21], 1'b0};
-    wire [11:0] csr     = q_instr[31:20];
+    wire  [6:0] opcode  = d_instr[6:0];
+    wire  [2:0] funct3  = d_instr[14:12];
+    wire  [6:0] funct7  = d_instr[31:25];
+    wire  [4:0] rs1_idx = d_instr[19:15];
+    wire  [4:0] rs2_idx = d_instr[24:20];
+    wire  [4:0] rd_idx  = d_instr[11:7];
+    wire [31:0] imm_i   = {{21{d_instr[31]}}, d_instr[30:20]};
+    wire [31:0] imm_s   = {{21{d_instr[31]}}, d_instr[30:25], d_instr[11:7]};
+    wire [31:0] imm_b   = {{20{d_instr[31]}}, d_instr[7], d_instr[30:25], d_instr[11:8], 1'b0};
+    wire [31:0] imm_u   = {d_instr[31:12], 12'b0};
+    wire [31:0] imm_j   = {{12{d_instr[31]}}, d_instr[19:12], d_instr[20], d_instr[30:21], 1'b0};
+    wire [11:0] csr     = d_instr[31:20];
 
     wire is_lui     = (opcode == 7'b0110111); // regfile[rd_idx] = imm_u
     wire is_auipc   = (opcode == 7'b0010111); // regfile[rd_idx] = pc + imm_u
@@ -96,12 +84,12 @@ module cpu #(
     wire is_alu_imm = (opcode == 7'b0010011); // regfile[rd_idx] = regfile[rs1_idx] <alu_op> imm_i
     wire is_alu_reg = (opcode == 7'b0110011); // regfile[rd_idx] = regfile[rs1_idx] <alu_op> regfile[rs2_idx]
     wire is_system  = (opcode == 7'b1110011); // ECALL/EBREAK
-    wire is_fence   = (funct3 == 3'b000 && opcode == 7'b0001111);                   // FENCE/PAUSE
+    wire is_fence   = (opcode == 7'b0001111 && funct3 == 3'b000); // FENCE/PAUSE
 
-    wire is_ecall  = is_system && q_instr[31:7] == 25'b0000000_00000_00000_000_00000;
-    wire is_ebreak = is_system && q_instr[31:7] == 25'b0000000_00001_00000_000_00000;
-    wire is_mret   = is_system && q_instr[31:7] == 25'b0011000_00010_00000_000_00000;
-    wire is_csr    = is_system && funct3[1:0] != 2'b00;
+    wire is_ecall   = is_system && d_instr[31:7] == 25'b0000000_00000_00000_000_00000;
+    wire is_ebreak  = is_system && d_instr[31:7] == 25'b0000000_00001_00000_000_00000;
+    wire is_mret    = is_system && d_instr[31:7] == 25'b0011000_00010_00000_000_00000;
+    wire is_csr     = is_system && funct3[1:0] != 2'b00;
 
     wire is_valid_instruction =
         is_lui     ||
@@ -121,9 +109,9 @@ module cpu #(
     //////////////////////////////////////////////////////////////////////////
     // Register file
     //////////////////////////////////////////////////////////////////////////
-    reg [31:0] rd_data;
-    reg        rd_wr;
-    reg [31:0] regfile [31:0] /* synthesis syn_ramstyle = "distributed_ram" */;
+    reg  [31:0] rd_data;
+    reg         rd_wr;
+    reg  [31:0] regfile [31:0] /* synthesis syn_ramstyle = "distributed_ram" */;
 
     always @(posedge clk) if (rd_wr && rd_idx != 5'd0) regfile[rd_idx] <= rd_data;
     wire [31:0] rs1_data = regfile[rs1_idx];
@@ -304,12 +292,9 @@ module cpu #(
 
     reg [31:0] load_data;
     always @* begin
-        if (funct3[1])          // LW
-            load_data = bus_rddata;
-        else if (funct3[0])     // LH/LHU
-            load_data = funct3[2] ? {16'b0, lh_data} : {{16{lh_data[15]}}, lh_data};
-        else                    // LB/LBU
-            load_data = funct3[2] ? {24'b0, lb_data} : {{24{lb_data[7]}}, lb_data};
+        if      (funct3[1]) load_data = bus_rddata;                                                  // LW
+        else if (funct3[0]) load_data = funct3[2] ? {16'b0, lh_data} : {{16{lh_data[15]}}, lh_data}; // LH/LHU
+        else                load_data = funct3[2] ? {24'b0, lb_data} : {{24{lb_data[ 7]}}, lb_data}; // LB/LBU
     end
 
     wire signed [31:0] bus_rddata_s = bus_rddata;
@@ -343,23 +328,22 @@ module cpu #(
     reg [31:0] csr_rdata;
     always @* begin
         csr_rdata = 32'h00000000;
-
-        if (is_mstatus)   csr_rdata = mstatus;
-        if (is_mie)       csr_rdata = {q_mie, 16'b0};
-        if (is_mtvec)     csr_rdata = q_mtvec;
-        if (is_mscratch)  csr_rdata = q_mscratch;
-        if (is_mepc)      csr_rdata = {q_mepc[31:2], 2'b0};
-        if (is_mcause)    csr_rdata = {q_mcause_irq, 26'b0, q_mcause_code};
-        if (is_mtval)     csr_rdata = q_mtval;
-        if (is_mip)       csr_rdata = {irq, 16'b0};
+        if (is_mstatus)  csr_rdata = mstatus;
+        if (is_mie)      csr_rdata = {q_mie, 16'b0};
+        if (is_mtvec)    csr_rdata = q_mtvec;
+        if (is_mscratch) csr_rdata = q_mscratch;
+        if (is_mepc)     csr_rdata = {q_mepc[31:2], 2'b0};
+        if (is_mcause)   csr_rdata = {q_mcause_irq, 26'b0, q_mcause_code};
+        if (is_mtval)    csr_rdata = q_mtval;
+        if (is_mip)      csr_rdata = {irq, 16'b0};
     end
 
     wire [31:0] csr_operand = funct3[2] ? {27'd0, rs1_idx} : rs1_data;
     reg  [31:0] csr_wdata;
     always @*
-        if      (funct3[1:0] == 2'b10)  csr_wdata = csr_rdata |  csr_operand;   // CSRRS(I) set-bits
-        else if (funct3[1:0] == 2'b11)  csr_wdata = csr_rdata & ~csr_operand;   // CSRRC(I)clear-bits
-        else                            csr_wdata =              csr_operand;   // CSRRW(I) assign
+        if      (funct3[1:0] == 2'b10) csr_wdata = csr_rdata |  csr_operand;   // CSRRS(I) set-bits
+        else if (funct3[1:0] == 2'b11) csr_wdata = csr_rdata & ~csr_operand;   // CSRRC(I) clear-bits
+        else                           csr_wdata =              csr_operand;   // CSRRW(I) assign
 
     // For both CSRRS and CSRRC, if rs1=x0, then the instruction will not write to the CSR at all.
     wire csr_write = is_csr && !(funct3[2:1] == 2'b01 && rs1_idx == 5'd0);
@@ -401,19 +385,12 @@ module cpu #(
 
     always @* begin
         rd_data = 32'b0;
-
-        if (is_lui)
-            rd_data = imm_u;
-        else if (is_auipc)
-            rd_data = pc_plus_imm;
-        else if (is_jal || is_jalr)
-            rd_data = pc_plus4;
-        else if (is_load)
-            rd_data = load_data;
-        else if (is_alu_imm || is_alu_reg)
-            rd_data = alu_result;
-        else if (is_csr)
-            rd_data = csr_rdata;
+        if      (is_lui)                   rd_data = imm_u;
+        else if (is_auipc)                 rd_data = pc_plus_imm;
+        else if (is_jal || is_jalr)        rd_data = pc_plus4;
+        else if (is_load)                  rd_data = load_data;
+        else if (is_alu_imm || is_alu_reg) rd_data = alu_result;
+        else if (is_csr)                   rd_data = csr_rdata;
     end
 
     reg        do_trap;
@@ -438,31 +415,24 @@ module cpu #(
         input [31:0] newpc;
 
         begin
-            d_state      = StFetch;
-            if (newpc[1:0] != 0)
-                trap(0, TrapInstrAddrMisaligned, newpc);
-
-            d_pc         = {newpc[31:2], 2'b00};
-
-            d_addr       = {newpc[31:2], 2'b00};
-            d_bytesel    = 4'b1111;
-            d_wren       = 0;
-            d_stb        = 1;
+            d_state   = StFetch;
+            d_pc      = {newpc[31:2], 2'b00};
+            d_addr    = {newpc[31:2], 2'b00};
+            d_bytesel = 4'b1111;
+            d_wren    = 0;
+            d_stb     = 1;
         end
     endtask
 
     always @* begin
         d_pc           = q_pc;
         d_instr        = q_instr;
-        d_exec_first   = 0;
         d_state        = q_state;
-
         d_addr         = q_addr;
         d_wrdata       = q_wrdata;
         d_bytesel      = q_bytesel;
         d_wren         = q_wren;
         d_stb          = q_stb;
-
         d_mstatus_mie  = q_mstatus_mie;
         d_mstatus_mpie = q_mstatus_mpie;
         d_mie          = q_mie;
@@ -472,10 +442,8 @@ module cpu #(
         d_mcause_irq   = q_mcause_irq;
         d_mcause_code  = q_mcause_code;
         d_mtval        = q_mtval;
-
         rd_wr          = 0;
         div_start      = 0;
-
         do_trap        = 0;
         trap_is_irq    = 0;
         trap_code      = 0;
@@ -491,92 +459,95 @@ module cpu #(
                         trap(1, {1'b1, irq_code}, 0);
 
                     end else begin
-                        d_state      = StExec;
-                        d_instr      = bus_rddata;
-                        d_exec_first = 1;
+                        d_instr = bus_rddata;
+
+                        begin
+                            if (!is_valid_instruction) begin
+                                trap(0, TrapIllegalInstruction, 0);
+
+                            end else if (is_ebreak || is_ecall) begin
+                                if (is_ebreak)
+                                    trap(0, TrapBreakpoint, 0);
+                                else if (is_ecall)
+                                    trap(0, TrapEcallM, 0);
+
+                            end else if (is_mret) begin
+                                d_mstatus_mie  = q_mstatus_mpie;
+                                d_mstatus_mpie = 1;
+
+                                fetch(q_mepc);
+
+                            end else if (is_div_rem) begin
+                                div_start = 1;
+                                d_state   = StDiv;
+
+                            end else if (is_load || is_store) begin
+                                // Check load/store alignment
+                                if (funct3[1] ? (load_store_addr[1:0] != 0) : (funct3[0] ? (load_store_addr[0] != 0) : 0))
+                                    trap(0, is_load ? TrapLoadAddrMisaligned : TrapStoreAddrMisaligned, load_store_addr);
+
+                                d_state = is_load ? StMemRd : StMemWr;
+                                d_addr  = load_store_addr;
+                                d_wren  = is_store;
+                                d_stb   = 1;
+
+                                if      (funct3[1]) d_wrdata = rs2_data;                                                     // SW
+                                else if (funct3[0]) d_wrdata = {rs2_data[15:0], rs2_data[15:0]};                             // SH
+                                else                d_wrdata = {rs2_data[7:0], rs2_data[7:0], rs2_data[7:0], rs2_data[7:0]}; // SB
+
+                                if (is_store) begin
+                                    if (funct3[1])          // SW
+                                        d_bytesel = 4'b1111;
+                                    else if (funct3[0])     // SH
+                                        d_bytesel = load_store_addr[1] ? 4'b1100 : 4'b0011;
+                                    else begin              // SB
+                                        case (load_store_addr[1:0])
+                                            2'b00: d_bytesel = 4'b0001;
+                                            2'b01: d_bytesel = 4'b0010;
+                                            2'b10: d_bytesel = 4'b0100;
+                                            2'b11: d_bytesel = 4'b1000;
+                                        endcase
+                                    end
+                                end
+
+                            end else begin
+                                if (is_lui || is_auipc || is_jal || is_jalr || is_alu_imm || is_alu_reg || is_system)
+                                    rd_wr = 1;
+
+                                // CSR write handling
+                                if (csr_write) begin
+                                    if (is_mstatus) begin
+                                        d_mstatus_mpie = csr_wdata[7];
+                                        d_mstatus_mie  = csr_wdata[3];
+                                    end
+
+                                    if (is_mie)      d_mie        = csr_wdata[31:16];
+                                    if (is_mtvec)    d_mtvec      = {csr_wdata[31:2], 2'b0};
+                                    if (is_mscratch) d_mscratch   = csr_wdata;
+                                    if (is_mepc)     d_mepc[31:2] = csr_wdata[31:2];
+
+                                    if (is_mcause) begin
+                                        d_mcause_irq  = csr_wdata[31];
+                                        d_mcause_code = csr_wdata[4:0];
+                                    end
+
+                                    if (is_mtval) d_mtval = csr_wdata;
+                                end
+
+                                if      (is_jal || do_branch) fetch(pc_plus_imm);
+                                else if (is_jalr)             fetch(alu_add);
+                                else                          fetch(pc_plus4);
+                            end
+                        end
                     end
                 end
             end
 
-            StExec: begin
-                if (!is_valid_instruction) begin
-                    trap(0, TrapIllegalInstruction, 0);
-
-                end else if (is_ebreak || is_ecall) begin
-                    if (is_ebreak)
-                        trap(0, TrapBreakpoint, 0);
-                    else if (is_ecall)
-                        trap(0, TrapEcallM, 0);
-
-                end else if (is_mret) begin
-                    d_mstatus_mie  = q_mstatus_mpie;
-                    d_mstatus_mpie = 1;
-
-                    fetch(q_mepc);
-
-                end else if (is_div_rem && (q_exec_first || div_busy)) begin
-                    div_start = q_exec_first;
-                    // Wait for division to be done
-
-                end else if (is_load || is_store) begin
-                    // Check load/store alignment
-                    if (funct3[1] ? (load_store_addr[1:0] != 0) : (funct3[0] ? (load_store_addr[0] != 0) : 0))
-                        trap(0, is_load ? TrapLoadAddrMisaligned : TrapStoreAddrMisaligned, load_store_addr);
-
-                    d_state      = is_load ? StMemRd : StMemWr;
-                    d_addr       = load_store_addr;
-                    d_wren       = is_store;
-                    d_stb        = 1;
-
-                    if (funct3[1])          // SW
-                        d_wrdata = rs2_data;
-                    else if (funct3[0])     // SH
-                        d_wrdata = {rs2_data[15:0], rs2_data[15:0]};
-                    else                    // SB
-                        d_wrdata = {rs2_data[7:0], rs2_data[7:0], rs2_data[7:0], rs2_data[7:0]};
-
-                    if (is_store) begin
-                        if (funct3[1])          // SW
-                            d_bytesel = 4'b1111;
-                        else if (funct3[0])     // SH
-                            d_bytesel = load_store_addr[1] ? 4'b1100 : 4'b0011;
-                        else begin              // SB
-                            case (load_store_addr[1:0])
-                                2'b00: d_bytesel = 4'b0001;
-                                2'b01: d_bytesel = 4'b0010;
-                                2'b10: d_bytesel = 4'b0100;
-                                2'b11: d_bytesel = 4'b1000;
-                            endcase
-                        end
-                    end
-
-                end else begin
-                    if (is_lui || is_auipc || is_jal || is_jalr || is_alu_imm || is_alu_reg || is_system)
-                        rd_wr = 1;
-
-                    // CSR write handling
-                    if (csr_write) begin
-                        if (is_mstatus) begin
-                            d_mstatus_mpie = csr_wdata[7];
-                            d_mstatus_mie  = csr_wdata[3];
-                        end
-
-                        if (is_mie)      d_mie           = csr_wdata[31:16];
-                        if (is_mtvec)    d_mtvec         = {csr_wdata[31:2], 2'b0};
-                        if (is_mscratch) d_mscratch      = csr_wdata;
-                        if (is_mepc)     d_mepc[31:2]    = csr_wdata[31:2];
-
-                        if (is_mcause) begin
-                            d_mcause_irq  = csr_wdata[31];
-                            d_mcause_code = csr_wdata[4:0];
-                        end
-
-                        if (is_mtval)    d_mtval         = csr_wdata;
-                    end
-
-                    if (is_jal || do_branch) fetch(pc_plus_imm);
-                    else if (is_jalr)        fetch(alu_add);
-                    else                     fetch(pc_plus4);
+            StDiv: begin
+                // Wait for division to be done
+                if (!div_busy) begin
+                    rd_wr      = 1;
+                    fetch(pc_plus4);
                 end
             end
 
@@ -617,15 +588,12 @@ module cpu #(
         if (reset) begin
             q_pc           <= VEC_RESET;
             q_instr        <= 0;
-            q_exec_first   <= 0;
             q_state        <= StFetch;
-
             q_addr         <= VEC_RESET;
             q_wrdata       <= 0;
             q_bytesel      <= 4'b1111;
             q_wren         <= 0;
             q_stb          <= 1;
-
             q_mstatus_mie  <= 0;
             q_mstatus_mpie <= 0;
             q_mie          <= 0;
@@ -639,15 +607,12 @@ module cpu #(
         end else begin
             q_pc           <= d_pc;
             q_instr        <= d_instr;
-            q_exec_first   <= d_exec_first;
             q_state        <= d_state;
-
             q_addr         <= d_addr;
             q_wrdata       <= d_wrdata;
             q_bytesel      <= d_bytesel;
             q_wren         <= d_wren;
             q_stb          <= d_stb;
-
             q_mstatus_mie  <= d_mstatus_mie;
             q_mstatus_mpie <= d_mstatus_mpie;
             q_mie          <= d_mie;
