@@ -128,7 +128,7 @@ static inline uint32_t bc_get_u32(void) {
     return result;
 }
 static inline uint64_t bc_get_u64(void) {
-    uint64_t result = read_u32(bc_state.p_cur);
+    uint64_t result = read_u64(bc_state.p_cur);
     bc_state.p_cur += 8;
     return result;
 }

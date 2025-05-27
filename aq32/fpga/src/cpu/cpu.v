@@ -584,9 +584,7 @@ module cpu #(
                 if (!bus_wait) begin
                     d_wren     = 0;
                     d_stb      = 0;
-
-                    rd_wr = 1;
-
+                    rd_wr      = 1;
                     fetch(pc_plus4);
                 end
             end
