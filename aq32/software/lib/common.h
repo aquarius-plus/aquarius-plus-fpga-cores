@@ -62,6 +62,15 @@ void load_executable(const char *path);
 
 void hexdump(const void *buf, int length);
 
+// #define ALLOW_UNALIGNED
+#ifdef ALLOW_UNALIGNED
+static inline uint16_t read_u16(const uint8_t *p) { return *(uint16_t *)p; }
+static inline uint32_t read_u32(const uint8_t *p) { return *(uint32_t *)p; }
+static inline uint64_t read_u64(const uint8_t *p) { return *(uint64_t *)p; }
+static inline void     write_u16(uint8_t *p, uint16_t val) { *(uint16_t *)p = val; }
+static inline void     write_u32(uint8_t *p, uint32_t val) { *(uint32_t *)p = val; }
+static inline void     write_u64(uint8_t *p, uint64_t val) { *(uint64_t *)p = val; }
+#else
 static inline uint16_t read_u16(const uint8_t *p) {
     return p[0] | (p[1] << 8);
 }
@@ -99,6 +108,7 @@ static inline void write_u64(uint8_t *p, uint64_t val) {
     p[6] = (val >> 48) & 0xFF;
     p[7] = (val >> 56) & 0xFF;
 }
+#endif
 
 static inline bool is_octal(uint8_t ch) { return (ch >= '0' && ch <= '7'); }
 static inline bool is_decimal(uint8_t ch) { return (ch >= '0' && ch <= '9'); }
