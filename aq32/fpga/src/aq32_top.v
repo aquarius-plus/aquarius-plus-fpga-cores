@@ -82,12 +82,10 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     // Clock synthesizer
     //////////////////////////////////////////////////////////////////////////
-    wire clk, video_clk;
-
+    wire clk;
     aqp_clkctrl clkctrl(
         .clk_in(sysclk),        // 14.31818MHz
-        .clk_out(clk),          // 28.63636MHz
-        .video_clk(video_clk)   // 25.175MHz
+        .clk_out(clk)           // 25.175MHz
     );
 
     //////////////////////////////////////////////////////////////////////////
@@ -486,8 +484,6 @@ module aq32_top(
         .clk(clk),
         .reset(reset),
 
-        .vclk(video_clk),
-
         .reg_sprites_enable(q_vctrl_sprites_enable),
         .reg_gfx_tilemode(q_vctrl_gfx_tilemode),
         .reg_gfx_enable(q_vctrl_gfx_enable),
@@ -538,7 +534,7 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     aqp_overlay overlay(
         // Core video interface
-        .video_clk(video_clk),
+        .video_clk(clk),
         .video_r(video_r),
         .video_g(video_g),
         .video_b(video_b),

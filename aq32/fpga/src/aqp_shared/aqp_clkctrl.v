@@ -3,14 +3,11 @@
 
 module aqp_clkctrl(
     input  wire clk_in,
-    output wire clk_out,
-
-    output wire video_clk
+    output wire clk_out
 );
 
     wire clk0;
     wire clk28;
-    assign clk_out = clk28;
 
     wire clk180, clk270, clk2x180, clk90, clkdv, clkfx, clkfx180, dcm_locked, psdone;    // unused
     wire [7:0] status;  // unused
@@ -107,6 +104,6 @@ module aqp_clkctrl(
         .RST(1'b0)
     );
 
-    BUFG bufg_25(.I(clk25), .O(video_clk));
+    BUFG bufg_25(.I(clk25), .O(clk_out));
 
 endmodule

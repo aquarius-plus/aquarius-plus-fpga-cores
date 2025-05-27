@@ -101,20 +101,20 @@ NET "hc2[8]"            LOC = P85;
 NET "printer_in" PULLUP;
 
 NET "ebus_reset_n"  PULLUP;
-NET "ebus_a[0]"     PULLUP;
-NET "ebus_a[1]"     PULLUP;
-NET "ebus_a[2]"     PULLUP;
-NET "ebus_a[3]"     PULLUP;
-NET "ebus_a[4]"     PULLUP;
-NET "ebus_a[5]"     PULLUP;
-NET "ebus_a[6]"     PULLUP;
-NET "ebus_a[7]"     PULLUP;
-NET "ebus_a[8]"     PULLUP;
-NET "ebus_a[9]"     PULLUP;
-NET "ebus_a[10]"    PULLUP;
-NET "ebus_a[11]"    PULLUP;
-NET "ebus_a[12]"    PULLUP;
-NET "ebus_a[13]"    PULLUP;
+# NET "ebus_a[0]"     PULLUP;
+# NET "ebus_a[1]"     PULLUP;
+# NET "ebus_a[2]"     PULLUP;
+# NET "ebus_a[3]"     PULLUP;
+# NET "ebus_a[4]"     PULLUP;
+# NET "ebus_a[5]"     PULLUP;
+# NET "ebus_a[6]"     PULLUP;
+# NET "ebus_a[7]"     PULLUP;
+# NET "ebus_a[8]"     PULLUP;
+# NET "ebus_a[9]"     PULLUP;
+# NET "ebus_a[10]"    PULLUP;
+# NET "ebus_a[11]"    PULLUP;
+# NET "ebus_a[12]"    PULLUP;
+# NET "ebus_a[13]"    PULLUP;
 NET "ebus_a[14]"    PULLUP;
 NET "ebus_a[15]"    PULLUP;
 NET "ebus_d[0]"     PULLUP;
@@ -253,11 +253,6 @@ NET "hc2[6]"            IOSTANDARD = LVTTL;
 NET "hc2[7]"            IOSTANDARD = LVTTL;
 NET "hc2[8]"            IOSTANDARD = LVTTL;
 
-NET "clk"       TNM_NET = clk28;
-NET "video_clk" TNM_NET = vclk;
+NET "clk"       TNM_NET = clk25;
 
-TIMESPEC TS_clk    = PERIOD "clk28" 28.63636 MHz HIGH 50%;
-TIMESPEC TS_vclk   = PERIOD "vclk"  25.175   MHz HIGH 50%;
-
-TIMESPEC ts4 = FROM "clk28"  TO "vclk"   TIG;
-TIMESPEC ts6 = FROM "vclk"   TO "clk28"  TIG;
+TIMESPEC TS_clk    = PERIOD "clk25" 25.175 MHz HIGH 50%;
