@@ -182,7 +182,7 @@ module aq32_top(
         .sram_dq(ebus_d));
 
 
-// `define USE_CACHE
+`define USE_CACHE
 `ifdef USE_CACHE
     assign sram_m_bytesel = 4'b1111;
 
