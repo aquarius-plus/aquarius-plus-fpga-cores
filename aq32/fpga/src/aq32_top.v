@@ -145,18 +145,46 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     // SRAM controller
     //////////////////////////////////////////////////////////////////////////
-// `define USE_CACHE
-`ifdef USE_CACHE
-    wire        sram_ctrl_strobe;
-    wire        sram_ctrl_wait;
-    wire [31:0] sram_ctrl_rddata;
+    wire        sram_strobe;
+    wire        sram_wait;
+    wire [31:0] sram_rddata;
 
     wire [16:0] sram_m_addr;
     wire [31:0] sram_m_wrdata;
+    wire  [3:0] sram_m_bytesel;
     wire        sram_m_wren;
     wire        sram_m_strobe;
     wire        sram_m_wait;
     wire [31:0] sram_m_rddata;
+
+    wire [18:0] ebus_sram_a;
+    assign ebus_a[13:0] = ebus_sram_a[13:0];
+    assign ebus_ba      = ebus_sram_a[18:14];
+
+    sram_ctrl sram_ctrl(
+        .clk(clk),
+        .reset(reset),
+
+        // Command interface
+        .bus_addr(sram_m_addr),
+        .bus_wrdata(sram_m_wrdata),
+        .bus_bytesel(sram_m_bytesel),
+        .bus_wren(sram_m_wren),
+        .bus_strobe(sram_m_strobe),
+        .bus_wait(sram_m_wait),
+        .bus_rddata(sram_m_rddata),
+
+        // SRAM interface
+        .sram_a(ebus_sram_a),
+        .sram_ce_n(ebus_ram_ce_n),
+        .sram_oe_n(ebus_rd_n),
+        .sram_we_n(ebus_ram_we_n),
+        .sram_dq(ebus_d));
+
+
+// `define USE_CACHE
+`ifdef USE_CACHE
+    assign sram_m_bytesel = 4'b1111;
 
     sram_cache sram_cache(
         .clk(clk),
@@ -167,9 +195,9 @@ module aq32_top(
         .s_wrdata(cpu_wrdata),
         .s_bytesel(cpu_bytesel),
         .s_wren(cpu_wren),
-        .s_strobe(sram_ctrl_strobe),
-        .s_wait(sram_ctrl_wait),
-        .s_rddata(sram_ctrl_rddata),
+        .s_strobe(sram_strobe),
+        .s_wait(sram_wait),
+        .s_rddata(sram_rddata),
 
         // Memory command interface
         .m_addr(sram_m_addr),
@@ -179,58 +207,15 @@ module aq32_top(
         .m_wait(sram_m_wait),
         .m_rddata(sram_m_rddata));
 
-    wire [18:0] sram_a;
-    assign ebus_a[13:0]  = sram_a[13:0];
-    assign ebus_ba       = sram_a[18:14];
-
-    sram_ctrl sram_ctrl(
-        .clk(clk),
-        .reset(reset),
-
-        // Command interface
-        .bus_addr(sram_m_addr),
-        .bus_wrdata(sram_m_wrdata),
-        .bus_bytesel(4'b1111),
-        .bus_wren(sram_m_wren),
-        .bus_strobe(sram_m_strobe),
-        .bus_wait(sram_m_wait),
-        .bus_rddata(sram_m_rddata),
-
-        // SRAM interface
-        .sram_a(sram_a),
-        .sram_ce_n(ebus_ram_ce_n),
-        .sram_oe_n(ebus_rd_n),
-        .sram_we_n(ebus_ram_we_n),
-        .sram_dq(ebus_d));
 `else
 
-    wire [18:0] sram_a;
-    wire        sram_ctrl_strobe;
-    wire        sram_ctrl_wait;
-    wire [31:0] sram_ctrl_rddata;
-
-    assign ebus_a[13:0]  = sram_a[13:0];
-    assign ebus_ba       = sram_a[18:14];
-
-    sram_ctrl sram_ctrl(
-        .clk(clk),
-        .reset(reset),
-
-        // Command interface
-        .bus_addr(cpu_addr[18:2]),
-        .bus_wrdata(cpu_wrdata),
-        .bus_bytesel(cpu_bytesel),
-        .bus_wren(cpu_wren),
-        .bus_strobe(sram_ctrl_strobe),
-        .bus_wait(sram_ctrl_wait),
-        .bus_rddata(sram_ctrl_rddata),
-
-        // SRAM interface
-        .sram_a(sram_a),
-        .sram_ce_n(ebus_ram_ce_n),
-        .sram_oe_n(ebus_rd_n),
-        .sram_we_n(ebus_ram_we_n),
-        .sram_dq(ebus_d));
+    assign sram_m_addr    = cpu_addr[18:2];
+    assign sram_m_wrdata  = cpu_wrdata;
+    assign sram_m_bytesel = cpu_bytesel;
+    assign sram_m_wren    = cpu_wren;
+    assign sram_m_strobe  = sram_strobe;
+    assign sram_wait      = sram_m_wait;
+    assign sram_rddata    = sram_m_rddata;
 
 `endif
 
@@ -578,7 +563,7 @@ module aq32_top(
     assign tram_strobe      = cpu_strobe && cpu_addr[31:12] == 20'h00006;
     assign vram_strobe      = cpu_strobe && cpu_addr[31:15] == {16'h0000, 1'b1};
     assign vram4bpp_strobe  = cpu_strobe && cpu_addr[31:16] == 16'h0001;
-    assign sram_ctrl_strobe = cpu_strobe && cpu_addr[31:19] == {12'h000, 1'b1};
+    assign sram_strobe      = cpu_strobe && cpu_addr[31:19] == {12'h000, 1'b1};
 
     reg [31:0] regs_rddata;
 
@@ -592,7 +577,7 @@ module aq32_top(
         if (tram_strobe)      cpu_wait = !cpu_wren && q_cpu_addr[11:0] != cpu_addr[11:0];
         if (vram_strobe)      cpu_wait = !cpu_wren && q_cpu_addr[14:0] != cpu_addr[14:0];
         if (vram4bpp_strobe)  cpu_wait = !cpu_wren && q_cpu_addr[15:0] != cpu_addr[15:0];
-        if (sram_ctrl_strobe) cpu_wait = sram_ctrl_wait;
+        if (sram_strobe)      cpu_wait = sram_wait;
     end
 
     always @* begin
@@ -604,7 +589,7 @@ module aq32_top(
         if (tram_strobe)      cpu_rddata = {rddata_tram,     rddata_tram};
         if (vram_strobe)      cpu_rddata = rddata_vram;
         if (vram4bpp_strobe)  cpu_rddata = rddata_vram4bpp;
-        if (sram_ctrl_strobe) cpu_rddata = sram_ctrl_rddata;
+        if (sram_strobe)      cpu_rddata = sram_rddata;
     end
 
     //////////////////////////////////////////////////////////////////////////

@@ -250,6 +250,9 @@ void editor(struct editbuf *eb, const char *path) {
         }
     }
 
+    while (REGS->KEYBUF >= 0) {
+    }
+
     while (1) {
         editor_redraw_screen();
 

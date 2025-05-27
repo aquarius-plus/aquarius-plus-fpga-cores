@@ -84,6 +84,8 @@ void console_init(void) {
     TRAM->cursor_color   = (CURSOR_COLOR << 8);
 
     show_cursor();
+
+    console_flush_input();
 }
 
 bool console_set_width(int width) {
@@ -218,6 +220,8 @@ uint8_t console_getc(void) {
 }
 
 void console_flush_input(void) {
+    while (REGS->KEYBUF >= 0) {
+    }
     kb_wridx = 0;
     kb_rdidx = 0;
     kb_cnt   = 0;

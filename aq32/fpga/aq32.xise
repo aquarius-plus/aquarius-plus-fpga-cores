@@ -166,6 +166,10 @@
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="90"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="8"/>
     </file>
+    <file xil_pn:name="src/wrappers/dpram8k.v" xil_pn:type="FILE_VERILOG">
+      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="89"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
+    </file>
   </files>
 
   <properties>
