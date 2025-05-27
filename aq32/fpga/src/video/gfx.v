@@ -6,10 +6,10 @@ module gfx(
     input  wire        reset,
 
     // Register values
-    input  wire  [1:0] gfx_mode,
+    input  wire        tilemode,    // 0:bitmap, 1:tile mode
     input  wire        sprites_enable,
-    input  wire  [8:0] scrx,
-    input  wire  [7:0] scry,
+    input  wire  [8:0] scroll_x,
+    input  wire  [7:0] scroll_y,
 
     // Sprite attribute interface
     output wire  [5:0] spr_sel,
@@ -77,22 +77,16 @@ module gfx(
         ST_BM4BPP2 = 4'd7,
         ST_BM4BPP3 = 4'd8;
 
-    localparam [1:0]
-        MODE_DISABLED = 2'b00,
-        MODE_TILE     = 2'b01,
-        MODE_BM4BPP   = 2'b11;
-
     reg   [5:0] d_col,       q_col;
     reg   [5:0] d_col_cnt,   q_col_cnt;
     reg  [13:0] d_vaddr,     q_vaddr;
     reg   [3:0] d_state,     q_state;
     reg   [3:0] d_nxtstate,  q_nxtstate;
     reg  [15:0] d_map_entry, q_map_entry;
-    reg         d_blankout,  q_blankout;
     reg         d_busy,      q_busy;
 
     wire  [7:0] line_idx      = vline - 8'd15;
-    wire  [7:0] tline         = line_idx + scry;
+    wire  [7:0] tline         = line_idx + scroll_y;
     wire  [4:0] row           = tline[7:3];
 
     wire [15:0] map_entry     = d_map_entry;
@@ -103,8 +97,6 @@ module gfx(
     wire        tile_priority = map_entry[14];
 
     assign vaddr = d_vaddr;
-
-    wire [15:0] vdata2 = q_blankout ? 16'b0 : vdata;
 
     // Determine if sprite is on current line
     wire [3:0] spr_height  = (spr_h16 ? 4'd15 : 4'd7);
@@ -160,7 +152,6 @@ module gfx(
         d_linesel          = q_linesel;
         d_render_data      = q_render_data;
         d_spr_sel          = q_spr_sel;
-        d_blankout         = q_blankout;
         d_render_is_sprite = q_render_is_sprite;
         d_render_hflip     = q_render_hflip;
         d_render_palette   = q_render_palette;
@@ -173,15 +164,9 @@ module gfx(
             d_render_is_sprite = 0;
             d_col_cnt          = 0;
             d_spr_sel          = 0;
-
-            case (gfx_mode)
-                MODE_BM4BPP: d_state = ST_BM4BPP;
-                default:     d_state = ST_MAP1;
-            endcase
-
-            d_blankout   = (gfx_mode == MODE_DISABLED);
-            d_render_idx = (gfx_mode == MODE_TILE) ? (9'd0 - {6'd0, scrx[2:0]}) : 9'd0;
-            d_col        = scrx[8:3];
+            d_state            = tilemode ? ST_MAP1 : ST_BM4BPP;
+            d_render_idx       = tilemode ? (9'd0 - {6'd0, scroll_x[2:0]}) : 9'd0;
+            d_col              = scroll_x[8:3];
 
         end else if (q_busy) begin
             case (q_state)
@@ -190,8 +175,7 @@ module gfx(
 
                 ST_MAP1: begin
                     if (q_col_cnt == 6'd41) begin
-                        d_blankout = 0;
-                        d_state    = sprites_enable ? ST_SPR : ST_DONE;
+                        d_state = sprites_enable ? ST_SPR : ST_DONE;
                     end else begin
                         d_vaddr = {3'b111, row, d_col};
                         d_state = ST_MAP2;
@@ -211,7 +195,7 @@ module gfx(
                 end
 
                 ST_SPR: begin
-                    d_render_is_sprite = 1'b1;
+                    d_render_is_sprite = 1;
 
                     if (q_spr_sel[6]) begin
                         d_state = ST_DONE;
@@ -230,16 +214,16 @@ module gfx(
                 end
 
                 ST_PAT1: begin
-                    d_render_data[31:24] = vdata2[ 7:0];
-                    d_render_data[23:16] = vdata2[15:8];
+                    d_render_data[31:24] = vdata[ 7:0];
+                    d_render_data[23:16] = vdata[15:8];
                     d_vaddr[0]           = 1;
                     d_state              = ST_PAT2;
                 end
 
                 ST_PAT2: begin
                     if (!render_busy || render_last_pixel) begin
-                        d_render_data[15:8] = vdata2[ 7:0];
-                        d_render_data[7:0]  = vdata2[15:8];
+                        d_render_data[15:8] = vdata[ 7:0];
+                        d_render_data[7:0]  = vdata[15:8];
                         render_start        = 1;
                         d_state             = q_nxtstate;
                     end
@@ -260,13 +244,13 @@ module gfx(
                 end
 
                 ST_BM4BPP2: begin
-                    d_render_data[31:16] = {vdata2[7:0], vdata2[15:8]};
+                    d_render_data[31:16] = {vdata[7:0], vdata[15:8]};
                     d_vaddr[0]           = 1;
                     d_state              = ST_BM4BPP3;
                 end
 
                 ST_BM4BPP3: begin
-                    d_render_data[15:0] = {vdata2[7:0], vdata2[15:8]};
+                    d_render_data[15:0] = {vdata[7:0], vdata[15:8]};
                     if (!render_busy || render_last_pixel) begin
                         render_start = 1;
                         d_state      = ST_BM4BPP;
@@ -293,7 +277,6 @@ module gfx(
             q_linesel          <= 0;
             q_render_data      <= 0;
             q_spr_sel          <= 0;
-            q_blankout         <= 0;
             q_render_is_sprite <= 0;
             q_render_hflip     <= 0;
             q_render_palette   <= 0;
@@ -311,7 +294,6 @@ module gfx(
             q_linesel          <= d_linesel;
             q_render_data      <= d_render_data;
             q_spr_sel          <= d_spr_sel;
-            q_blankout         <= d_blankout;
             q_render_is_sprite <= d_render_is_sprite;
             q_render_hflip     <= d_render_hflip;
             q_render_palette   <= d_render_palette;

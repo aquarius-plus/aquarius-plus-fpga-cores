@@ -112,13 +112,12 @@ enum {
     FO_EXCL   = 0x20, // Error if already exists
 };
 
-#define VCTRL_TEXT_EN        (1 << 0)
-#define VCTRL_GFXMODE_OFF    (0 << 1)
-#define VCTRL_GFXMODE_TILE   (1 << 1)
-#define VCTRL_GFXMODE_BM4BPP (3 << 1)
-#define VCTRL_SPR_EN         (1 << 3)
-#define VCTRL_TEXT_PRIO      (1 << 4)
-#define VCTRL_80COLUMNS      (1 << 6)
+#define VCTRL_TEXT_EN      (1 << 0)
+#define VCTRL_TEXT_MODE80  (1 << 1)
+#define VCTRL_TEXT_PRIO    (1 << 2)
+#define VCTRL_GFX_EN       (1 << 3)
+#define VCTRL_GFX_TILEMODE (1 << 4)
+#define VCTRL_SPR_EN       (1 << 5)
 
 #define MAX_ARGS 64
 struct start_data {

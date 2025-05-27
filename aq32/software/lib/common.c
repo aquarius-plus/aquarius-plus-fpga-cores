@@ -6,7 +6,7 @@ static const uint16_t palette[16] = {
     0x555, 0x55F, 0x5F5, 0x5FF, 0xF55, 0xF5F, 0xFF5, 0xFFF};
 
 void reinit_video(void) {
-    REGS->VCTRL     = VCTRL_80COLUMNS | VCTRL_TEXT_EN;
+    REGS->VCTRL     = VCTRL_TEXT_MODE80 | VCTRL_TEXT_EN;
     TRAM->border_ch = 0;
 
     for (int i = 0; i < 64; i++)

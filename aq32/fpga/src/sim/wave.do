@@ -1,19 +1,19 @@
 onerror {resume}
 quietly virtual signal -install /tb/top_inst { (context /tb/top_inst )&{ebus_ba , ebus_a[13:0] }} sram_addr
-quietly virtual function -install /tb/top_inst/video/gfx -env /tb/top_inst/video/gfx { &{/tb/top_inst/video/gfx/clk, /tb/top_inst/video/gfx/reset, /tb/top_inst/video/gfx/gfx_mode, /tb/top_inst/video/gfx/sprites_enable, /tb/top_inst/video/gfx/scrx, /tb/top_inst/video/gfx/scry, /tb/top_inst/video/gfx/spr_sel, /tb/top_inst/video/gfx/spr_x, /tb/top_inst/video/gfx/spr_y, /tb/top_inst/video/gfx/spr_idx, /tb/top_inst/video/gfx/spr_enable, /tb/top_inst/video/gfx/spr_priority, /tb/top_inst/video/gfx/spr_palette, /tb/top_inst/video/gfx/spr_h16, /tb/top_inst/video/gfx/spr_vflip, /tb/top_inst/video/gfx/spr_hflip, /tb/top_inst/video/gfx/vaddr, /tb/top_inst/video/gfx/vdata, /tb/top_inst/video/gfx/vline, /tb/top_inst/video/gfx/start, /tb/top_inst/video/gfx/linebuf_rdidx, /tb/top_inst/video/gfx/linebuf_data, /tb/top_inst/video/gfx/d_spr_sel, /tb/top_inst/video/gfx/q_spr_sel, /tb/top_inst/video/gfx/wridx, /tb/top_inst/video/gfx/wrdata, /tb/top_inst/video/gfx/wren, /tb/top_inst/video/gfx/d_linesel, /tb/top_inst/video/gfx/q_linesel, /tb/top_inst/video/gfx/rddata, /tb/top_inst/video/gfx/d_col, /tb/top_inst/video/gfx/q_col, /tb/top_inst/video/gfx/d_col_cnt, /tb/top_inst/video/gfx/q_col_cnt, /tb/top_inst/video/gfx/d_vaddr, /tb/top_inst/video/gfx/q_vaddr, /tb/top_inst/video/gfx/d_state, /tb/top_inst/video/gfx/q_state, /tb/top_inst/video/gfx/d_nxtstate, /tb/top_inst/video/gfx/q_nxtstate, /tb/top_inst/video/gfx/d_map_entry, /tb/top_inst/video/gfx/q_map_entry, /tb/top_inst/video/gfx/d_blankout, /tb/top_inst/video/gfx/q_blankout, /tb/top_inst/video/gfx/d_busy, /tb/top_inst/video/gfx/q_busy, /tb/top_inst/video/gfx/line_idx, /tb/top_inst/video/gfx/tline, /tb/top_inst/video/gfx/row, /tb/top_inst/video/gfx/map_entry, /tb/top_inst/video/gfx/tile_idx, /tb/top_inst/video/gfx/tile_hflip, /tb/top_inst/video/gfx/tile_vflip, /tb/top_inst/video/gfx/tile_palette, /tb/top_inst/video/gfx/tile_priority, /tb/top_inst/video/gfx/vdata2, /tb/top_inst/video/gfx/spr_height, /tb/top_inst/video/gfx/ydiff, /tb/top_inst/video/gfx/spr_on_line, /tb/top_inst/video/gfx/spr_line, /tb/top_inst/video/gfx/d_render_idx, /tb/top_inst/video/gfx/q_render_idx, /tb/top_inst/video/gfx/d_render_data, /tb/top_inst/video/gfx/q_render_data, /tb/top_inst/video/gfx/d_render_is_sprite, /tb/top_inst/video/gfx/q_render_is_sprite, /tb/top_inst/video/gfx/d_render_hflip, /tb/top_inst/video/gfx/q_render_hflip, /tb/top_inst/video/gfx/d_render_palette, /tb/top_inst/video/gfx/q_render_palette, /tb/top_inst/video/gfx/d_render_priority, /tb/top_inst/video/gfx/q_render_priority, /tb/top_inst/video/gfx/render_start, /tb/top_inst/video/gfx/render_last_pixel, /tb/top_inst/video/gfx/render_busy }} Gfx
+quietly virtual function -install /tb/top_inst/video/gfx -env /tb/top_inst/video/gfx { &{/tb/top_inst/video/gfx/clk, /tb/top_inst/video/gfx/reset, /tb/top_inst/video/gfx/tilemode, /tb/top_inst/video/gfx/sprites_enable, /tb/top_inst/video/gfx/scroll_x, /tb/top_inst/video/gfx/scroll_y, /tb/top_inst/video/gfx/spr_sel, /tb/top_inst/video/gfx/spr_x, /tb/top_inst/video/gfx/spr_y, /tb/top_inst/video/gfx/spr_idx, /tb/top_inst/video/gfx/spr_enable, /tb/top_inst/video/gfx/spr_priority, /tb/top_inst/video/gfx/spr_palette, /tb/top_inst/video/gfx/spr_h16, /tb/top_inst/video/gfx/spr_vflip, /tb/top_inst/video/gfx/spr_hflip, /tb/top_inst/video/gfx/vaddr, /tb/top_inst/video/gfx/vdata, /tb/top_inst/video/gfx/reg_line, /tb/top_inst/video/gfx/start, /tb/top_inst/video/gfx/linebuf_rdidx, /tb/top_inst/video/gfx/linebuf_data, /tb/top_inst/video/gfx/d_spr_sel, /tb/top_inst/video/gfx/q_spr_sel, /tb/top_inst/video/gfx/wridx, /tb/top_inst/video/gfx/wrdata, /tb/top_inst/video/gfx/wren, /tb/top_inst/video/gfx/d_linesel, /tb/top_inst/video/gfx/q_linesel, /tb/top_inst/video/gfx/rddata, /tb/top_inst/video/gfx/d_col, /tb/top_inst/video/gfx/q_col, /tb/top_inst/video/gfx/d_col_cnt, /tb/top_inst/video/gfx/q_col_cnt, /tb/top_inst/video/gfx/d_vaddr, /tb/top_inst/video/gfx/q_vaddr, /tb/top_inst/video/gfx/d_state, /tb/top_inst/video/gfx/q_state, /tb/top_inst/video/gfx/d_nxtstate, /tb/top_inst/video/gfx/q_nxtstate, /tb/top_inst/video/gfx/d_map_entry, /tb/top_inst/video/gfx/q_map_entry, /tb/top_inst/video/gfx/d_blankout, /tb/top_inst/video/gfx/q_blankout, /tb/top_inst/video/gfx/d_busy, /tb/top_inst/video/gfx/q_busy, /tb/top_inst/video/gfx/line_idx, /tb/top_inst/video/gfx/tline, /tb/top_inst/video/gfx/row, /tb/top_inst/video/gfx/map_entry, /tb/top_inst/video/gfx/tile_idx, /tb/top_inst/video/gfx/tile_hflip, /tb/top_inst/video/gfx/tile_vflip, /tb/top_inst/video/gfx/tile_palette, /tb/top_inst/video/gfx/tile_priority, /tb/top_inst/video/gfx/vdata2, /tb/top_inst/video/gfx/spr_height, /tb/top_inst/video/gfx/ydiff, /tb/top_inst/video/gfx/spr_on_line, /tb/top_inst/video/gfx/spr_line, /tb/top_inst/video/gfx/d_render_idx, /tb/top_inst/video/gfx/q_render_idx, /tb/top_inst/video/gfx/d_render_data, /tb/top_inst/video/gfx/q_render_data, /tb/top_inst/video/gfx/d_render_is_sprite, /tb/top_inst/video/gfx/q_render_is_sprite, /tb/top_inst/video/gfx/d_render_hflip, /tb/top_inst/video/gfx/q_render_hflip, /tb/top_inst/video/gfx/d_render_palette, /tb/top_inst/video/gfx/q_render_palette, /tb/top_inst/video/gfx/d_render_priority, /tb/top_inst/video/gfx/q_render_priority, /tb/top_inst/video/gfx/render_start, /tb/top_inst/video/gfx/render_last_pixel, /tb/top_inst/video/gfx/render_busy }} Gfx
 quietly WaveActivateNextPane {} 0
 add wave -noupdate -group Video /tb/top_inst/video/clk
 add wave -noupdate -group Video /tb/top_inst/video/reset
 add wave -noupdate -group Video /tb/top_inst/video/vclk
-add wave -noupdate -group Video /tb/top_inst/video/vctrl_80_columns
-add wave -noupdate -group Video /tb/top_inst/video/vctrl_text_priority
-add wave -noupdate -group Video /tb/top_inst/video/vctrl_sprites_enable
-add wave -noupdate -group Video /tb/top_inst/video/vctrl_gfx_mode
-add wave -noupdate -group Video /tb/top_inst/video/vctrl_text_enable
-add wave -noupdate -group Video /tb/top_inst/video/vscrx
-add wave -noupdate -group Video /tb/top_inst/video/vscry
-add wave -noupdate -group Video /tb/top_inst/video/vline
-add wave -noupdate -group Video /tb/top_inst/video/virqline
+add wave -noupdate -group Video /tb/top_inst/video/reg_text_mode80
+add wave -noupdate -group Video /tb/top_inst/video/reg_text_priority
+add wave -noupdate -group Video /tb/top_inst/video/reg_sprites_enable
+add wave -noupdate -group Video /tb/top_inst/video/reg_gfx_tilemode
+add wave -noupdate -group Video /tb/top_inst/video/reg_text_enable
+add wave -noupdate -group Video /tb/top_inst/video/reg_scroll_x
+add wave -noupdate -group Video /tb/top_inst/video/reg_scroll_y
+add wave -noupdate -group Video /tb/top_inst/video/reg_line
+add wave -noupdate -group Video /tb/top_inst/video/reg_irqline
 add wave -noupdate -group Video /tb/top_inst/video/irq_line
 add wave -noupdate -group Video /tb/top_inst/video/irq_vblank
 add wave -noupdate -group Video /tb/top_inst/video/tram_addr
@@ -111,10 +111,10 @@ add wave -noupdate -group Video /tb/top_inst/video/pal_g
 add wave -noupdate -group Video /tb/top_inst/video/pal_b
 add wave -noupdate -group Gfx /tb/top_inst/video/gfx/clk
 add wave -noupdate -group Gfx /tb/top_inst/video/gfx/reset
-add wave -noupdate -group Gfx /tb/top_inst/video/gfx/gfx_mode
+add wave -noupdate -group Gfx /tb/top_inst/video/gfx/tilemode
 add wave -noupdate -group Gfx /tb/top_inst/video/gfx/sprites_enable
-add wave -noupdate -group Gfx /tb/top_inst/video/gfx/scrx
-add wave -noupdate -group Gfx /tb/top_inst/video/gfx/scry
+add wave -noupdate -group Gfx /tb/top_inst/video/gfx/scroll_x
+add wave -noupdate -group Gfx /tb/top_inst/video/gfx/scroll_y
 add wave -noupdate -group Gfx /tb/top_inst/video/gfx/spr_sel
 add wave -noupdate -group Gfx /tb/top_inst/video/gfx/spr_x
 add wave -noupdate -group Gfx /tb/top_inst/video/gfx/spr_y
@@ -127,7 +127,7 @@ add wave -noupdate -group Gfx /tb/top_inst/video/gfx/spr_vflip
 add wave -noupdate -group Gfx /tb/top_inst/video/gfx/spr_hflip
 add wave -noupdate -group Gfx /tb/top_inst/video/gfx/vaddr
 add wave -noupdate -group Gfx /tb/top_inst/video/gfx/vdata
-add wave -noupdate -group Gfx /tb/top_inst/video/gfx/vline
+add wave -noupdate -group Gfx /tb/top_inst/video/gfx/reg_line
 add wave -noupdate -group Gfx /tb/top_inst/video/gfx/start
 add wave -noupdate -group Gfx /tb/top_inst/video/gfx/linebuf_rdidx
 add wave -noupdate -group Gfx /tb/top_inst/video/gfx/linebuf_data

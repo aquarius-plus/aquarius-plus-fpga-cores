@@ -49,6 +49,8 @@ target_link_options(${PROJECT_NAME} PRIVATE -Wl,--gc-sections)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--print-memory-usage)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/../lib/default.ld)
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE PROJECT_VERSION="${CMAKE_PROJECT_VERSION}")
+
 target_include_directories(${PROJECT_NAME} PRIVATE
     .
     basic

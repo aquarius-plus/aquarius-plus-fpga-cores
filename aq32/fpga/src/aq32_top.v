@@ -435,15 +435,16 @@ module aq32_top(
     wire [15:0] rddata_pal;
     wire [31:0] rddata_vram, rddata_vram4bpp;
 
-    reg        q_vctrl_80_columns;
+    reg        q_vctrl_text_mode80;
     reg        q_vctrl_text_priority;
+    reg        q_vctrl_gfx_tilemode;
     reg        q_vctrl_sprites_enable;
-    reg  [1:0] q_vctrl_gfx_mode;
+    reg        q_vctrl_gfx_enable;
     reg        q_vctrl_text_enable;
     reg  [8:0] q_vscrx;
     reg  [7:0] q_vscry;
-    wire [7:0] vline;
-    reg  [7:0] q_virqline;
+    wire [8:0] vline;
+    reg  [8:0] q_virqline;
 
     wire irq_line, irq_vblank;
 
@@ -487,15 +488,16 @@ module aq32_top(
 
         .vclk(video_clk),
 
-        .vctrl_80_columns(q_vctrl_80_columns),
-        .vctrl_text_priority(q_vctrl_text_priority),
-        .vctrl_sprites_enable(q_vctrl_sprites_enable),
-        .vctrl_gfx_mode(q_vctrl_gfx_mode),
-        .vctrl_text_enable(q_vctrl_text_enable),
-        .vscrx(q_vscrx),
-        .vscry(q_vscry),
+        .reg_sprites_enable(q_vctrl_sprites_enable),
+        .reg_gfx_tilemode(q_vctrl_gfx_tilemode),
+        .reg_gfx_enable(q_vctrl_gfx_enable),
+        .reg_text_priority(q_vctrl_text_priority),
+        .reg_text_mode80(q_vctrl_text_mode80),
+        .reg_text_enable(q_vctrl_text_enable),
+        .reg_scroll_x(q_vscrx),
+        .reg_scroll_y(q_vscry),
+        .reg_irqline(q_virqline),
         .vline(vline),
-        .virqline(q_virqline),
 
         .irq_line(irq_line),
         .irq_vblank(irq_vblank),
@@ -627,11 +629,21 @@ module aq32_top(
         regs_rddata = 0;
         if (sel_reg_espctrl)  regs_rddata = {27'b0, q_esp_rx_fifo_overflow, q_esp_rx_framing_error, 1'b0, esp_tx_fifo_full, !esp_rx_empty};
         if (sel_reg_espdata)  regs_rddata = {23'b0, esp_rx_data};
-        if (sel_reg_vctrl)    regs_rddata = {24'b0, 1'b0, q_vctrl_80_columns, 1'b0, q_vctrl_text_priority, q_vctrl_sprites_enable, q_vctrl_gfx_mode, q_vctrl_text_enable};
+        if (sel_reg_vctrl)    regs_rddata = {
+            24'b0,
+            2'b0,
+            q_vctrl_sprites_enable,
+            q_vctrl_gfx_tilemode,
+            q_vctrl_gfx_enable,
+            q_vctrl_text_priority,
+            q_vctrl_text_mode80,
+            q_vctrl_text_enable
+        };
+
         if (sel_reg_vscrx)    regs_rddata = {23'b0, q_vscrx};
         if (sel_reg_vscry)    regs_rddata = {24'b0, q_vscry};
-        if (sel_reg_vline)    regs_rddata = {24'b0, vline};
-        if (sel_reg_virqline) regs_rddata = {24'b0, q_virqline};
+        if (sel_reg_vline)    regs_rddata = {23'b0, vline};
+        if (sel_reg_virqline) regs_rddata = {23'b0, q_virqline};
         if (sel_reg_keybuf)   regs_rddata = {kbbuf_empty, 15'b0, kbbuf_rddata};
     end
 
@@ -646,11 +658,11 @@ module aq32_top(
         if (reset) begin
             q_esp_rx_fifo_overflow <= 0;
             q_esp_rx_framing_error <= 0;
-
-            q_vctrl_80_columns     <= 0;
-            q_vctrl_text_priority  <= 0;
             q_vctrl_sprites_enable <= 0;
-            q_vctrl_gfx_mode       <= 0;
+            q_vctrl_gfx_tilemode   <= 0;
+            q_vctrl_gfx_enable     <= 0;
+            q_vctrl_text_priority  <= 0;
+            q_vctrl_text_mode80    <= 0;
             q_vctrl_text_enable    <= 0;
             q_vscrx                <= 0;
             q_vscry                <= 0;
@@ -663,15 +675,16 @@ module aq32_top(
                     q_esp_rx_framing_error <= q_esp_rx_framing_error & ~cpu_wrdata[3];
                 end
                 if (sel_reg_vctrl) begin
-                    q_vctrl_80_columns     <= cpu_wrdata[6];
-                    q_vctrl_text_priority  <= cpu_wrdata[4];
-                    q_vctrl_sprites_enable <= cpu_wrdata[3];
-                    q_vctrl_gfx_mode       <= cpu_wrdata[2:1];
+                    q_vctrl_sprites_enable <= cpu_wrdata[5];
+                    q_vctrl_gfx_tilemode   <= cpu_wrdata[4];
+                    q_vctrl_gfx_enable     <= cpu_wrdata[3];
+                    q_vctrl_text_priority  <= cpu_wrdata[2];
+                    q_vctrl_text_mode80    <= cpu_wrdata[1];
                     q_vctrl_text_enable    <= cpu_wrdata[0];
                 end
                 if (sel_reg_vscrx) q_vscrx    <= cpu_wrdata[8:0];
                 if (sel_reg_vscry) q_vscry    <= cpu_wrdata[7:0];
-                if (sel_reg_vscry) q_virqline <= cpu_wrdata[7:0];
+                if (sel_reg_vscry) q_virqline <= cpu_wrdata[8:0];
             end
 
             if (esp_rx_fifo_overflow) q_esp_rx_fifo_overflow <= 1'b1;

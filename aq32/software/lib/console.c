@@ -27,7 +27,7 @@ static void memset16(uint16_t *dst, uint16_t val, unsigned count) {
 }
 
 static inline int _num_columns(void) {
-    return (REGS->VCTRL & VCTRL_80COLUMNS) ? 80 : 40;
+    return (REGS->VCTRL & VCTRL_TEXT_MODE80) ? 80 : 40;
 }
 
 static void hide_cursor(void) {
@@ -58,7 +58,7 @@ void _clear_screen(void) {
 #define INITVAL2 0x55AA
 
 void console_init(void) {
-    if (REGS->VCTRL != (VCTRL_80COLUMNS | VCTRL_TEXT_EN) ||
+    if (REGS->VCTRL != (VCTRL_TEXT_MODE80 | VCTRL_TEXT_EN) ||
         TRAM->init_val1 != INITVAL1 ||
         TRAM->init_val2 != INITVAL2) {
 
@@ -78,7 +78,7 @@ void console_init(void) {
 
     hide_cursor();
 
-    REGS->VCTRL          = VCTRL_80COLUMNS | VCTRL_TEXT_EN;
+    REGS->VCTRL          = VCTRL_TEXT_MODE80 | VCTRL_TEXT_EN;
     TRAM->cursor_enabled = true;
     TRAM->text_color     = (DEF_FGCOL << 12) | (DEF_BGCOL << 8);
     TRAM->cursor_color   = (CURSOR_COLOR << 8);

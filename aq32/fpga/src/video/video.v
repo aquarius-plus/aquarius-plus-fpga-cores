@@ -8,15 +8,16 @@ module video(
     input  wire        vclk,
 
     // Register interface
-    input  wire        vctrl_80_columns,
-    input  wire        vctrl_text_priority,
-    input  wire        vctrl_sprites_enable,
-    input  wire  [1:0] vctrl_gfx_mode,
-    input  wire        vctrl_text_enable,
-    input  wire  [8:0] vscrx,
-    input  wire  [7:0] vscry,
-    output wire  [7:0] vline,
-    input  wire  [7:0] virqline,
+    input  wire        reg_sprites_enable,
+    input  wire        reg_gfx_tilemode,
+    input  wire        reg_gfx_enable,
+    input  wire        reg_text_priority,
+    input  wire        reg_text_mode80,
+    input  wire        reg_text_enable,
+    input  wire  [8:0] reg_scroll_x,
+    input  wire  [7:0] reg_scroll_y,
+    input  wire  [8:0] reg_irqline,
+    output wire  [8:0] vline,
 
     output wire        irq_line,
     output wire        irq_vblank,
@@ -61,17 +62,17 @@ module video(
     wire vclk_reset;
     reset_sync ressync_vclk(.async_rst_in(reset), .clk(vclk), .reset_out(vclk_reset));
 
-    wire [7:0] vpos;
+    wire [8:0] vpos9;
     wire       vblank;
 
-    assign vline = vpos;
+    assign vline = vpos9;
 
     reg q_vblank;
     always @(posedge vclk) q_vblank <= vblank;
 
     wire [7:0] rddata_sprattr;
 
-    wire irqline_match = (vpos == virqline);
+    wire irqline_match = (vline == reg_irqline);
     reg q_irqline_match;
     always @(posedge vclk) q_irqline_match <= irqline_match;
 
@@ -106,10 +107,10 @@ module video(
 
     always @(posedge vclk) video_oddline <= vpos10[0];
 
-    assign vpos = vpos10[9] ? 8'd255 : vpos10[8:1];
+    assign vpos9 = vpos10[9:1];
 
     wire hborder = blank;
-    wire vborder = vpos < 8'd16 || vpos >= 8'd216;
+    wire vborder = vpos9 < 9'd16 || vpos9 >= 9'd216;
 
     reg [9:0] q_hpos, q2_hpos;
     always @(posedge vclk) q_hpos  <= hpos;
@@ -133,13 +134,13 @@ module video(
     reg  [10:0] q_row_addr  = 11'd0;
     reg  [10:0] q_char_addr = 11'd0;
 
-    wire        next_row         = (vpos >= 8'd23) && vnext && (vpos[2:0] == 3'd7);
+    wire        next_row         = (vpos9 >= 9'd23) && vnext && (vpos9[2:0] == 3'd7);
     wire [10:0] d_row_addr       = q_row_addr + (q_mode80 ? 11'd80 : 11'd40);
     wire [10:0] border_char_addr = 11'h7FF;
 
     always @(posedge(vclk))
         if (vblank) begin
-            q_mode80   <= vctrl_80_columns;
+            q_mode80   <= reg_text_mode80;
             q_row_addr <= 11'd0;
         end else if (next_row) begin
             q_row_addr <= d_row_addr;
@@ -197,7 +198,7 @@ module video(
     //////////////////////////////////////////////////////////////////////////
     // Character RAM
     //////////////////////////////////////////////////////////////////////////
-    wire [10:0] charram_addr = {text_data, vpos[2:0]};
+    wire [10:0] charram_addr = {text_data, vpos9[2:0]};
     wire  [7:0] charram_data;
 
     charram charram(
@@ -298,10 +299,10 @@ module video(
         .reset(vclk_reset),
 
         // Register values
-        .gfx_mode(vctrl_gfx_mode),
-        .sprites_enable(vctrl_sprites_enable),
-        .scrx(vscrx),
-        .scry(vscry),
+        .tilemode(reg_gfx_tilemode),
+        .sprites_enable(reg_sprites_enable),
+        .scroll_x(reg_scroll_x),
+        .scroll_y(reg_scroll_y),
 
         // Sprite attribute interface
         .spr_sel(spr_sel),
@@ -320,7 +321,7 @@ module video(
         .vdata(vram_rddata2),
 
         // Render parameters
-        .vline(vpos),
+        .vline(vpos9[7:0]),
         .start(q_gfx_start),
 
         // Line buffer interface
@@ -336,15 +337,15 @@ module video(
     always @* begin
         pixel_colidx = 6'b0;
         if (!active) begin
-            if (vctrl_text_enable)
+            if (reg_text_enable)
                 pixel_colidx = {2'b0, text_colidx};
 
         end else begin
-            if (vctrl_text_enable && !vctrl_text_priority)
+            if (reg_text_enable && !reg_text_priority)
                 pixel_colidx = {2'b0, text_colidx};
-            if (!vctrl_text_enable || vctrl_text_priority || linebuf_data[3:0] != 4'd0)
+            if (reg_gfx_enable && (!reg_text_enable || reg_text_priority || linebuf_data[3:0] != 4'd0))
                 pixel_colidx = linebuf_data;
-            if (vctrl_text_enable && vctrl_text_priority && text_colidx != 4'd0)
+            if (reg_text_enable && reg_text_priority && text_colidx != 4'd0)
                 pixel_colidx = {2'b0, text_colidx};
         end
     end

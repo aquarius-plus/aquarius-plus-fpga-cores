@@ -28,7 +28,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${EXECNAME}.elf")
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND riscv-none-elf-objcopy -O binary ${EXECNAME}.elf ${EXECNAME}.bin
+    COMMAND riscv-none-elf-objcopy -O binary ${EXECNAME}.elf ${EXECNAME}.aq32
     COMMAND riscv-none-elf-objdump -d ${EXECNAME}.elf > dump.txt
     COMMAND riscv-none-elf-objdump -x ${EXECNAME}.elf > dump_x.txt
     COMMAND riscv-none-elf-objdump -t ${EXECNAME}.elf | expand -t36 | tail -n +5 | sort > dump_symbols.txt
