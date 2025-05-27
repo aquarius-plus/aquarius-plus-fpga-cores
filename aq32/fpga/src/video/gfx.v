@@ -264,7 +264,7 @@ module gfx(
         end
     end
 
-    always @(posedge clk) begin
+    always @(posedge clk or posedge reset) begin
         if (reset) begin
             q_col              <= 0;
             q_col_cnt          <= 0;
