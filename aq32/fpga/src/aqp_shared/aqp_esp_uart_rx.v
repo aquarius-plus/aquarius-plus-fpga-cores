@@ -23,8 +23,10 @@ module aqp_esp_uart_rx(
     // Bit-timing
     reg [2:0] q_clk_cnt;
     always @(posedge clk)
-        if (!q_started) q_clk_cnt <= 0;
-        else            q_clk_cnt <= q_clk_cnt + 3'd1;
+        if (!q_started || q_clk_cnt == 3'd5)
+            q_clk_cnt <= 0;
+        else
+            q_clk_cnt <= q_clk_cnt + 3'd1;
 
     // Receive logic
     reg [3:0] q_bit_cnt;
@@ -48,7 +50,7 @@ module aqp_esp_uart_rx(
                 if (start_condition)
                     q_started <= 1;
 
-            end else if (q_clk_cnt == 3'd4) begin
+            end else if (q_clk_cnt == 3'd2) begin
                 if (q_bit_cnt == 4'd9) begin
                     if (rx_in) begin
                         q_started <= 0;

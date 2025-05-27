@@ -13,7 +13,13 @@ module aqp_esp_uart_tx(
 
     // Bit-timing
     reg [2:0] q_clk_cnt = 3'd0;
-    always @(posedge clk) q_clk_cnt <= q_clk_cnt + 3'd1;
+    always @(posedge clk)
+        if (q_clk_cnt == 3'd5)
+            q_clk_cnt <= 0;
+        else
+            q_clk_cnt <= q_clk_cnt + 3'd1;
+
+    // always @(posedge clk) q_clk_cnt <= q_clk_cnt + 3'd1;
 
     wire next_bit = q_clk_cnt == 3'd0;
 
