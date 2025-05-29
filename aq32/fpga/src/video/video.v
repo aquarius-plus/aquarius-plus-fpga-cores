@@ -20,6 +20,12 @@ module video(
     output wire        irq_line,
     output wire        irq_vblank,
 
+    // Sprite attribute interface
+    input  wire  [6:0] sprattr_addr,
+    output wire [31:0] sprattr_rddata,
+    input  wire [31:0] sprattr_wrdata,
+    input  wire        sprattr_wren,
+
     // Text RAM interface
     input  wire [10:0] tram_addr,
     output wire [15:0] tram_rddata,
@@ -216,8 +222,7 @@ module video(
     wire  [5:0] spr_sel;
     wire  [8:0] spr_x;
     wire  [7:0] spr_y;
-    wire  [8:0] spr_idx;
-    wire        spr_enable;
+    wire  [9:0] spr_idx;
     wire        spr_priority;
     wire  [1:0] spr_palette;
     wire        spr_h16;
@@ -225,20 +230,20 @@ module video(
     wire        spr_hflip;
 
     sprattr sprattr(
-        // First port - CPU access
         .clk(clk),
         .reset(reset),
-        .io_addr(4'b0), //io_addr),
-        .io_rddata(rddata_sprattr),
-        .io_wrdata(8'b0),   //io_wrdata),
-        .io_wren(1'b0),     //io_wren),
+
+        // First port - CPU access
+        .sprattr_addr(sprattr_addr),
+        .sprattr_rddata(sprattr_rddata),
+        .sprattr_wrdata(sprattr_wrdata),
+        .sprattr_wren(sprattr_wren),
 
         // Second port - Video access
         .spr_sel(spr_sel),
         .spr_x(spr_x),
         .spr_y(spr_y),
         .spr_idx(spr_idx),
-        .spr_enable(spr_enable),
         .spr_priority(spr_priority),
         .spr_palette(spr_palette),
         .spr_h16(spr_h16),
@@ -303,7 +308,6 @@ module video(
         .spr_x(spr_x),
         .spr_y(spr_y),
         .spr_idx(spr_idx),
-        .spr_enable(spr_enable),
         .spr_priority(spr_priority),
         .spr_palette(spr_palette),
         .spr_h16(spr_h16),

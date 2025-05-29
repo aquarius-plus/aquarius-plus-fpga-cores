@@ -404,19 +404,24 @@ module aq32_top(
 
     wire       video_irq;
 
+    wire       sprattr_strobe;
     wire       tram_strobe;
     wire       chram_strobe;
     wire       pal_strobe;
-    wire       vram_strobe, vram4bpp_strobe;
+    wire       vram_strobe;
+    wire       vram4bpp_strobe;
 
+    wire       sprattr_wren  = cpu_wren && sprattr_strobe;
     wire       tram_wren     = cpu_wren && tram_strobe;
     wire       chram_wren    = cpu_wren && chram_strobe;
     wire       pal_wren      = cpu_wren && pal_strobe;
 
-    wire [15:0] rddata_tram;
-    wire  [7:0] rddata_chram;
-    wire [15:0] rddata_pal;
-    wire [31:0] rddata_vram, rddata_vram4bpp;
+    wire [31:0] sprattr_rddata;
+    wire [15:0] tram_rddata;
+    wire  [7:0] chram_rddata;
+    wire [15:0] pal_rddata;
+    wire [31:0] vram_rddata;
+    wire [31:0] vram4bpp_rddata;
 
     reg        q_vctrl_text_mode80;
     reg        q_vctrl_text_priority;
@@ -435,7 +440,6 @@ module aq32_top(
     reg  [31:0] vram_wrdata;
     reg   [7:0] vram_wrsel;
     wire        vram_wren = cpu_wren && (vram_strobe || vram4bpp_strobe);
-    wire [31:0] vram_rddata;
 
     always @* begin
         vram_wrdata = cpu_wrdata;
@@ -457,11 +461,9 @@ module aq32_top(
         end
     end
 
-    assign rddata_vram = vram_rddata;
-
     reg    q_vram_addr0;
     always @(posedge clk) q_vram_addr0 <= cpu_addr[2];
-    assign rddata_vram4bpp = q_vram_addr0 ?
+    assign vram4bpp_rddata = q_vram_addr0 ?
         {4'b0, vram_rddata[27:24], 4'b0, vram_rddata[31:28], 4'b0, vram_rddata[19:16], 4'b0, vram_rddata[23:20]} :
         {4'b0, vram_rddata[11: 8], 4'b0, vram_rddata[15:12], 4'b0, vram_rddata[ 3: 0], 4'b0, vram_rddata[ 7: 4]};
 
@@ -480,22 +482,27 @@ module aq32_top(
         .reg_irqline(q_virqline),
         .vline(vline),
 
+        .sprattr_addr(cpu_addr[8:2]),
+        .sprattr_rddata(sprattr_rddata),
+        .sprattr_wrdata(cpu_wrdata),
+        .sprattr_wren(sprattr_wren),
+
         .irq_line(irq_line),
         .irq_vblank(irq_vblank),
 
         .tram_addr(cpu_addr[11:1]),
-        .tram_rddata(rddata_tram),
+        .tram_rddata(tram_rddata),
         .tram_wrdata(cpu_wrdata[15:0]),
         .tram_bytesel(cpu_bytesel[3:2] | cpu_bytesel[1:0]),
         .tram_wren(tram_wren),
 
         .chram_addr(cpu_addr[10:0]),
-        .chram_rddata(rddata_chram),
+        .chram_rddata(chram_rddata),
         .chram_wrdata(cpu_wrdata[7:0]),
         .chram_wren(chram_wren),
 
         .pal_addr(cpu_addr[6:1]),
-        .pal_rddata(rddata_pal),
+        .pal_rddata(pal_rddata),
         .pal_wrdata(cpu_wrdata[15:0]),
         .pal_wren(pal_wren),
 
@@ -558,6 +565,7 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     wire   bootrom_strobe   = cpu_strobe && cpu_addr[31:12] == 20'h00000;
     wire   regs_strobe      = cpu_strobe && cpu_addr[31:12] == 20'h00002;
+    assign sprattr_strobe   = cpu_strobe && cpu_addr[31:12] == 20'h00003;
     assign pal_strobe       = cpu_strobe && cpu_addr[31:12] == 20'h00004;
     assign chram_strobe     = cpu_strobe && cpu_addr[31:12] == 20'h00005;
     assign tram_strobe      = cpu_strobe && cpu_addr[31:12] == 20'h00006;
@@ -573,6 +581,7 @@ module aq32_top(
     always @* begin
         cpu_wait = 0;
         if (bootrom_strobe)   cpu_wait = !cpu_wren && q_cpu_addr[11:2] != cpu_addr[11:2];
+        if (sprattr_strobe)   cpu_wait = !cpu_wren && q_cpu_addr[11:0] != cpu_addr[11:0];
         if (chram_strobe)     cpu_wait = !cpu_wren && q_cpu_addr[11:0] != cpu_addr[11:0];
         if (tram_strobe)      cpu_wait = !cpu_wren && q_cpu_addr[11:0] != cpu_addr[11:0];
         if (vram_strobe)      cpu_wait = !cpu_wren && q_cpu_addr[14:0] != cpu_addr[14:0];
@@ -584,11 +593,12 @@ module aq32_top(
         cpu_rddata = 0;
         if (bootrom_strobe)   cpu_rddata = bootrom_rddata;
         if (regs_strobe)      cpu_rddata = regs_rddata;
-        if (pal_strobe)       cpu_rddata = {rddata_pal,      rddata_pal};
-        if (chram_strobe)     cpu_rddata = {rddata_chram,    rddata_chram,    rddata_chram,    rddata_chram};
-        if (tram_strobe)      cpu_rddata = {rddata_tram,     rddata_tram};
-        if (vram_strobe)      cpu_rddata = rddata_vram;
-        if (vram4bpp_strobe)  cpu_rddata = rddata_vram4bpp;
+        if (pal_strobe)       cpu_rddata = {pal_rddata,      pal_rddata};
+        if (sprattr_strobe)   cpu_rddata = sprattr_rddata;
+        if (chram_strobe)     cpu_rddata = {chram_rddata,    chram_rddata,    chram_rddata,    chram_rddata};
+        if (tram_strobe)      cpu_rddata = {tram_rddata,     tram_rddata};
+        if (vram_strobe)      cpu_rddata = vram_rddata;
+        if (vram4bpp_strobe)  cpu_rddata = vram4bpp_rddata;
         if (sram_strobe)      cpu_rddata = sram_rddata;
     end
 

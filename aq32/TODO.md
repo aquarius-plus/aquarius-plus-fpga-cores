@@ -1,11 +1,11 @@
 ## RISC-V core
 
 - Add support for unaligned reads/writes
-- Fix memory cache
 
-## Video
+## Audio
 
-- Rewrite video memory to have 4 bit nibble-enable
+- PSG or FM synth
+- PCM playback
 
 ## Other
 

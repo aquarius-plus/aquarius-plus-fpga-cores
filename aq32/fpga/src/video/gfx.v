@@ -15,8 +15,7 @@ module gfx(
     output wire  [5:0] spr_sel,
     input  wire  [8:0] spr_x,
     input  wire  [7:0] spr_y,
-    input  wire  [8:0] spr_idx,
-    input  wire        spr_enable,
+    input  wire  [9:0] spr_idx,
     input  wire        spr_priority,
     input  wire  [1:0] spr_palette,
     input  wire        spr_h16,
@@ -90,18 +89,18 @@ module gfx(
     wire  [4:0] row           = tline[7:3];
 
     wire [15:0] map_entry     = d_map_entry;
-    wire  [9:0] tile_idx      = {map_entry[11], map_entry[8:0]};
-    wire        tile_hflip    = map_entry[9];
-    wire        tile_vflip    = map_entry[10];
-    wire  [1:0] tile_palette  = map_entry[13:12];
-    wire        tile_priority = map_entry[14];
+    wire  [9:0] tile_idx      = map_entry[9:0];
+    wire        tile_hflip    = map_entry[11];
+    wire        tile_vflip    = map_entry[12];
+    wire  [1:0] tile_palette  = map_entry[14:13];
+    wire        tile_priority = map_entry[15];
 
     assign vaddr = d_vaddr;
 
     // Determine if sprite is on current line
     wire [3:0] spr_height  = (spr_h16 ? 4'd15 : 4'd7);
     wire [7:0] ydiff       = line_idx - spr_y;
-    wire       spr_on_line = spr_enable && (ydiff <= {4'd0, spr_height});
+    wire       spr_on_line = (ydiff <= {4'd0, spr_height});
     wire [3:0] spr_line    = spr_vflip ? (spr_height - ydiff[3:0]) : ydiff[3:0];
 
     //////////////////////////////////////////////////////////////////////////
@@ -205,7 +204,7 @@ module gfx(
                         d_render_hflip    = spr_hflip;
                         d_render_palette  = spr_palette;
                         d_render_priority = spr_priority;
-                        d_vaddr           = {1'b1, spr_idx[8:1], spr_idx[0] ^ spr_line[3], spr_line[2:0], 1'b0};
+                        d_vaddr           = {spr_idx[9:1], spr_idx[0] ^ spr_line[3], spr_line[2:0], 1'b0};
                         d_state           = ST_PAT1;
                         d_nxtstate        = ST_SPR;
                     end

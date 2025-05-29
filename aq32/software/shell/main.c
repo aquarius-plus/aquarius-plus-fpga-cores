@@ -191,6 +191,45 @@ int cmd_rm(int argc, char **argv) {
     return result;
 }
 
+int cmd_cls(int argc, char **argv) {
+    console_clear_screen();
+    return 0;
+}
+
+int cmd_cat(int argc, char **argv) {
+    for (int i = 1; i < argc; i++) {
+        FILE *f = fopen(argv[1], "rb");
+        if (f == NULL) {
+            perror(argv[1]);
+            continue;
+        }
+
+        while (1) {
+            uint8_t buf[1024];
+            int     rd;
+            if ((rd = fread(buf, 1, sizeof(buf), f)) <= 0)
+                break;
+            write(STDOUT_FILENO, buf, rd);
+        }
+        fclose(f);
+    }
+    return 0;
+}
+
+int cmd_help(int argc, char **argv) {
+    printf("Builtin commands:\n");
+    printf("- help       This help\n");
+    printf("- cd         Change directory\n");
+    printf("- ls/dir     List directory\n");
+    printf("- mkdir      Create directory\n");
+    printf("- rmdir      Remove directory\n");
+    printf("- rm/del     Delete file\n");
+    printf("- clear/cls  Clear screen\n");
+    printf("- cp         Copy file\n");
+    printf("- cat/type   Show contents of file\n");
+    return 0;
+}
+
 int execute(int argc, char **argv) {
     char path[256];
     snprintf(path, sizeof(path) - 5, argv[0]);
@@ -288,7 +327,9 @@ int main(void) {
         }
         STARTDATA->argv[STARTDATA->argc] = NULL;
 
-        if (strcmp(STARTDATA->argv[0], "cd") == 0) {
+        if (strcmp(STARTDATA->argv[0], "help") == 0) {
+            cmd_help(STARTDATA->argc, STARTDATA->argv);
+        } else if (strcmp(STARTDATA->argv[0], "cd") == 0) {
             cmd_cd(STARTDATA->argc, STARTDATA->argv);
         } else if (strcmp(STARTDATA->argv[0], "ls") == 0 || strcmp(STARTDATA->argv[0], "dir") == 0) {
             cmd_ls(STARTDATA->argc, STARTDATA->argv);
@@ -298,6 +339,10 @@ int main(void) {
             cmd_rmdir(STARTDATA->argc, STARTDATA->argv);
         } else if (strcmp(STARTDATA->argv[0], "rm") == 0 || strcmp(STARTDATA->argv[0], "del") == 0) {
             cmd_rm(STARTDATA->argc, STARTDATA->argv);
+        } else if (strcmp(STARTDATA->argv[0], "cls") == 0 || strcmp(STARTDATA->argv[0], "clear") == 0) {
+            cmd_cls(STARTDATA->argc, STARTDATA->argv);
+        } else if (strcmp(STARTDATA->argv[0], "type") == 0 || strcmp(STARTDATA->argv[0], "cat") == 0) {
+            cmd_cat(STARTDATA->argc, STARTDATA->argv);
         } else if (strcmp(STARTDATA->argv[0], "cp") == 0) {
         } else {
             execute(STARTDATA->argc, STARTDATA->argv);

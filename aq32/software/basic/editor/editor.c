@@ -293,9 +293,13 @@ void editor(struct editbuf *eb, const char *path) {
                         break;
                     }
                     case CH_HOME: {
-                        if (key & KEY_MOD_CTRL)
+                        if (key & KEY_MOD_CTRL) {
                             state.loc_cursor.line = 0;
-                        state.loc_cursor.pos = 0;
+                            state.loc_cursor.pos  = 0;
+                        } else {
+                            int leading_spaces   = get_leading_spaces(state.loc_cursor.line);
+                            state.loc_cursor.pos = (state.loc_cursor.pos == leading_spaces) ? 0 : leading_spaces;
+                        }
                         break;
                     }
                     case CH_END: {
