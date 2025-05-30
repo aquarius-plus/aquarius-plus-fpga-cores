@@ -3,12 +3,12 @@ import argparse
 import struct
 import math
 
-bsl = [
+lut_logsin = [
     round(-256 * math.log2(math.sin((x + 0.5) / 256 * (math.pi / 2))))
     for x in range(256)
 ]
 
-bsp = [round((math.pow(2, x / 256) - 1) * 1024) for x in range(256)]
+lut_exp = [round((math.pow(2, x / 256) - 1) * 1024) for x in range(256)]
 
 
 f = open("fmlut.v", "wt")
@@ -28,10 +28,10 @@ module fmlut(
 )
 
 for i in range(256):
-    print(f"        9'h{i:03X}:  rddata <= 12'd{bsl[i]};", file=f)
+    print(f"        9'h{i:03X}:  rddata <= 12'd{lut_logsin[i]};", file=f)
 
 for i in range(256):
-    print(f"        9'h{i+256:03X}:  rddata <= 12'd{bsp[i]};", file=f)
+    print(f"        9'h{i+256:03X}:  rddata <= 12'd{lut_exp[i]};", file=f)
 
 print("        default: rddata <= 12'd0;", file=f)
 

@@ -387,8 +387,16 @@ module aq32_top(
         .audio_l(audio_l),
         .audio_r(audio_r));
 
-    assign common_audio_l = 16'd0;
-    assign common_audio_r = 16'd0;
+    //////////////////////////////////////////////////////////////////////////
+    // Audio
+    //////////////////////////////////////////////////////////////////////////
+    fmsynth fmsynth(
+        .clk(clk),
+        .reset(reset),
+
+        .audio_l(common_audio_l),
+        .audio_r(common_audio_r)
+    );
 
     //////////////////////////////////////////////////////////////////////////
     // Video

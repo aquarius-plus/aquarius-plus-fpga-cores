@@ -1,3 +1,27 @@
+```c
+
+
+struct {
+    uint16_t lut_logsin[256];
+    uint16_t lut_exp[256];
+
+    uint32_t op_params1[36];
+    uint32_t op_params2[36];
+    uint32_t ch_params[18];
+
+    // 19 bit phase counter
+    //  9 bit envelope value
+    // 15 bit envelope clock counter
+    uint32_t op_state1[36];
+    uint32_t op_state2[36];
+    uint32_t feedback_samples[18];
+
+};
+
+
+
+```
+
 # Per operator (36x)
 
 | 31  | 30  | 29  | 28  | 27:24 | 23:22 | 21:16 | 15:8 | 11:8 | 7:4 | 3:0 |
