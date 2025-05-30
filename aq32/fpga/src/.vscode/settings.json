@@ -6,7 +6,8 @@
         "wrappers",
         "cpu",
         "mem",
-        "video"
+        "video",
+        "audio"
     ],
     "verilog.linting.verilator.arguments": "-Wall verilator.vlt"
 }
