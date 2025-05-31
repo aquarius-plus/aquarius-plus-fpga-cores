@@ -26,11 +26,12 @@ module fmsynth(
         if (sel_op_attr) rddata = op_attr_rddata;
     end
 
+    wire        q_dvb = 1;
 
-    reg  [11:0] q_atten;
-    reg  [20:0] q_phase;
+    wire  [8:0] env = 0;
     reg  [12:0] q_result;
-    wire  [9:0] phase = q_phase[18:9];
+    reg  [12:0] q_vibrato_cnt;
+
 
     assign audio_l = {q_result, 3'b0};
     assign audio_r = {q_result, 3'b0};
@@ -38,13 +39,15 @@ module fmsynth(
     //////////////////////////////////////////////////////////////////////////
     // Operator attributes
     //////////////////////////////////////////////////////////////////////////
-    wire  [5:0] op_sel = 0;
+    reg   [5:0] q_op_sel;
     wire  [2:0] op_ws;
     wire        op_am, op_vib, op_egt, op_ksr;
     wire  [3:0] op_mult;
     wire  [1:0] op_ksl;
     wire  [5:0] op_tl;
     wire  [3:0] op_ar, op_dr, op_sl, op_rr;
+
+    // TODO: op_am, op_egt, op_ksr, op_ksl, op_tl, op_ar, op_dr, op_sl, op_rr
 
     fm_op_attr fm_op_attr(
         .clk(clk),
@@ -53,7 +56,7 @@ module fmsynth(
         .wren(sel_op_attr && wren),
         .rddata(op_attr_rddata),
         
-        .op_sel(op_sel),
+        .op_sel(q_op_sel),
         .op_ws(op_ws),
         .op_am(op_am),
         .op_vib(op_vib),
@@ -66,35 +69,6 @@ module fmsynth(
         .op_dr(op_dr),
         .op_sl(op_sl),
         .op_rr(op_rr)
-    );
-
-    //////////////////////////////////////////////////////////////////////////
-    // Channel attributes
-    //////////////////////////////////////////////////////////////////////////
-    wire  [4:0] ch_sel = op_sel[5:1];
-    wire        ch_chb;
-    wire        ch_cha;
-    wire  [2:0] ch_fb;
-    wire        ch_cnt;
-    wire        ch_kon;
-    wire  [2:0] ch_block;
-    wire  [9:0] ch_fnum;
-
-    fm_ch_attr fm_ch_attr(
-        .clk(clk),
-        .addr(addr[4:0]),
-        .wrdata(wrdata),
-        .wren(sel_ch_attr && wren),
-        .rddata(ch_attr_rddata),
-
-        .ch_sel(ch_sel),
-        .ch_chb(ch_chb),
-        .ch_cha(ch_cha),
-        .ch_fb(ch_fb),
-        .ch_cnt(ch_cnt),
-        .ch_kon(ch_kon),
-        .ch_block(ch_block),
-        .ch_fnum(ch_fnum)
     );
 
     reg  [4:0] multiplier;
@@ -117,8 +91,122 @@ module fmsynth(
         4'd15: multiplier = 5'd30;
     endcase
 
-    wire [16:0] fw1       = {7'b0, ch_fnum} << ch_block;
-    wire [20:0] phase_inc = fw1[15:0] * multiplier;
+    //////////////////////////////////////////////////////////////////////////
+    // Channel attributes
+    //////////////////////////////////////////////////////////////////////////
+    wire  [4:0] ch_sel = q_op_sel[5:1];
+    wire        ch_chb;
+    wire        ch_cha;
+    wire  [2:0] ch_fb;
+    wire        ch_cnt;
+    wire        ch_kon;
+    wire  [2:0] ch_block;
+    wire  [9:0] ch_fnum;
+
+    // TODO: ch_chb, ch_cha, ch_fb, ch_cnt, ch_kon
+
+    fm_ch_attr fm_ch_attr(
+        .clk(clk),
+        .addr(addr[4:0]),
+        .wrdata(wrdata),
+        .wren(sel_ch_attr && wren),
+        .rddata(ch_attr_rddata),
+
+        .ch_sel(ch_sel),
+        .ch_chb(ch_chb),
+        .ch_cha(ch_cha),
+        .ch_fb(ch_fb),
+        .ch_cnt(ch_cnt),
+        .ch_kon(ch_kon),
+        .ch_block(ch_block),
+        .ch_fnum(ch_fnum)
+    );
+
+    //////////////////////////////////////////////////////////////////////////
+    // Channel phase counters
+    //////////////////////////////////////////////////////////////////////////
+    wire [16:0] fw        = {7'b0, ch_fnum} << ch_block;
+    wire [20:0] fw_scaled = fw[15:0] * multiplier;
+    reg   [2:0] vib_delta;
+    reg  [18:0] vib_inc;
+
+    always @* begin
+        vib_delta = ch_fnum[9:7];
+        if (q_vibrato_cnt[11:10] == 2'd3)
+            vib_delta = {1'b0, vib_delta[2:1]};
+        if (!q_dvb)
+            vib_delta = {1'b0, vib_delta[2:1]};
+
+        vib_inc = {16'b0, vib_delta};
+        vib_inc = q_vibrato_cnt[12] ? ~vib_inc : vib_inc;
+    end
+    
+    wire [18:0] fw_inc = fw_scaled[18:0] + (op_vib ? vib_inc : 19'd0);
+
+    wire [18:0] d_op_phase, q_op_phase;
+    reg         q_op_phase_wr;
+
+    fm_op_data_phase fm_op_data_phase(
+        .clk(clk),
+        .idx(q_op_sel),
+        .wrdata(d_op_phase),
+        .wren(q_op_phase_wr),
+        .rddata(q_op_phase));
+
+    assign d_op_phase = q_op_phase + fw_inc;
+
+    wire  [9:0] phase = q_op_phase[18:9];
+
+    //////////////////////////////////////////////////////////////////////////
+    // Channel envelope generator
+    //////////////////////////////////////////////////////////////////////////
+    localparam
+        StageAttack  = 2'd0,
+        StageDecay   = 2'd1,
+        StageSustain = 2'd2,
+        StageRelease = 2'd3;
+    
+    reg   [1:0] d_eg_stage;
+    wire  [1:0] q_eg_stage;
+    reg   [8:0] d_eg_env;
+    wire  [8:0] q_eg_env;
+    reg  [14:0] d_eg_counter;
+    wire [14:0] q_eg_counter;
+
+    fm_op_data_eg fm_op_data_eg(
+        .clk(clk),
+        .idx(q_op_sel),
+        .wren(q_op_phase_wr),
+        
+        .i_stage(d_eg_stage),
+        .i_env(d_eg_env),
+        .i_counter(d_eg_counter),
+        
+        .o_stage(q_eg_stage),
+        .o_env(q_eg_env),
+        .o_counter(q_eg_counter)
+    );
+
+    always @* begin
+        d_eg_stage   = q_eg_stage;
+        d_eg_env     = q_eg_env;
+        d_eg_counter = q_eg_counter;
+
+        case (q_eg_stage)
+            StageAttack: begin
+                
+            end
+            StageDecay: begin
+                
+            end
+            StageSustain: begin
+                
+            end
+            StageRelease: begin
+                
+            end
+        endcase
+    end
 
     //////////////////////////////////////////////////////////////////////////
     // Log sin lookup table
@@ -157,7 +245,7 @@ module fmsynth(
     reg [12:0] val;
     always @* begin
         val     = (op_ws == 3'd7) ? {1'b0, phase[8:0] ^ {9{phase[9]}}, 3'b0} : {1'b0, logsin_value};
-        val     = val + q_atten;
+        val     = val + {env, 3'b0};
         exp_idx = ~val[7:0];
     end
 
@@ -176,18 +264,22 @@ module fmsynth(
     localparam
         StLogSin = 2'd0,
         StExp    = 2'd1,
-        StResult = 2'd2;
+        StResult = 2'd2,
+        StDone   = 2'd3;
 
     reg [1:0] q_state;
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
-            q_state  <= StLogSin;
-            q_phase  <= 0;
-            q_result <= 0;
-            q_atten  <= 0;
+            q_state       <= StLogSin;
+            q_result      <= 0;
+            q_vibrato_cnt <= 0;
+            q_op_phase_wr <= 0;
+            q_op_sel      <= 0;
 
         end else begin
+            q_op_phase_wr <= 0;
+
             case (q_state)
                 StLogSin: begin
                     q_state <= StExp;
@@ -198,9 +290,15 @@ module fmsynth(
                 end
 
                 StResult: begin
-                    q_result <= result;
-                    q_phase  <= q_phase + phase_inc;
-                    q_state  <= StLogSin;
+                    q_result      <= result;
+                    q_state       <= StDone;
+                    q_op_phase_wr <= 1;
+                    q_vibrato_cnt <= q_vibrato_cnt + 13'd1;
+                end
+
+                StDone: begin
+                    q_state       <= StLogSin;
+                    q_op_sel      <= q_op_sel + 6'd1;
                 end
 
                 default: begin end

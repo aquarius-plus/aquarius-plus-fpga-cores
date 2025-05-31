@@ -34,6 +34,7 @@ struct {
 
 | Count | Width | Name | Description                    |
 | ----: | ----: | ---- | ------------------------------ |
+|    18 |     3 | WS   | Wave select                    |
 |    18 |     1 | AM   | Amplitude modulation (Tremelo) |
 |    18 |     1 | VIB  | Vibrato                        |
 |    18 |     1 | EGT  | Envelope type: 0:ADR 1:ADSR    |
@@ -45,7 +46,6 @@ struct {
 |    18 |     4 | DR   | Decay Rate                     |
 |    18 |     4 | SL   | Sustain Level                  |
 |    18 |     4 | RR   | Release Rate                   |
-|    18 |     3 | WS   | Wave select                    |
 
 # Per channel (18x)
 

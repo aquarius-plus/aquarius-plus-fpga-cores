@@ -38,7 +38,7 @@ module fm_ch_attr(
 
     generate
         genvar i;
-        for (i=0; i<NUMBITS; i=i+1) begin: sprattr_gen
+        for (i=0; i<NUMBITS; i=i+1) begin: ram_gen
             RAM32X1D ram(
                 .WCLK(clk),
                 .D(a_wrdata[i]),
