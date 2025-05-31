@@ -14,24 +14,46 @@ module fmsynth(
     output wire [15:0] audio_r
 );
 
+    reg         q_dam;
+    reg         q_dvb;
+    reg         q_nts;
+    reg  [15:0] q_4op;
     wire [31:0] ch_attr_rddata;
     wire [31:0] op_attr_rddata;
 
+    wire        sel_reg0    = addr == 8'd0;
+    wire        sel_reg1    = addr == 8'd1;
     wire        sel_ch_attr = addr[7:5] == 3'b011;
     wire        sel_op_attr = addr[7];
 
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            q_dam <= 0;
+            q_dvb <= 0;
+            q_nts <= 0;
+            q_4op <= 0;
+            
+        end else begin
+            if (sel_reg0 && wren)
+                q_4op <= wrdata[15:0];
+            if (sel_reg1 && wren) begin
+                q_nts <= wrdata[14];
+                q_dam <= wrdata[7];
+                q_dvb <= wrdata[6];
+            end
+        end
+    end
+
     always @* begin
         rddata = 32'b0;
+        if (sel_reg0)    rddata = {16'b0, q_4op};
+        if (sel_reg1)    rddata = {17'b0, q_nts, 6'b0, q_dam, q_dvb, 6'b0};
         if (sel_ch_attr) rddata = ch_attr_rddata;
         if (sel_op_attr) rddata = op_attr_rddata;
     end
 
-    wire        q_dvb = 1;
-
-    wire  [8:0] env = 0;
     reg  [12:0] q_result;
     reg  [12:0] q_vibrato_cnt;
-
 
     assign audio_l = {q_result, 3'b0};
     assign audio_r = {q_result, 3'b0};
@@ -71,25 +93,27 @@ module fmsynth(
         .op_rr(op_rr)
     );
 
-    reg  [4:0] multiplier;
+    reg  [4:0] fw_multiplier;
     always @* case (op_mult)
-        4'd0:  multiplier = 5'd1;
-        4'd1:  multiplier = 5'd2;
-        4'd2:  multiplier = 5'd4;
-        4'd3:  multiplier = 5'd6;
-        4'd4:  multiplier = 5'd8;
-        4'd5:  multiplier = 5'd10;
-        4'd6:  multiplier = 5'd12;
-        4'd7:  multiplier = 5'd14;
-        4'd8:  multiplier = 5'd16;
-        4'd9:  multiplier = 5'd18;
-        4'd10: multiplier = 5'd20;
-        4'd11: multiplier = 5'd20;
-        4'd12: multiplier = 5'd24;
-        4'd13: multiplier = 5'd24;
-        4'd14: multiplier = 5'd30;
-        4'd15: multiplier = 5'd30;
+        4'd0:  fw_multiplier = 5'd1;
+        4'd1:  fw_multiplier = 5'd2;
+        4'd2:  fw_multiplier = 5'd4;
+        4'd3:  fw_multiplier = 5'd6;
+        4'd4:  fw_multiplier = 5'd8;
+        4'd5:  fw_multiplier = 5'd10;
+        4'd6:  fw_multiplier = 5'd12;
+        4'd7:  fw_multiplier = 5'd14;
+        4'd8:  fw_multiplier = 5'd16;
+        4'd9:  fw_multiplier = 5'd18;
+        4'd10: fw_multiplier = 5'd20;
+        4'd11: fw_multiplier = 5'd20;
+        4'd12: fw_multiplier = 5'd24;
+        4'd13: fw_multiplier = 5'd24;
+        4'd14: fw_multiplier = 5'd30;
+        4'd15: fw_multiplier = 5'd30;
     endcase
+
+    
 
     //////////////////////////////////////////////////////////////////////////
     // Channel attributes
@@ -126,7 +150,7 @@ module fmsynth(
     // Channel phase counters
     //////////////////////////////////////////////////////////////////////////
     wire [16:0] fw        = {7'b0, ch_fnum} << ch_block;
-    wire [20:0] fw_scaled = fw[15:0] * multiplier;
+    wire [20:0] fw_scaled = fw[15:0] * fw_multiplier;
     reg   [2:0] vib_delta;
     reg  [18:0] vib_inc;
 
@@ -208,6 +232,34 @@ module fmsynth(
         endcase
     end
 
+    // Rate offset (based on key split and key scaling)
+    reg [3:0] rof;
+    always @* begin
+        rof = {ch_block, q_nts ? ch_fnum[8] : ch_fnum[9]};
+        if (op_ksr)
+            rof = {2'b0, rof[3:2]};
+    end
+
+    // Rate value
+    reg [3:0] stage_rate;
+    always @* case (q_eg_stage)
+        StageAttack:  stage_rate = op_ar;
+        StageDecay:   stage_rate = op_dr;
+        StageSustain: stage_rate = 4'd0;
+        StageRelease: stage_rate = op_rr;
+    endcase
+
+    // Actual value
+    reg   [6:0] actual_rate;
+    always @* begin
+        actual_rate = {3'b0, rof} + {1'b0, stage_rate, 2'b0};
+        if (actual_rate > 7'd60)
+            actual_rate = 7'd60;
+    end
+
+    wire [17:0] eg_counter_inc  = {15'b0, 1'b1, actual_rate[1:0]} << actual_rate[5:2];
+    wire [17:0] eg_counter_next = {3'b0, q_eg_counter} + eg_counter_inc;
+
     //////////////////////////////////////////////////////////////////////////
     // Log sin lookup table
     //////////////////////////////////////////////////////////////////////////
@@ -245,7 +297,7 @@ module fmsynth(
     reg [12:0] val;
     always @* begin
         val     = (op_ws == 3'd7) ? {1'b0, phase[8:0] ^ {9{phase[9]}}, 3'b0} : {1'b0, logsin_value};
-        val     = val + {env, 3'b0};
+        val     = val + {q_eg_env, 3'b0};
         exp_idx = ~val[7:0];
     end
 
