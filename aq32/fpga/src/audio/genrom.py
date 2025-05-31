@@ -11,15 +11,16 @@ lut_logsin = [
 lut_exp = [round((math.pow(2, x / 256) - 1) * 1024) for x in range(256)]
 
 
-f = open("fmlut.v", "wt")
+f = open("lut_logsin.v", "wt")
 
 print(
     """`default_nettype none
 `timescale 1 ns / 1 ps
 
-module fmlut(
+(* rom_style = "distributed" *)
+module lut_logsin(
     input  wire        clk,
-    input  wire  [8:0] addr,
+    input  wire  [7:0] addr,
     output reg  [11:0] rddata
 );
 
@@ -28,12 +29,35 @@ module fmlut(
 )
 
 for i in range(256):
-    print(f"        9'h{i:03X}:  rddata <= 12'd{lut_logsin[i]};", file=f)
-
-for i in range(256):
-    print(f"        9'h{i+256:03X}:  rddata <= 12'd{lut_exp[i]};", file=f)
+    print(f"        8'h{i:02X}: rddata <= 12'd{lut_logsin[i]};", file=f)
 
 print("        default: rddata <= 12'd0;", file=f)
-
 print("    endcase", file=f)
 print("\nendmodule", file=f)
+f.close()
+
+
+f = open("lut_exp.v", "wt")
+
+print(
+    """`default_nettype none
+`timescale 1 ns / 1 ps
+
+(* rom_style = "distributed" *)
+module lut_exp(
+    input  wire        clk,
+    input  wire  [7:0] addr,
+    output reg   [9:0] rddata
+);
+
+    always @(posedge clk) case (addr)""",
+    file=f,
+)
+
+for i in range(256):
+    print(f"        8'h{i:02X}: rddata <= 10'd{lut_exp[i]};", file=f)
+
+print("        default: rddata <= 10'd0;", file=f)
+print("    endcase", file=f)
+print("\nendmodule", file=f)
+f.close()
