@@ -20,18 +20,18 @@ print(
 (* rom_style = "distributed" *)
 module lut_logsin(
     input  wire        clk,
-    input  wire  [7:0] addr,
-    output reg  [11:0] rddata
+    input  wire  [7:0] idx,
+    output reg  [11:0] value
 );
 
-    always @(posedge clk) case (addr)""",
+    always @(posedge clk) case (idx)""",
     file=f,
 )
 
 for i in range(256):
-    print(f"        8'h{i:02X}: rddata <= 12'd{lut_logsin[i]};", file=f)
+    print(f"        8'h{i:02X}: value <= 12'd{lut_logsin[i]};", file=f)
 
-print("        default: rddata <= 12'd0;", file=f)
+print("        default: value <= 12'd0;", file=f)
 print("    endcase", file=f)
 print("\nendmodule", file=f)
 f.close()
@@ -46,18 +46,18 @@ print(
 (* rom_style = "distributed" *)
 module lut_exp(
     input  wire        clk,
-    input  wire  [7:0] addr,
-    output reg   [9:0] rddata
+    input  wire  [7:0] idx,
+    output reg   [9:0] value
 );
 
-    always @(posedge clk) case (addr)""",
+    always @(posedge clk) case (idx)""",
     file=f,
 )
 
 for i in range(256):
-    print(f"        8'h{i:02X}: rddata <= 10'd{lut_exp[i]};", file=f)
+    print(f"        8'h{i:02X}: value <= 10'd{lut_exp[i]};", file=f)
 
-print("        default: rddata <= 10'd0;", file=f)
+print("        default: value <= 10'd0;", file=f)
 print("    endcase", file=f)
 print("\nendmodule", file=f)
 f.close()

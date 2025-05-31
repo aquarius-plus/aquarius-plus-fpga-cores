@@ -30,7 +30,7 @@ module palette(
     generate
         genvar i;
         for (i=0; i<12; i=i+1) begin: palram_gen
-            ram64x1d #(
+            RAM64X1D #(
                 .INIT({
                     PALETTE_INIT[ 0*12+i], PALETTE_INIT[ 1*12+i], PALETTE_INIT[ 2*12+i], PALETTE_INIT[ 3*12+i],
                     PALETTE_INIT[ 4*12+i], PALETTE_INIT[ 5*12+i], PALETTE_INIT[ 6*12+i], PALETTE_INIT[ 7*12+i],
@@ -54,14 +54,25 @@ module palette(
                 }))
             
             palram(
-                .a_clk(clk),
-                .a_addr(addr),
-                .a_rddata(pal_rddata[i]),
-                .a_wrdata(wrdata[i]),
-                .a_wren(wren),
+                .WCLK(clk),
+                .D(wrdata[i]),
+                .WE(wren),
 
-                .b_addr(palidx),
-                .b_rddata(pal_color[i]));
+                .A5(addr[5]),
+                .A4(addr[4]),
+                .A3(addr[3]),
+                .A2(addr[2]),
+                .A1(addr[1]),
+                .A0(addr[0]),
+                .SPO(pal_rddata[i]),
+
+                .DPRA5(palidx[5]),
+                .DPRA4(palidx[4]),
+                .DPRA3(palidx[3]),
+                .DPRA2(palidx[2]),
+                .DPRA1(palidx[1]),
+                .DPRA0(palidx[0]),
+                .DPO(pal_color[i]));
         end
     endgenerate
 

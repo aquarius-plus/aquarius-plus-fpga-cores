@@ -5,37 +5,100 @@ module fmsynth(
     input  wire        clk,
     input  wire        reset,
 
-    // input  wire  [8:0] addr,
-    // output reg  [31:0] rddata
+    input  wire  [7:0] addr,
+    input  wire [31:0] wrdata,
+    input  wire        wren,
+    output reg  [31:0] rddata,
 
     output wire [15:0] audio_l,
     output wire [15:0] audio_r
 );
 
-    localparam
-        StLogSin = 2'd0,
-        StExp    = 2'd1,
-        StResult = 2'd2;
+    wire [31:0] ch_attr_rddata;
+    wire [31:0] op_attr_rddata;
 
-    reg  [1:0] d_state,           q_state;
-    reg [20:0] d_phase,           q_phase;
-    reg  [7:0] d_lut_logsin_idx,  q_lut_logsin_idx;
-    reg  [7:0] d_lut_exp_idx,     q_lut_exp_idx;
-    reg [12:0] d_val,             q_val;
-    reg [12:0] d_result,          q_result;
-    reg        d_invert,          q_invert;
-    reg        d_mute,            q_mute;
-    reg  [2:0] d_waveform,        q_waveform;
-    reg [11:0] d_atten,           q_atten;
-    reg  [2:0] d_block,           q_block;
-    reg  [9:0] d_fnum,            q_fnum;
-    reg  [3:0] d_mult,            q_mult;
+    wire        sel_ch_attr = addr[7:5] == 3'b011;
+    wire        sel_op_attr = addr[7];
 
-    assign audio_l = {d_result, 3'b0};
-    assign audio_r = {d_result, 3'b0};
+    always @* begin
+        rddata = 32'b0;
+        if (sel_ch_attr) rddata = ch_attr_rddata;
+        if (sel_op_attr) rddata = op_attr_rddata;
+    end
+
+
+    reg  [11:0] q_atten;
+    reg  [20:0] q_phase;
+    reg  [12:0] q_result;
+    wire  [9:0] phase = q_phase[18:9];
+
+    assign audio_l = {q_result, 3'b0};
+    assign audio_r = {q_result, 3'b0};
+
+    //////////////////////////////////////////////////////////////////////////
+    // Operator attributes
+    //////////////////////////////////////////////////////////////////////////
+    wire  [5:0] op_sel = 0;
+    wire  [2:0] op_ws;
+    wire        op_am, op_vib, op_egt, op_ksr;
+    wire  [3:0] op_mult;
+    wire  [1:0] op_ksl;
+    wire  [5:0] op_tl;
+    wire  [3:0] op_ar, op_dr, op_sl, op_rr;
+
+    fm_op_attr fm_op_attr(
+        .clk(clk),
+        .addr(addr[6:0]),
+        .wrdata(wrdata),
+        .wren(sel_op_attr && wren),
+        .rddata(op_attr_rddata),
+        
+        .op_sel(op_sel),
+        .op_ws(op_ws),
+        .op_am(op_am),
+        .op_vib(op_vib),
+        .op_egt(op_egt),
+        .op_ksr(op_ksr),
+        .op_mult(op_mult),
+        .op_ksl(op_ksl),
+        .op_tl(op_tl),
+        .op_ar(op_ar),
+        .op_dr(op_dr),
+        .op_sl(op_sl),
+        .op_rr(op_rr)
+    );
+
+    //////////////////////////////////////////////////////////////////////////
+    // Channel attributes
+    //////////////////////////////////////////////////////////////////////////
+    wire  [4:0] ch_sel = op_sel[5:1];
+    wire        ch_chb;
+    wire        ch_cha;
+    wire  [2:0] ch_fb;
+    wire        ch_cnt;
+    wire        ch_kon;
+    wire  [2:0] ch_block;
+    wire  [9:0] ch_fnum;
+
+    fm_ch_attr fm_ch_attr(
+        .clk(clk),
+        .addr(addr[4:0]),
+        .wrdata(wrdata),
+        .wren(sel_ch_attr && wren),
+        .rddata(ch_attr_rddata),
+
+        .ch_sel(ch_sel),
+        .ch_chb(ch_chb),
+        .ch_cha(ch_cha),
+        .ch_fb(ch_fb),
+        .ch_cnt(ch_cnt),
+        .ch_kon(ch_kon),
+        .ch_block(ch_block),
+        .ch_fnum(ch_fnum)
+    );
 
     reg  [4:0] multiplier;
-    always @* case (q_mult)
+    always @* case (op_mult)
         4'd0:  multiplier = 5'd1;
         4'd1:  multiplier = 5'd2;
         4'd2:  multiplier = 5'd4;
@@ -54,110 +117,94 @@ module fmsynth(
         4'd15: multiplier = 5'd30;
     endcase
 
-    wire [16:0] fw1       = {7'b0, q_fnum} << q_block;
+    wire [16:0] fw1       = {7'b0, ch_fnum} << ch_block;
     wire [20:0] phase_inc = fw1[15:0] * multiplier;
-    wire  [9:0] phase     = q_phase[18:9];
 
-    wire [11:0] lut_logsin_data;
-    lut_logsin lut_logsin(.clk(clk), .addr(d_lut_logsin_idx), .rddata(lut_logsin_data));
+    //////////////////////////////////////////////////////////////////////////
+    // Log sin lookup table
+    //////////////////////////////////////////////////////////////////////////
+    reg   [7:0] logsin_idx;
+    wire [11:0] logsin_value;
+    lut_logsin lut_logsin(.clk(clk), .idx(logsin_idx), .value(logsin_value));
 
-    wire  [9:0] lut_exp_data;
-    lut_exp lut_exp(.clk(clk), .addr(d_lut_exp_idx), .rddata(lut_exp_data));
+    reg invert;
+    reg mute;
 
     always @* begin
-        d_state          = q_state;
-        d_phase          = q_phase;
-        d_lut_logsin_idx = q_lut_logsin_idx;
-        d_lut_exp_idx    = q_lut_exp_idx;
-        d_val            = q_val;
-        d_result         = q_result;
-        d_invert         = q_invert;
-        d_waveform       = q_waveform;
-        d_mute           = q_mute;
-        d_atten          = q_atten;
-        d_block          = q_block;
-        d_fnum           = q_fnum;
-        d_mult           = q_mult;
+        logsin_idx = phase[7:0] ^ {8{phase[8]}};
+        invert     = phase[9];
+        mute       = 0;
 
-        case (q_state)
-            StLogSin: begin
-                d_lut_logsin_idx = phase[7:0] ^ {8{phase[8]}};
-                d_invert         = phase[9];
-                d_mute           = 0;
-                d_state          = StExp;
-
-                // Alterations for different type of waveforms
-                case (q_waveform)
-                    default: begin end
-                    3'd1: begin d_mute = phase[9];               end
-                    3'd2: begin                    d_invert = 0; end
-                    3'd3: begin d_mute = phase[8]; d_invert = 0; end
-                    3'd4: begin d_mute = phase[9]; d_invert = phase[8]; d_lut_logsin_idx = {phase[6:0], 1'b0} ^ {8{phase[7]}}; end
-                    3'd5: begin d_mute = phase[9]; d_invert = 0;        d_lut_logsin_idx = {phase[6:0], 1'b0} ^ {8{phase[7]}}; end
-                    3'd6: begin                                         d_lut_logsin_idx = 8'hFF; end
-                endcase
-            end
-
-            StExp: begin
-                d_val         = (q_waveform == 3'd7) ? {1'b0, phase[8:0] ^ {9{phase[9]}}, 3'b0} : {1'b0, lut_logsin_data};
-                d_val         = d_val + q_atten;
-                d_lut_exp_idx = ~d_val[7:0];
-                d_state       = StResult;
-            end
-
-            StResult: begin
-                d_result = ({2'b01, lut_exp_data, 1'b0} >> q_val[12:8]);
-                if (d_result != 13'd0)
-                    d_result = d_result ^ {13{q_invert}};
-                if (q_mute)
-                    d_result = 0;
-
-                d_phase = q_phase + phase_inc;  //10'd1;
-                // if (q_phase == 10'h3FF) begin
-                //     d_waveform = q_waveform + 3'd1;
-
-                //     if (q_waveform == 3'd7)
-                //         d_atten = q_atten + 12'd128;
-                // end
-
-                d_state = StLogSin;
-            end
-
+        // Alterations for different type of waveforms
+        case (op_ws)
             default: begin end
+            3'd1: begin mute = phase[9];                                                                     end
+            3'd2: begin                  invert = 0;                                                         end
+            3'd3: begin mute = phase[8]; invert = 0;                                                         end
+            3'd4: begin mute = phase[9]; invert = phase[8]; logsin_idx = {phase[6:0], 1'b0} ^ {8{phase[7]}}; end
+            3'd5: begin mute = phase[9]; invert = 0;        logsin_idx = {phase[6:0], 1'b0} ^ {8{phase[7]}}; end
+            3'd6: begin                                     logsin_idx = 8'd255;                             end
         endcase
-
     end
+
+    //////////////////////////////////////////////////////////////////////////
+    // Exponent lookup table
+    //////////////////////////////////////////////////////////////////////////
+    reg   [7:0] exp_idx;
+    wire  [9:0] exp_value;
+    lut_exp lut_exp(.clk(clk), .idx(exp_idx), .value(exp_value));
+
+    reg [12:0] val;
+    always @* begin
+        val     = (op_ws == 3'd7) ? {1'b0, phase[8:0] ^ {9{phase[9]}}, 3'b0} : {1'b0, logsin_value};
+        val     = val + q_atten;
+        exp_idx = ~val[7:0];
+    end
+
+    reg [12:0] result;
+    always @* begin
+        result = ({2'b01, exp_value, 1'b0} >> val[12:8]);
+        if (result != 13'd0)
+            result = result ^ {13{invert}};
+        if (mute)
+            result = 0;
+    end
+
+    //////////////////////////////////////////////////////////////////////////
+    // State machine
+    //////////////////////////////////////////////////////////////////////////
+    localparam
+        StLogSin = 2'd0,
+        StExp    = 2'd1,
+        StResult = 2'd2;
+
+    reg [1:0] q_state;
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
-            q_state          <= StLogSin;
-            q_phase          <= 0;
-            q_lut_logsin_idx <= 0;
-            q_lut_exp_idx    <= 0;
-            q_val            <= 0;
-            q_result         <= 0;
-            q_invert         <= 0;
-            q_waveform       <= 0;
-            q_mute           <= 0;
-            q_atten          <= 0;
-            q_block          <= 3'd0;
-            q_fnum           <= 10'd100;
-            q_mult           <= 4'd8;
+            q_state  <= StLogSin;
+            q_phase  <= 0;
+            q_result <= 0;
+            q_atten  <= 0;
 
         end else begin
-            q_state          <= d_state;
-            q_phase          <= d_phase;
-            q_lut_logsin_idx <= d_lut_logsin_idx;
-            q_lut_exp_idx    <= d_lut_exp_idx;
-            q_val            <= d_val;
-            q_result         <= d_result;
-            q_invert         <= d_invert;
-            q_waveform       <= d_waveform;
-            q_mute           <= d_mute;
-            q_atten          <= d_atten;
-            q_block          <= d_block;
-            q_fnum           <= d_fnum;
-            q_mult           <= d_mult;
+            case (q_state)
+                StLogSin: begin
+                    q_state <= StExp;
+                end
+
+                StExp: begin
+                    q_state <= StResult;
+                end
+
+                StResult: begin
+                    q_result <= result;
+                    q_phase  <= q_phase + phase_inc;
+                    q_state  <= StLogSin;
+                end
+
+                default: begin end
+            endcase
         end
     end
 

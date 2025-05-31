@@ -52,10 +52,26 @@ module sprattr(
     generate
         genvar i;
         for (i=0; i<NUMBITS; i=i+1) begin: sprattr_gen
-            ram64x1d ram(
-                .a_clk(clk),
-                .a_addr(sprattr_addr[6:1]), .a_rddata(a_rddata[i]), .a_wrdata(a_wrdata[i]), .a_wren(a_wren[i]),
-                .b_addr(spr_sel),           .b_rddata(b_rddata[i]));
+            RAM64X1D ram(
+                .WCLK(clk),
+                .D(a_wrdata[i]),
+                .WE(a_wren[i]),
+
+                .A5(sprattr_addr[6]),
+                .A4(sprattr_addr[5]),
+                .A3(sprattr_addr[4]),
+                .A2(sprattr_addr[3]),
+                .A1(sprattr_addr[2]),
+                .A0(sprattr_addr[1]),
+                .SPO(a_rddata[i]),
+
+                .DPRA5(spr_sel[5]),
+                .DPRA4(spr_sel[4]),
+                .DPRA3(spr_sel[3]),
+                .DPRA2(spr_sel[2]),
+                .DPRA1(spr_sel[1]),
+                .DPRA0(spr_sel[0]),
+                .DPO(b_rddata[i]));
         end
     endgenerate
 

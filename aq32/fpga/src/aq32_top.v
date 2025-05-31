@@ -390,9 +390,17 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     // Audio
     //////////////////////////////////////////////////////////////////////////
+    wire        fmsynth_strobe;
+    wire [31:0] fmsynth_rddata;
+
     fmsynth fmsynth(
         .clk(clk),
         .reset(reset),
+
+        .addr(cpu_addr[9:2]),
+        .wrdata(cpu_wrdata),
+        .wren(fmsynth_strobe && cpu_wren),
+        .rddata(fmsynth_rddata),
 
         .audio_l(common_audio_l),
         .audio_r(common_audio_r)
@@ -572,7 +580,8 @@ module aq32_top(
     // CPU bus interconnect
     //////////////////////////////////////////////////////////////////////////
     wire   bootrom_strobe   = cpu_strobe && cpu_addr[31:12] == 20'h00000;
-    wire   regs_strobe      = cpu_strobe && cpu_addr[31:12] == 20'h00002;
+    wire   regs_strobe      = cpu_strobe && cpu_addr[31: 8] == 24'h000020;
+    assign fmsynth_strobe   = cpu_strobe && cpu_addr[31:11] == {20'h00002, 1'b0};
     assign sprattr_strobe   = cpu_strobe && cpu_addr[31:12] == 20'h00003;
     assign pal_strobe       = cpu_strobe && cpu_addr[31:12] == 20'h00004;
     assign chram_strobe     = cpu_strobe && cpu_addr[31:12] == 20'h00005;
@@ -589,6 +598,7 @@ module aq32_top(
     always @* begin
         cpu_wait = 0;
         if (bootrom_strobe)   cpu_wait = !cpu_wren && q_cpu_addr[11:2] != cpu_addr[11:2];
+        if (fmsynth_strobe)   cpu_wait = !cpu_wren && q_cpu_addr[10:2] != cpu_addr[10:2];
         if (sprattr_strobe)   cpu_wait = !cpu_wren && q_cpu_addr[11:0] != cpu_addr[11:0];
         if (chram_strobe)     cpu_wait = !cpu_wren && q_cpu_addr[11:0] != cpu_addr[11:0];
         if (tram_strobe)      cpu_wait = !cpu_wren && q_cpu_addr[11:0] != cpu_addr[11:0];
@@ -600,6 +610,7 @@ module aq32_top(
     always @* begin
         cpu_rddata = 0;
         if (bootrom_strobe)   cpu_rddata = bootrom_rddata;
+        if (fmsynth_strobe)   cpu_rddata = fmsynth_rddata;
         if (regs_strobe)      cpu_rddata = regs_rddata;
         if (pal_strobe)       cpu_rddata = {pal_rddata,      pal_rddata};
         if (sprattr_strobe)   cpu_rddata = sprattr_rddata;

@@ -63,8 +63,6 @@ struct {
 |     9 |     3 | BLOCK | Octave data                              |
 |     9 |    10 | FNUM  | Frequency number (10 bit)                |
 
-10+3+1+2+3+1+1=21
-
 # Global
 
 | 31:16 | 15  | 14  | 13  | 12  | 11  | 10  |  9  |  8  | 7:6 | 5:0 |
