@@ -15,15 +15,17 @@ module tb_fmsynth();
     reg  [31:0] bus_wrdata;
     reg         bus_wren;
     wire [31:0] bus_rddata;
+    wire        bus_wait;
 
     fmsynth fmsynth(
         .clk(clk),
         .reset(reset),
 
-        .addr(bus_addr),
-        .wrdata(bus_wrdata),
-        .wren(bus_wren),
-        .rddata(bus_rddata),
+        .bus_addr(bus_addr),
+        .bus_wrdata(bus_wrdata),
+        .bus_wren(bus_wren),
+        .bus_rddata(bus_rddata),
+        .bus_wait(bus_wait),
 
         .audio_l(audio_l),
         .audio_r(audio_r)
@@ -38,6 +40,7 @@ module tb_fmsynth();
             bus_wrdata  = data;
             bus_wren    = 1;
             @(posedge clk);
+            while (bus_wait) @(posedge clk);
             bus_wren  = 0;
         end
     endtask
@@ -50,7 +53,17 @@ module tb_fmsynth();
         @(negedge(reset));
         @(posedge(clk));
 
-        regwr(8'h60, {10'b0, 1'b0, 1'b0, 3'd0, 1'b0, 2'b0, 1'b0, 3'd0, 10'd300});
+        regwr(8'h60, {
+            10'b0,  // -
+            1'b0,   // CHB
+            1'b0,   // CHA
+            3'd0,   // FB
+            1'b0,   // CNT
+            2'b0,   // -
+            1'b1,   // KON
+            3'd0,   // BLOCK
+            10'd300 // FNUM
+        });
         regwr(8'h80, {
             1'b0,   // AM
             1'b0,   // VIB
@@ -63,6 +76,32 @@ module tb_fmsynth();
             4'd8,   // DR
             4'd7,   // SL
             4'd9    // RR
+        });
+        
+        #1377900;
+        @(posedge(clk));
+
+        regwr(8'h60, {
+            10'b0,  // -
+            1'b0,   // CHB
+            1'b0,   // CHA
+            3'd0,   // FB
+            1'b0,   // CNT
+            2'b0,   // -
+            1'b0,   // KON
+            3'd0,   // BLOCK
+            10'd300 // FNUM
+        });
+        regwr(8'h60, {
+            10'b0,  // -
+            1'b0,   // CHB
+            1'b0,   // CHA
+            3'd0,   // FB
+            1'b0,   // CNT
+            2'b0,   // -
+            1'b1,   // KON
+            3'd0,   // BLOCK
+            10'd300 // FNUM
         });
 
     end

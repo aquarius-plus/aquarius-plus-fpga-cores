@@ -5,14 +5,20 @@ module fmsynth(
     input  wire        clk,
     input  wire        reset,
 
-    input  wire  [7:0] addr,
-    input  wire [31:0] wrdata,
-    input  wire        wren,
-    output reg  [31:0] rddata,
+    input  wire  [7:0] bus_addr,
+    input  wire [31:0] bus_wrdata,
+    input  wire        bus_wren,
+    output reg  [31:0] bus_rddata,
+    output wire        bus_wait,
 
     output wire [15:0] audio_l,
     output wire [15:0] audio_r
 );
+
+    wire        bus_wr = bus_wren && !bus_wait;
+
+    reg  [31:0] q_kon;
+    reg  [31:0] q_restart;
 
     reg         q_dam;
     reg         q_dvb;
@@ -21,10 +27,10 @@ module fmsynth(
     wire [31:0] ch_attr_rddata;
     wire [31:0] op_attr_rddata;
 
-    wire        sel_reg0    = addr == 8'd0;
-    wire        sel_reg1    = addr == 8'd1;
-    wire        sel_ch_attr = addr[7:5] == 3'b011;
-    wire        sel_op_attr = addr[7];
+    wire        sel_reg0    = bus_addr == 8'd0;
+    wire        sel_reg1    = bus_addr == 8'd1;
+    wire        sel_ch_attr = bus_addr[7:5] == 3'b011;
+    wire        sel_op_attr = bus_addr[7];
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
@@ -34,22 +40,22 @@ module fmsynth(
             q_4op <= 0;
             
         end else begin
-            if (sel_reg0 && wren)
-                q_4op <= wrdata[15:0];
-            if (sel_reg1 && wren) begin
-                q_nts <= wrdata[14];
-                q_dam <= wrdata[7];
-                q_dvb <= wrdata[6];
+            if (sel_reg0 && bus_wr)
+                q_4op <= bus_wrdata[15:0];
+            if (sel_reg1 && bus_wr) begin
+                q_nts <= bus_wrdata[14];
+                q_dam <= bus_wrdata[7];
+                q_dvb <= bus_wrdata[6];
             end
         end
     end
 
     always @* begin
-        rddata = 32'b0;
-        if (sel_reg0)    rddata = {16'b0, q_4op};
-        if (sel_reg1)    rddata = {17'b0, q_nts, 6'b0, q_dam, q_dvb, 6'b0};
-        if (sel_ch_attr) rddata = ch_attr_rddata;
-        if (sel_op_attr) rddata = op_attr_rddata;
+        bus_rddata = 32'b0;
+        if (sel_reg0)    bus_rddata = {16'b0, q_4op};
+        if (sel_reg1)    bus_rddata = {17'b0, q_nts, 6'b0, q_dam, q_dvb, 6'b0};
+        if (sel_ch_attr) bus_rddata = ch_attr_rddata;
+        if (sel_op_attr) bus_rddata = op_attr_rddata;
     end
 
     reg  [12:0] q_result;
@@ -72,9 +78,9 @@ module fmsynth(
 
     fm_op_attr fm_op_attr(
         .clk(clk),
-        .addr(addr[6:0]),
-        .wrdata(wrdata),
-        .wren(sel_op_attr && wren),
+        .addr(bus_addr[6:0]),
+        .wrdata(bus_wrdata),
+        .wren(sel_op_attr && bus_wr),
         .rddata(op_attr_rddata),
         
         .op_sel(q_op_sel),
@@ -108,9 +114,9 @@ module fmsynth(
 
     fm_ch_attr fm_ch_attr(
         .clk(clk),
-        .addr(addr[4:0]),
-        .wrdata(wrdata),
-        .wren(sel_ch_attr && wren),
+        .addr(bus_addr[4:0]),
+        .wrdata(bus_wrdata),
+        .wren(sel_ch_attr && bus_wr),
         .rddata(ch_attr_rddata),
 
         .ch_sel(ch_sel),
@@ -129,6 +135,7 @@ module fmsynth(
     reg        q_next;
     reg        q_op_reset;
     wire [9:0] phase;
+    wire       restart = q_restart[q_op_sel[5:1]];
 
     fm_phase fm_phase(
         .clk(clk),
@@ -136,6 +143,7 @@ module fmsynth(
 
         .op_sel(q_op_sel),
         .next(q_next),
+        .restart(restart),
 
         .block(ch_block),
         .fnum(ch_fnum),
@@ -159,6 +167,7 @@ module fmsynth(
         .op_sel(q_op_sel),
         .next(q_next),
         .op_reset(q_op_reset),
+        .restart(restart),
 
         .ar(op_ar),
         .dr(op_dr),
@@ -196,17 +205,21 @@ module fmsynth(
         StLogSin = 3'd2,
         StExp    = 3'd3,
         StResult = 3'd4,
-        StDone   = 3'd5;
+        StDone   = 3'd5,
+        StBus    = 3'd6,
+        StStart  = 3'd7;
 
     reg [2:0] q_state;
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
-            q_state       <= StReset;
-            q_result      <= 0;
-            q_next        <= 0;
-            q_op_sel      <= 0;
-            q_op_reset    <= 0;
+            q_state    <= StReset;
+            q_result   <= 0;
+            q_next     <= 0;
+            q_op_sel   <= 0;
+            q_op_reset <= 0;
+            q_kon      <= 0;
+            q_restart  <= 0;
 
         end else begin
             q_next <= 0;
@@ -239,19 +252,44 @@ module fmsynth(
                 end
 
                 StResult: begin
-                    q_result      <= result;
-                    q_state       <= StDone;
-                    q_next        <= 1;
+                    q_result <= result;
+                    q_state  <= StDone;
+                    q_next   <= 1;
                 end
 
                 StDone: begin
-                    q_state       <= StLogSin;
-                    // q_op_sel      <= q_op_sel + 6'd1;
+                    q_restart <= 0;
+                    q_op_sel  <= q_op_sel + 6'd1;
+
+                    if (q_op_sel == 6'd63) begin
+                        q_state <= StBus;
+                    end else begin
+                        q_state <= StLogSin;
+                    end
+                end
+
+                StBus: begin
+                    q_state <= StStart;
+
+                    if (bus_wren && sel_ch_attr) begin
+                        q_kon[bus_addr[4:0]] <= bus_wrdata[13];
+
+                        if (bus_wrdata[13] && !q_kon[bus_addr[4:0]]) begin    // Key on
+                            q_restart[bus_addr[4:0]] <= 1'b1;
+                        end
+                    end
+                end
+
+                StStart: begin
+                    q_state  <= StLogSin;
+                    q_op_sel <= 0;
                 end
 
                 default: begin end
             endcase
         end
     end
+
+    assign bus_wait = bus_wren && (q_state != StBus);
 
 endmodule

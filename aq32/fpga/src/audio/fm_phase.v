@@ -7,6 +7,7 @@ module fm_phase(
 
     input  wire  [5:0] op_sel,
     input  wire        next,
+    input  wire        restart,
 
     input  wire  [2:0] block,
     input  wire  [9:0] fnum,
@@ -74,7 +75,7 @@ module fm_phase(
         .wren(next),
         .rddata(q_op_phase));
 
-    assign d_op_phase = q_op_phase + fw_inc;
+    assign d_op_phase = (restart ? 19'd0 : q_op_phase) + fw_inc;
 
     assign phase = q_op_phase[18:9];
 

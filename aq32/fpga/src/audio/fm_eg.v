@@ -7,6 +7,7 @@ module fm_eg(
     input  wire  [5:0] op_sel,
     input  wire        next,
     input  wire        op_reset,
+    input  wire        restart,
 
     input  wire  [3:0] ar,
     input  wire  [3:0] dr,
@@ -117,6 +118,9 @@ module fm_eg(
         if (op_reset) begin
             d_eg_env_cnt = ~0;
             d_eg_stage   = StageRelease;
+        end
+        if (restart) begin
+            d_eg_stage   = StageAttack;
         end
     end
 

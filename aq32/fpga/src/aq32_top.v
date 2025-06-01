@@ -392,15 +392,17 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     wire        fmsynth_strobe;
     wire [31:0] fmsynth_rddata;
+    wire        fmsynth_wait;
 
     fmsynth fmsynth(
         .clk(clk),
         .reset(reset),
 
-        .addr(cpu_addr[9:2]),
-        .wrdata(cpu_wrdata),
-        .wren(fmsynth_strobe && cpu_wren),
-        .rddata(fmsynth_rddata),
+        .bus_addr(cpu_addr[9:2]),
+        .bus_wrdata(cpu_wrdata),
+        .bus_wren(fmsynth_strobe && cpu_wren),
+        .bus_rddata(fmsynth_rddata),
+        .bus_wait(fmsynth_wait),
 
         .audio_l(common_audio_l),
         .audio_r(common_audio_r)
@@ -598,7 +600,7 @@ module aq32_top(
     always @* begin
         cpu_wait = 0;
         if (bootrom_strobe)   cpu_wait = !cpu_wren && q_cpu_addr[11:2] != cpu_addr[11:2];
-        if (fmsynth_strobe)   cpu_wait = !cpu_wren && q_cpu_addr[10:2] != cpu_addr[10:2];
+        if (fmsynth_strobe)   cpu_wait = fmsynth_wait;
         if (sprattr_strobe)   cpu_wait = !cpu_wren && q_cpu_addr[11:0] != cpu_addr[11:0];
         if (chram_strobe)     cpu_wait = !cpu_wren && q_cpu_addr[11:0] != cpu_addr[11:0];
         if (tram_strobe)      cpu_wait = !cpu_wren && q_cpu_addr[11:0] != cpu_addr[11:0];
@@ -612,10 +614,10 @@ module aq32_top(
         if (bootrom_strobe)   cpu_rddata = bootrom_rddata;
         if (fmsynth_strobe)   cpu_rddata = fmsynth_rddata;
         if (regs_strobe)      cpu_rddata = regs_rddata;
-        if (pal_strobe)       cpu_rddata = {pal_rddata,      pal_rddata};
+        if (pal_strobe)       cpu_rddata = {pal_rddata, pal_rddata};
         if (sprattr_strobe)   cpu_rddata = sprattr_rddata;
-        if (chram_strobe)     cpu_rddata = {chram_rddata,    chram_rddata,    chram_rddata,    chram_rddata};
-        if (tram_strobe)      cpu_rddata = {tram_rddata,     tram_rddata};
+        if (chram_strobe)     cpu_rddata = {chram_rddata, chram_rddata, chram_rddata, chram_rddata};
+        if (tram_strobe)      cpu_rddata = {tram_rddata, tram_rddata};
         if (vram_strobe)      cpu_rddata = vram_rddata;
         if (vram4bpp_strobe)  cpu_rddata = vram4bpp_rddata;
         if (sram_strobe)      cpu_rddata = sram_rddata;
