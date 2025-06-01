@@ -50,8 +50,20 @@ module tb_fmsynth();
         @(negedge(reset));
         @(posedge(clk));
 
-        regwr(8'h60, {10'b0, 1'b0, 1'b0, 3'd0, 1'b0, 2'b0, 1'b0, 3'd0, 10'd100});
-        regwr(8'h80, {1'b0, 1'b0, 1'b0, 1'b0, 4'd8, 2'd0 , 6'd0, 4'd0, 4'd0, 4'd0, 4'd0});
+        regwr(8'h60, {10'b0, 1'b0, 1'b0, 3'd0, 1'b0, 2'b0, 1'b0, 3'd0, 10'd300});
+        regwr(8'h80, {
+            1'b0,   // AM
+            1'b0,   // VIB
+            1'b0,   // EGT
+            1'b0,   // KSR
+            4'd8,   // MULT
+            2'd0,   // KSL
+            6'd0,   // TL
+            4'd8,   // AR
+            4'd8,   // DR
+            4'd7,   // SL
+            4'd9    // RR
+        });
 
     end
 
