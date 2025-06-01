@@ -5,6 +5,7 @@ module fm_op(
     input  wire        clk,
     input  wire  [2:0] ws,
     input  wire  [9:0] phase,
+    input  wire  [9:0] modulation,
     input  wire  [8:0] env,
     output reg  [12:0] result
 );
@@ -19,26 +20,28 @@ module fm_op(
     reg       d_invert, q_invert;
     reg       d_mute,   q_mute;
 
+    wire [9:0] phase_sum = phase + modulation;
+
     always @* begin
-        logsin_idx = phase[7:0] ^ {8{phase[8]}};
-        d_invert   = phase[9];
+        logsin_idx = phase_sum[7:0] ^ {8{phase_sum[8]}};
+        d_invert   = phase_sum[9];
         d_mute     = 0;
 
         // Alterations for different type of waveforms
         case (ws)
             default: begin end
-            3'd1: begin d_mute = phase[9];                                                                       end
-            3'd2: begin                    d_invert = 0;                                                         end
-            3'd3: begin d_mute = phase[8]; d_invert = 0;                                                         end
-            3'd4: begin d_mute = phase[9]; d_invert = phase[8]; logsin_idx = {phase[6:0], 1'b0} ^ {8{phase[7]}}; end
-            3'd5: begin d_mute = phase[9]; d_invert = 0;        logsin_idx = {phase[6:0], 1'b0} ^ {8{phase[7]}}; end
-            3'd6: begin                                         logsin_idx = 8'd255;                             end
+            3'd1: begin d_mute = phase_sum[9];                                                                                   end
+            3'd2: begin                        d_invert = 0;                                                                     end
+            3'd3: begin d_mute = phase_sum[8]; d_invert = 0;                                                                     end
+            3'd4: begin d_mute = phase_sum[9]; d_invert = phase_sum[8]; logsin_idx = {phase_sum[6:0], 1'b0} ^ {8{phase_sum[7]}}; end
+            3'd5: begin d_mute = phase_sum[9]; d_invert = 0;            logsin_idx = {phase_sum[6:0], 1'b0} ^ {8{phase_sum[7]}}; end
+            3'd6: begin                                                 logsin_idx = 8'd255;                                     end
         endcase
     end
 
     always @(posedge clk) begin
         q_ws     <= ws;
-        q_phase  <= phase;
+        q_phase  <= phase_sum;
         q_env    <= env;
         q_invert <= d_invert;
         q_mute   <= d_mute;

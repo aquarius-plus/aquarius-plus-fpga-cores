@@ -11,11 +11,13 @@ module fmsynth(
     output reg  [31:0] bus_rddata,
     output wire        bus_wait,
 
-    output wire [15:0] audio_l,
-    output wire [15:0] audio_r
+    output reg  [15:0] audio_l,
+    output reg  [15:0] audio_r
 );
 
     wire        bus_wr = bus_wren && !bus_wait;
+
+    reg  [18:0] q_accum_l, q_accum_r;
 
     reg  [31:0] q_kon;
     reg  [31:0] q_restart;
@@ -38,7 +40,7 @@ module fmsynth(
             q_dvb <= 0;
             q_nts <= 0;
             q_4op <= 0;
-            
+
         end else begin
             if (sel_reg0 && bus_wr)
                 q_4op <= bus_wrdata[15:0];
@@ -57,11 +59,6 @@ module fmsynth(
         if (sel_ch_attr) bus_rddata = ch_attr_rddata;
         if (sel_op_attr) bus_rddata = op_attr_rddata;
     end
-
-    reg  [12:0] q_result;
-
-    assign audio_l = {q_result, 3'b0};
-    assign audio_r = {q_result, 3'b0};
 
     //////////////////////////////////////////////////////////////////////////
     // Operator attributes
@@ -82,7 +79,7 @@ module fmsynth(
         .wrdata(bus_wrdata),
         .wren(sel_op_attr && bus_wr),
         .rddata(op_attr_rddata),
-        
+
         .op_sel(q_op_sel),
         .op_ws(op_ws),
         .op_am(op_am),
@@ -110,7 +107,7 @@ module fmsynth(
     wire  [2:0] ch_block;
     wire  [9:0] ch_fnum;
 
-    // TODO: ch_chb, ch_cha, ch_fb, ch_cnt, ch_kon
+    // TODO: ch_fb, ch_cnt, ch_kon
 
     fm_ch_attr fm_ch_attr(
         .clk(clk),
@@ -181,6 +178,9 @@ module fmsynth(
         .ksr(op_ksr),
         .kon(ch_kon),
         .egt(op_egt),
+        .am(op_am),
+        .dam(q_dam),
+        .ksl(op_ksl),
 
         .env(env)
     );
@@ -189,10 +189,12 @@ module fmsynth(
     // Operator
     //////////////////////////////////////////////////////////////////////////
     wire [12:0] result;
+    wire  [9:0] modulation = 10'd0;
     fm_op fm_op(
         .clk(clk),
         .ws(op_ws),
         .phase(phase),
+        .modulation(modulation),
         .env(env),
         .result(result));
 
@@ -214,12 +216,15 @@ module fmsynth(
     always @(posedge clk or posedge reset) begin
         if (reset) begin
             q_state    <= StReset;
-            q_result   <= 0;
             q_next     <= 0;
             q_op_sel   <= 0;
             q_op_reset <= 0;
             q_kon      <= 0;
             q_restart  <= 0;
+            q_accum_l  <= 0;
+            q_accum_r  <= 0;
+            audio_l    <= 0;
+            audio_r    <= 0;
 
         end else begin
             q_next <= 0;
@@ -252,7 +257,11 @@ module fmsynth(
                 end
 
                 StResult: begin
-                    q_result <= result;
+                    if (ch_cha)
+                        q_accum_l <= q_accum_l + {{6{result[12]}}, result};
+                    if (ch_chb)
+                        q_accum_r <= q_accum_r + {{6{result[12]}}, result};
+
                     q_state  <= StDone;
                     q_next   <= 1;
                 end
@@ -261,8 +270,27 @@ module fmsynth(
                     q_restart <= 0;
                     q_op_sel  <= q_op_sel + 6'd1;
 
-                    if (q_op_sel == 6'd63) begin
+                    if (q_op_sel == 6'd1) begin
                         q_state <= StBus;
+
+                        // Clamp output signal
+                        audio_l <= q_accum_l[15:0];
+                        if (q_accum_l[18] && q_accum_l[17:15] != 3'b111)
+                            audio_l <= 16'h8000;
+                        else if (!q_accum_l[18] && q_accum_l[17:15] != 3'b000)
+                            audio_l <= 16'h7FFF;
+
+                        // Clamp output signal
+                        audio_r <= q_accum_r[15:0];
+                        if (q_accum_r[18] && q_accum_r[17:15] != 3'b111)
+                            audio_r <= 16'h8000;
+                        else if (!q_accum_r[18] && q_accum_r[17:15] != 3'b000)
+                            audio_r <= 16'h7FFF;
+
+                        // Reset accumulator for next round
+                        q_accum_l <= 0;
+                        q_accum_r <= 0;
+
                     end else begin
                         q_state <= StLogSin;
                     end

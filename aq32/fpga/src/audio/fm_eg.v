@@ -21,6 +21,9 @@ module fm_eg(
     input  wire        ksr,
     input  wire        kon,
     input  wire        egt,
+    input  wire        am,      // Fixme
+    input  wire        dam,     // Fixme
+    input  wire  [1:0] ksl,     // Fixme
 
     output reg   [8:0] env
 );
@@ -104,7 +107,7 @@ module fm_eg(
                 end
             end
             StageSustain: begin
-                if (!egt || !kon) begin
+                if (!egt) begin
                     d_eg_stage = StageRelease;
                 end
             end
@@ -120,7 +123,10 @@ module fm_eg(
             d_eg_stage   = StageRelease;
         end
         if (restart) begin
-            d_eg_stage   = StageAttack;
+            d_eg_stage = StageAttack;
+        end
+        if (!kon) begin
+            d_eg_stage = StageRelease;
         end
     end
 

@@ -55,8 +55,8 @@ module tb_fmsynth();
 
         regwr(8'h60, {
             10'b0,  // -
-            1'b0,   // CHB
-            1'b0,   // CHA
+            1'b1,   // CHB
+            1'b1,   // CHA
             3'd0,   // FB
             1'b0,   // CNT
             2'b0,   // -
@@ -71,7 +71,7 @@ module tb_fmsynth();
             1'b0,   // KSR
             4'd8,   // MULT
             2'd0,   // KSL
-            6'd32,  // TL
+            6'd0,   // TL
             4'd8,   // AR
             4'd8,   // DR
             4'd7,   // SL
@@ -83,8 +83,8 @@ module tb_fmsynth();
 
         regwr(8'h60, {
             10'b0,  // -
-            1'b0,   // CHB
-            1'b0,   // CHA
+            1'b1,   // CHB
+            1'b1,   // CHA
             3'd0,   // FB
             1'b0,   // CNT
             2'b0,   // -
@@ -94,8 +94,8 @@ module tb_fmsynth();
         });
         regwr(8'h60, {
             10'b0,  // -
-            1'b0,   // CHB
-            1'b0,   // CHA
+            1'b1,   // CHB
+            1'b1,   // CHA
             3'd0,   // FB
             1'b0,   // CNT
             2'b0,   // -
