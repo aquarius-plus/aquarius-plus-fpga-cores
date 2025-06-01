@@ -68,7 +68,7 @@ module fmsynth(
     wire  [5:0] op_tl;
     wire  [3:0] op_ar, op_dr, op_sl, op_rr;
 
-    // TODO: op_am, op_egt, op_ksr, op_ksl, op_tl, op_ar, op_dr, op_sl, op_rr
+    // TODO: op_am, op_ksr, op_ksl
 
     fm_op_attr fm_op_attr(
         .clk(clk),
@@ -127,6 +127,7 @@ module fmsynth(
     // Operator phase counter
     //////////////////////////////////////////////////////////////////////////
     reg        q_next;
+    reg        q_op_reset;
     wire [9:0] phase;
 
     fm_phase fm_phase(
@@ -157,11 +158,13 @@ module fmsynth(
 
         .op_sel(q_op_sel),
         .next(q_next),
+        .op_reset(q_op_reset),
 
         .ar(op_ar),
         .dr(op_dr),
         .sl(op_sl),
         .rr(op_rr),
+        .tl(op_tl),
 
         .block(ch_block),
         .fnum(ch_fnum),
@@ -188,24 +191,45 @@ module fmsynth(
     // State machine
     //////////////////////////////////////////////////////////////////////////
     localparam
-        StLogSin = 2'd0,
-        StExp    = 2'd1,
-        StResult = 2'd2,
-        StDone   = 2'd3;
+        StReset  = 3'd0,
+        StReset2 = 3'd1,
+        StLogSin = 3'd2,
+        StExp    = 3'd3,
+        StResult = 3'd4,
+        StDone   = 3'd5;
 
-    reg [1:0] q_state;
+    reg [2:0] q_state;
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
-            q_state       <= StLogSin;
+            q_state       <= StReset;
             q_result      <= 0;
             q_next        <= 0;
             q_op_sel      <= 0;
+            q_op_reset    <= 0;
 
         end else begin
             q_next <= 0;
 
             case (q_state)
+                StReset: begin
+                    q_op_sel   <= 0;
+                    q_op_reset <= 1;
+                    q_next     <= 1;
+                    q_state    <= StReset2;
+                end
+
+                StReset2: begin
+                    q_next   <= 1;
+                    q_op_sel <= q_op_sel + 6'd1;
+
+                    if (q_op_sel == 6'd63) begin
+                        q_next     <= 0;
+                        q_op_reset <= 0;
+                        q_state    <= StLogSin;
+                    end
+                end
+
                 StLogSin: begin
                     q_state <= StExp;
                 end

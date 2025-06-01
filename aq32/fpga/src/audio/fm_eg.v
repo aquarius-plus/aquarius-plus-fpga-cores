@@ -6,11 +6,13 @@ module fm_eg(
 
     input  wire  [5:0] op_sel,
     input  wire        next,
+    input  wire        op_reset,
 
     input  wire  [3:0] ar,
     input  wire  [3:0] dr,
     input  wire  [3:0] sl,
     input  wire  [3:0] rr,
+    input  wire  [5:0] tl,
 
     input  wire  [2:0] block,
     input  wire  [9:0] fnum,
@@ -19,7 +21,7 @@ module fm_eg(
     input  wire        kon,
     input  wire        egt,
 
-    output wire  [8:0] env
+    output reg   [8:0] env
 );
 
     localparam
@@ -80,7 +82,7 @@ module fm_eg(
     always @* begin
         eg_env_cnt_next = {1'b0, q_eg_env_cnt};
         if (stage_rate != 4'd0)
-            eg_env_cnt_next = eg_env_cnt_next + (q_eg_stage == StageAttack ? eg_env_cnt_inc : ~eg_env_cnt_inc);
+            eg_env_cnt_next = eg_env_cnt_next + (q_eg_stage == StageAttack ? ~eg_env_cnt_inc : eg_env_cnt_inc);
     end
 
     always @* begin
@@ -90,12 +92,12 @@ module fm_eg(
         case (q_eg_stage)
             StageAttack: begin
                 if (eg_env_cnt_next[24]) begin
-                    d_eg_env_cnt = ~0;
+                    d_eg_env_cnt = 0;
                     d_eg_stage   = StageDecay;
                 end
             end
             StageDecay: begin
-                if (eg_env_cnt_next[24] || eg_env_cnt_next[23:20] < sl) begin
+                if (eg_env_cnt_next[24] || eg_env_cnt_next[23:20] >= sl) begin
                     d_eg_env_cnt = {sl, 20'd0};
                     d_eg_stage   = StageSustain;
                 end
@@ -107,12 +109,28 @@ module fm_eg(
             end
             StageRelease: begin
                 if (eg_env_cnt_next[24]) begin
-                    d_eg_env_cnt = 0;
+                    d_eg_env_cnt = ~0;
                 end
             end
         endcase
+
+        if (op_reset) begin
+            d_eg_env_cnt = ~0;
+            d_eg_stage   = StageRelease;
+        end
     end
 
-    assign env = ~q_eg_env_cnt[23:15];
+    reg [10:0] tmp;
+    always @* begin
+        tmp = {2'b0, q_eg_env_cnt[23:15]};
+        tmp = tmp + {3'b0, tl, 2'b0};
+
+        if (tmp[10])
+            env = 9'd0;
+        else if (tmp[9:0] > 10'd511)
+            env = 9'd511;
+        else
+            env = tmp[8:0];
+    end
 
 endmodule

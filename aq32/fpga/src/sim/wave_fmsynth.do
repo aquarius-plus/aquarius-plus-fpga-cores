@@ -17,14 +17,15 @@ add wave -noupdate -group {FM synth internal} /tb_fmsynth/fmsynth/sel_reg0
 add wave -noupdate -group {FM synth internal} /tb_fmsynth/fmsynth/sel_reg1
 add wave -noupdate -group {FM synth internal} /tb_fmsynth/fmsynth/sel_ch_attr
 add wave -noupdate -group {FM synth internal} /tb_fmsynth/fmsynth/sel_op_attr
-add wave -noupdate -group {FM synth internal} -format Analog-Step -height 50 -max 4095.0 -min -4096.0 -radix decimal /tb_fmsynth/fmsynth/q_result
+add wave -noupdate -group {FM synth internal} -format Analog-Step -height 50 -max 4095.0000000000005 -min -4096.0 -radix decimal /tb_fmsynth/fmsynth/q_result
 add wave -noupdate -group {FM synth internal} /tb_fmsynth/fmsynth/result
 add wave -noupdate -group {FM synth internal} /tb_fmsynth/fmsynth/q_state
 add wave -noupdate -format Analog-Step -height 50 -max 32767.0 -min -32768.0 -radix decimal /tb_fmsynth/fmsynth/audio_l
 add wave -noupdate -format Analog-Step -height 50 -max 32767.0 -min -32768.0 -radix decimal /tb_fmsynth/fmsynth/audio_r
 add wave -noupdate -format Analog-Step -height 84 -max 1023.0 -radix unsigned /tb_fmsynth/fmsynth/fm_phase/phase
 add wave -noupdate -format Analog-Step -height 50 -max 511.0 -radix unsigned -childformat {{{/tb_fmsynth/fmsynth/fm_eg/envelope[23]} -radix unsigned} {{/tb_fmsynth/fmsynth/fm_eg/envelope[22]} -radix unsigned} {{/tb_fmsynth/fmsynth/fm_eg/envelope[21]} -radix unsigned} {{/tb_fmsynth/fmsynth/fm_eg/envelope[20]} -radix unsigned} {{/tb_fmsynth/fmsynth/fm_eg/envelope[19]} -radix unsigned} {{/tb_fmsynth/fmsynth/fm_eg/envelope[18]} -radix unsigned} {{/tb_fmsynth/fmsynth/fm_eg/envelope[17]} -radix unsigned} {{/tb_fmsynth/fmsynth/fm_eg/envelope[16]} -radix unsigned} {{/tb_fmsynth/fmsynth/fm_eg/envelope[15]} -radix unsigned}} -subitemconfig {{/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[23]} {-radix unsigned} {/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[22]} {-radix unsigned} {/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[21]} {-radix unsigned} {/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[20]} {-radix unsigned} {/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[19]} {-radix unsigned} {/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[18]} {-radix unsigned} {/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[17]} {-radix unsigned} {/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[16]} {-radix unsigned} {/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[15]} {-radix unsigned}} /tb_fmsynth/fmsynth/fm_eg/envelope
-add wave -noupdate -format Analog-Step -height 50 -max 4095.0 -min -4096.0 -radix decimal /tb_fmsynth/fmsynth/fm_op/result
+add wave -noupdate -format Analog-Step -height 50 -max 511.0 -radix unsigned /tb_fmsynth/fmsynth/fm_eg/env
+add wave -noupdate -format Analog-Step -height 50 -max 4095.0000000000005 -min -4096.0 -radix decimal /tb_fmsynth/fmsynth/fm_op/result
 add wave -noupdate -group {Operator attributes} -radix unsigned /tb_fmsynth/fmsynth/q_op_sel
 add wave -noupdate -group {Operator attributes} -radix unsigned /tb_fmsynth/fmsynth/op_ws
 add wave -noupdate -group {Operator attributes} -radix unsigned /tb_fmsynth/fmsynth/op_am
@@ -38,7 +39,6 @@ add wave -noupdate -group {Operator attributes} -radix unsigned /tb_fmsynth/fmsy
 add wave -noupdate -group {Operator attributes} -radix unsigned /tb_fmsynth/fmsynth/op_dr
 add wave -noupdate -group {Operator attributes} -radix unsigned /tb_fmsynth/fmsynth/op_sl
 add wave -noupdate -group {Operator attributes} -radix unsigned /tb_fmsynth/fmsynth/op_rr
-add wave -noupdate -group {Operator attributes} /tb_fmsynth/fmsynth/fw_multiplier
 add wave -noupdate -group {Channel attributes} -radix unsigned /tb_fmsynth/fmsynth/ch_sel
 add wave -noupdate -group {Channel attributes} -radix unsigned /tb_fmsynth/fmsynth/ch_chb
 add wave -noupdate -group {Channel attributes} -radix unsigned /tb_fmsynth/fmsynth/ch_cha
@@ -66,19 +66,19 @@ add wave -noupdate -group {Operator phase counter} -group {Phase internal} /tb_f
 add wave -noupdate -group {Operator phase counter} -group {Phase internal} /tb_fmsynth/fmsynth/fm_phase/fw_inc
 add wave -noupdate -group {Operator phase counter} -group {Phase internal} /tb_fmsynth/fmsynth/fm_phase/d_op_phase
 add wave -noupdate -group {Operator phase counter} -group {Phase internal} /tb_fmsynth/fmsynth/fm_phase/q_op_phase
-add wave -noupdate -group {Envelope generator} -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/op_sel
-add wave -noupdate -group {Envelope generator} -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/next
-add wave -noupdate -group {Envelope generator} -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/ar
-add wave -noupdate -group {Envelope generator} -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/dr
-add wave -noupdate -group {Envelope generator} -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/sl
-add wave -noupdate -group {Envelope generator} -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/rr
-add wave -noupdate -group {Envelope generator} -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/block
-add wave -noupdate -group {Envelope generator} -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/fnum
-add wave -noupdate -group {Envelope generator} -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/nts
-add wave -noupdate -group {Envelope generator} -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/ksr
-add wave -noupdate -group {Envelope generator} -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/kon
-add wave -noupdate -group {Envelope generator} -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/egt
-add wave -noupdate -group {Envelope generator} -group {EG ports} -radix unsigned /tb_fmsynth/fmsynth/fm_eg/env
+add wave -noupdate -group {Envelope generator} -expand -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/op_sel
+add wave -noupdate -group {Envelope generator} -expand -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/next
+add wave -noupdate -group {Envelope generator} -expand -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/ar
+add wave -noupdate -group {Envelope generator} -expand -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/dr
+add wave -noupdate -group {Envelope generator} -expand -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/sl
+add wave -noupdate -group {Envelope generator} -expand -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/rr
+add wave -noupdate -group {Envelope generator} -expand -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/block
+add wave -noupdate -group {Envelope generator} -expand -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/fnum
+add wave -noupdate -group {Envelope generator} -expand -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/nts
+add wave -noupdate -group {Envelope generator} -expand -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/ksr
+add wave -noupdate -group {Envelope generator} -expand -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/kon
+add wave -noupdate -group {Envelope generator} -expand -group {EG ports} /tb_fmsynth/fmsynth/fm_eg/egt
+add wave -noupdate -group {Envelope generator} -expand -group {EG ports} -radix unsigned /tb_fmsynth/fmsynth/fm_eg/env
 add wave -noupdate -group {Envelope generator} -group {EG internal} /tb_fmsynth/fmsynth/fm_eg/d_eg_stage
 add wave -noupdate -group {Envelope generator} -group {EG internal} /tb_fmsynth/fmsynth/fm_eg/q_eg_stage
 add wave -noupdate -group {Envelope generator} -group {EG internal} /tb_fmsynth/fmsynth/fm_eg/d_eg_env_cnt
@@ -109,9 +109,9 @@ add wave -noupdate -group Operator -group {OP internal} /tb_fmsynth/fmsynth/fm_o
 add wave -noupdate -group Operator -group {OP internal} /tb_fmsynth/fmsynth/fm_op/q_shift
 add wave -noupdate -group Operator -group {OP internal} /tb_fmsynth/fmsynth/fm_op/exp_value
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {669780100 ps} 0}
+WaveRestoreCursors {{Cursor 1} {1402100100 ps} 0}
 quietly wave cursor active 1
-configure wave -namecolwidth 385
+configure wave -namecolwidth 415
 configure wave -valuecolwidth 98
 configure wave -justifyvalue left
 configure wave -signalnamewidth 0
@@ -125,4 +125,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {2100 us}
+WaveRestoreZoom {0 ps} {10500 us}

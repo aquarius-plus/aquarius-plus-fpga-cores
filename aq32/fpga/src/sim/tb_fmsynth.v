@@ -58,7 +58,7 @@ module tb_fmsynth();
             1'b0,   // KSR
             4'd8,   // MULT
             2'd0,   // KSL
-            6'd0,   // TL
+            6'd32,  // TL
             4'd8,   // AR
             4'd8,   // DR
             4'd7,   // SL
