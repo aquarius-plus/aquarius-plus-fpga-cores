@@ -88,3 +88,5 @@ int esp_getcwd(char *cwd, size_t cwd_buflen);
 int esp_closeall(void);
 
 int esp_set_errno(int esp_err);
+
+int esp_get_midi_data(void *buf, size_t buf_size);

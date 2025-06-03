@@ -27,9 +27,9 @@ module fm_op_attr(
 
     wire [(NUMBITS-1):0] a_rddata;
     wire [(NUMBITS-1):0] a_wrdata = {wrdata[2:0], wrdata};
-    wire [(NUMBITS-1):0] a_wren   = {{3{wren && addr[0]}}, {32{wren && !addr[0]}}};
+    wire [(NUMBITS-1):0] a_wren   = {{3{wren && addr[6]}}, {32{wren && !addr[6]}}};
 
-    assign rddata = addr[0] ? {29'b0, a_rddata[34:32]} : a_rddata[31:0];
+    assign rddata = addr[6] ? {29'b0, a_rddata[34:32]} : a_rddata[31:0];
 
     wire [(NUMBITS-1):0] b_rddata;
     assign {
@@ -47,12 +47,12 @@ module fm_op_attr(
                 .D(a_wrdata[i]),
                 .WE(a_wren[i]),
 
-                .A5(addr[6]),
-                .A4(addr[5]),
-                .A3(addr[4]),
-                .A2(addr[3]),
-                .A1(addr[2]),
-                .A0(addr[1]),
+                .A5(addr[5]),
+                .A4(addr[4]),
+                .A3(addr[3]),
+                .A2(addr[2]),
+                .A1(addr[1]),
+                .A0(addr[0]),
                 .SPO(a_rddata[i]),
 
                 .DPRA5(op_sel[5]),

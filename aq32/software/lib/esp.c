@@ -280,3 +280,24 @@ int esp_set_errno(int esp_err) {
     }
     return -1;
 }
+
+int esp_get_midi_data(void *buf, size_t buf_size) {
+    uint8_t *p      = buf;
+    uint16_t length = buf_size;
+    if (buf_size > 0xFFFF)
+        length = 0xFFFF;
+
+    esp_cmd(ESPCMD_GETMIDIDATA);
+    esp_send_byte(length & 0xFF);
+    esp_send_byte(length >> 8);
+    int result = (int8_t)esp_get_byte();
+    if (result < 0)
+        return result;
+
+    uint16_t rx_len = esp_get_byte();
+    rx_len |= esp_get_byte() << 8;
+    while (rx_len--)
+        *(p++) = esp_get_byte();
+
+    return p - (uint8_t *)buf;
+}

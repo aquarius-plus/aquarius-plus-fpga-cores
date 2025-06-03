@@ -582,8 +582,8 @@ module aq32_top(
     // CPU bus interconnect
     //////////////////////////////////////////////////////////////////////////
     wire   bootrom_strobe   = cpu_strobe && cpu_addr[31:12] == 20'h00000;
-    wire   regs_strobe      = cpu_strobe && cpu_addr[31: 8] == 24'h000020;
-    assign fmsynth_strobe   = cpu_strobe && cpu_addr[31:11] == {20'h00002, 1'b0};
+    wire   regs_strobe      = cpu_strobe && cpu_addr[31:11] == {20'h00002, 1'b0};
+    assign fmsynth_strobe   = cpu_strobe && cpu_addr[31:11] == {20'h00002, 1'b1};
     assign sprattr_strobe   = cpu_strobe && cpu_addr[31:12] == 20'h00003;
     assign pal_strobe       = cpu_strobe && cpu_addr[31:12] == 20'h00004;
     assign chram_strobe     = cpu_strobe && cpu_addr[31:12] == 20'h00005;

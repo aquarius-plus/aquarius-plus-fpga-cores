@@ -53,44 +53,31 @@ module tb_fmsynth();
         @(negedge(reset));
         @(posedge(clk));
 
-        regwr(8'h60, {
-            10'b0,  // -
-            1'b1,   // CHB
-            1'b1,   // CHA
-            3'd0,   // FB
-            1'b0,   // CNT
-            2'b0,   // -
-            1'b1,   // KON
-            3'd0,   // BLOCK
-            10'd300 // FNUM
-        });
         regwr(8'h80, {
             1'b0,   // AM
             1'b0,   // VIB
             1'b0,   // EGT
             1'b0,   // KSR
-            4'd8,   // MULT
+            4'd3,   // MULT
             2'd0,   // KSL
             6'd0,   // TL
-            4'd8,   // AR
-            4'd8,   // DR
+            4'd15,  // AR
+            4'd0,   // DR
             4'd7,   // SL
             4'd9    // RR
         });
-        
-        #1377900;
-        @(posedge(clk));
-
-        regwr(8'h60, {
-            10'b0,  // -
-            1'b1,   // CHB
-            1'b1,   // CHA
-            3'd0,   // FB
-            1'b0,   // CNT
-            2'b0,   // -
-            1'b0,   // KON
-            3'd0,   // BLOCK
-            10'd300 // FNUM
+        regwr(8'h82, {
+            1'b0,   // AM
+            1'b0,   // VIB
+            1'b0,   // EGT
+            1'b0,   // KSR
+            4'd1,   // MULT
+            2'd0,   // KSL
+            6'd0,   // TL
+            4'd15,  // AR
+            4'd0,   // DR
+            4'd7,   // SL
+            4'd9    // RR
         });
         regwr(8'h60, {
             10'b0,  // -
@@ -103,6 +90,32 @@ module tb_fmsynth();
             3'd0,   // BLOCK
             10'd300 // FNUM
         });
+        
+        // #1377900;
+        // @(posedge(clk));
+
+        // regwr(8'h60, {
+        //     10'b0,  // -
+        //     1'b1,   // CHB
+        //     1'b1,   // CHA
+        //     3'd0,   // FB
+        //     1'b0,   // CNT
+        //     2'b0,   // -
+        //     1'b0,   // KON
+        //     3'd0,   // BLOCK
+        //     10'd300 // FNUM
+        // });
+        // regwr(8'h60, {
+        //     10'b0,  // -
+        //     1'b1,   // CHB
+        //     1'b1,   // CHA
+        //     3'd0,   // FB
+        //     1'b0,   // CNT
+        //     2'b0,   // -
+        //     1'b1,   // KON
+        //     3'd0,   // BLOCK
+        //     10'd300 // FNUM
+        // });
 
     end
 

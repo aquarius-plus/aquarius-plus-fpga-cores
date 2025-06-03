@@ -35,6 +35,17 @@ struct regs {
     volatile int32_t  KEYBUF;
 };
 
+struct fmsynth {
+    volatile uint32_t opmode;
+    volatile uint32_t ctrl;
+    volatile uint32_t _pad[30 + 32 + 32];
+    volatile uint32_t ch_attr[32];
+    volatile uint32_t op_attr0[64];
+    volatile uint32_t op_attr1[64];
+};
+
+static_assert(sizeof(struct fmsynth) == 1024);
+
 struct tram {
     uint16_t text[80 * 25];
     uint16_t init_val1;
@@ -53,6 +64,7 @@ struct tram {
 static_assert(sizeof(struct tram) == 4096);
 
 #define REGS     ((struct regs *)0x2000)
+#define FMSYNTH  ((struct fmsynth *)0x2800)
 #define PALETTE  ((volatile uint16_t *)0x04000)
 #define CHRAM    ((volatile uint8_t *)0x05000)
 #define TRAM     ((struct tram *)0x06000)
@@ -65,6 +77,8 @@ enum {
     ESPCMD_GETDATETIME = 0x03, // Get current date/time
     ESPCMD_KEYMODE     = 0x08, // Set keyboard buffer mode
     ESPCMD_GETMOUSE    = 0x0C, // Get mouse state
+    ESPCMD_GETGAMECTRL = 0x0E, // Get game controller state
+    ESPCMD_GETMIDIDATA = 0x0F, // Get mouse state
     ESPCMD_OPEN        = 0x10, // Open / create file
     ESPCMD_CLOSE       = 0x11, // Close open file
     ESPCMD_READ        = 0x12, // Read from file

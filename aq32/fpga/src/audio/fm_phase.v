@@ -64,7 +64,7 @@ module fm_phase(
         vib_inc = q_vibrato_cnt[12] ? ~vib_inc : vib_inc;
     end
     
-    wire [18:0] fw_inc = fw_scaled[18:0] + (vib ? vib_inc : 19'd0);
+    wire [18:0] fw_inc = fw_scaled[20:2] + (vib ? vib_inc : 19'd0);
 
     wire [18:0] d_op_phase, q_op_phase;
 
