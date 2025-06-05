@@ -16,20 +16,7 @@ static void note_off(uint8_t channel, uint8_t note) {
     FMSYNTH->ch_attr[note_ch[note]] &= ~(1 << 13);
 }
 
-static const uint16_t fnums[12] = {
-    346,
-    367,
-    389,
-    412,
-    436,
-    462,
-    490,
-    519,
-    550,
-    582,
-    617,
-    654,
-};
+static const uint16_t fnums[12] = {346, 367, 389, 412, 436, 462, 490, 519, 550, 582, 617, 654};
 
 struct op_settings {
     uint8_t a, d, s, r;
@@ -73,6 +60,16 @@ static const struct instrument strings = {
     .op  = {
         {.a = 15, .d = 0, .s = 0, .r = 0, .ws = 0, .am = 0, .ksr = 0, .vib = 1, .sus = 1, .mult = 1, .ksl = 0, .tl = 23},
         {.a = 5, .d = 0, .s = 0, .r = 5, .ws = 0, .am = 1, .ksr = 0, .vib = 1, .sus = 1, .mult = 1, .ksl = 0, .tl = 14},
+    },
+};
+
+static const struct instrument test = {
+    .fb  = 7,
+    .alg = 1,
+    .op  = {
+        {.a = 15, .d = 0, .s = 15, .r = 7, .ws = 0, .am = 0, .ksr = 0, .vib = 0, .sus = 0, .mult = 1, .ksl = 0, .tl = 0},
+        {.a = 15, .d = 0, .s = 15, .r = 7, .ws = 0, .am = 0, .ksr = 0, .vib = 0, .sus = 0, .mult = 1, .ksl = 0, .tl = 63},
+        // {.a = 15, .d = 0, .s = 0, .r = 0, .ws = 0, .am = 0, .ksr = 0, .vib = 0, .sus = 0, .mult = 0, .ksl = 0, .tl = 63},
     },
 };
 
@@ -143,6 +140,7 @@ static void program_change(uint8_t channel, uint8_t program) {
         case 0: cur_instrument = &strings; break;
         case 1: cur_instrument = &distorted_guitar; break;
         case 2: cur_instrument = &kick_b1; break;
+        case 3: cur_instrument = &test; break;
     }
 }
 

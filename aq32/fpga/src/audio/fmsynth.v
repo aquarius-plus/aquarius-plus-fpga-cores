@@ -28,7 +28,6 @@ module fmsynth(
     reg  [15:0] q_4op;
     wire [31:0] ch_attr_rddata;
     wire [31:0] op_attr_rddata;
-    reg   [9:0] q_modulation;
 
     wire        sel_reg0    = bus_addr == 8'd0;
     wire        sel_reg1    = bus_addr == 8'd1;
@@ -209,14 +208,40 @@ module fmsynth(
     //////////////////////////////////////////////////////////////////////////
     // Operator
     //////////////////////////////////////////////////////////////////////////
-    wire [12:0] result;
+    wire [25:0] d_fb_data,   q_fb_data;
+    wire [12:0] d_op_result;
+    reg  [12:0] q_op_result;
+    wire [13:0] fb_sum = {1'b0, q_fb_data[25:13]} + {1'b0, q_fb_data[12:0]};
+    wire [11:0] fb_mod = (ch_fb == 0) ? 0 : (fb_sum[13:2] >> (~ch_fb));
+
+    reg [9:0] op_modulation;
+    always @* begin
+        op_modulation = 0;
+        if (!q_op_sel[0])
+            op_modulation = fb_mod[9:0];
+        else if (!ch_cnt)
+            op_modulation = q_op_result[9:0];
+    end
+
     fm_op fm_op(
         .clk(clk),
         .ws(op_ws),
         .phase(phase),
-        .modulation(q_modulation),
+        .modulation(op_modulation),
         .env(env),
-        .result(result));
+        .result(d_op_result));
+
+    assign d_fb_data = {q_fb_data[12:0], d_op_result};
+
+    fm_ch_data_fb fm_ch_data_fb(
+        .clk(clk),
+        .idx(ch_sel),
+        .wrdata(d_fb_data),
+        .wren(q_next && !q_op_sel[0]),  // only store feedback for first operator in channel
+        .rddata(q_fb_data)
+    );
+
+    always @(posedge clk) q_op_result <= d_op_result;
 
     //////////////////////////////////////////////////////////////////////////
     // State machine
@@ -241,7 +266,6 @@ module fmsynth(
             q_op_reset   <= 0;
             q_kon        <= 0;
             q_restart    <= 0;
-            q_modulation <= 0;
             q_accum_l    <= 0;
             q_accum_r    <= 0;
             audio_l      <= 0;
@@ -278,16 +302,11 @@ module fmsynth(
                 end
 
                 StResult: begin
-                    if (!q_op_sel[0] && !ch_cnt) begin
-                        q_modulation <= result[9:0];
-                        
-                    end else begin
-                        q_modulation <= 0;
-
+                    if (q_op_sel[0] || ch_cnt) begin
                         if (ch_cha)
-                            q_accum_l <= q_accum_l + {{6{result[12]}}, result};
+                            q_accum_l <= q_accum_l + {{6{d_op_result[12]}}, d_op_result};
                         if (ch_chb)
-                            q_accum_r <= q_accum_r + {{6{result[12]}}, result};
+                            q_accum_r <= q_accum_r + {{6{d_op_result[12]}}, d_op_result};
                     end
 
                     q_state  <= StDone;

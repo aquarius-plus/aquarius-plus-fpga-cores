@@ -1,8 +1,8 @@
 onerror {resume}
 quietly virtual signal -install /tb_fmsynth/fmsynth/fm_eg { /tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[23:15]} envelope
 quietly WaveActivateNextPane {} 0
-add wave -noupdate -expand -group Waveforms -format Analog-Step -height 50 -max 32767.0 -min -32768.0 -radix decimal /tb_fmsynth/fmsynth/audio_l
-add wave -noupdate -expand -group Waveforms -format Analog-Step -height 50 -max 32767.0 -min -32768.0 -radix decimal /tb_fmsynth/fmsynth/audio_r
+add wave -noupdate -expand -group Waveforms -format Analog-Step -height 50 -max 4095.0000000000005 -min -4096.0 -radix decimal /tb_fmsynth/fmsynth/audio_l
+add wave -noupdate -expand -group Waveforms -format Analog-Step -height 50 -max 4095.0000000000005 -min -4096.0 -radix decimal /tb_fmsynth/fmsynth/audio_r
 add wave -noupdate -expand -group Waveforms -format Analog-Step -height 84 -max 1023.0 -radix unsigned /tb_fmsynth/fmsynth/fm_phase/phase
 add wave -noupdate -expand -group Waveforms -format Analog-Step -height 50 -max 511.0 -radix unsigned -childformat {{{/tb_fmsynth/fmsynth/fm_eg/envelope[23]} -radix unsigned} {{/tb_fmsynth/fmsynth/fm_eg/envelope[22]} -radix unsigned} {{/tb_fmsynth/fmsynth/fm_eg/envelope[21]} -radix unsigned} {{/tb_fmsynth/fmsynth/fm_eg/envelope[20]} -radix unsigned} {{/tb_fmsynth/fmsynth/fm_eg/envelope[19]} -radix unsigned} {{/tb_fmsynth/fmsynth/fm_eg/envelope[18]} -radix unsigned} {{/tb_fmsynth/fmsynth/fm_eg/envelope[17]} -radix unsigned} {{/tb_fmsynth/fmsynth/fm_eg/envelope[16]} -radix unsigned} {{/tb_fmsynth/fmsynth/fm_eg/envelope[15]} -radix unsigned}} -subitemconfig {{/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[23]} {-radix unsigned} {/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[22]} {-radix unsigned} {/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[21]} {-radix unsigned} {/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[20]} {-radix unsigned} {/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[19]} {-radix unsigned} {/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[18]} {-radix unsigned} {/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[17]} {-radix unsigned} {/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[16]} {-radix unsigned} {/tb_fmsynth/fmsynth/fm_eg/q_eg_env_cnt[15]} {-radix unsigned}} /tb_fmsynth/fmsynth/fm_eg/envelope
 add wave -noupdate -expand -group Waveforms -format Analog-Step -height 50 -max 511.0 -radix unsigned /tb_fmsynth/fmsynth/fm_eg/env
@@ -27,7 +27,6 @@ add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/q_nts
 add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/q_4op
 add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/ch_attr_rddata
 add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/op_attr_rddata
-add wave -noupdate -expand -group {FM synth internal} -radix unsigned /tb_fmsynth/fmsynth/q_modulation
 add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/sel_reg0
 add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/sel_reg1
 add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/sel_ch_attr
@@ -39,7 +38,13 @@ add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/q_op_r
 add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/phase
 add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/restart
 add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/env
-add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/result
+add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/d_fb_data
+add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/q_fb_data
+add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/d_op_result
+add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/q_op_result
+add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/fb_sum
+add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/fb_mod
+add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/op_modulation
 add wave -noupdate -expand -group {FM synth internal} /tb_fmsynth/fmsynth/q_state
 add wave -noupdate -expand -group {Operator attributes} -radix unsigned /tb_fmsynth/fmsynth/q_op_sel
 add wave -noupdate -expand -group {Operator attributes} -radix unsigned /tb_fmsynth/fmsynth/op_ws
@@ -124,7 +129,7 @@ add wave -noupdate -group Operator -group {OP internal} /tb_fmsynth/fmsynth/fm_o
 add wave -noupdate -group Operator -group {OP internal} /tb_fmsynth/fmsynth/fm_op/q_shift
 add wave -noupdate -group Operator -group {OP internal} /tb_fmsynth/fmsynth/fm_op/exp_value
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {321341765 ps} 0}
+WaveRestoreCursors {{Cursor 1} {9189540000 ps} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 415
 configure wave -valuecolwidth 98
@@ -140,4 +145,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {5012499149 ps} {10262500045 ps}
+WaveRestoreZoom {0 ps} {21 ms}
