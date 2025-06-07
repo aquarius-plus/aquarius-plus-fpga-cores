@@ -81,6 +81,43 @@ module fmsynth(
         end
 
     //////////////////////////////////////////////////////////////////////////
+    // AM / Vibrato
+    //////////////////////////////////////////////////////////////////////////
+    reg [11:0] q_timer;
+    reg  [2:0] q_vibpos;
+    reg  [7:0] q_am_cnt;
+    reg        d_am_dir, q_am_dir;
+
+    always @* begin
+        d_am_dir = q_am_dir;
+        if (q_am_cnt == 8'd105)
+            d_am_dir = 1;
+        else if (q_am_cnt == 8'd0)
+            d_am_dir = 0;
+    end
+
+    always @(posedge clk or posedge reset)
+        if (reset) begin 
+            q_timer  <= 0;
+            q_vibpos <= 0;
+            q_am_cnt <= 0;
+            q_am_dir <= 0;
+
+        end else if (q_next_sample) begin
+            q_timer  <= q_timer + 12'd1;
+            q_am_dir <= d_am_dir;
+
+            if (q_timer == 12'h3FF)
+                q_vibpos <= q_vibpos + 3'd1;
+
+            if (q_timer[5:0] == 6'h3F) begin
+                q_am_cnt <= q_am_cnt + (q_am_dir ? 8'hFF : 8'h01);
+            end
+        end
+
+    wire [5:0] am_val = q_dam ? q_am_cnt[7:2] : {2'b0, q_am_cnt[7:4]};
+
+    //////////////////////////////////////////////////////////////////////////
     // Operator attributes
     //////////////////////////////////////////////////////////////////////////
     reg   [5:0] q_op_sel;
@@ -90,8 +127,6 @@ module fmsynth(
     wire  [1:0] op_ksl;
     wire  [5:0] op_tl;
     wire  [3:0] op_ar, op_dr, op_sl, op_rr;
-
-    // TODO: op_am, op_ksr, op_ksl
 
     fm_op_attr fm_op_attr(
         .clk(clk),
@@ -127,7 +162,7 @@ module fmsynth(
     wire  [2:0] ch_block;
     wire  [9:0] ch_fnum;
 
-    // TODO: ch_fb, ch_cnt, ch_kon
+    // TODO: ch_cnt
 
     fm_ch_attr fm_ch_attr(
         .clk(clk),
@@ -149,7 +184,7 @@ module fmsynth(
     //////////////////////////////////////////////////////////////////////////
     // Operator phase counter
     //////////////////////////////////////////////////////////////////////////
-    reg        q_next;
+    reg        q_op_next;
     reg        q_op_reset;
     wire [9:0] phase;
     wire       restart = q_restart[q_op_sel[5:1]];
@@ -159,8 +194,9 @@ module fmsynth(
         .reset(reset),
 
         .op_sel(q_op_sel),
-        .next(q_next),
+        .next(q_op_next),
         .restart(restart),
+        .vib_pos(q_vibpos),
 
         .block(ch_block),
         .fnum(ch_fnum),
@@ -182,7 +218,7 @@ module fmsynth(
         .clk(clk),
 
         .op_sel(q_op_sel),
-        .next(q_next),
+        .next(q_op_next),
         .op_reset(q_op_reset),
         .restart(restart),
 
@@ -199,8 +235,9 @@ module fmsynth(
         .kon(ch_kon),
         .egt(op_egt),
         .am(op_am),
-        .dam(q_dam),
         .ksl(op_ksl),
+
+        .am_val(am_val),
 
         .env(env)
     );
@@ -211,8 +248,7 @@ module fmsynth(
     wire [25:0] d_fb_data,   q_fb_data;
     wire [12:0] d_op_result;
     reg  [12:0] q_op_result;
-    wire [13:0] fb_sum = {1'b0, q_fb_data[25:13]} + {1'b0, q_fb_data[12:0]};
-    wire [11:0] fb_mod = (ch_fb == 0) ? 0 : (fb_sum[13:2] >> (~ch_fb));
+    wire [11:0] fb_mod;
 
     reg [9:0] op_modulation;
     always @* begin
@@ -223,47 +259,52 @@ module fmsynth(
             op_modulation = q_op_result[9:0];
     end
 
+    wire [9:0] modulated_phase = phase + op_modulation;
+
     fm_op fm_op(
         .clk(clk),
         .ws(op_ws),
-        .phase(phase),
-        .modulation(op_modulation),
+        .phase(modulated_phase),
         .env(env),
         .result(d_op_result));
 
+    always @(posedge clk)
+        if (q_op_next)
+            q_op_result <= d_op_result;
+
+    //////////////////////////////////////////////////////////////////////////
+    // Feedback
+    //////////////////////////////////////////////////////////////////////////
     assign d_fb_data = {q_fb_data[12:0], d_op_result};
 
     fm_ch_data_fb fm_ch_data_fb(
         .clk(clk),
         .idx(ch_sel),
         .wrdata(d_fb_data),
-        .wren(q_next && !q_op_sel[0]),  // only store feedback for first operator in channel
+        .wren(q_op_next && !q_op_sel[0]),  // only store feedback for first operator in channel
         .rddata(q_fb_data)
     );
 
-    always @(posedge clk) q_op_result <= d_op_result;
+    wire [13:0] fb_sum = {q_fb_data[25], q_fb_data[25:13]} + {q_fb_data[12], q_fb_data[12:0]};
+    assign      fb_mod = (ch_fb == 0) ? 0 : ($signed(fb_sum[13:2]) >>> (~ch_fb));
 
     //////////////////////////////////////////////////////////////////////////
     // State machine
     //////////////////////////////////////////////////////////////////////////
     localparam
-        StReset  = 3'd0,
-        StReset2 = 3'd1,
-        StLogSin = 3'd2,
-        StExp    = 3'd3,
-        StResult = 3'd4,
-        StDone   = 3'd5,
-        StBus    = 3'd6,
-        StStart  = 3'd7;
+        StIdle    = 2'd0,
+        StStart   = 2'd1,
+        StProcess = 2'd2,
+        StNext    = 2'd3;
 
-    reg [2:0] q_state;
+    reg [1:0] q_state;
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
-            q_state      <= StReset;
-            q_next       <= 0;
+            q_state      <= StIdle;
+            q_op_next    <= 0;
             q_op_sel     <= 0;
-            q_op_reset   <= 0;
+            q_op_reset   <= 1;
             q_kon        <= 0;
             q_restart    <= 0;
             q_accum_l    <= 0;
@@ -272,51 +313,45 @@ module fmsynth(
             audio_r      <= 0;
 
         end else begin
-            q_next <= 0;
+            q_op_next <= 0;
 
             case (q_state)
-                StReset: begin
-                    q_op_sel   <= 0;
-                    q_op_reset <= 1;
-                    q_next     <= 1;
-                    q_state    <= StReset2;
-                end
+                StIdle: begin
+                    // Wait for next sample to start
+                    if (q_next_sample)
+                        q_state <= StStart;
 
-                StReset2: begin
-                    q_next   <= 1;
-                    q_op_sel <= q_op_sel + 6'd1;
+                    if (bus_wren && sel_ch_attr) begin
+                        q_kon[bus_addr[4:0]] <= bus_wrdata[13];
 
-                    if (q_op_sel == 6'd63) begin
-                        q_next     <= 0;
-                        q_op_reset <= 0;
-                        q_state    <= StBus;
+                        if (bus_wrdata[13] && !q_kon[bus_addr[4:0]]) begin    // Key on
+                            q_restart[bus_addr[4:0]] <= 1'b1;
+                        end
                     end
                 end
 
-                StLogSin: begin
-                    q_state <= StExp;
+                StStart: begin
+                    q_state  <= StProcess;
+                    q_op_sel <= 0;
                 end
 
-                StExp: begin
-                    q_state <= StResult;
-                end
-
-                StResult: begin
-                    if (q_op_sel[0] || ch_cnt) begin
+                StProcess: begin
+                    if (!q_op_reset && (q_op_sel[0] || ch_cnt)) begin
                         if (ch_cha)
                             q_accum_l <= q_accum_l + {{6{d_op_result[12]}}, d_op_result};
                         if (ch_chb)
                             q_accum_r <= q_accum_r + {{6{d_op_result[12]}}, d_op_result};
                     end
 
-                    q_state  <= StDone;
-                    q_next   <= 1;
+                    q_state   <= StNext;
+                    q_op_next <= 1;
                 end
 
-                StDone: begin
+                StNext: begin
                     if (q_op_sel == 6'd63) begin
-                        q_restart <= 0;
-                        q_state   <= StBus;
+                        q_restart  <= 0;
+                        q_state    <= StIdle;
+                        q_op_reset <= 0;
 
                         // Clamp output signal
                         audio_l <= q_accum_l[15:0];
@@ -338,26 +373,8 @@ module fmsynth(
 
                     end else begin
                         q_op_sel <= q_op_sel + 6'd1;
-                        q_state  <= StLogSin;
+                        q_state  <= StProcess;
                     end
-                end
-
-                StBus: begin
-                    if (q_next_sample)
-                        q_state <= StStart;
-
-                    if (bus_wren && sel_ch_attr) begin
-                        q_kon[bus_addr[4:0]] <= bus_wrdata[13];
-
-                        if (bus_wrdata[13] && !q_kon[bus_addr[4:0]]) begin    // Key on
-                            q_restart[bus_addr[4:0]] <= 1'b1;
-                        end
-                    end
-                end
-
-                StStart: begin
-                    q_state  <= StLogSin;
-                    q_op_sel <= 0;
                 end
 
                 default: begin end
@@ -365,6 +382,6 @@ module fmsynth(
         end
     end
 
-    assign bus_wait = bus_wren && (q_state != StBus);
+    assign bus_wait = bus_wren && (q_state != StIdle);
 
 endmodule

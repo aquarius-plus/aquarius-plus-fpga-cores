@@ -8,6 +8,7 @@ module fm_phase(
     input  wire  [5:0] op_sel,
     input  wire        next,
     input  wire        restart,
+    input  wire  [2:0] vib_pos,
 
     input  wire  [2:0] block,
     input  wire  [9:0] fnum,
@@ -19,6 +20,26 @@ module fm_phase(
 
     output wire  [9:0] phase
 );
+
+    // Vibrato
+    reg [2:0] range;
+    always @* begin
+        range = fnum[9:7];
+        if (vib_pos[1:0] == 2'd0)
+            range = 0;
+        else if (vib_pos[0])
+            range = range >> 1;
+        if (!dvb)
+            range = range >> 1;
+    end
+
+    reg [9:0] f_num;
+    always @* begin
+        if (vib_pos[2])
+            f_num = fnum - {7'b0, range};
+        else
+            f_num = fnum + {7'b0, range};
+    end
 
     // Translate MULT parameter to multiplier value
     reg [4:0] fw_multiplier;
@@ -41,30 +62,9 @@ module fm_phase(
         4'd15: fw_multiplier = 5'd30;
     endcase
 
-    // Vibrato counter
-    reg  [12:0] q_vibrato_cnt;
-    always @(posedge clk or posedge reset)
-        if      (reset) q_vibrato_cnt <= 0;
-        else if (next)  q_vibrato_cnt <= q_vibrato_cnt + 13'd1;
-
-    // Vibration
-    wire [16:0] fw        = {7'b0, fnum} << block;
-    wire [20:0] fw_scaled = fw[15:0] * fw_multiplier;
-    reg   [2:0] vib_delta;
-    reg  [18:0] vib_inc;
-
-    always @* begin
-        vib_delta = fnum[9:7];
-        if (q_vibrato_cnt[11:10] == 2'd3)
-            vib_delta = {1'b0, vib_delta[2:1]};
-        if (!dvb)
-            vib_delta = {1'b0, vib_delta[2:1]};
-
-        vib_inc = {16'b0, vib_delta};
-        vib_inc = q_vibrato_cnt[12] ? ~vib_inc : vib_inc;
-    end
-    
-    wire [18:0] fw_inc = fw_scaled[20:2] + (vib ? vib_inc : 19'd0);
+    wire [16:0] fw        = {7'b0, f_num} << block;
+    wire [20:0] fw_scaled = fw[16:1] * fw_multiplier;
+    wire [19:0] phase_inc = fw_scaled[20:1];
 
     wire [18:0] d_op_phase, q_op_phase;
 
@@ -75,7 +75,7 @@ module fm_phase(
         .wren(next),
         .rddata(q_op_phase));
 
-    assign d_op_phase = (restart ? 19'd0 : q_op_phase) + fw_inc;
+    assign d_op_phase = (restart ? 19'd0 : q_op_phase) + phase_inc[18:0];
 
     assign phase = q_op_phase[18:9];
 

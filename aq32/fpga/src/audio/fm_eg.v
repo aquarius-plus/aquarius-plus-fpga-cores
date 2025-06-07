@@ -21,19 +21,14 @@ module fm_eg(
     input  wire        ksr,
     input  wire        kon,
     input  wire        egt,
-    input  wire        am,      // Fixme
-    input  wire        dam,     // Fixme
-    input  wire  [1:0] ksl,     // Fixme
+    input  wire        am,
+    input  wire  [1:0] ksl,
+
+    input  wire  [5:0] am_val,
 
     output reg   [8:0] env
 );
 
-    localparam
-        StageAttack  = 2'd0,
-        StageDecay   = 2'd1,
-        StageSustain = 2'd2,
-        StageRelease = 2'd3;
-    
     reg   [1:0] d_eg_stage;
     wire  [1:0] q_eg_stage;
     reg  [23:0] d_eg_env_cnt;
@@ -43,20 +38,73 @@ module fm_eg(
         .clk(clk),
         .idx(op_sel),
         .wren(next),
-        
+
         .i_stage(d_eg_stage),
         .i_env_cnt(d_eg_env_cnt),
-        
+
         .o_stage(q_eg_stage),
         .o_env_cnt(q_eg_env_cnt)
     );
 
-    // Rate offset (based on key split and key scaling)
-    reg [3:0] rof;
+    // KSL ROM
+    reg [6:0] kslrom_val;
+    always @* case (fnum[9:6])
+        4'd0:  kslrom_val = 7'd0;
+        4'd1:  kslrom_val = 7'd32;
+        4'd2:  kslrom_val = 7'd40;
+        4'd3:  kslrom_val = 7'd45;
+        4'd4:  kslrom_val = 7'd48;
+        4'd5:  kslrom_val = 7'd51;
+        4'd6:  kslrom_val = 7'd53;
+        4'd7:  kslrom_val = 7'd55;
+        4'd8:  kslrom_val = 7'd56;
+        4'd9:  kslrom_val = 7'd58;
+        4'd10: kslrom_val = 7'd59;
+        4'd11: kslrom_val = 7'd60;
+        4'd12: kslrom_val = 7'd61;
+        4'd13: kslrom_val = 7'd62;
+        4'd14: kslrom_val = 7'd63;
+        4'd15: kslrom_val = 7'd64;
+    endcase
+
+    wire [3:0] blk = 4'd8 - {1'b0, block};
+    reg  [8:0] eg_ksl;
     always @* begin
-        rof = {block, nts ? fnum[8] : fnum[9]};
-        if (ksr)
-            rof = {2'b0, rof[3:2]};
+        eg_ksl = {kslrom_val, 2'b0} - {blk, 5'b0};
+
+        case (ksl)
+            2'd0: eg_ksl = eg_ksl >> 8;
+            2'd1: eg_ksl = eg_ksl >> 1;
+            2'd2: eg_ksl = eg_ksl >> 2;
+            2'd3: eg_ksl = eg_ksl >> 0;
+        endcase
+    end
+
+    reg [10:0] tmp;
+    always @* begin
+        tmp = {2'b0, q_eg_env_cnt[23:15]};
+        tmp = tmp + {3'b0, tl, 2'b0} + {2'b0, eg_ksl};
+        if (am)
+            tmp = tmp + {5'b0, am_val};
+
+        if (tmp > 11'd511)
+            env = 9'd511;
+        else
+            env = tmp[8:0];
+    end
+
+    localparam
+        StageAttack  = 2'd0,
+        StageDecay   = 2'd1,
+        StageSustain = 2'd2,
+        StageRelease = 2'd3;
+
+    // Rate offset (based on key split and key scaling)
+    reg [3:0] ks;
+    always @* begin
+        ks = {block, nts ? fnum[8] : fnum[9]};
+        if (!ksr)
+            ks = {2'b0, ks[3:2]};
     end
 
     // Rate value
@@ -64,25 +112,26 @@ module fm_eg(
     always @* case (q_eg_stage)
         StageAttack:  stage_rate = ar;
         StageDecay:   stage_rate = dr;
-        StageSustain: stage_rate = 4'd0;
+        StageSustain: stage_rate = 0;
         StageRelease: stage_rate = rr;
     endcase
 
     // Actual value
-    reg [6:0] actual_rate;
+    reg [6:0] rate;
     always @* begin
-        actual_rate = {3'b0, rof} + {1'b0, stage_rate, 2'b0};
-        if (actual_rate > 7'd60)
-            actual_rate = 7'd60;
+        rate = {3'b0, ks} + {1'b0, stage_rate, 2'b0};
+        if (rate > 7'd60)
+            rate = 7'd60;
     end
 
-    reg  [24:0] eg_env_cnt_inc;
+    reg [24:0] eg_env_cnt_inc;
     always @* begin
-        eg_env_cnt_inc = {22'b0, 1'b1, actual_rate[1:0]} << actual_rate[5:2];
+        eg_env_cnt_inc = {22'b0, 1'b1, rate[1:0]} << rate[5:2];
         if (q_eg_stage == StageAttack)
             eg_env_cnt_inc = eg_env_cnt_inc << 3;
     end
-    reg  [24:0] eg_env_cnt_next;
+
+    reg [24:0] eg_env_cnt_next;
     always @* begin
         eg_env_cnt_next = {1'b0, q_eg_env_cnt};
         if (stage_rate != 4'd0)
@@ -95,13 +144,13 @@ module fm_eg(
 
         case (q_eg_stage)
             StageAttack: begin
-                if (eg_env_cnt_next[24]) begin
+                if (ar == 4'hF || eg_env_cnt_next[24]) begin
                     d_eg_env_cnt = 0;
                     d_eg_stage   = StageDecay;
                 end
             end
             StageDecay: begin
-                if (eg_env_cnt_next[24] || eg_env_cnt_next[23:20] >= sl) begin
+                if (dr != 0 && (eg_env_cnt_next[24] || eg_env_cnt_next[23:20] >= sl)) begin
                     d_eg_env_cnt = {sl, 20'd0};
                     d_eg_stage   = StageSustain;
                 end
@@ -130,17 +179,5 @@ module fm_eg(
         end
     end
 
-    reg [10:0] tmp;
-    always @* begin
-        tmp = {2'b0, q_eg_env_cnt[23:15]};
-        tmp = tmp + {3'b0, tl, 2'b0};
-
-        if (tmp[10])
-            env = 9'd0;
-        else if (tmp[9:0] > 10'd511)
-            env = 9'd511;
-        else
-            env = tmp[8:0];
-    end
 
 endmodule
