@@ -100,14 +100,10 @@ module fm_eg(
         StageRelease = 2'd3;
 
     // Rate offset (based on key split and key scaling)
-    reg [3:0] ks;
-    always @* begin
-        ks = {block, nts ? fnum[8] : fnum[9]};
-        if (!ksr)
-            ks = {2'b0, ks[3:2]};
-    end
+    wire [3:0] ksv = {block, nts ? fnum[8] : fnum[9]};
+    wire [3:0] rof = ksr ? ksv : (ksv >> 2);
 
-    // Rate value
+    // Stage rate
     reg [3:0] stage_rate;
     always @* case (q_eg_stage)
         StageAttack:  stage_rate = ar;
@@ -116,26 +112,27 @@ module fm_eg(
         StageRelease: stage_rate = rr;
     endcase
 
-    // Actual value
+    // Rate
     reg [6:0] rate;
     always @* begin
-        rate = {3'b0, ks} + {1'b0, stage_rate, 2'b0};
-        if (rate > 7'd60)
-            rate = 7'd60;
+        rate = {3'b0, rof} + {1'b0, stage_rate, 2'b0};
+        if (rate > 7'd63)
+            rate = 7'd63;
     end
 
     reg [24:0] eg_env_cnt_inc;
     always @* begin
         eg_env_cnt_inc = {22'b0, 1'b1, rate[1:0]} << rate[5:2];
-        if (q_eg_stage == StageAttack)
-            eg_env_cnt_inc = eg_env_cnt_inc << 3;
+        if (q_eg_stage == StageAttack) begin
+            eg_env_cnt_inc = ~{16'b0, env[8:0]} << rate[5:2];   //~(eg_env_cnt_inc << 3);
+        end
     end
 
     reg [24:0] eg_env_cnt_next;
     always @* begin
         eg_env_cnt_next = {1'b0, q_eg_env_cnt};
         if (stage_rate != 4'd0)
-            eg_env_cnt_next = eg_env_cnt_next + (q_eg_stage == StageAttack ? ~eg_env_cnt_inc : eg_env_cnt_inc);
+            eg_env_cnt_next = eg_env_cnt_next + eg_env_cnt_inc;
     end
 
     always @* begin

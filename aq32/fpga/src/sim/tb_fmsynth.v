@@ -61,7 +61,7 @@ module tb_fmsynth();
             4'd1,   // MULT
             2'd0,   // KSL
             6'd0,   // TL
-            4'd15,  // AR
+            4'd5,  // AR
             4'd0,   // DR
             4'd15,   // SL
             4'd7    // RR
@@ -73,10 +73,10 @@ module tb_fmsynth();
             1'b0,   // KSR
             4'd1,   // MULT
             2'd0,   // KSL
-            6'd63,   // TL
-            4'd15,  // AR
+            6'd0,   // TL
+            4'd5,  // AR
             4'd0,   // DR
-            4'd1,   // SL
+            4'd15,   // SL
             4'd7    // RR
         });
         // regwr(8'h81, {
