@@ -12,7 +12,7 @@ module fm_op_attr(
     output wire  [2:0] op_ws,
     output wire        op_am,
     output wire        op_vib,
-    output wire        op_egt,
+    output wire        op_sus,
     output wire        op_ksr,
     output wire  [3:0] op_mult,
     output wire  [1:0] op_ksl,
@@ -34,7 +34,7 @@ module fm_op_attr(
     wire [(NUMBITS-1):0] b_rddata;
     assign {
         op_ws,
-        op_am, op_vib, op_egt, op_ksr, op_mult,
+        op_am, op_vib, op_sus, op_ksr, op_mult,
         op_ksl, op_tl,
         op_ar, op_dr, op_sl, op_rr
     } = b_rddata;

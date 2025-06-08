@@ -56,37 +56,37 @@ module tb_fmsynth();
         regwr(8'h80, {
             1'b0,   // AM
             1'b0,   // VIB
-            1'b0,   // EGT
+            1'b0,   // SUS
             1'b0,   // KSR
             4'd1,   // MULT
             2'd0,   // KSL
             6'd0,   // TL
-            4'd5,  // AR
+            4'd5,   // AR
             4'd0,   // DR
-            4'd15,   // SL
+            4'd15,  // SL
             4'd7    // RR
         });
         regwr(8'h81, {
             1'b0,   // AM
             1'b0,   // VIB
-            1'b0,   // EGT
+            1'b0,   // SUS
             1'b0,   // KSR
             4'd1,   // MULT
             2'd0,   // KSL
             6'd0,   // TL
-            4'd5,  // AR
+            4'd5,   // AR
             4'd0,   // DR
-            4'd15,   // SL
+            4'd15,  // SL
             4'd7    // RR
         });
         // regwr(8'h81, {
         //     1'b0,   // AM
         //     1'b0,   // VIB
-        //     1'b0,   // EGT
+        //     1'b0,   // SUS
         //     1'b0,   // KSR
         //     4'd1,   // MULT
         //     2'd0,   // KSL
-        //     6'd63,   // TL
+        //     6'd63,  // TL
         //     4'd15,  // AR
         //     4'd0,   // DR
         //     4'd15,  // SL
@@ -103,6 +103,8 @@ module tb_fmsynth();
             3'd3,   // BLOCK
             10'd344 // FNUM
         });
+
+        regwr(8'h02, 32'h1);
         
         // #1377900;
         // @(posedge(clk));

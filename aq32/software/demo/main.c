@@ -13,7 +13,8 @@ static uint8_t cur_ch;
 static void note_off(uint8_t channel, uint8_t note) {
     printf("ch%d: note %3d off\n", channel, note);
 
-    FMSYNTH->ch_attr[note_ch[note]] &= ~(1 << 13);
+    FMSYNTH->key_on &= ~(1 << note_ch[note]);
+    // FMSYNTH->ch_attr[note_ch[note]] &= ~(1 << 13);
 }
 
 static const uint16_t fnums[19] = {
@@ -100,9 +101,11 @@ static void play_ch_instrument(uint8_t ch, uint8_t block, uint16_t fnum, const s
         (1 << 20) |                     // CHA
         (instrument->fb << 17) |        // FB
         ((instrument->alg & 1) << 16) | // CNT
-        (1 << 13) |                     // KON
+                                        //        (1 << 13) |                     // KON
         (block << 10) |                 // BLOCK
         fnum;                           // FNUM
+
+    FMSYNTH->key_on |= (1 << ch);
 }
 
 static void note_on(uint8_t channel, uint8_t note, uint8_t velocity) {

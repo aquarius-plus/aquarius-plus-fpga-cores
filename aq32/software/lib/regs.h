@@ -38,7 +38,8 @@ struct regs {
 struct fmsynth {
     volatile uint32_t opmode;
     volatile uint32_t ctrl;
-    volatile uint32_t _pad[30 + 32 + 32];
+    volatile uint32_t key_on;
+    volatile uint32_t _pad[29 + 32 + 32];
     volatile uint32_t ch_attr[32];
     volatile uint32_t op_attr0[64];
     volatile uint32_t op_attr1[64];

@@ -20,7 +20,7 @@ module fm_eg(
     input  wire        nts,
     input  wire        ksr,
     input  wire        kon,
-    input  wire        egt,
+    input  wire        sus,
     input  wire        am,
     input  wire  [1:0] ksl,
 
@@ -153,7 +153,7 @@ module fm_eg(
                 end
             end
             StageSustain: begin
-                if (!egt) begin
+                if (!sus) begin
                     d_eg_stage = StageRelease;
                 end
             end

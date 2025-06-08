@@ -15,14 +15,18 @@ module fmsynth(
     output reg  [15:0] audio_r
 );
 
-    wire        bus_wr = bus_wren && !bus_wait;
+    wire        bus_wr      = bus_wren && !bus_wait;
+    wire        sel_reg0    = bus_addr == 8'd0;
+    wire        sel_reg1    = bus_addr == 8'd1;
+    wire        sel_reg2    = bus_addr == 8'd2;
+    wire        sel_ch_attr = bus_addr[7:5] == 3'b011;
+    wire        sel_op_attr = bus_addr[7];
 
-    reg  [18:0] q_accum_l, q_accum_r;
-
+    reg  [18:0] q_accum_l;
+    reg  [18:0] q_accum_r;
     reg  [31:0] q_kon;
     reg  [31:0] q_alg;
     reg  [31:0] q_restart;
-
     reg         q_dam;
     reg         q_dvb;
     reg         q_nts;
@@ -30,33 +34,11 @@ module fmsynth(
     wire [31:0] ch_attr_rddata;
     wire [31:0] op_attr_rddata;
 
-    wire        sel_reg0    = bus_addr == 8'd0;
-    wire        sel_reg1    = bus_addr == 8'd1;
-    wire        sel_ch_attr = bus_addr[7:5] == 3'b011;
-    wire        sel_op_attr = bus_addr[7];
-
-    always @(posedge clk or posedge reset) begin
-        if (reset) begin
-            q_dam <= 0;
-            q_dvb <= 0;
-            q_nts <= 0;
-            q_4op <= 0;
-
-        end else begin
-            if (sel_reg0 && bus_wr)
-                q_4op <= bus_wrdata[15:0];
-            if (sel_reg1 && bus_wr) begin
-                q_nts <= bus_wrdata[14];
-                q_dam <= bus_wrdata[7];
-                q_dvb <= bus_wrdata[6];
-            end
-        end
-    end
-
     always @* begin
         bus_rddata = 32'b0;
         if (sel_reg0)    bus_rddata = {16'b0, q_4op};
         if (sel_reg1)    bus_rddata = {17'b0, q_nts, 6'b0, q_dam, q_dvb, 6'b0};
+        if (sel_reg2)    bus_rddata = q_kon;
         if (sel_ch_attr) bus_rddata = ch_attr_rddata;
         if (sel_op_attr) bus_rddata = op_attr_rddata;
     end
@@ -123,7 +105,7 @@ module fmsynth(
     //////////////////////////////////////////////////////////////////////////
     reg   [5:0] q_op_sel;
     wire  [2:0] op_ws;
-    wire        op_am, op_vib, op_egt, op_ksr;
+    wire        op_am, op_vib, op_sus, op_ksr;
     wire  [3:0] op_mult;
     wire  [1:0] op_ksl;
     wire  [5:0] op_tl;
@@ -140,7 +122,7 @@ module fmsynth(
         .op_ws(op_ws),
         .op_am(op_am),
         .op_vib(op_vib),
-        .op_egt(op_egt),
+        .op_sus(op_sus),
         .op_ksr(op_ksr),
         .op_mult(op_mult),
         .op_ksl(op_ksl),
@@ -166,9 +148,6 @@ module fmsynth(
     wire        alg_2op = q_alg[q_op_sel[5:1]];
     wire  [1:0] alg_4op = {q_alg[{q_op_sel[5:2], 1'b0}], q_alg[{q_op_sel[5:2], 1'b1}]};
 
-    wire ch_kon_unused;
-    wire ch_alg_unused;
-
     fm_ch_attr fm_ch_attr(
         .clk(clk),
         .addr(bus_addr[4:0]),
@@ -180,8 +159,6 @@ module fmsynth(
         .ch_chb(ch_chb),
         .ch_cha(ch_cha),
         .ch_fb(ch_fb),
-        .ch_alg(ch_alg_unused),
-        .ch_kon(ch_kon_unused),
         .ch_block(ch_block),
         .ch_fnum(ch_fnum)
     );
@@ -260,7 +237,7 @@ module fmsynth(
         .nts(q_nts),
         .ksr(op_ksr),
         .kon(ch_kon),
-        .egt(op_egt),
+        .sus(op_sus),
         .am(op_am),
         .ksl(op_ksl),
 
@@ -326,16 +303,21 @@ module fmsynth(
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
-            q_state      <= StIdle;
-            q_op_next    <= 0;
-            q_op_sel     <= 0;
-            q_op_reset   <= 1;
-            q_kon        <= 0;
-            q_restart    <= 0;
-            q_accum_l    <= 0;
-            q_accum_r    <= 0;
             audio_l      <= 0;
             audio_r      <= 0;
+            q_accum_l    <= 0;
+            q_accum_r    <= 0;
+            q_kon        <= 0;
+            q_alg        <= 0;
+            q_restart    <= 0;
+            q_dam        <= 0;
+            q_dvb        <= 0;
+            q_nts        <= 0;
+            q_4op        <= 0;
+            q_op_sel     <= 0;
+            q_op_next    <= 0;
+            q_op_reset   <= 1;
+            q_state      <= StIdle;
 
         end else begin
             q_op_next <= 0;
@@ -345,15 +327,6 @@ module fmsynth(
                     // Wait for next sample to start
                     if (q_next_sample)
                         q_state <= StStart;
-
-                    if (bus_wren && sel_ch_attr) begin
-                        q_kon[bus_addr[4:0]] <= bus_wrdata[13];
-                        q_alg[bus_addr[4:0]] <= bus_wrdata[16];
-
-                        if (bus_wrdata[13] && !q_kon[bus_addr[4:0]]) begin    // Key on
-                            q_restart[bus_addr[4:0]] <= 1'b1;
-                        end
-                    end
                 end
 
                 StStart: begin
@@ -405,6 +378,25 @@ module fmsynth(
 
                 default: begin end
             endcase
+
+            if (bus_wr) begin
+                if (sel_reg0) begin
+                    q_4op <= bus_wrdata[15:0];
+                end
+                if (sel_reg1) begin
+                    q_nts <= bus_wrdata[14];
+                    q_dam <= bus_wrdata[7];
+                    q_dvb <= bus_wrdata[6];
+                end
+                if (sel_reg2) begin
+                    q_kon     <= bus_wrdata;
+                    q_restart <= q_restart | (~q_kon & bus_wrdata);
+                end
+                if (sel_ch_attr) begin
+                    q_alg[bus_addr[4:0]] <= bus_wrdata[16];
+                end
+            end
+
         end
     end
 
