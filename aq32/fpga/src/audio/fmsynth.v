@@ -20,6 +20,7 @@ module fmsynth(
     reg  [18:0] q_accum_l, q_accum_r;
 
     reg  [31:0] q_kon;
+    reg  [31:0] q_alg;
     reg  [31:0] q_restart;
 
     reg         q_dam;
@@ -153,16 +154,20 @@ module fmsynth(
     //////////////////////////////////////////////////////////////////////////
     // Channel attributes
     //////////////////////////////////////////////////////////////////////////
+    wire        is_4op = q_4op[q_op_sel[5:2]];
     wire  [4:0] ch_sel = q_op_sel[5:1];
     wire        ch_chb;
     wire        ch_cha;
     wire  [2:0] ch_fb;
-    wire        ch_cnt;
-    wire        ch_kon;
+    wire        ch_kon = q_kon[q_op_sel[5:1]];
     wire  [2:0] ch_block;
     wire  [9:0] ch_fnum;
 
-    // TODO: ch_cnt
+    wire        alg_2op = q_alg[q_op_sel[5:1]];
+    wire  [1:0] alg_4op = {q_alg[{q_op_sel[5:2], 1'b0}], q_alg[{q_op_sel[5:2], 1'b1}]};
+
+    wire ch_kon_unused;
+    wire ch_alg_unused;
 
     fm_ch_attr fm_ch_attr(
         .clk(clk),
@@ -175,11 +180,33 @@ module fmsynth(
         .ch_chb(ch_chb),
         .ch_cha(ch_cha),
         .ch_fb(ch_fb),
-        .ch_cnt(ch_cnt),
-        .ch_kon(ch_kon),
+        .ch_alg(ch_alg_unused),
+        .ch_kon(ch_kon_unused),
         .ch_block(ch_block),
         .ch_fnum(ch_fnum)
     );
+
+    reg do_sum;
+    reg do_fb;
+    reg do_mod;
+
+    always @* begin
+        if (!is_4op) begin
+            do_fb  = !q_op_sel[0];
+            do_sum =  q_op_sel[0] || alg_2op;
+            do_mod = !alg_2op;
+
+        end else begin
+            do_fb  = q_op_sel[1:0] == 0;
+
+            case (alg_4op)
+                2'd0: begin do_sum = q_op_sel[1:0] == 2'd3;        do_mod = 1;                     end
+                2'd1: begin do_sum = q_op_sel[0];                  do_mod = q_op_sel[0];           end
+                2'd2: begin do_sum = !(q_op_sel[1] ^ q_op_sel[0]); do_mod = q_op_sel[1];           end
+                2'd3: begin do_sum = q_op_sel[1:0] != 2'd1;        do_mod = q_op_sel[1:0] == 2'd2; end
+            endcase
+        end
+    end
 
     //////////////////////////////////////////////////////////////////////////
     // Operator phase counter
@@ -253,10 +280,8 @@ module fmsynth(
     reg [9:0] op_modulation;
     always @* begin
         op_modulation = 0;
-        if (!q_op_sel[0])
-            op_modulation = fb_mod[9:0];
-        else if (!ch_cnt)
-            op_modulation = q_op_result[9:0];
+        if      (do_fb)  op_modulation = fb_mod[9:0];
+        else if (do_mod) op_modulation = q_op_result[9:0];
     end
 
     wire [9:0] modulated_phase = phase + op_modulation;
@@ -323,6 +348,7 @@ module fmsynth(
 
                     if (bus_wren && sel_ch_attr) begin
                         q_kon[bus_addr[4:0]] <= bus_wrdata[13];
+                        q_alg[bus_addr[4:0]] <= bus_wrdata[16];
 
                         if (bus_wrdata[13] && !q_kon[bus_addr[4:0]]) begin    // Key on
                             q_restart[bus_addr[4:0]] <= 1'b1;
@@ -336,7 +362,7 @@ module fmsynth(
                 end
 
                 StProcess: begin
-                    if (!q_op_reset && (q_op_sel[0] || ch_cnt)) begin
+                    if (!q_op_reset && do_sum) begin
                         if (ch_cha)
                             q_accum_l <= q_accum_l + {{6{d_op_result[12]}}, d_op_result};
                         if (ch_chb)

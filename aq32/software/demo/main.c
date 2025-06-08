@@ -16,7 +16,9 @@ static void note_off(uint8_t channel, uint8_t note) {
     FMSYNTH->ch_attr[note_ch[note]] &= ~(1 << 13);
 }
 
-static const uint16_t fnums[12] = {346, 367, 389, 412, 436, 462, 490, 519, 550, 582, 617, 654};
+static const uint16_t fnums[19] = {
+    346, 367, 389, 412, 436, 462, 490, 519, 550, 582, 617, 654,
+    692, 733, 777, 823, 872, 924, 979};
 
 struct op_settings {
     uint8_t a, d, s, r;
@@ -36,11 +38,20 @@ struct instrument {
     struct op_settings op[2];
 };
 
+static const struct instrument strings = {
+    .fb  = 4,
+    .alg = 0,
+    .op  = {
+        {.a = 15, .d = 0, .s = 0, .r = 0, .ws = 0, .am = 0, .ksr = 0, .vib = 1, .sus = 1, .mult = 1, .ksl = 0, .tl = 23},
+        {.a = 5, .d = 0, .s = 0, .r = 5, .ws = 0, .am = 1, .ksr = 0, .vib = 1, .sus = 1, .mult = 1, .ksl = 0, .tl = 14},
+    },
+};
+
 static const struct instrument distorted_guitar = {
     .fb  = 6,
     .alg = 0,
     .op  = {
-        {.a = 15, .d = 1, .s = 15, .r = 7, .ws = 0, .am = 0, .ksr = 0, .vib = 1, .sus = 0, .mult = 0, .ksl = 0, .tl = 8},
+        {.a = 15, .d = 1, .s = 15, .r = 7, .ws = 0, .am = 0, .ksr = 0, .vib = 1, .sus = 0, .mult = 0, .ksl = 0, .tl = 13},
         {.a = 15, .d = 0, .s = 15, .r = 7, .ws = 6, .am = 0, .ksr = 0, .vib = 1, .sus = 0, .mult = 0, .ksl = 1, .tl = 0},
     },
 };
@@ -51,15 +62,6 @@ static const struct instrument kick_b1 = {
     .op  = {
         {.a = 15, .d = 11, .s = 5, .r = 8, .ws = 0, .am = 0, .ksr = 0, .vib = 0, .sus = 0, .mult = 2, .ksl = 0, .tl = 0},
         {.a = 15, .d = 7, .s = 15, .r = 15, .ws = 0, .am = 0, .ksr = 0, .vib = 0, .sus = 0, .mult = 0, .ksl = 0, .tl = 0},
-    },
-};
-
-static const struct instrument strings = {
-    .fb  = 4,
-    .alg = 0,
-    .op  = {
-        {.a = 15, .d = 0, .s = 0, .r = 0, .ws = 0, .am = 0, .ksr = 0, .vib = 1, .sus = 1, .mult = 1, .ksl = 0, .tl = 23},
-        {.a = 5, .d = 0, .s = 0, .r = 5, .ws = 0, .am = 1, .ksr = 0, .vib = 1, .sus = 1, .mult = 1, .ksl = 0, .tl = 14},
     },
 };
 
@@ -110,10 +112,14 @@ static void note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
     }
     printf("ch%d: note %3d on, velocity=%u\n", channel, note, velocity);
 
-    int octave   = (note / 12) - 1;
-    int note_idx = note % 12;
-
+    int octave = (note / 12) - 1;
     if (octave < 0)
+        return;
+    if (octave > 7)
+        octave = 7;
+
+    int note_idx = note - (octave + 1) * 12;
+    if (note_idx > 18)
         return;
 
     note_ch[note] = cur_ch;

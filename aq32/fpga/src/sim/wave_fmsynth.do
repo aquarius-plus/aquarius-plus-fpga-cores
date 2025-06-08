@@ -63,7 +63,7 @@ add wave -noupdate -group {Channel attributes} -radix unsigned /tb_fmsynth/fmsyn
 add wave -noupdate -group {Channel attributes} -radix unsigned /tb_fmsynth/fmsynth/ch_chb
 add wave -noupdate -group {Channel attributes} -radix unsigned /tb_fmsynth/fmsynth/ch_cha
 add wave -noupdate -group {Channel attributes} -radix unsigned /tb_fmsynth/fmsynth/ch_fb
-add wave -noupdate -group {Channel attributes} -radix unsigned /tb_fmsynth/fmsynth/ch_cnt
+add wave -noupdate -group {Channel attributes} -radix unsigned /tb_fmsynth/fmsynth/ch_alg
 add wave -noupdate -group {Channel attributes} -radix unsigned /tb_fmsynth/fmsynth/ch_kon
 add wave -noupdate -group {Channel attributes} -radix unsigned /tb_fmsynth/fmsynth/ch_block
 add wave -noupdate -group {Channel attributes} -radix unsigned /tb_fmsynth/fmsynth/ch_fnum

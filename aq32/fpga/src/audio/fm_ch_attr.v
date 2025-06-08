@@ -12,7 +12,7 @@ module fm_ch_attr(
     output wire        ch_chb,
     output wire        ch_cha,
     output wire  [2:0] ch_fb,
-    output wire        ch_cnt,
+    output wire        ch_alg,
     output wire        ch_kon,
     output wire  [2:0] ch_block,
     output wire  [9:0] ch_fnum
@@ -30,7 +30,7 @@ module fm_ch_attr(
         ch_chb,
         ch_cha,
         ch_fb,
-        ch_cnt,
+        ch_alg,
         ch_kon,
         ch_block,
         ch_fnum
