@@ -1,6 +1,5 @@
 #include "fmsynth.h"
-
-#define NUM_FM_CHANNELS 32
+#include "instrument_bank.h"
 
 #define NUM_FM_CHANNELS 32
 
@@ -8,13 +7,14 @@ struct fm_channel {
     int8_t  midi_ch;
     int8_t  midi_note;
     uint8_t age;
+    bool    is_4op;
 };
 
 struct midi_channel {
-    uint8_t program;
-    uint8_t bank;   // Controller 0
-    uint8_t volume; // Controller 7
-    uint8_t pan;    // Controller 10
+    uint8_t                  bank; // Controller 0
+    const struct instrument *instrument;
+    uint8_t                  volume; // Controller 7
+    uint8_t                  pan;    // Controller 10
 };
 
 struct op_settings {
@@ -29,12 +29,6 @@ struct op_settings {
     uint8_t tl;
 };
 
-struct instrument {
-    uint8_t            fb;
-    uint8_t            alg;
-    struct op_settings op[2];
-};
-
 static struct midi_channel midi_channels[16];
 static struct fm_channel   fm_channels[NUM_FM_CHANNELS];
 
@@ -42,54 +36,26 @@ static const uint16_t fnums[19] = {
     346, 367, 389, 412, 436, 462, 490, 519, 550, 582, 617, 654,
     692, 733, 777, 823, 872, 924, 979};
 
-static const struct instrument strings = {
-    .fb  = 4,
-    .alg = 0,
-    .op  = {
-        {.a = 15, .d = 0, .s = 0, .r = 0, .ws = 0, .am = 0, .ksr = 0, .vib = 1, .sus = 1, .mult = 1, .ksl = 0, .tl = 23},
-        {.a = 5, .d = 0, .s = 0, .r = 5, .ws = 0, .am = 1, .ksr = 0, .vib = 1, .sus = 1, .mult = 1, .ksl = 0, .tl = 14},
-    },
-};
-
-static const struct instrument distorted_guitar = {
-    .fb  = 6,
-    .alg = 0,
-    .op  = {
-        {.a = 15, .d = 1, .s = 15, .r = 7, .ws = 0, .am = 0, .ksr = 0, .vib = 1, .sus = 0, .mult = 0, .ksl = 0, .tl = 13},
-        {.a = 15, .d = 0, .s = 15, .r = 7, .ws = 6, .am = 0, .ksr = 0, .vib = 1, .sus = 0, .mult = 0, .ksl = 1, .tl = 0},
-    },
-};
-
-static const struct instrument kick_b1 = {
-    .fb  = 7,
-    .alg = 0,
-    .op  = {
-        {.a = 15, .d = 11, .s = 5, .r = 8, .ws = 0, .am = 0, .ksr = 0, .vib = 0, .sus = 0, .mult = 2, .ksl = 0, .tl = 0},
-        {.a = 15, .d = 7, .s = 15, .r = 15, .ws = 0, .am = 0, .ksr = 0, .vib = 0, .sus = 0, .mult = 0, .ksl = 0, .tl = 0},
-    },
-};
-
-static const struct instrument test = {
-    .fb  = 7,
-    .alg = 1,
-    .op  = {
-        {.a = 15, .d = 0, .s = 15, .r = 7, .ws = 0, .am = 0, .ksr = 0, .vib = 0, .sus = 0, .mult = 1, .ksl = 0, .tl = 0},
-        {.a = 15, .d = 0, .s = 15, .r = 7, .ws = 0, .am = 0, .ksr = 0, .vib = 0, .sus = 0, .mult = 1, .ksl = 0, .tl = 63},
-        // {.a = 15, .d = 0, .s = 0, .r = 0, .ws = 0, .am = 0, .ksr = 0, .vib = 0, .sus = 0, .mult = 0, .ksl = 0, .tl = 63},
-    },
-};
-
-static const struct instrument *cur_instrument = &strings;
-
 static int find_channel(bool is_4op) {
     int result = -1;
     int age    = -1;
 
-    for (int ch = 0; ch < NUM_FM_CHANNELS; ch++) {
-        if (fm_channels[ch].midi_ch < 0) {
-            if (fm_channels[ch].age > age) {
-                age    = fm_channels[ch].age;
-                result = ch;
+    if (is_4op) {
+        for (int ch = 0; ch < NUM_FM_CHANNELS; ch += 2) {
+            if (fm_channels[ch].midi_ch < 0 && fm_channels[ch + 1].midi_ch < 0) {
+                if (fm_channels[ch].age > age) {
+                    age    = fm_channels[ch].age;
+                    result = ch;
+                }
+            }
+        }
+    } else {
+        for (int ch = 0; ch < NUM_FM_CHANNELS; ch++) {
+            if (fm_channels[ch].midi_ch < 0) {
+                if (fm_channels[ch].age > age) {
+                    age    = fm_channels[ch].age;
+                    result = ch;
+                }
             }
         }
     }
@@ -101,6 +67,13 @@ void fmsynth_reset(void) {
         fm_channels[i].midi_ch = -1;
 
     FMSYNTH->ctrl = 0; // (1 << 7) | (1 << 6);
+
+    for (int i = 0; i < 16; i++) {
+        midi_channels[i].bank       = 0;
+        midi_channels[i].instrument = instrument_bank;
+        midi_channels[i].volume     = 100;
+        midi_channels[i].pan        = 64;
+    }
 }
 
 void fmsynth_note_off(uint8_t channel, uint8_t note) {
@@ -116,9 +89,26 @@ void fmsynth_note_off(uint8_t channel, uint8_t note) {
 
     printf("ch%d: note %3d off\n", channel, note);
 
-    FMSYNTH->key_on &= ~(1 << ch);
-    fm_channels[ch].midi_ch = -1;
-    fm_channels[ch].age     = 0;
+    bool is_4op = fm_channels[ch].is_4op;
+
+    if (is_4op && (ch & 1) != 0)
+        printf("Ieks!\n");
+
+    uint32_t mask = is_4op ? ~(3 << ch) : ~(1 << ch);
+
+    FMSYNTH->key_on &= mask;
+
+    fm_channels[ch].midi_ch   = -1;
+    fm_channels[ch].midi_note = -1;
+    fm_channels[ch].age       = 0;
+    fm_channels[ch].is_4op    = false;
+
+    if (is_4op) {
+        fm_channels[ch | 1].midi_ch   = -1;
+        fm_channels[ch | 1].midi_note = -1;
+        fm_channels[ch | 1].age       = 0;
+        fm_channels[ch | 1].is_4op    = false;
+    }
 
     for (int i = 0; i < NUM_FM_CHANNELS; i++) {
         if (fm_channels[i].midi_ch < 0 && fm_channels[i].age < 127)
@@ -134,57 +124,98 @@ void fmsynth_note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
     if (velocity == 0)
         return;
 
-    printf("ch%d: note %3d on, velocity=%u\n", channel, note, velocity);
+    struct midi_channel     *midi_channel = &midi_channels[channel];
+    const struct instrument *instrument   = midi_channel->instrument;
 
-    int octave = (note / 12) - 1;
+    int notenr = note;
+
+    if (channel == 9) {
+        // Percussion
+        instrument = &instrument_bank[128 + note];
+    }
+    if (instrument->perc_note != 0)
+        notenr = instrument->perc_note;
+
+    printf("ch%d: note %3d on, velocity=%u  instrument=%p\n", channel, note, velocity, instrument);
+
+    if (instrument == NULL || instrument->flags == 4)
+        return;
+
+    int octave = (notenr / 12) - 1;
     if (octave < 0)
         return;
     if (octave > 7)
         octave = 7;
 
-    int note_idx = note - (octave + 1) * 12;
-    if (note_idx > 18)
+    int fnum_idx = notenr - (octave + 1) * 12;
+    if (fnum_idx > 18)
         return;
 
-    int fmch = find_channel(false);
+    bool is_4op = instrument->flags == 1;
+
+    int fmch = find_channel(is_4op);
     if (fmch < 0) {
         printf("Out of channels!\n");
         return;
     }
 
-    fm_channels[fmch].midi_ch   = channel;
-    fm_channels[fmch].midi_note = note;
+    if (is_4op) {
+        if ((fmch & 1) != 0)
+            printf("Ieks2!\n");
 
-    const struct instrument *instrument = cur_instrument;
-    int                      ch         = fmch;
+        printf("4op!\n");
 
-    for (int i = 0; i < 2; i++) {
-        FMSYNTH->op_attr0[fmch * 2 + i] =
-            (instrument->op[i].am ? (1 << 31) : 0) |  // AM
-            (instrument->op[i].vib ? (1 << 30) : 0) | // VIB
-            (instrument->op[i].sus ? (1 << 29) : 0) | // EGT
-            (instrument->op[i].ksr ? (1 << 28) : 0) | // KSR
-            (instrument->op[i].mult << 24) |          // MULT
-            (instrument->op[i].ksl << 22) |           // KSL
-            (instrument->op[i].tl << 16) |            // TL
-            (instrument->op[i].a << 12) |             // AR
-            (instrument->op[i].d << 8) |              // DR
-            (instrument->op[i].s << 4) |              // SL
-            instrument->op[i].r;                      // RR
-        FMSYNTH->op_attr1[fmch * 2 + i] = instrument->op[i].ws;
+        fm_channels[fmch].midi_ch       = channel;
+        fm_channels[fmch].midi_note     = note;
+        fm_channels[fmch].is_4op        = true;
+        fm_channels[fmch + 1].midi_ch   = channel;
+        fm_channels[fmch + 1].midi_note = note;
+        fm_channels[fmch + 1].is_4op    = true;
+
+        for (int i = 0; i < 4; i++) {
+            FMSYNTH->op_attr0[fmch * 2 + i] = instrument->op_attr0[i];
+            FMSYNTH->op_attr1[fmch * 2 + i] = instrument->op_attr1[i];
+        }
+
+        FMSYNTH->opmode |= 1 << (fmch / 2);
+
+        FMSYNTH->ch_attr[fmch] =
+            (1 << 21) |                     // CHB
+            (1 << 20) |                     // CHA
+            (instrument->fb_alg[0] << 16) | // FB/ALG
+            (octave << 10) |                // BLOCK
+            fnums[fnum_idx];                // FNUM
+
+        FMSYNTH->ch_attr[fmch + 1] =
+            (1 << 21) |                     // CHB
+            (1 << 20) |                     // CHA
+            (instrument->fb_alg[1] << 16) | // FB/ALG
+            (octave << 10) |                // BLOCK
+            fnums[fnum_idx];                // FNUM
+
+        FMSYNTH->key_on |= (3 << fmch);
+
+    } else {
+        fm_channels[fmch].midi_ch   = channel;
+        fm_channels[fmch].midi_note = note;
+        fm_channels[fmch].is_4op    = false;
+
+        FMSYNTH->opmode &= ~(1 << (fmch / 2));
+
+        for (int i = 0; i < 2; i++) {
+            FMSYNTH->op_attr0[fmch * 2 + i] = instrument->op_attr0[i];
+            FMSYNTH->op_attr1[fmch * 2 + i] = instrument->op_attr1[i];
+        }
+
+        FMSYNTH->ch_attr[fmch] =
+            (1 << 21) |                     // CHB
+            (1 << 20) |                     // CHA
+            (instrument->fb_alg[0] << 16) | // FB/ALG
+            (octave << 10) |                // BLOCK
+            fnums[fnum_idx];                // FNUM
+
+        FMSYNTH->key_on |= (1 << fmch);
     }
-
-    FMSYNTH->ch_attr[fmch] =
-        (1 << 21) |                     // CHB
-        (1 << 20) |                     // CHA
-        (instrument->fb << 17) |        // FB
-        ((instrument->alg & 1) << 16) | // CNT
-        (octave << 10) |                // BLOCK
-        fnums[note_idx];                // FNUM
-
-    FMSYNTH->key_on |= (1 << ch);
-
-    // FMSYNTH->ch_attr[0] |= (1 << 13);
 }
 
 void fmsynth_aftertouch(uint8_t channel, uint8_t note, uint8_t pressure) {
@@ -220,14 +251,14 @@ void fmsynth_program_change(uint8_t channel, uint8_t program) {
     if (channel > 15 || program > 127)
         return;
 
-    // printf("ch%d: program change %u\n", channel, program);
-    midi_channels[channel].program = program;
+    printf("ch%d: program change %u\n", channel, program);
+    if (channel == 9)
+        return;
 
-    switch (program) {
-        case 0: cur_instrument = &strings; break;
-        case 1: cur_instrument = &distorted_guitar; break;
-        case 2: cur_instrument = &kick_b1; break;
-        case 3: cur_instrument = &test; break;
+    if (midi_channels[channel].bank == 0) {
+        midi_channels[channel].instrument = &instrument_bank[program];
+    } else {
+        midi_channels[channel].instrument = NULL;
     }
 }
 
