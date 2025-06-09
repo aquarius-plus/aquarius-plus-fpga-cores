@@ -116,6 +116,20 @@ void fmsynth_note_off(uint8_t channel, uint8_t note) {
     }
 }
 
+static uint16_t calculate_block_fnum(uint8_t note) {
+    int octave = (note / 12) - 1;
+    if (octave < 0)
+        return 0;
+    if (octave > 7)
+        octave = 7;
+
+    int fnum_idx = note - (octave + 1) * 12;
+    if (fnum_idx > 18)
+        return 0;
+
+    return octave << 10 | fnums[fnum_idx];
+}
+
 void fmsynth_note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
     if (channel > 15 || note > 127)
         return;
@@ -141,29 +155,28 @@ void fmsynth_note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
     if (instrument == NULL || instrument->flags == 4)
         return;
 
-    int octave = (notenr / 12) - 1;
-    if (octave < 0)
-        return;
-    if (octave > 7)
-        octave = 7;
+    bool is_4op      = instrument->flags == 1;
+    bool is_pseudo_4 = instrument->flags == 3;
 
-    int fnum_idx = notenr - (octave + 1) * 12;
-    if (fnum_idx > 18)
-        return;
-
-    bool is_4op = instrument->flags == 1;
-
-    int fmch = find_channel(is_4op);
+    int fmch = find_channel(is_4op || is_pseudo_4);
     if (fmch < 0) {
         printf("Out of channels!\n");
         return;
     }
 
-    if (is_4op) {
+    uint16_t blk_fnum0 = calculate_block_fnum(notenr + instrument->note_offset[0]);
+    if (blk_fnum0 == 0)
+        return;
+
+    calculate_block_fnum(notenr);
+
+    if (is_4op || is_pseudo_4) {
+        uint16_t blk_fnum1 = calculate_block_fnum(notenr + instrument->note_offset[1]);
+        if (blk_fnum1 == 0)
+            return;
+
         if ((fmch & 1) != 0)
             printf("Ieks2!\n");
-
-        printf("4op!\n");
 
         fm_channels[fmch].midi_ch       = channel;
         fm_channels[fmch].midi_note     = note;
@@ -172,26 +185,27 @@ void fmsynth_note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
         fm_channels[fmch + 1].midi_note = note;
         fm_channels[fmch + 1].is_4op    = true;
 
+        if (is_4op)
+            FMSYNTH->opmode |= 1 << (fmch / 2);
+        else
+            FMSYNTH->opmode &= ~(1 << (fmch / 2));
+
         for (int i = 0; i < 4; i++) {
             FMSYNTH->op_attr0[fmch * 2 + i] = instrument->op_attr0[i];
             FMSYNTH->op_attr1[fmch * 2 + i] = instrument->op_attr1[i];
         }
 
-        FMSYNTH->opmode |= 1 << (fmch / 2);
-
         FMSYNTH->ch_attr[fmch] =
             (1 << 21) |                     // CHB
             (1 << 20) |                     // CHA
             (instrument->fb_alg[0] << 16) | // FB/ALG
-            (octave << 10) |                // BLOCK
-            fnums[fnum_idx];                // FNUM
+            blk_fnum0;                      // BLOCK/FNUM
 
         FMSYNTH->ch_attr[fmch + 1] =
             (1 << 21) |                     // CHB
             (1 << 20) |                     // CHA
             (instrument->fb_alg[1] << 16) | // FB/ALG
-            (octave << 10) |                // BLOCK
-            fnums[fnum_idx];                // FNUM
+            blk_fnum1;                      // BLOCK/FNUM
 
         FMSYNTH->key_on |= (3 << fmch);
 
@@ -211,8 +225,7 @@ void fmsynth_note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
             (1 << 21) |                     // CHB
             (1 << 20) |                     // CHA
             (instrument->fb_alg[0] << 16) | // FB/ALG
-            (octave << 10) |                // BLOCK
-            fnums[fnum_idx];                // FNUM
+            blk_fnum0;                      // BLOCK/FNUM
 
         FMSYNTH->key_on |= (1 << fmch);
     }
