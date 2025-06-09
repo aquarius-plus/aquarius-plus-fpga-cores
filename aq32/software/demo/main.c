@@ -1,21 +1,25 @@
 #include "common.h"
 #include "esp.h"
 
-// static const uint16_t palette[16] = {
-//     0x000, 0x00A, 0x0A0, 0x0AA, 0xA00, 0xA0A, 0xA50, 0xAAA,
-//     0x555, 0x55F, 0x5F5, 0x5FF, 0xF55, 0xF5F, 0xFF5, 0xFFF};
-
 static uint8_t buf[256];
 
-static uint8_t note_ch[128];
-static uint8_t cur_ch;
+#define NUM_FM_CHANNELS 32
 
-static void note_off(uint8_t channel, uint8_t note) {
-    printf("ch%d: note %3d off\n", channel, note);
+struct fm_channel {
+    int8_t  midi_ch;
+    int8_t  midi_note;
+    uint8_t age;
+};
 
-    FMSYNTH->key_on &= ~(1 << note_ch[note]);
-    // FMSYNTH->ch_attr[note_ch[note]] &= ~(1 << 13);
-}
+struct midi_channel {
+    uint8_t program;
+    uint8_t bank;   // Controller 0
+    uint8_t volume; // Controller 7
+    uint8_t pan;    // Controller 10
+};
+
+struct midi_channel midi_channels[16];
+struct fm_channel   fm_channels[NUM_FM_CHANNELS];
 
 static const uint16_t fnums[19] = {
     346, 367, 389, 412, 436, 462, 490, 519, 550, 582, 617, 654,
@@ -78,41 +82,52 @@ static const struct instrument test = {
 
 static const struct instrument *cur_instrument = &strings;
 
-static void play_ch_instrument(uint8_t ch, uint8_t block, uint16_t fnum, const struct instrument *instrument) {
-    // Distorted guitar
-    for (int i = 0; i < 2; i++) {
-        FMSYNTH->op_attr0[ch * 2 + i] =
-            (instrument->op[i].am ? (1 << 31) : 0) |  // AM
-            (instrument->op[i].vib ? (1 << 30) : 0) | // VIB
-            (instrument->op[i].sus ? (1 << 29) : 0) | // EGT
-            (instrument->op[i].ksr ? (1 << 28) : 0) | // KSR
-            (instrument->op[i].mult << 24) |          // MULT
-            (instrument->op[i].ksl << 22) |           // KSL
-            (instrument->op[i].tl << 16) |            // TL
-            (instrument->op[i].a << 12) |             // AR
-            (instrument->op[i].d << 8) |              // DR
-            (instrument->op[i].s << 4) |              // SL
-            instrument->op[i].r;                      // RR
-        FMSYNTH->op_attr1[ch * 2 + i] = instrument->op[i].ws;
+static void note_off(uint8_t channel, uint8_t note) {
+    if (channel > 15 || note > 127)
+        return;
+
+    unsigned ch;
+    for (ch = 0; ch < NUM_FM_CHANNELS; ch++)
+        if (fm_channels[ch].midi_ch == channel && fm_channels[ch].midi_note == note)
+            break;
+    if (ch >= NUM_FM_CHANNELS)
+        return;
+
+    printf("ch%d: note %3d off\n", channel, note);
+
+    FMSYNTH->key_on &= ~(1 << ch);
+    fm_channels[ch].midi_ch = -1;
+    fm_channels[ch].age     = 0;
+
+    for (int i = 0; i < NUM_FM_CHANNELS; i++) {
+        if (fm_channels[i].midi_ch < 0 && fm_channels[i].age < 127)
+            fm_channels[i].age++;
     }
+}
 
-    FMSYNTH->ch_attr[ch] =
-        (1 << 21) |                     // CHB
-        (1 << 20) |                     // CHA
-        (instrument->fb << 17) |        // FB
-        ((instrument->alg & 1) << 16) | // CNT
-                                        //        (1 << 13) |                     // KON
-        (block << 10) |                 // BLOCK
-        fnum;                           // FNUM
+static int find_channel(bool is_4op) {
+    int result = -1;
+    int age    = -1;
 
-    FMSYNTH->key_on |= (1 << ch);
+    for (int ch = 0; ch < NUM_FM_CHANNELS; ch++) {
+        if (fm_channels[ch].midi_ch < 0) {
+            if (fm_channels[ch].age > age) {
+                age    = fm_channels[ch].age;
+                result = ch;
+            }
+        }
+    }
+    return result;
 }
 
 static void note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
-    if (velocity == 0) {
-        note_off(channel, note);
+    if (channel > 15 || note > 127)
         return;
-    }
+
+    note_off(channel, note);
+    if (velocity == 0)
+        return;
+
     printf("ch%d: note %3d on, velocity=%u\n", channel, note, velocity);
 
     int octave = (note / 12) - 1;
@@ -125,25 +140,82 @@ static void note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
     if (note_idx > 18)
         return;
 
-    note_ch[note] = cur_ch;
-    play_ch_instrument(cur_ch, octave, fnums[note_idx], cur_instrument);
+    int fmch = find_channel(false);
+    if (fmch < 0) {
+        printf("Out of channels!\n");
+        return;
+    }
 
-    // set_ch(cur_ch, octave, fnums[note_idx]);
-    cur_ch = (cur_ch + 1) & 31;
+    fm_channels[fmch].midi_ch   = channel;
+    fm_channels[fmch].midi_note = note;
+
+    const struct instrument *instrument = cur_instrument;
+    int                      ch         = fmch;
+
+    for (int i = 0; i < 2; i++) {
+        FMSYNTH->op_attr0[fmch * 2 + i] =
+            (instrument->op[i].am ? (1 << 31) : 0) |  // AM
+            (instrument->op[i].vib ? (1 << 30) : 0) | // VIB
+            (instrument->op[i].sus ? (1 << 29) : 0) | // EGT
+            (instrument->op[i].ksr ? (1 << 28) : 0) | // KSR
+            (instrument->op[i].mult << 24) |          // MULT
+            (instrument->op[i].ksl << 22) |           // KSL
+            (instrument->op[i].tl << 16) |            // TL
+            (instrument->op[i].a << 12) |             // AR
+            (instrument->op[i].d << 8) |              // DR
+            (instrument->op[i].s << 4) |              // SL
+            instrument->op[i].r;                      // RR
+        FMSYNTH->op_attr1[fmch * 2 + i] = instrument->op[i].ws;
+    }
+
+    FMSYNTH->ch_attr[fmch] =
+        (1 << 21) |                     // CHB
+        (1 << 20) |                     // CHA
+        (instrument->fb << 17) |        // FB
+        ((instrument->alg & 1) << 16) | // CNT
+        (octave << 10) |                // BLOCK
+        fnums[note_idx];                // FNUM
+
+    FMSYNTH->key_on |= (1 << ch);
 
     // FMSYNTH->ch_attr[0] |= (1 << 13);
 }
 
 static void aftertouch(uint8_t channel, uint8_t note, uint8_t pressure) {
-    printf("ch%d: aftertouch %3d pressure=%u\n", channel, note, pressure);
+    // printf("ch%d: aftertouch %3d pressure=%u\n", channel, note, pressure);
 }
 
 static void controller(uint8_t channel, uint8_t controller, uint8_t value) {
-    printf("ch%d: controller %u: %u\n", channel, controller, value);
+    if (channel > 15 || controller > 127 || value > 127)
+        return;
+
+    switch (controller) {
+        case 0: midi_channels[channel].bank = value; break;
+        case 7: midi_channels[channel].volume = value; break;
+        case 10: midi_channels[channel].pan = value; break;
+        case 120:   // All sound off
+        case 123: { // All notes off
+            for (int ch = 0; ch < NUM_FM_CHANNELS; ch++) {
+                if (fm_channels[ch].midi_ch == channel) {
+                    FMSYNTH->key_on &= ~(1 << ch);
+                    fm_channels[ch].midi_ch = -1;
+                }
+            }
+            break;
+        }
+
+        default:
+            printf("ch%d: controller %u: %u\n", channel, controller, value);
+            break;
+    }
 }
 
 static void program_change(uint8_t channel, uint8_t program) {
-    printf("ch%d: program change %u\n", channel, program);
+    if (channel > 15 || program > 127)
+        return;
+
+    // printf("ch%d: program change %u\n", channel, program);
+    midi_channels[channel].program = program;
 
     switch (program) {
         case 0: cur_instrument = &strings; break;
@@ -154,15 +226,20 @@ static void program_change(uint8_t channel, uint8_t program) {
 }
 
 static void channel_pressure(uint8_t channel, uint8_t pressure) {
-    printf("ch%d: channel_pressure %u\n", channel, pressure);
+    // printf("ch%d: channel_pressure %u\n", channel, pressure);
 }
 
 static void pitch_wheel(uint8_t channel, uint16_t pitch) {
-    printf("ch%d: pitch wheel %u\n", channel, pitch);
+    // printf("ch%d: pitch wheel %u\n", channel, pitch);
 }
 
 void midi_test(void) {
     printf("MIDI test\n");
+
+    for (int i = 0; i < NUM_FM_CHANNELS; i++)
+        fm_channels[i].midi_ch = -1;
+
+    FMSYNTH->ctrl = 0; // (1 << 7) | (1 << 6);
 
     while (1) {
         int count = esp_get_midi_data(buf, sizeof(buf));
@@ -171,16 +248,35 @@ void midi_test(void) {
         const uint8_t *p = buf;
 
         for (int i = 0; i < count; i++) {
+            // printf("%02X %02X %02X %02X\n", p[0], p[1], p[2], p[3]);
 
             uint8_t channel = p[1] & 0xF;
             switch (p[1] >> 4) {
-                case 0x8: note_off(channel, p[1]); break;
+                case 0x8: note_off(channel, p[2]); break;
                 case 0x9: note_on(channel, p[2], p[3]); break;
                 case 0xA: aftertouch(channel, p[2], p[3]); break;
                 case 0xB: controller(channel, p[2], p[3]); break;
                 case 0xC: program_change(channel, p[2]); break;
                 case 0xD: channel_pressure(channel, p[2]); break;
                 case 0xE: pitch_wheel(channel, (p[3] << 7) | p[2]); break;
+                case 0xF: {
+                    switch (p[1] & 0xF) {
+                        case 0xF: {
+                            // Reset
+                            printf("Reset\n");
+                            FMSYNTH->key_on = 0;
+                            for (int i = 0; i < NUM_FM_CHANNELS; i++)
+                                fm_channels[i].midi_ch = -1;
+                            break;
+                        }
+
+                        default: {
+                            printf("%02x %02x %02x %02x\n", p[0], p[1], p[2], p[3]);
+                            break;
+                        }
+                    }
+                    break;
+                }
                 default:
                     printf("%02x %02x %02x %02x\n", p[0], p[1], p[2], p[3]);
                     break;
@@ -191,8 +287,14 @@ void midi_test(void) {
     }
 }
 
+// void midi_play(void) {
+//     uint8_t
+
+// }
+
 int main(void) {
     midi_test();
+    // midi_play();
 
     // for (int i = 0; i < 64; i++)
     //     PALETTE[i] = palette[i & 15];
