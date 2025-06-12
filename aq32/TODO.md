@@ -1,10 +1,14 @@
 ## RISC-V core
 
-- Add support for unaligned reads/writes
+- Support for unaligned reads/writes?
+
+## Graphics
+
+- Support for additional tile layer?
+- Scrolling of bitmap?
 
 ## Audio
 
-- PSG or FM synth
 - PCM playback
 
 ## Other

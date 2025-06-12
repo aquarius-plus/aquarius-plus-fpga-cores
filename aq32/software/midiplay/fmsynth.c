@@ -87,7 +87,7 @@ void fmsynth_note_off(uint8_t channel, uint8_t note) {
     if (ch >= NUM_FM_CHANNELS)
         return;
 
-    printf("ch%d: note %3d off\n", channel, note);
+    // printf("ch%d: note %3d off\n", channel, note);
 
     bool is_4op = fm_channels[ch].is_4op;
 
@@ -150,7 +150,7 @@ void fmsynth_note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
     if (instrument->perc_note != 0)
         notenr = instrument->perc_note;
 
-    printf("ch%d: note %3d on, velocity=%u  instrument=%p\n", channel, note, velocity, instrument);
+    // printf("ch%d: note %3d on, velocity=%u  instrument=%p\n", channel, note, velocity, instrument);
 
     if (instrument == NULL || instrument->flags == 4)
         return;
@@ -241,8 +241,14 @@ void fmsynth_controller(uint8_t channel, uint8_t controller, uint8_t value) {
 
     switch (controller) {
         case 0: midi_channels[channel].bank = value; break;
-        case 7: midi_channels[channel].volume = value; break;
-        case 10: midi_channels[channel].pan = value; break;
+        case 7:
+            printf("ch%d: volume %u\n", channel, value);
+            midi_channels[channel].volume = value;
+            break;
+        case 10:
+            printf("ch%d: pan %u\n", channel, value);
+            midi_channels[channel].pan = value;
+            break;
         case 120:   // All sound off
         case 123: { // All notes off
             for (int ch = 0; ch < NUM_FM_CHANNELS; ch++) {
