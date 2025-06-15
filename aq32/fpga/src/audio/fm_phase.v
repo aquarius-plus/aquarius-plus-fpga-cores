@@ -25,7 +25,7 @@ module fm_phase(
     reg [2:0] range;
     always @* begin
         range = fnum[9:7];
-        if (vib_pos[1:0] == 2'd0)
+        if (vib_pos[1:0] == 2'd0 || !vib)
             range = 0;
         else if (vib_pos[0])
             range = range >> 1;

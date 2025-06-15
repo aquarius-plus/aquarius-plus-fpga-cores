@@ -66,10 +66,10 @@ module fmsynth(
     //////////////////////////////////////////////////////////////////////////
     // AM / Vibrato
     //////////////////////////////////////////////////////////////////////////
-    reg [11:0] q_timer;
-    reg  [2:0] q_vibpos;
-    reg  [7:0] q_am_cnt;
-    reg        d_am_dir, q_am_dir;
+    reg [9:0] q_timer;
+    reg [2:0] q_vibpos;
+    reg [7:0] q_am_cnt;
+    reg       d_am_dir, q_am_dir;
 
     always @* begin
         d_am_dir = q_am_dir;
@@ -80,17 +80,17 @@ module fmsynth(
     end
 
     always @(posedge clk or posedge reset)
-        if (reset) begin 
+        if (reset) begin
             q_timer  <= 0;
             q_vibpos <= 0;
             q_am_cnt <= 0;
             q_am_dir <= 0;
 
         end else if (q_next_sample) begin
-            q_timer  <= q_timer + 12'd1;
+            q_timer  <= q_timer + 10'd1;
             q_am_dir <= d_am_dir;
 
-            if (q_timer == 12'h3FF)
+            if (q_timer == 10'h3FF)
                 q_vibpos <= q_vibpos + 3'd1;
 
             if (q_timer[5:0] == 6'h3F) begin
@@ -163,8 +163,8 @@ module fmsynth(
         .ch_fnum(ch_fnum)
     );
 
-    reg do_sum;
     reg do_fb;
+    reg do_sum;
     reg do_mod;
 
     always @* begin
@@ -177,10 +177,17 @@ module fmsynth(
             do_fb  = q_op_sel[1:0] == 0;
 
             case (alg_4op)
-                2'd0: begin do_sum = q_op_sel[1:0] == 2'd3;        do_mod = 1;                     end
-                2'd1: begin do_sum = q_op_sel[0];                  do_mod = q_op_sel[0];           end
-                2'd2: begin do_sum = !(q_op_sel[1] ^ q_op_sel[0]); do_mod = q_op_sel[1];           end
-                2'd3: begin do_sum = q_op_sel[1:0] != 2'd1;        do_mod = q_op_sel[1:0] == 2'd2; end
+                2'd0: do_sum = q_op_sel[1:0] == 2'd3;
+                2'd1: do_sum = q_op_sel[0];
+                2'd2: do_sum = !(q_op_sel[1] ^ q_op_sel[0]);
+                2'd3: do_sum = q_op_sel[1:0] != 2'd1;
+            endcase
+
+            case (alg_4op)
+                2'd0: do_mod = 1;
+                2'd1: do_mod = q_op_sel[0];
+                2'd2: do_mod = q_op_sel[1];
+                2'd3: do_mod = q_op_sel[1:0] == 2'd2;
             endcase
         end
     end
