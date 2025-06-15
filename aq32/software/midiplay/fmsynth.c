@@ -130,6 +130,12 @@ static uint16_t calculate_block_fnum(uint8_t note) {
     return octave << 10 | fnums[fnum_idx];
 }
 
+static uint32_t op_attr0_apply_volume(uint32_t op_attr0, unsigned volume) {
+    unsigned tl  = (op_attr0 >> 16) & 63;
+    unsigned val = 63 - volume + (volume * tl) / 63;
+    return (op_attr0 & ~(63 << 16)) | (val << 16);
+}
+
 void fmsynth_note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
     if (channel > 15 || note > 127)
         return;
@@ -168,7 +174,27 @@ void fmsynth_note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
     if (blk_fnum0 == 0)
         return;
 
+    unsigned volume = (midi_channel->volume * velocity) >> 8;
+    if (volume > 63)
+        volume = 63;
+
     calculate_block_fnum(notenr);
+
+    unsigned alg;
+    if (!is_4op) {
+        alg = instrument->fb_alg[0] & 1;
+    } else {
+        alg = 2 + (((instrument->fb_alg[0] & 1) << 1) | (instrument->fb_alg[1] & 1));
+    }
+
+    static const bool apply_volume[6][4] = {
+        {0, 1, 0, 1}, // 2-op alg0
+        {1, 1, 1, 1}, // 2-op alg1
+        {0, 0, 0, 1}, // 4-op alg0
+        {0, 1, 0, 1}, // 4-op alg1
+        {1, 0, 0, 1}, // 4-op alg2
+        {1, 0, 1, 1}, // 4-op alg3
+    };
 
     if (is_4op || is_pseudo_4) {
         uint16_t blk_fnum1 = calculate_block_fnum(notenr + instrument->note_offset[1]);
@@ -191,7 +217,7 @@ void fmsynth_note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
             FMSYNTH->opmode &= ~(1 << (fmch / 2));
 
         for (int i = 0; i < 4; i++) {
-            FMSYNTH->op_attr0[fmch * 2 + i] = instrument->op_attr0[i];
+            FMSYNTH->op_attr0[fmch * 2 + i] = apply_volume[alg][i] ? op_attr0_apply_volume(instrument->op_attr0[i], volume) : instrument->op_attr0[i];
             FMSYNTH->op_attr1[fmch * 2 + i] = instrument->op_attr1[i];
         }
 
@@ -208,7 +234,6 @@ void fmsynth_note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
             blk_fnum1;                      // BLOCK/FNUM
 
         FMSYNTH->key_on |= (3 << fmch);
-
     } else {
         fm_channels[fmch].midi_ch   = channel;
         fm_channels[fmch].midi_note = note;
@@ -217,7 +242,7 @@ void fmsynth_note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
         FMSYNTH->opmode &= ~(1 << (fmch / 2));
 
         for (int i = 0; i < 2; i++) {
-            FMSYNTH->op_attr0[fmch * 2 + i] = instrument->op_attr0[i];
+            FMSYNTH->op_attr0[fmch * 2 + i] = apply_volume[alg][i] ? op_attr0_apply_volume(instrument->op_attr0[i], volume) : instrument->op_attr0[i];
             FMSYNTH->op_attr1[fmch * 2 + i] = instrument->op_attr1[i];
         }
 
