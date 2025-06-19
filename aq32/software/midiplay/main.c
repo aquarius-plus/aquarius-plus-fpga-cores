@@ -4,6 +4,30 @@
 
 static uint8_t buf[256];
 
+void write_op(unsigned idx, uint32_t attr0, uint32_t attr1) {
+    FMSYNTH->op_attr0[idx] = attr0;
+    FMSYNTH->op_attr1[idx] = attr1;
+}
+
+void write_ch(unsigned idx, uint32_t attr) {
+    FMSYNTH->ch_attr[idx] = attr;
+}
+
+void write_4op(unsigned idx, bool on) {
+    if (on)
+        FMSYNTH->opmode |= 1 << (idx / 2);
+    else
+        FMSYNTH->opmode &= ~(1 << (idx / 2));
+}
+
+void write_key_on(unsigned mask) {
+    FMSYNTH->key_on |= mask;
+}
+
+void write_key_off(unsigned mask) {
+    FMSYNTH->key_on &= ~mask;
+}
+
 int main(void) {
     printf("MIDI player\n");
     fmsynth_reset();
