@@ -28,9 +28,8 @@ void write_key_off(unsigned mask) {
     FMSYNTH->key_on &= ~mask;
 }
 
-int main(void) {
-    printf("MIDI player\n");
-    fmsynth_reset();
+void usb_midi(void) {
+    printf("Receiving data from USB MIDI...\n");
 
     while (1) {
         int count = esp_get_midi_data(buf, sizeof(buf));
@@ -67,6 +66,22 @@ int main(void) {
             p += 4;
         }
     }
+}
 
+extern void play_file(const char *path);
+
+int main(int argc, const char **argv) {
+    printf("Aquarius32 MIDI player\n\n");
+    fmsynth_reset();
+
+    if (argc == 1) {
+        usb_midi();
+    } else if (argc == 2) {
+        play_file(argv[1]);
+    } else {
+        printf("midiplay.aq32 [<song.mid>]\n");
+    }
+
+    fmsynth_reset();
     return 0;
 }

@@ -36,18 +36,22 @@ add_custom_command(
     # COMMAND riscv-none-elf-size -G ${EXECNAME}.elf
 )
 
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE SIZE_BUF_HEAP=131072)
+
 target_compile_options(${PROJECT_NAME} PRIVATE -Os -g)
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wshadow -Winit-self -Wfloat-conversion -Wdouble-promotion -Wmissing-include-dirs -Wlogical-op)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wno-unused-parameter -Wno-shadow)
 target_compile_options(${PROJECT_NAME} PRIVATE -fdata-sections -ffunction-sections -fno-strict-aliasing)
-target_compile_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestanding -specs=nano.specs)
+target_compile_options(${PROJECT_NAME} PRIVATE -march=rv32im_zicsr -mabi=ilp32 -ffreestanding -specs=nano.specs)
 
 target_link_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestanding -specs=nano.specs) # -u _printf_float)
 target_link_options(${PROJECT_NAME} PRIVATE -nostartfiles)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--gc-sections)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--print-memory-usage)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,-T${CMAKE_CURRENT_SOURCE_DIR}/../lib/default.ld)
+
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     .
@@ -57,6 +61,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_sources(${PROJECT_NAME} PRIVATE
     main.c
     fmsynth.c
+    playfile.c
 
     ../lib/start.S
     ../lib/syscalls.c
