@@ -114,7 +114,7 @@ module aq32_top(
     reg         cpu_wait;
     reg  [31:0] cpu_rddata;
 
-    wire [15:0] cpu_irq = {16'b0};
+    wire [15:0] cpu_irq = {14'b0, irq_line, irq_vblank};
 
     cpu #(.VEC_RESET(32'h00000000)) cpu(
         .clk(clk),

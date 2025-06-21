@@ -51,6 +51,7 @@ module cpu #(parameter VEC_RESET = 32'hFF10000) (
     reg        d_mcause_irq,   q_mcause_irq;   // 0x342 Machine trap cause
     reg  [4:0] d_mcause_code,  q_mcause_code;  // 0x342 Machine trap cause
     reg [31:0] d_mtval,        q_mtval;        // 0x343 Machine bad address or instruction
+    reg [15:0] d_mip,          q_mip;          // 0x344 Machine interrupt-pending register
 
     assign bus_addr    = q_addr;
     assign bus_wrdata  = q_wrdata;
@@ -335,7 +336,7 @@ module cpu #(parameter VEC_RESET = 32'hFF10000) (
         if (is_mepc)     csr_rdata = {q_mepc[31:2], 2'b0};
         if (is_mcause)   csr_rdata = {q_mcause_irq, 26'b0, q_mcause_code};
         if (is_mtval)    csr_rdata = q_mtval;
-        if (is_mip)      csr_rdata = {irq, 16'b0};
+        if (is_mip)      csr_rdata = {q_mip, 16'b0};
     end
 
     wire [31:0] csr_operand = funct3[2] ? {27'd0, rs1_idx} : rs1_data;
@@ -351,31 +352,28 @@ module cpu #(parameter VEC_RESET = 32'hFF10000) (
     //////////////////////////////////////////////////////////////////////////
     // Interrupts
     //////////////////////////////////////////////////////////////////////////
-    reg [15:0] q_irq;
-    always @(posedge clk) q_irq <= irq;
-
     reg [3:0] irq_code;
     always @* begin
         irq_code = 0;
-        if (irq[15]) irq_code = 4'd15;
-        if (irq[14]) irq_code = 4'd14;
-        if (irq[13]) irq_code = 4'd13;
-        if (irq[12]) irq_code = 4'd12;
-        if (irq[11]) irq_code = 4'd11;
-        if (irq[10]) irq_code = 4'd10;
-        if (irq[ 9]) irq_code = 4'd9;
-        if (irq[ 8]) irq_code = 4'd8;
-        if (irq[ 7]) irq_code = 4'd7;
-        if (irq[ 6]) irq_code = 4'd6;
-        if (irq[ 5]) irq_code = 4'd5;
-        if (irq[ 4]) irq_code = 4'd4;
-        if (irq[ 3]) irq_code = 4'd3;
-        if (irq[ 2]) irq_code = 4'd2;
-        if (irq[ 1]) irq_code = 4'd1;
-        if (irq[ 0]) irq_code = 4'd0;
+        if (q_mip[15]) irq_code = 4'd15;
+        if (q_mip[14]) irq_code = 4'd14;
+        if (q_mip[13]) irq_code = 4'd13;
+        if (q_mip[12]) irq_code = 4'd12;
+        if (q_mip[11]) irq_code = 4'd11;
+        if (q_mip[10]) irq_code = 4'd10;
+        if (q_mip[ 9]) irq_code = 4'd9;
+        if (q_mip[ 8]) irq_code = 4'd8;
+        if (q_mip[ 7]) irq_code = 4'd7;
+        if (q_mip[ 6]) irq_code = 4'd6;
+        if (q_mip[ 5]) irq_code = 4'd5;
+        if (q_mip[ 4]) irq_code = 4'd4;
+        if (q_mip[ 3]) irq_code = 4'd3;
+        if (q_mip[ 2]) irq_code = 4'd2;
+        if (q_mip[ 1]) irq_code = 4'd1;
+        if (q_mip[ 0]) irq_code = 4'd0;
     end
 
-    wire irq_pending = (q_irq & q_mie) != 0;
+    wire irq_pending = (q_mip & q_mie) != 0;
 
     //////////////////////////////////////////////////////////////////////////
     // State machine
@@ -442,6 +440,7 @@ module cpu #(parameter VEC_RESET = 32'hFF10000) (
         d_mcause_irq   = q_mcause_irq;
         d_mcause_code  = q_mcause_code;
         d_mtval        = q_mtval;
+        d_mip          = q_mip;
         rd_wr          = 0;
         div_start      = 0;
         do_trap        = 0;
@@ -525,6 +524,7 @@ module cpu #(parameter VEC_RESET = 32'hFF10000) (
                                     if (is_mtvec)    d_mtvec      = {csr_wdata[31:2], 2'b0};
                                     if (is_mscratch) d_mscratch   = csr_wdata;
                                     if (is_mepc)     d_mepc[31:2] = csr_wdata[31:2];
+                                    if (is_mip)      d_mip        = csr_wdata[31:16];
 
                                     if (is_mcause) begin
                                         d_mcause_irq  = csr_wdata[31];
@@ -582,6 +582,8 @@ module cpu #(parameter VEC_RESET = 32'hFF10000) (
 
             fetch(q_mtvec);
         end
+
+        d_mip = d_mip | irq;
     end
 
     always @(posedge clk or posedge reset)
@@ -603,6 +605,7 @@ module cpu #(parameter VEC_RESET = 32'hFF10000) (
             q_mcause_irq   <= 0;
             q_mcause_code  <= 0;
             q_mtval        <= 0;
+            q_mip          <= 0;
 
         end else begin
             q_pc           <= d_pc;
@@ -622,6 +625,7 @@ module cpu #(parameter VEC_RESET = 32'hFF10000) (
             q_mcause_irq   <= d_mcause_irq;
             q_mcause_code  <= d_mcause_code;
             q_mtval        <= d_mtval;
+            q_mip          <= d_mip;
         end
 
 endmodule
