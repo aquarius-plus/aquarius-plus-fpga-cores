@@ -13,6 +13,7 @@ struct track {
     const uint8_t *cur_p;
     const uint8_t *end_p;
 
+    bool     track_done;
     unsigned event_time;
     uint8_t  last_status;
 };
@@ -53,7 +54,7 @@ static bool parse_meta_event(struct track *trk, uint8_t type, unsigned len) {
                 return false;
 
             tempo = (trk->cur_p[0] << 16) | (trk->cur_p[1] << 8) | trk->cur_p[2];
-            // printf("[%u] tempo: quarter note duration %u us\n", trk->event_time, tempo);
+            printf("[%u] tempo: quarter note duration %u us\n", trk->event_time, tempo);
             update_ticks_per_frame();
             break;
         }
@@ -73,7 +74,7 @@ static bool parse_meta_event(struct track *trk, uint8_t type, unsigned len) {
 
         case 0x2F: {
             printf("[%u] end of track\n", trk->event_time);
-            return false;
+            trk->track_done = true;
             break;
         }
 
@@ -240,7 +241,10 @@ static bool track_parse_event(struct track *trk) {
     return true;
 }
 
-// extern void render_audio(void);
+static void wait_frame(void) {
+    // render_audio();
+    while ((csr_read_clear(mip, (1 << 16)) & (1 << 16)) == 0);
+}
 
 void play_file(const char *path) {
     printf("Playing %s\n", path);
@@ -277,8 +281,8 @@ void play_file(const char *path) {
     printf("- Format:       %u\n", format);
     printf("- Track count:  %u\n", num_tracks);
     printf("- Division:     %u\n", division);
-    if (num_tracks != 1) {
-        printf("Only single track files supported currently!\n");
+    if (num_tracks < 1 || (format != 0 && format != 1)) {
+        printf("Incompatible format!\n");
         goto error;
     }
     if (division & 0x8000) {
@@ -289,52 +293,74 @@ void play_file(const char *path) {
 
     update_ticks_per_frame();
 
-    if (fread(&hdr, sizeof(hdr), 1, f) != 1)
-        goto error;
-    hdr.length = __builtin_bswap32(hdr.length);
-    if (memcmp(hdr.id, "MTrk", 4) != 0)
+    struct track *tracks = calloc(num_tracks, sizeof(struct track));
+    if (!tracks)
         goto error;
 
-    printf("- Track length: %u\n", (unsigned)hdr.length);
+    for (unsigned i = 0; i < num_tracks; i++) {
+        struct track *trk = &tracks[i];
 
-    struct track trk = {0};
-    trk.length       = hdr.length;
-    trk.data         = malloc(hdr.length);
-    if (!trk.data) {
-        perror("Malloc");
-        goto error;
+        if (fread(&hdr, sizeof(hdr), 1, f) != 1)
+            goto error;
+        hdr.length = __builtin_bswap32(hdr.length);
+        if (memcmp(hdr.id, "MTrk", 4) != 0)
+            goto error;
+
+        printf("- Track %u length: %u\n", i, hdr.length);
+
+        trk->length = hdr.length;
+        trk->data   = malloc(hdr.length);
+        if (!trk->data)
+            goto error;
+        trk->cur_p = trk->data;
+        trk->end_p = trk->data + trk->length;
+
+        if (fread(trk->data, trk->length, 1, f) != 1)
+            goto error;
     }
-    trk.cur_p = trk.data;
-    trk.end_p = trk.data + trk.length;
-
-    if (fread(trk.data, trk.length, 1, f) != 1)
-        goto error;
-
     fclose(f);
-
-    if (!track_parse_delta_time(&trk))
-        return;
 
     unsigned t = 0;
 
+    for (unsigned i = 0; i < num_tracks; i++) {
+        if (!track_parse_delta_time(&tracks[i]))
+            return;
+    }
+
     while (1) {
         unsigned cur_ticks = t >> ticks_shift;
-        while (trk.event_time <= cur_ticks) {
-            if (!track_parse_event(&trk))
-                return;
-            if (!track_parse_delta_time(&trk))
-                return;
+
+        bool stop = true;
+
+        for (unsigned i = 0; i < num_tracks; i++) {
+            struct track *trk = &tracks[i];
+
+            if (!trk->track_done)
+                stop = false;
+
+            while (!trk->track_done && trk->event_time <= cur_ticks) {
+                if (!track_parse_event(trk)) {
+                    trk->track_done = true;
+                    break;
+                }
+                if (!track_parse_delta_time(trk)) {
+                    trk->track_done = true;
+                    break;
+                }
+            }
         }
 
         // Wait for delta time
-        // printf("tempo=%u tqpn=%u\n", tempo, tpqn);
-
-        while ((csr_read_clear(mip, (1 << 16)) & (1 << 16)) == 0);
-
-        // for (volatile int i = 0; i < 10000; i++);
-
         t += ticks_per_frame;
-        // render_audio();
+        wait_frame();
+
+        if (stop)
+            break;
+    }
+
+    // Render for another second
+    for (int i = 0; i < 60; i++) {
+        wait_frame();
     }
 
     return;
