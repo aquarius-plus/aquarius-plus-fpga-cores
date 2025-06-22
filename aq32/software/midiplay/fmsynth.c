@@ -11,11 +11,11 @@ struct fm_channel {
 };
 
 struct midi_channel {
-    uint8_t                  bank; // Controller 0
     const struct instrument *instrument;
-    uint8_t                  volume; // Controller 7
-    uint8_t                  expression;
-    uint8_t                  pan; // Controller 10
+    uint8_t                  bank;       // Controller 0
+    uint8_t                  volume;     // Controller 7
+    uint8_t                  expression; // Controller 11
+    uint8_t                  pan;        // Controller 10
 };
 
 static uint8_t master_volume = 127;
@@ -230,8 +230,8 @@ void fmsynth_note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
                 apply_volume[alg][i] ? op_attr0_apply_volume(instrument->op_attr0[i], volume) : instrument->op_attr0[i],
                 instrument->op_attr1[i]);
         }
-        write_ch(fmch + 0, (1 << 21) | (1 << 20) | (instrument->fb_alg[0] << 16) | blk_fnum0);
-        write_ch(fmch + 1, (1 << 21) | (1 << 20) | (instrument->fb_alg[1] << 16) | blk_fnum1);
+        write_ch(fmch + 0, (midi_channel->pan << 20) | (instrument->fb_alg[0] << 16) | blk_fnum0);
+        write_ch(fmch + 1, (midi_channel->pan << 20) | (instrument->fb_alg[1] << 16) | blk_fnum1);
         write_key_on(3 << fmch);
 
     } else {
@@ -246,7 +246,7 @@ void fmsynth_note_on(uint8_t channel, uint8_t note, uint8_t velocity) {
                 instrument->op_attr1[i]);
         }
 
-        write_ch(fmch, (1 << 21) | (1 << 20) | (instrument->fb_alg[0] << 16) | blk_fnum0);
+        write_ch(fmch, (midi_channel->pan << 20) | (instrument->fb_alg[0] << 16) | blk_fnum0);
         write_key_on(1 << fmch);
     }
 }
@@ -265,10 +265,14 @@ void fmsynth_controller(uint8_t channel, uint8_t controller, uint8_t value) {
             printf("ch%d: volume %u\n", channel, value);
             midi_channels[channel].volume = value;
             break;
-        case 10:
+        case 10: {
             printf("ch%d: pan %u\n", channel, value);
+            if (value < 1)
+                value = 1;
             midi_channels[channel].pan = value;
             break;
+        }
+        case 11: midi_channels[channel].expression = value; break;
         case 120:   // All sound off
         case 123: { // All notes off
             for (int ch = 0; ch < NUM_FM_CHANNELS; ch++) {

@@ -9,24 +9,22 @@ module fm_ch_attr(
     output wire [31:0] rddata,
 
     input  wire  [4:0] ch_sel,
-    output wire        ch_chb,
-    output wire        ch_cha,
+    output wire  [6:0] ch_pan,
     output wire  [2:0] ch_fb,
     output wire  [2:0] ch_block,
     output wire  [9:0] ch_fnum
 );
 
-    localparam NUMBITS = 18;
+    localparam NUMBITS = 23;
 
     wire [(NUMBITS-1):0] a_rddata;
-    wire [(NUMBITS-1):0] a_wrdata = {wrdata[21:17], wrdata[12:0]};
+    wire [(NUMBITS-1):0] a_wrdata = {wrdata[26:17], wrdata[12:0]};
 
     assign rddata = {10'b0, a_rddata[17:13], 4'b0, a_rddata[12:0]};
 
     wire [(NUMBITS-1):0] b_rddata;
     assign {
-        ch_chb,
-        ch_cha,
+        ch_pan,
         ch_fb,
         ch_block,
         ch_fnum

@@ -306,7 +306,7 @@ void play_file(const char *path) {
         if (memcmp(hdr.id, "MTrk", 4) != 0)
             goto error;
 
-        printf("- Track %u length: %u\n", i, hdr.length);
+        printf("- Track %u length: %u\n", i, (unsigned)hdr.length);
 
         trk->length = hdr.length;
         trk->data   = malloc(hdr.length);

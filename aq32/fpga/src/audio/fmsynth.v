@@ -136,8 +136,7 @@ module fmsynth(
     //////////////////////////////////////////////////////////////////////////
     wire        is_4op = q_4op[q_op_sel[5:2]];
     wire  [4:0] ch_sel = q_op_sel[5:1];
-    wire        ch_chb;
-    wire        ch_cha;
+    wire  [6:0] ch_pan;
     wire  [2:0] ch_fb;
     wire        ch_kon = q_kon[q_op_sel[5:1]];
     wire  [2:0] ch_block;
@@ -154,8 +153,7 @@ module fmsynth(
         .rddata(ch_attr_rddata),
 
         .ch_sel(ch_sel),
-        .ch_chb(ch_chb),
-        .ch_cha(ch_cha),
+        .ch_pan(ch_pan),
         .ch_fb(ch_fb),
         .ch_block(ch_block),
         .ch_fnum(ch_fnum)
@@ -294,6 +292,19 @@ module fmsynth(
     assign      fb_mod = (ch_fb == 0) ? 0 : ($signed(fb_sum[13:2]) >>> (~ch_fb));
 
     //////////////////////////////////////////////////////////////////////////
+    // Panning
+    //////////////////////////////////////////////////////////////////////////
+    wire [7:0] pan_l;
+    wire [7:0] pan_r;
+    lut_pan_l lut_pan_l(.idx(ch_pan), .value(pan_l));
+    lut_pan_r lut_pan_r(.idx(ch_pan), .value(pan_r));
+
+    wire signed [20:0] op_result_l = $signed(d_op_result) * $signed({1'b0, pan_l});
+    wire signed [20:0] op_result_r = $signed(d_op_result) * $signed({1'b0, pan_r});
+    wire [12:0] panned_l = op_result_l[20:8];
+    wire [12:0] panned_r = op_result_r[20:8];
+
+    //////////////////////////////////////////////////////////////////////////
     // State machine
     //////////////////////////////////////////////////////////////////////////
     localparam
@@ -337,10 +348,8 @@ module fmsynth(
 
                 StProcess: begin
                     if (!q_op_reset && do_sum) begin
-                        if (ch_cha)
-                            q_accum_l <= q_accum_l + {{6{d_op_result[12]}}, d_op_result};
-                        if (ch_chb)
-                            q_accum_r <= q_accum_r + {{6{d_op_result[12]}}, d_op_result};
+                        q_accum_l <= q_accum_l + {{6{panned_l[12]}}, panned_l};
+                        q_accum_r <= q_accum_r + {{6{panned_r[12]}}, panned_r};
                     end
 
                     q_state   <= StNext;
