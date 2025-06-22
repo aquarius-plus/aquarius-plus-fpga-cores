@@ -13,7 +13,6 @@ module fm_phase(
     input  wire  [2:0] block,
     input  wire  [9:0] fnum,
     input  wire  [3:0] mult,
-    input  wire        nts,
     input  wire        ksr,
     input  wire        dvb,
     input  wire        vib,

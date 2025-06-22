@@ -16,7 +16,6 @@ module fm_eg(
 
     input  wire  [2:0] block,
     input  wire  [9:0] fnum,
-    input  wire        nts,
     input  wire        ksr,
     input  wire        kon,
     input  wire        sus,
@@ -105,8 +104,8 @@ module fm_eg(
         StageSustain = 2'd2,
         StageRelease = 2'd3;
 
-    // Rate offset (based on key split and key scaling)
-    wire [3:0] ksv = {block, nts ? fnum[8] : fnum[9]};
+    // Rate offset (based on key scaling)
+    wire [3:0] ksv = {block, fnum[9]};
     wire [3:0] rof = ksr ? ksv : (ksv >> 2);
 
     // Stage rate

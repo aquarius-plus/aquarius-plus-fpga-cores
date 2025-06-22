@@ -28,7 +28,6 @@ module fmsynth(
     reg  [31:0] q_alg;
     reg         q_dam;
     reg         q_dvb;
-    reg         q_nts;
     reg  [15:0] q_4op;
     wire [31:0] ch_attr_rddata;
     wire [31:0] op_attr_rddata;
@@ -36,7 +35,7 @@ module fmsynth(
     always @* begin
         bus_rddata = 32'b0;
         if (sel_reg0)    bus_rddata = {16'b0, q_4op};
-        if (sel_reg1)    bus_rddata = {17'b0, q_nts, 6'b0, q_dam, q_dvb, 6'b0};
+        if (sel_reg1)    bus_rddata = {24'b0, q_dam, q_dvb, 6'b0};
         if (sel_reg2)    bus_rddata = q_kon;
         if (sel_ch_attr) bus_rddata = ch_attr_rddata;
         if (sel_op_attr) bus_rddata = op_attr_rddata;
@@ -212,7 +211,6 @@ module fmsynth(
 
         .block(ch_block),
         .fnum(ch_fnum),
-        .nts(q_nts),
         .ksr(op_ksr),
         .kon(ch_kon),
         .sus(op_sus),
@@ -244,7 +242,6 @@ module fmsynth(
         .block(ch_block),
         .fnum(ch_fnum),
         .mult(op_mult),
-        .nts(q_nts),
         .ksr(op_ksr),
         .dvb(q_dvb),
         .vib(op_vib),
@@ -317,7 +314,6 @@ module fmsynth(
             q_alg        <= 0;
             q_dam        <= 0;
             q_dvb        <= 0;
-            q_nts        <= 0;
             q_4op        <= 0;
             q_op_sel     <= 0;
             q_op_next    <= 0;
@@ -388,7 +384,6 @@ module fmsynth(
                     q_4op <= bus_wrdata[15:0];
                 end
                 if (sel_reg1) begin
-                    q_nts <= bus_wrdata[14];
                     q_dam <= bus_wrdata[7];
                     q_dvb <= bus_wrdata[6];
                 end
