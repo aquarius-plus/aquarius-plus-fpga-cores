@@ -6,19 +6,21 @@ module fm_op_data_eg(
     input  wire  [5:0] idx,
     input  wire        wren,
     
-    input  wire  [1:0] i_stage,
-    input  wire [23:0] i_env_cnt,
+    input  wire  [1:0] i_eg_stage,
+    input  wire [14:0] i_eg_cnt,
+    input  wire  [8:0] i_eg_env,
     
-    output wire  [1:0] o_stage,
-    output wire [23:0] o_env_cnt
+    output wire  [1:0] o_eg_stage,
+    output wire [14:0] o_eg_cnt,
+    output wire  [8:0] o_eg_env
 );
 
     localparam NUMBITS = 26;
 
     wire [(NUMBITS-1):0] rddata;
-    wire [(NUMBITS-1):0] wrdata = {i_stage, i_env_cnt};
+    wire [(NUMBITS-1):0] wrdata = {i_eg_stage, i_eg_cnt, i_eg_env};
 
-    assign {o_stage, o_env_cnt} = rddata;
+    assign {o_eg_stage, o_eg_cnt, o_eg_env} = rddata;
 
     generate
         genvar i;

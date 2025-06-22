@@ -7,7 +7,6 @@ module fm_eg(
     input  wire  [5:0] op_sel,
     input  wire        next,
     input  wire        op_reset,
-    input  wire        restart,
 
     input  wire  [3:0] ar,
     input  wire  [3:0] dr,
@@ -26,24 +25,31 @@ module fm_eg(
 
     input  wire  [5:0] am_val,
 
-    output reg   [8:0] env
+    output reg   [8:0] env,
+    output wire        restart
 );
+
+    wire  [4:0] suslvl = (sl == 4'hF) ? 5'h1F : {1'b0, sl};
 
     reg   [1:0] d_eg_stage;
     wire  [1:0] q_eg_stage;
-    reg  [23:0] d_eg_env_cnt;
-    wire [23:0] q_eg_env_cnt;
+    reg  [17:0] d_eg_cnt;
+    wire [14:0] q_eg_cnt;
+    reg   [9:0] d_eg_env;
+    wire  [8:0] q_eg_env;
 
     fm_op_data_eg fm_op_data_eg(
         .clk(clk),
         .idx(op_sel),
         .wren(next),
 
-        .i_stage(d_eg_stage),
-        .i_env_cnt(d_eg_env_cnt),
+        .i_eg_stage(d_eg_stage),
+        .i_eg_cnt(d_eg_cnt[14:0]),
+        .i_eg_env(d_eg_env[8:0]),
 
-        .o_stage(q_eg_stage),
-        .o_env_cnt(q_eg_env_cnt)
+        .o_eg_stage(q_eg_stage),
+        .o_eg_cnt(q_eg_cnt),
+        .o_eg_env(q_eg_env)
     );
 
     // KSL ROM
@@ -82,7 +88,7 @@ module fm_eg(
 
     reg [10:0] tmp;
     always @* begin
-        tmp = {2'b0, q_eg_env_cnt[23:15]};
+        tmp = {2'b0, q_eg_env};
         tmp = tmp + {3'b0, tl, 2'b0} + {2'b0, eg_ksl};
         if (am)
             tmp = tmp + {5'b0, am_val};
@@ -105,12 +111,19 @@ module fm_eg(
 
     // Stage rate
     reg [3:0] stage_rate;
-    always @* case (q_eg_stage)
-        StageAttack:  stage_rate = ar;
-        StageDecay:   stage_rate = dr;
-        StageSustain: stage_rate = 0;
-        StageRelease: stage_rate = rr;
-    endcase
+    assign    restart = (kon && q_eg_stage == StageRelease);
+
+    always @* begin
+        case (q_eg_stage)
+            StageAttack:  stage_rate = ar;
+            StageDecay:   stage_rate = dr;
+            StageSustain: stage_rate = sus ? 0 : rr;
+            StageRelease: stage_rate = rr;
+        endcase
+
+        if (restart)
+            stage_rate = ar;
+    end
 
     // Rate
     reg [6:0] rate;
@@ -120,60 +133,45 @@ module fm_eg(
             rate = 7'd63;
     end
 
-    reg [24:0] eg_env_cnt_inc;
     always @* begin
-        eg_env_cnt_inc = {22'b0, 1'b1, rate[1:0]} << rate[5:2];
-        if (q_eg_stage == StageAttack) begin
-            eg_env_cnt_inc = ~{16'b0, env[8:0]} << rate[5:2];   //~(eg_env_cnt_inc << 3);
-        end
-    end
-
-    reg [24:0] eg_env_cnt_next;
-    always @* begin
-        eg_env_cnt_next = {1'b0, q_eg_env_cnt};
+        d_eg_cnt = {3'b0, q_eg_cnt};
         if (stage_rate != 4'd0)
-            eg_env_cnt_next = eg_env_cnt_next + eg_env_cnt_inc;
+            d_eg_cnt = d_eg_cnt + ({15'b0, 1'b1, rate[1:0]} << rate[5:2]);
     end
+    wire [2:0] overflow = d_eg_cnt[17:15];
 
     always @* begin
-        d_eg_env_cnt = eg_env_cnt_next[23:0];
+        // d_eg_env_cnt = eg_env_cnt_next[23:0];
         d_eg_stage   = q_eg_stage;
+        d_eg_env     = {1'b0, q_eg_env};
 
         case (q_eg_stage)
             StageAttack: begin
-                if (ar == 4'hF || eg_env_cnt_next[24]) begin
-                    d_eg_env_cnt = 0;
-                    d_eg_stage   = StageDecay;
-                end
+                if (q_eg_env == 9'd0)
+                    d_eg_stage = StageDecay;
+                else if (overflow != 3'd0)
+                    d_eg_env = d_eg_env - (((q_eg_env * overflow) >> 3) + 1);
             end
+
             StageDecay: begin
-                if (dr != 0 && (eg_env_cnt_next[24] || eg_env_cnt_next[23:20] >= sl)) begin
-                    d_eg_env_cnt = {sl, 20'd0};
-                    d_eg_stage   = StageSustain;
-                end
+                if (q_eg_env[8:4] >= suslvl)
+                    d_eg_stage = StageSustain;
+                else
+                    d_eg_env = {1'b0, q_eg_env} + {7'b0, overflow};
             end
-            StageSustain: begin
-                if (!sus) begin
-                    d_eg_stage = StageRelease;
-                end
-            end
-            StageRelease: begin
-                if (eg_env_cnt_next[24]) begin
-                    d_eg_env_cnt = ~0;
-                end
+
+            StageSustain, StageRelease: begin
+                d_eg_env = {1'b0, q_eg_env} + {7'b0, overflow};
             end
         endcase
 
-        if (op_reset) begin
-            d_eg_env_cnt = ~0;
-            d_eg_stage   = StageRelease;
-        end
-        if (restart) begin
+        if (restart)
             d_eg_stage = StageAttack;
-        end
-        if (!kon) begin
+        if (!kon || op_reset)
             d_eg_stage = StageRelease;
-        end
+
+        if (d_eg_env[9] || op_reset)
+            d_eg_env = {1'b0, 9'd511};
     end
 
 endmodule

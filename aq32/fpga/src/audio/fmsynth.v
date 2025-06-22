@@ -26,7 +26,6 @@ module fmsynth(
     reg  [18:0] q_accum_r;
     reg  [31:0] q_kon;
     reg  [31:0] q_alg;
-    reg  [31:0] q_restart;
     reg         q_dam;
     reg         q_dvb;
     reg         q_nts;
@@ -193,12 +192,45 @@ module fmsynth(
     end
 
     //////////////////////////////////////////////////////////////////////////
+    // Operator envelope generator
+    //////////////////////////////////////////////////////////////////////////
+    wire [8:0] env;
+    wire       restart;
+
+    fm_eg fm_eg(
+        .clk(clk),
+
+        .op_sel(q_op_sel),
+        .next(q_op_next),
+        .op_reset(q_op_reset),
+
+        .ar(op_ar),
+        .dr(op_dr),
+        .sl(op_sl),
+        .rr(op_rr),
+        .tl(op_tl),
+
+        .block(ch_block),
+        .fnum(ch_fnum),
+        .nts(q_nts),
+        .ksr(op_ksr),
+        .kon(ch_kon),
+        .sus(op_sus),
+        .am(op_am),
+        .ksl(op_ksl),
+
+        .am_val(am_val),
+
+        .env(env),
+        .restart(restart)
+    );
+
+    //////////////////////////////////////////////////////////////////////////
     // Operator phase counter
     //////////////////////////////////////////////////////////////////////////
     reg        q_op_next;
     reg        q_op_reset;
     wire [9:0] phase;
-    wire       restart = q_restart[q_op_sel[5:1]];
 
     fm_phase fm_phase(
         .clk(clk),
@@ -218,39 +250,6 @@ module fmsynth(
         .vib(op_vib),
 
         .phase(phase)
-    );
-
-    //////////////////////////////////////////////////////////////////////////
-    // Operator envelope generator
-    //////////////////////////////////////////////////////////////////////////
-    wire [8:0] env;
-
-    fm_eg fm_eg(
-        .clk(clk),
-
-        .op_sel(q_op_sel),
-        .next(q_op_next),
-        .op_reset(q_op_reset),
-        .restart(restart),
-
-        .ar(op_ar),
-        .dr(op_dr),
-        .sl(op_sl),
-        .rr(op_rr),
-        .tl(op_tl),
-
-        .block(ch_block),
-        .fnum(ch_fnum),
-        .nts(q_nts),
-        .ksr(op_ksr),
-        .kon(ch_kon),
-        .sus(op_sus),
-        .am(op_am),
-        .ksl(op_ksl),
-
-        .am_val(am_val),
-
-        .env(env)
     );
 
     //////////////////////////////////////////////////////////////////////////
@@ -316,7 +315,6 @@ module fmsynth(
             q_accum_r    <= 0;
             q_kon        <= 0;
             q_alg        <= 0;
-            q_restart    <= 0;
             q_dam        <= 0;
             q_dvb        <= 0;
             q_nts        <= 0;
@@ -355,7 +353,6 @@ module fmsynth(
 
                 StNext: begin
                     if (q_op_sel == 6'd63) begin
-                        q_restart  <= 0;
                         q_state    <= StIdle;
                         q_op_reset <= 0;
 
@@ -396,8 +393,7 @@ module fmsynth(
                     q_dvb <= bus_wrdata[6];
                 end
                 if (sel_reg2) begin
-                    q_kon     <= bus_wrdata;
-                    q_restart <= q_restart | (~q_kon & bus_wrdata);
+                    q_kon <= bus_wrdata;
                 end
                 if (sel_ch_attr) begin
                     q_alg[bus_addr[4:0]] <= bus_wrdata[16];
