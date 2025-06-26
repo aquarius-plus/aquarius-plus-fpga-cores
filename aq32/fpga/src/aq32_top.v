@@ -79,6 +79,11 @@ module aq32_top(
     wire        spi_reset_req;
     wire        reset_req_cold;
 
+    wire irq_uart;
+    wire irq_keybuf;
+    wire irq_pcm;
+    wire irq_line, irq_vblank;
+
     //////////////////////////////////////////////////////////////////////////
     // Clock synthesizer
     //////////////////////////////////////////////////////////////////////////
@@ -114,7 +119,7 @@ module aq32_top(
     reg         cpu_wait;
     reg  [31:0] cpu_rddata;
 
-    wire [15:0] cpu_irq = {14'b0, irq_line, irq_vblank};
+    wire [15:0] cpu_irq = {11'b0, irq_uart, irq_keybuf, irq_pcm, irq_line, irq_vblank};
 
     cpu #(.VEC_RESET(32'h00000000)) cpu(
         .clk(clk),
@@ -250,6 +255,8 @@ module aq32_top(
         .esp_cts(esp_cts),
         .esp_rts(esp_rts));
 
+    assign irq_uart = !esp_rx_empty;
+
     //////////////////////////////////////////////////////////////////////////
     // ESP SPI slave interface
     //////////////////////////////////////////////////////////////////////////
@@ -368,11 +375,79 @@ module aq32_top(
         .rd_empty(kbbuf_empty)
     );
 
+    assign irq_keybuf = !kbbuf_empty;
+
+    //////////////////////////////////////////////////////////////////////////
+    // PCM playback
+    //////////////////////////////////////////////////////////////////////////
+    wire        pcm_strobe;
+    wire [31:0] pcm_rddata;
+    wire        pcm_wait;
+    wire [15:0] pcm_audio_l;
+    wire [15:0] pcm_audio_r;
+
+    pcm pcm(
+        .clk(clk),
+        .reset(reset),
+
+        .bus_addr(cpu_addr[3:2]),
+        .bus_wrdata(cpu_wrdata),
+        .bus_wren(pcm_strobe && cpu_wren),
+        .bus_rddata(pcm_rddata),
+
+        .irq(irq_pcm),
+
+        .audio_l(pcm_audio_l),
+        .audio_r(pcm_audio_r)
+    );
+
+    //////////////////////////////////////////////////////////////////////////
+    // FM synthesizer
+    //////////////////////////////////////////////////////////////////////////
+    wire        fmsynth_strobe;
+    wire [31:0] fmsynth_rddata;
+    wire        fmsynth_wait;
+    wire [15:0] fmsynth_audio_l;
+    wire [15:0] fmsynth_audio_r;
+
+    fmsynth fmsynth(
+        .clk(clk),
+        .reset(reset),
+
+        .bus_addr(cpu_addr[9:2]),
+        .bus_wrdata(cpu_wrdata),
+        .bus_wren(fmsynth_strobe && cpu_wren),
+        .bus_rddata(fmsynth_rddata),
+        .bus_wait(fmsynth_wait),
+
+        .audio_l(fmsynth_audio_l),
+        .audio_r(fmsynth_audio_r)
+    );
+
     //////////////////////////////////////////////////////////////////////////
     // PWM DAC
     //////////////////////////////////////////////////////////////////////////
-    wire [15:0] common_audio_l;
-    wire [15:0] common_audio_r;
+    wire [16:0] summed_l = {pcm_audio_l[15], pcm_audio_l} + {fmsynth_audio_l[15], fmsynth_audio_l};
+    wire [16:0] summed_r = {pcm_audio_r[15], pcm_audio_r} + {fmsynth_audio_r[15], fmsynth_audio_r};
+
+    reg  [15:0] common_audio_l;
+    reg  [15:0] common_audio_r;
+
+    always @* begin
+        // Clamp output signal
+        common_audio_l = summed_l[15:0];
+        if (summed_l[16:15] == 2'b10)
+            common_audio_l = 16'h8000;
+        else if (summed_l[16:15] == 2'b01)
+            common_audio_l = 16'h7FFF;
+
+        // Clamp output signal
+        common_audio_r = summed_r[15:0];
+        if (summed_r[16:15] == 2'b10)
+            common_audio_r = 16'h8000;
+        else if (summed_r[16:15] == 2'b01)
+            common_audio_r = 16'h7FFF;
+    end
 
     aqp_pwm_dac pwm_dac(
         .clk(clk),
@@ -386,27 +461,6 @@ module aq32_top(
         // PWM audio output
         .audio_l(audio_l),
         .audio_r(audio_r));
-
-    //////////////////////////////////////////////////////////////////////////
-    // Audio
-    //////////////////////////////////////////////////////////////////////////
-    wire        fmsynth_strobe;
-    wire [31:0] fmsynth_rddata;
-    wire        fmsynth_wait;
-
-    fmsynth fmsynth(
-        .clk(clk),
-        .reset(reset),
-
-        .bus_addr(cpu_addr[9:2]),
-        .bus_wrdata(cpu_wrdata),
-        .bus_wren(fmsynth_strobe && cpu_wren),
-        .bus_rddata(fmsynth_rddata),
-        .bus_wait(fmsynth_wait),
-
-        .audio_l(common_audio_l),
-        .audio_r(common_audio_r)
-    );
 
     //////////////////////////////////////////////////////////////////////////
     // Video
@@ -451,8 +505,6 @@ module aq32_top(
     reg  [7:0] q_vscry;
     wire [8:0] vline;
     reg  [8:0] q_virqline;
-
-    wire irq_line, irq_vblank;
 
     wire [12:0] vram_addr = vram4bpp_strobe ? cpu_addr[15:3] : cpu_addr[14:2];
     reg  [31:0] vram_wrdata;
@@ -582,7 +634,8 @@ module aq32_top(
     // CPU bus interconnect
     //////////////////////////////////////////////////////////////////////////
     wire   bootrom_strobe   = cpu_strobe && cpu_addr[31:12] == 20'h00000;
-    wire   regs_strobe      = cpu_strobe && cpu_addr[31:11] == {20'h00002, 1'b0};
+    wire   regs_strobe      = cpu_strobe && cpu_addr[31:10] == {20'h00002, 2'b00};
+    assign pcm_strobe       = cpu_strobe && cpu_addr[31:10] == {20'h00002, 2'b01};
     assign fmsynth_strobe   = cpu_strobe && cpu_addr[31:11] == {20'h00002, 1'b1};
     assign sprattr_strobe   = cpu_strobe && cpu_addr[31:12] == 20'h00003;
     assign pal_strobe       = cpu_strobe && cpu_addr[31:12] == 20'h00004;
@@ -612,6 +665,7 @@ module aq32_top(
     always @* begin
         cpu_rddata = 0;
         if (bootrom_strobe)   cpu_rddata = bootrom_rddata;
+        if (pcm_strobe)       cpu_rddata = pcm_rddata;
         if (fmsynth_strobe)   cpu_rddata = fmsynth_rddata;
         if (regs_strobe)      cpu_rddata = regs_rddata;
         if (pal_strobe)       cpu_rddata = {pal_rddata, pal_rddata};

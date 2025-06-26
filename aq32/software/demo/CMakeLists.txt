@@ -56,6 +56,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_sources(${PROJECT_NAME} PRIVATE
     main.c
+    samples.c
 
     ../lib/start.S
     ../lib/syscalls.c

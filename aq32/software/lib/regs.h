@@ -35,6 +35,13 @@ struct regs {
     volatile int32_t  KEYBUF;
 };
 
+struct pcm {
+    volatile uint32_t status;
+    volatile uint32_t fifo_ctrl;
+    volatile uint32_t rate;
+    volatile uint32_t data;
+};
+
 struct fmsynth {
     volatile uint32_t opmode;
     volatile uint32_t ctrl;
@@ -65,6 +72,7 @@ struct tram {
 static_assert(sizeof(struct tram) == 4096);
 
 #define REGS     ((struct regs *)0x2000)
+#define PCM      ((struct pcm *)0x2400)
 #define FMSYNTH  ((struct fmsynth *)0x2800)
 #define PALETTE  ((volatile uint16_t *)0x04000)
 #define CHRAM    ((volatile uint8_t *)0x05000)
