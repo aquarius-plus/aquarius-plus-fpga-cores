@@ -38,6 +38,3 @@
     unsigned long __v = (unsigned long)(val);                   \
     __asm__ __volatile__("csrc%i0 " #csr ", %0" : : "rK"(__v)); \
 })
-
-static inline void     set_asid(unsigned asid) { csr_write(0x7C0, asid); }
-static inline unsigned get_asid(void) { return csr_read(0x7C0); }

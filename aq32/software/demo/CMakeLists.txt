@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.13)
 
-project(pcmtest VERSION 0.1 LANGUAGES C CXX ASM)
+project(demo VERSION 0.1 LANGUAGES C CXX ASM)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(EXECNAME pcmtest)
+set(EXECNAME demo)
 
 set(APPLE FALSE)
 set(CMAKE_C_COMPILER riscv-none-elf-gcc)
@@ -41,7 +41,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE -Os -g)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wshadow -Winit-self -Wfloat-conversion -Wdouble-promotion -Wmissing-include-dirs -Wlogical-op)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wno-unused-parameter -Wno-shadow)
 target_compile_options(${PROJECT_NAME} PRIVATE -fdata-sections -ffunction-sections -fno-strict-aliasing)
-target_compile_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestanding -specs=nano.specs)
+target_compile_options(${PROJECT_NAME} PRIVATE -march=rv32im_zicsr -mabi=ilp32 -ffreestanding -specs=nano.specs)
 
 target_link_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -ffreestanding -specs=nano.specs) # -u _printf_float)
 target_link_options(${PROJECT_NAME} PRIVATE -nostartfiles)
@@ -56,7 +56,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_sources(${PROJECT_NAME} PRIVATE
     main.c
-    samples.c
 
     ../lib/start.S
     ../lib/syscalls.c

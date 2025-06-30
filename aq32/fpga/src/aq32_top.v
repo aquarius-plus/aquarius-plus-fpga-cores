@@ -84,6 +84,12 @@ module aq32_top(
     wire irq_pcm;
     wire irq_line, irq_vblank;
 
+    wire [31:0] cpu_addr;
+    wire [31:0] cpu_wrdata;
+    wire  [3:0] cpu_bytesel;
+    wire        cpu_wren;
+    wire        cpu_strobe;
+
     //////////////////////////////////////////////////////////////////////////
     // Clock synthesizer
     //////////////////////////////////////////////////////////////////////////
@@ -109,21 +115,78 @@ module aq32_top(
         .reset(reset));
 
     //////////////////////////////////////////////////////////////////////////
+    // Time tick generation (1ms)
+    //////////////////////////////////////////////////////////////////////////
+    wire       sel_reg_mtime;
+    wire       sel_reg_mtimeh;
+    wire       sel_reg_mtimecmp;
+    wire       sel_reg_mtimecmph;
+
+    reg [14:0] q_time_tick_cnt;
+    reg        q_time_tick;
+    reg [63:0] q_mtime;
+    reg [63:0] q_mtimecmp;
+    reg        q_mtimeirq;
+
+    always @(posedge clk or posedge reset)
+        if (reset) begin
+            q_time_tick_cnt <= 0;
+            q_time_tick     <= 0;
+        end else begin
+            q_time_tick <= 0;
+
+            if (q_time_tick_cnt == 15'd25174) begin
+                q_time_tick_cnt <= 0;
+                q_time_tick     <= 1;
+            end else begin
+                q_time_tick_cnt <= q_time_tick_cnt + 15'd1;
+            end
+        end
+
+    always @(posedge clk or posedge reset)
+        if (reset) begin
+            q_mtime    <= 0;
+            q_mtimecmp <= 0;
+            q_mtimeirq <= 0;
+            
+        end else begin
+            if (q_time_tick)
+                q_mtime <= q_mtime + 64'd1;
+
+            q_mtimeirq <= q_mtimecmp <= q_mtime;
+
+            if (sel_reg_mtime     && cpu_wren) q_mtime[31:0]     <= cpu_wrdata;
+            if (sel_reg_mtimeh    && cpu_wren) q_mtime[63:32]    <= cpu_wrdata;
+            if (sel_reg_mtimecmp  && cpu_wren) q_mtimecmp[31:0]  <= cpu_wrdata;
+            if (sel_reg_mtimecmph && cpu_wren) q_mtimecmp[63:32] <= cpu_wrdata;
+        end
+
+    //////////////////////////////////////////////////////////////////////////
     // CPU
     //////////////////////////////////////////////////////////////////////////
-    wire [31:0] cpu_addr;
-    wire [31:0] cpu_wrdata;
-    wire  [3:0] cpu_bytesel;
-    wire        cpu_wren;
-    wire        cpu_strobe;
     reg         cpu_wait;
     reg  [31:0] cpu_rddata;
+    reg  [31:0] cpu_irq;
+    
+    always @* begin
+        cpu_irq = 32'b0;
+        cpu_irq[20] = irq_uart;
+        cpu_irq[19] = irq_keybuf;
+        cpu_irq[18] = irq_pcm;
+        cpu_irq[17] = irq_line;
+        cpu_irq[16] = irq_vblank;
+        cpu_irq[ 7] = q_mtimeirq;
+    end
 
-    wire [15:0] cpu_irq = {11'b0, irq_uart, irq_keybuf, irq_pcm, irq_line, irq_vblank};
-
-    cpu #(.VEC_RESET(32'h00000000)) cpu(
+    cpu #(
+        .VEC_RESET(32'h00000000),
+        .IRQ_USED(32'h001F0080),
+        .IRQ_LATCHING(32'h00030000)
+    ) cpu(
         .clk(clk),
         .reset(reset),
+
+        .mtime(q_mtime),
 
         // Bus interface
         .bus_addr(cpu_addr),
@@ -689,6 +752,11 @@ module aq32_top(
     wire sel_reg_virqline = regs_strobe && (cpu_addr[7:2] == 6'h06);    // 0x02018
     wire sel_reg_keybuf   = regs_strobe && (cpu_addr[7:2] == 6'h07);    // 0x0201C
 
+    assign sel_reg_mtime     = regs_strobe && (cpu_addr[7:2] == 6'h20);    // 0x02080
+    assign sel_reg_mtimeh    = regs_strobe && (cpu_addr[7:2] == 6'h21);    // 0x02084
+    assign sel_reg_mtimecmp  = regs_strobe && (cpu_addr[7:2] == 6'h22);    // 0x02088
+    assign sel_reg_mtimecmph = regs_strobe && (cpu_addr[7:2] == 6'h23);    // 0x0208C
+
     reg q_esp_rx_fifo_overflow, q_esp_rx_framing_error;
 
     always @* begin
@@ -706,11 +774,16 @@ module aq32_top(
             q_vctrl_text_enable
         };
 
-        if (sel_reg_vscrx)    regs_rddata = {23'b0, q_vscrx};
-        if (sel_reg_vscry)    regs_rddata = {24'b0, q_vscry};
-        if (sel_reg_vline)    regs_rddata = {23'b0, vline};
-        if (sel_reg_virqline) regs_rddata = {23'b0, q_virqline};
-        if (sel_reg_keybuf)   regs_rddata = {kbbuf_empty, 15'b0, kbbuf_rddata};
+        if (sel_reg_vscrx)     regs_rddata = {23'b0, q_vscrx};
+        if (sel_reg_vscry)     regs_rddata = {24'b0, q_vscry};
+        if (sel_reg_vline)     regs_rddata = {23'b0, vline};
+        if (sel_reg_virqline)  regs_rddata = {23'b0, q_virqline};
+        if (sel_reg_keybuf)    regs_rddata = {kbbuf_empty, 15'b0, kbbuf_rddata};
+
+        if (sel_reg_mtime)     regs_rddata = q_mtime[31:0];
+        if (sel_reg_mtimeh)    regs_rddata = q_mtime[63:32];
+        if (sel_reg_mtimecmp)  regs_rddata = q_mtimecmp[31:0];
+        if (sel_reg_mtimecmph) regs_rddata = q_mtimecmp[63:32];
     end
 
     assign esp_tx_data = cpu_wrdata[8:0];
