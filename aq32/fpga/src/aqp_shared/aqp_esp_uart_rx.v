@@ -8,11 +8,10 @@ module aqp_esp_uart_rx(
     input  wire        uart_rxd,
 
     output reg  [7:0]  rx_data,
-    output reg         rx_valid,
-
-    output reg         framing_error);
+    output reg         rx_valid);
 
     reg q_started;
+    reg q_framing_error;
 
     // Synchronize input signal
     reg [3:0] q_rxd;
@@ -33,19 +32,19 @@ module aqp_esp_uart_rx(
     reg [7:0] q_shift;
     always @(posedge clk or posedge reset)
         if (reset) begin
-            q_started     <= 1'b0;
-            rx_valid      <= 1'b0;
-            q_shift       <= 8'b0;
-            rx_data       <= 8'b0;
-            q_bit_cnt     <= 4'b0;
-            framing_error <= 1'b0;
+            q_started       <= 1'b0;
+            rx_valid        <= 1'b0;
+            q_shift         <= 8'b0;
+            rx_data         <= 8'b0;
+            q_bit_cnt       <= 4'b0;
+            q_framing_error <= 1'b0;
 
         end else begin
             rx_valid <= 0;
 
             if (!q_started) begin
-                q_bit_cnt     <= 4'd0;
-                framing_error <= 1'b0;
+                q_bit_cnt       <= 4'd0;
+                q_framing_error <= 1'b0;
 
                 if (start_condition)
                     q_started <= 1;
@@ -54,12 +53,12 @@ module aqp_esp_uart_rx(
                 if (q_bit_cnt == 4'd9) begin
                     if (rx_in) begin
                         q_started <= 0;
-                        if (!(framing_error)) begin
+                        if (!(q_framing_error)) begin
                             rx_data  <= q_shift;
                             rx_valid <= 1;
                         end
                     end else begin
-                        framing_error <= 1'b1;
+                        q_framing_error <= 1'b1;
                     end
                 end else begin
                     q_shift   <= {rx_in, q_shift[7:1]};

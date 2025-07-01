@@ -12,8 +12,7 @@ module aqp_esp_uart_tx_fifo(
     input  wire       rd_en,
     
     output wire       empty,
-    output wire       full,
-    output wire       almost_full);
+    output wire       full);
 
     reg  [3:0] q_wridx = 0, q_rdidx = 0;
     reg  [8:0] mem [15:0] /* synthesis syn_ramstyle = "distributed_ram" */;
@@ -24,7 +23,6 @@ module aqp_esp_uart_tx_fifo(
 
     assign empty       = q_wridx == q_rdidx;
     assign full        = d_wridx == q_rdidx;
-    assign almost_full = count   >= 4'd8;
 
     always @(posedge clk) begin
         if (wr_en && !full)  mem[q_wridx] <= wrdata;
