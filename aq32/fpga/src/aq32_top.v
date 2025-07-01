@@ -117,10 +117,10 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     // Time tick generation (1ms)
     //////////////////////////////////////////////////////////////////////////
-    wire       sel_reg_mtime;
-    wire       sel_reg_mtimeh;
-    wire       sel_reg_mtimecmp;
-    wire       sel_reg_mtimecmph;
+    wire       reg_mtime_strobe;
+    wire       reg_mtimeh_strobe;
+    wire       reg_mtimecmp_strobe;
+    wire       reg_mtimecmph_strobe;
 
     reg [14:0] q_time_tick_cnt;
     reg        q_time_tick;
@@ -155,10 +155,10 @@ module aq32_top(
 
             q_mtimeirq <= q_mtimecmp <= q_mtime;
 
-            if (sel_reg_mtime     && cpu_wren) q_mtime[31:0]     <= cpu_wrdata;
-            if (sel_reg_mtimeh    && cpu_wren) q_mtime[63:32]    <= cpu_wrdata;
-            if (sel_reg_mtimecmp  && cpu_wren) q_mtimecmp[31:0]  <= cpu_wrdata;
-            if (sel_reg_mtimecmph && cpu_wren) q_mtimecmp[63:32] <= cpu_wrdata;
+            if (reg_mtime_strobe     && cpu_wren) q_mtime[31:0]     <= cpu_wrdata;
+            if (reg_mtimeh_strobe    && cpu_wren) q_mtime[63:32]    <= cpu_wrdata;
+            if (reg_mtimecmp_strobe  && cpu_wren) q_mtimecmp[31:0]  <= cpu_wrdata;
+            if (reg_mtimecmph_strobe && cpu_wren) q_mtimecmp[63:32] <= cpu_wrdata;
         end
 
     //////////////////////////////////////////////////////////////////////////
@@ -290,9 +290,9 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     // ESP32 UART
     //////////////////////////////////////////////////////////////////////////
-    wire       sel_reg_espdata;
-    wire       esp_tx_wr   =  cpu_wren && sel_reg_espdata;
-    wire       esp_rx_rd   = !cpu_wren && sel_reg_espdata;
+    wire       reg_espdata_strobe;
+    wire       esp_tx_wr   =  cpu_wren && reg_espdata_strobe;
+    wire       esp_rx_rd   = !cpu_wren && reg_espdata_strobe;
     wire       esp_tx_fifo_full;
     wire [8:0] esp_rx_data;
     wire       esp_rx_empty;
@@ -421,9 +421,9 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     // Keyboard buffer
     //////////////////////////////////////////////////////////////////////////
-    wire        sel_reg_keybuf;
-    wire        kbbuf_rst  = (cpu_wren && sel_reg_keybuf) || reset;
-    wire        kbbuf_rden = !cpu_wren && sel_reg_keybuf;
+    wire        reg_keybuf_strobe;
+    wire        kbbuf_rst  = (cpu_wren && reg_keybuf_strobe) || reset;
+    wire        kbbuf_rden = !cpu_wren && reg_keybuf_strobe;
     wire [15:0] kbbuf_rddata;
     wire        kbbuf_empty;
 
@@ -697,28 +697,28 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     // CPU bus interconnect
     //////////////////////////////////////////////////////////////////////////
-    wire   bootrom_strobe    = cpu_strobe && {cpu_addr[31:11], 11'b0} == 32'h00000;
-    wire   sel_reg_espctrl   = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02000;
-    assign sel_reg_espdata   = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02004;
-    wire   sel_reg_vctrl     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02008;
-    wire   sel_reg_vscrx     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0200C;
-    wire   sel_reg_vscry     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02010;
-    wire   sel_reg_vline     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02014;
-    wire   sel_reg_virqline  = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02018;
-    assign sel_reg_keybuf    = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0201C;
-    assign sel_reg_mtime     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02080;
-    assign sel_reg_mtimeh    = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02084;
-    assign sel_reg_mtimecmp  = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02088;
-    assign sel_reg_mtimecmph = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0208C;
-    assign pcm_strobe        = cpu_strobe && {cpu_addr[31: 4],  4'b0} == 32'h02400;
-    assign fmsynth_strobe    = cpu_strobe && {cpu_addr[31:10], 10'b0} == 32'h02800;
-    assign sprattr_strobe    = cpu_strobe && {cpu_addr[31: 9],  9'b0} == 32'h03000;
-    assign pal_strobe        = cpu_strobe && {cpu_addr[31: 7],  7'b0} == 32'h04000;
-    assign chram_strobe      = cpu_strobe && {cpu_addr[31:11], 11'b0} == 32'h05000;
-    assign tram_strobe       = cpu_strobe && {cpu_addr[31:12], 12'b0} == 32'h06000;
-    assign vram_strobe       = cpu_strobe && {cpu_addr[31:15], 15'b0} == 32'h08000;
-    assign vram4bpp_strobe   = cpu_strobe && {cpu_addr[31:16], 16'b0} == 32'h10000;
-    assign sram_strobe       = cpu_strobe && {cpu_addr[31:19], 19'b0} == 32'h80000;
+    wire   bootrom_strobe       = cpu_strobe && {cpu_addr[31:11], 11'b0} == 32'h00000;
+    wire   reg_espctrl_strobe   = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02000;
+    assign reg_espdata_strobe   = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02004;
+    wire   reg_vctrl_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02008;
+    wire   reg_vscrx_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0200C;
+    wire   reg_vscry_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02010;
+    wire   reg_vline_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02014;
+    wire   reg_virqline_strobe  = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02018;
+    assign reg_keybuf_strobe    = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0201C;
+    assign reg_mtime_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02080;
+    assign reg_mtimeh_strobe    = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02084;
+    assign reg_mtimecmp_strobe  = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02088;
+    assign reg_mtimecmph_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0208C;
+    assign pcm_strobe           = cpu_strobe && {cpu_addr[31: 4],  4'b0} == 32'h02400;
+    assign fmsynth_strobe       = cpu_strobe && {cpu_addr[31:10], 10'b0} == 32'h02800;
+    assign sprattr_strobe       = cpu_strobe && {cpu_addr[31: 9],  9'b0} == 32'h03000;
+    assign pal_strobe           = cpu_strobe && {cpu_addr[31: 7],  7'b0} == 32'h04000;
+    assign chram_strobe         = cpu_strobe && {cpu_addr[31:11], 11'b0} == 32'h05000;
+    assign tram_strobe          = cpu_strobe && {cpu_addr[31:12], 12'b0} == 32'h06000;
+    assign vram_strobe          = cpu_strobe && {cpu_addr[31:15], 15'b0} == 32'h08000;
+    assign vram4bpp_strobe      = cpu_strobe && {cpu_addr[31:16], 16'b0} == 32'h10000;
+    assign sram_strobe          = cpu_strobe && {cpu_addr[31:19], 19'b0} == 32'h80000;
 
     reg [31:0] q_cpu_addr;
     always @(posedge clk) q_cpu_addr <= cpu_addr;
@@ -739,40 +739,43 @@ module aq32_top(
 
     reg q_esp_rx_fifo_overflow, q_esp_rx_framing_error;
 
+    wire [31:0] reg_espctrl_rddata = {27'b0, q_esp_rx_fifo_overflow, q_esp_rx_framing_error, 1'b0, esp_tx_fifo_full, !esp_rx_empty};
+    wire [31:0] reg_espdata_rddata = {23'b0, esp_rx_data};
+    wire [31:0] reg_vctrl_rddata = {
+        24'b0,
+        2'b0,
+        q_vctrl_sprites_enable,
+        q_vctrl_gfx_tilemode,
+        q_vctrl_gfx_enable,
+        q_vctrl_text_priority,
+        q_vctrl_text_mode80,
+        q_vctrl_text_enable
+    };
+
     always @* begin
         cpu_rddata = 0;
-        if (bootrom_strobe)    cpu_rddata = bootrom_rddata;
-        if (pcm_strobe)        cpu_rddata = pcm_rddata;
-        if (fmsynth_strobe)    cpu_rddata = fmsynth_rddata;
-        if (sel_reg_espctrl)   cpu_rddata = {27'b0, q_esp_rx_fifo_overflow, q_esp_rx_framing_error, 1'b0, esp_tx_fifo_full, !esp_rx_empty};
-        if (sel_reg_espdata)   cpu_rddata = {23'b0, esp_rx_data};
-        if (sel_reg_vctrl)     cpu_rddata = {
-            24'b0,
-            2'b0,
-            q_vctrl_sprites_enable,
-            q_vctrl_gfx_tilemode,
-            q_vctrl_gfx_enable,
-            q_vctrl_text_priority,
-            q_vctrl_text_mode80,
-            q_vctrl_text_enable
-        };
-
-        if (sel_reg_vscrx)     cpu_rddata = {23'b0, q_vscrx};
-        if (sel_reg_vscry)     cpu_rddata = {24'b0, q_vscry};
-        if (sel_reg_vline)     cpu_rddata = {23'b0, vline};
-        if (sel_reg_virqline)  cpu_rddata = {23'b0, q_virqline};
-        if (sel_reg_keybuf)    cpu_rddata = {kbbuf_empty, 15'b0, kbbuf_rddata};
-        if (sel_reg_mtime)     cpu_rddata = q_mtime[31:0];
-        if (sel_reg_mtimeh)    cpu_rddata = q_mtime[63:32];
-        if (sel_reg_mtimecmp)  cpu_rddata = q_mtimecmp[31:0];
-        if (sel_reg_mtimecmph) cpu_rddata = q_mtimecmp[63:32];
-        if (pal_strobe)        cpu_rddata = {pal_rddata, pal_rddata};
-        if (sprattr_strobe)    cpu_rddata = sprattr_rddata;
-        if (chram_strobe)      cpu_rddata = {chram_rddata, chram_rddata, chram_rddata, chram_rddata};
-        if (tram_strobe)       cpu_rddata = {tram_rddata, tram_rddata};
-        if (vram_strobe)       cpu_rddata = vram_rddata;
-        if (vram4bpp_strobe)   cpu_rddata = vram4bpp_rddata;
-        if (sram_strobe)       cpu_rddata = sram_rddata;
+        if (bootrom_strobe)       cpu_rddata = bootrom_rddata;
+        if (pcm_strobe)           cpu_rddata = pcm_rddata;
+        if (fmsynth_strobe)       cpu_rddata = fmsynth_rddata;
+        if (reg_espctrl_strobe)   cpu_rddata = reg_espctrl_rddata;
+        if (reg_espdata_strobe)   cpu_rddata = reg_espdata_rddata;
+        if (reg_vctrl_strobe)     cpu_rddata = reg_vctrl_rddata;
+        if (reg_vscrx_strobe)     cpu_rddata = {23'b0, q_vscrx};
+        if (reg_vscry_strobe)     cpu_rddata = {24'b0, q_vscry};
+        if (reg_vline_strobe)     cpu_rddata = {23'b0, vline};
+        if (reg_virqline_strobe)  cpu_rddata = {23'b0, q_virqline};
+        if (reg_keybuf_strobe)    cpu_rddata = {kbbuf_empty, 15'b0, kbbuf_rddata};
+        if (reg_mtime_strobe)     cpu_rddata = q_mtime[31:0];
+        if (reg_mtimeh_strobe)    cpu_rddata = q_mtime[63:32];
+        if (reg_mtimecmp_strobe)  cpu_rddata = q_mtimecmp[31:0];
+        if (reg_mtimecmph_strobe) cpu_rddata = q_mtimecmp[63:32];
+        if (pal_strobe)           cpu_rddata = {pal_rddata, pal_rddata};
+        if (sprattr_strobe)       cpu_rddata = sprattr_rddata;
+        if (chram_strobe)         cpu_rddata = {chram_rddata, chram_rddata, chram_rddata, chram_rddata};
+        if (tram_strobe)          cpu_rddata = {tram_rddata, tram_rddata};
+        if (vram_strobe)          cpu_rddata = vram_rddata;
+        if (vram4bpp_strobe)      cpu_rddata = vram4bpp_rddata;
+        if (sram_strobe)          cpu_rddata = sram_rddata;
     end
 
     //////////////////////////////////////////////////////////////////////////
@@ -794,11 +797,11 @@ module aq32_top(
 
         end else begin
             if (cpu_wren) begin
-                if (sel_reg_espctrl) begin
+                if (reg_espctrl_strobe) begin
                     q_esp_rx_fifo_overflow <= q_esp_rx_fifo_overflow & ~cpu_wrdata[4];
                     q_esp_rx_framing_error <= q_esp_rx_framing_error & ~cpu_wrdata[3];
                 end
-                if (sel_reg_vctrl) begin
+                if (reg_vctrl_strobe) begin
                     q_vctrl_sprites_enable <= cpu_wrdata[5];
                     q_vctrl_gfx_tilemode   <= cpu_wrdata[4];
                     q_vctrl_gfx_enable     <= cpu_wrdata[3];
@@ -806,9 +809,9 @@ module aq32_top(
                     q_vctrl_text_mode80    <= cpu_wrdata[1];
                     q_vctrl_text_enable    <= cpu_wrdata[0];
                 end
-                if (sel_reg_vscrx) q_vscrx    <= cpu_wrdata[8:0];
-                if (sel_reg_vscry) q_vscry    <= cpu_wrdata[7:0];
-                if (sel_reg_vscry) q_virqline <= cpu_wrdata[8:0];
+                if (reg_vscrx_strobe) q_vscrx    <= cpu_wrdata[8:0];
+                if (reg_vscry_strobe) q_vscry    <= cpu_wrdata[7:0];
+                if (reg_vscry_strobe) q_virqline <= cpu_wrdata[8:0];
             end
 
             if (esp_rx_fifo_overflow) q_esp_rx_fifo_overflow <= 1'b1;
