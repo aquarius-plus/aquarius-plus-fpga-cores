@@ -219,7 +219,7 @@ module cpu #(
     wire        div_done;
     wire [31:0] div_quotient;
     wire [31:0] div_remainder;
-    wire        div_busy;   // unused
+    wire        div_busy;
     reg         div_start;
 
     div div(
@@ -619,7 +619,7 @@ module cpu #(
             fetch(q_mtvec);
         end
 
-        d_mip = (d_mip & ~IRQ_LATCHING) | (irq & IRQ_USED);
+        d_mip = (d_mip & IRQ_LATCHING) | (irq & IRQ_USED);
     end
 
     always @(posedge clk or posedge reset)
