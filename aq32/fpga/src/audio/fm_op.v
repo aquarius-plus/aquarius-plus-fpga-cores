@@ -16,7 +16,7 @@ module fm_op(
     endcase
 
     wire [11:0] logsin_value;
-    lut_logsin lut_logsin(.idx(logsin_idx), .value(logsin_value));
+    fm_logsin_rom fm_logsin_rom(.idx(logsin_idx), .value(logsin_value));
 
     reg negate;
     always @* case (ws)
@@ -42,7 +42,7 @@ module fm_op(
     end
 
     wire [9:0] exp_value;
-    lut_exp lut_exp(.idx(level[7:0]), .value(exp_value));
+    fm_exp_rom fm_exp_rom(.idx(level[7:0]), .value(exp_value));
 
     always @* begin
         result = ({2'b01, exp_value, 1'b0} >> level[12:8]);

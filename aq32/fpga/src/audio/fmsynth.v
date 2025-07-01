@@ -296,8 +296,8 @@ module fmsynth(
     //////////////////////////////////////////////////////////////////////////
     wire [7:0] pan_l;
     wire [7:0] pan_r;
-    lut_pan_l lut_pan_l(.idx(ch_pan), .value(pan_l));
-    lut_pan_r lut_pan_r(.idx(ch_pan), .value(pan_r));
+    fm_pan_l_rom fm_pan_l_rom(.idx(ch_pan), .value(pan_l));
+    fm_pan_r_rom fm_pan_r_rom(.idx(ch_pan), .value(pan_r));
 
     wire signed [20:0] op_result_l = $signed(d_op_result) * $signed({1'b0, pan_l});
     wire signed [20:0] op_result_r = $signed(d_op_result) * $signed({1'b0, pan_r});

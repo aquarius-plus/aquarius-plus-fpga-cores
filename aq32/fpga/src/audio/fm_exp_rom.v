@@ -2,7 +2,7 @@
 `timescale 1 ns / 1 ps
 
 (* rom_style = "distributed" *)
-module lut_exp(
+module fm_exp_rom(
     input  wire  [7:0] idx,
     output reg   [9:0] value
 );

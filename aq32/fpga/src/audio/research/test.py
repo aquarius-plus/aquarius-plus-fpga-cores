@@ -2,19 +2,19 @@
 import math
 import matplotlib.pyplot as plt
 
-lut_logsin = [
+fm_logsin_rom = [
     round(-256 * math.log2(math.sin((x + 0.5) / 256 * (math.pi / 2))))
     for x in range(256)
 ]
 
-lut_exp = [round((math.pow(2, x / 256) - 1) * 1024) for x in range(256)]
+fm_exp_rom = [round((math.pow(2, x / 256) - 1) * 1024) for x in range(256)]
 
 
 def logsin_lookup(phase):
     idx = phase & 255
     if phase & 256 != 0:
         idx ^= 255
-    val = lut_logsin[idx]
+    val = fm_logsin_rom[idx]
     if phase & 512 != 0:
         val |= 0x8000
     return val
@@ -25,27 +25,27 @@ def sp(x):
     x &= 0x1FFF
 
     # idx = (x & 255) ^ 255
-    val = ((1024 + lut_exp[(x & 0xFF) ^ 0xFF]) << 1) >> (x >> 8)
+    val = ((1024 + fm_exp_rom[(x & 0xFF) ^ 0xFF]) << 1) >> (x >> 8)
     if invert and val != 0:
         val = -val - 1
 
     return val
 
 
-print("lut_exp", lut_exp)
-print("lut_logsin", lut_logsin)
+print("fm_exp_rom", fm_exp_rom)
+print("fm_logsin_rom", fm_logsin_rom)
 
 # bla = [math.sin(((x + 0.5) * math.pi) / 512) for x in range(256)]
 
 
 plt.figure()
 plt.subplot(3, 1, 1)
-plt.title("lut_logsin")
-plt.plot(lut_logsin)
+plt.title("fm_logsin_rom")
+plt.plot(fm_logsin_rom)
 
 plt.subplot(3, 1, 2)
-plt.title("lut_exp")
-plt.plot(lut_exp)
+plt.title("fm_exp_rom")
+plt.plot(fm_exp_rom)
 
 # plt.figure()
 # plt.plot(bla)

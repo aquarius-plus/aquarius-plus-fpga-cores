@@ -2,7 +2,7 @@
 `timescale 1 ns / 1 ps
 
 (* rom_style = "distributed" *)
-module lut_pan_l(
+module fm_pan_l_rom(
     input  wire  [6:0] idx,
     output reg   [7:0] value
 );

@@ -2,7 +2,7 @@
 `timescale 1 ns / 1 ps
 
 (* rom_style = "distributed" *)
-module lut_logsin(
+module fm_logsin_rom(
     input  wire  [7:0] idx,
     output reg  [11:0] value
 );
