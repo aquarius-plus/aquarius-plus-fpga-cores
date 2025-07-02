@@ -282,5 +282,9 @@ void bc_func_cvl(void);
 void bc_func_cvs(void);
 void bc_func_cvd(void);
 
+void bc_stmt_chdir(void);
+void bc_stmt_mkdir(void);
+void bc_stmt_rmdir(void);
+
 // Time
 void bc_func_timer(void);

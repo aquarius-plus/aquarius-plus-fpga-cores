@@ -14,7 +14,7 @@ stkval_t *bc_stack_push_temp_str(unsigned length) {
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
 
     uint8_t *p = NULL;
-    if (length > 0 && (p = malloc(length)) == NULL)
+    if (length > 0 && (p = buf_malloc(length)) == NULL)
         _basic_error(ERR_OUT_OF_MEM);
 
     stk->type           = VT_STR;
@@ -30,7 +30,7 @@ void bc_free_temp_val(stkval_t *val) {
     if ((val->val_str.flags & STR_FLAGS_TYPE_MSK) != STR_FLAGS_TYPE_TEMP)
         return;
 
-    free(val->val_str.p);
+    buf_free(val->val_str.p);
 }
 
 void bc_to_long_round(stkval_t *val) {
@@ -361,15 +361,18 @@ static bc_handler_t bc_handlers[] = {
     [BC_OP_NEGATE] = bc_op_negate,
 
     // Statement tokens
+    [BC_RETURN]         = bc_return,
+    [BC_STMT_CHDIR]     = bc_stmt_chdir,
     [BC_STMT_CLEAR]     = bc_stmt_clear,
     [BC_STMT_CLS]       = bc_stmt_cls,
     [BC_STMT_COLOR]     = bc_stmt_color,
     [BC_STMT_ERROR]     = bc_stmt_error,
     [BC_STMT_INPUT]     = bc_stmt_input,
     [BC_STMT_LOCATE]    = bc_stmt_locate,
+    [BC_STMT_MKDIR]     = bc_stmt_mkdir,
     [BC_STMT_RANDOMIZE] = bc_stmt_randomize,
     [BC_STMT_RESUME]    = bc_stmt_resume,
-    [BC_RETURN]         = bc_return,
+    [BC_STMT_RMDIR]     = bc_stmt_rmdir,
     [BC_STMT_TIMER]     = bc_stmt_timer,
     [BC_STMT_WIDTH]     = bc_stmt_width,
 

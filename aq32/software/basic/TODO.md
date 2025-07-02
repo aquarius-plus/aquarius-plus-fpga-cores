@@ -34,9 +34,6 @@ To be implemented:
 - FREEFILE
 - GET [#]filenumber%[,[recordnumber&][,variable]]
 - PUT [#]filenumber%[,[recordnumber&][,variable]]
-- CHDIR
-- MKDIR
-- RMDIR
 - PRINT #filenumber%
 - SEEK
 

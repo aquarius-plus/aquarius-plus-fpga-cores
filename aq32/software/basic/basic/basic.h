@@ -20,7 +20,14 @@ enum {
     ERR_WHILE_WITHOUT_WEND     = 29,
     ERR_DUPLICATE_LABEL        = 33,
     ERR_INTERNAL_ERROR         = 51,
+    ERR_FILE_NOT_FOUND         = 53,
+    ERR_DEVICE_IO_ERROR        = 57,
+    ERR_FILE_ALREADY_EXISTS    = 58,
+    ERR_TOO_MANY_FILES         = 67,
+    ERR_DEVICE_UNAVAILABLE     = 68,
+    ERR_PERMISSION_DENIED      = 70,
     ERR_UNHANDLED              = 73,
+    ERR_PATH_FILE_ACCESS_ERROR = 75,
 };
 
 int         basic_compile(struct editbuf *eb);

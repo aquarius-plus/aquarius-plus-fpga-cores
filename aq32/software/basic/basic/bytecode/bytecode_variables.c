@@ -72,7 +72,7 @@ static void _store_var_string(uint8_t *p_var) {
     uint8_t *p_str;
     memcpy(&p_str, p_var, sizeof(uint8_t *));
 
-    p_str = realloc(p_str, 2 + stk->val_str.length);
+    p_str = buf_realloc(p_str, 2 + stk->val_str.length);
     if (p_str == NULL)
         _basic_error(ERR_OUT_OF_MEM);
     memcpy(p_var, &p_str, sizeof(uint8_t *));

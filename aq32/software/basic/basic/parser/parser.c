@@ -1015,6 +1015,7 @@ struct stmt {
 
 // clang-format off
 static const struct stmt stmts[TOK_STMT_LAST - TOK_STMT_FIRST + 1] = {
+    [TOK_CHDIR      - TOK_STMT_FIRST] = {.bc = BC_STMT_CHDIR,     .num_params = 1, .emit_stmt = NULL},
     [TOK_CLEAR      - TOK_STMT_FIRST] = {.bc = BC_STMT_CLEAR,     .num_params = 0, .emit_stmt = NULL},
     [TOK_CLS        - TOK_STMT_FIRST] = {.bc = BC_STMT_CLS,       .num_params = 0, .emit_stmt = NULL},
     [TOK_COLOR      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_color},
@@ -1030,12 +1031,14 @@ static const struct stmt stmts[TOK_STMT_LAST - TOK_STMT_FIRST + 1] = {
     [TOK_INPUT      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_input},
     [TOK_LINE_INPUT - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_line_input},
     [TOK_LOCATE     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_locate},
+    [TOK_MKDIR      - TOK_STMT_FIRST] = {.bc = BC_STMT_MKDIR,     .num_params = 1, .emit_stmt = NULL},
     [TOK_PRINT      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_print},
     [TOK_RANDOMIZE  - TOK_STMT_FIRST] = {.bc = BC_STMT_RANDOMIZE, .num_params = 1, .emit_stmt = NULL},
     [TOK_READ       - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_read},
     [TOK_RESTORE    - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_restore},
  // [TOK_RESUME     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = NULL},
     [TOK_RETURN     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_return},
+    [TOK_RMDIR      - TOK_STMT_FIRST] = {.bc = BC_STMT_RMDIR,     .num_params = 1, .emit_stmt = NULL},
     [TOK_SWAP       - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_swap},
  // [TOK_TIMER      - TOK_STMT_FIRST] = {.bc = BC_STMT_TIMER,     .num_params = 0, .emit_stmt = NULL},
     [TOK_WHILE      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_while},

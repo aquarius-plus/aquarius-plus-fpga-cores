@@ -169,6 +169,10 @@ enum {
     BC_FUNC_CVS,
     BC_FUNC_CVD,
 
+    BC_STMT_CHDIR,
+    BC_STMT_MKDIR,
+    BC_STMT_RMDIR,
+
     BC_FUNC_INPUTs,
     BC_FUNC_TIMER,
 };
