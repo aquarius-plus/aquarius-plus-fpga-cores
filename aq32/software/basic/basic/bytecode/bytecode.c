@@ -1,6 +1,7 @@
 #include "bytecode.h"
 #include "bytecode_internal.h"
 #include "console.h"
+#include "csr.h"
 
 typedef void (*bc_handler_t)(void);
 static bc_handler_t bc_handlers[];
@@ -264,15 +265,13 @@ void bc_data_restore(void) {
 }
 
 void bc_stmt_clear(void) { _basic_error(ERR_UNHANDLED); }
-void bc_stmt_option(void) { _basic_error(ERR_UNHANDLED); }
 void bc_stmt_resume(void) { _basic_error(ERR_UNHANDLED); }
 void bc_stmt_timer(void) { _basic_error(ERR_UNHANDLED); }
 void bc_func_erl(void) { _basic_error(ERR_UNHANDLED); }
 void bc_func_err(void) { _basic_error(ERR_UNHANDLED); }
 
 void bc_func_timer(void) {
-    bc_stack_push_long(12345);
-    _basic_error(ERR_UNHANDLED);
+    bc_stack_push_long(csr_read(time) / 1000);
 }
 
 static bc_handler_t bc_handlers[] = {

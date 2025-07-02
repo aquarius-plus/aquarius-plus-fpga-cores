@@ -182,7 +182,6 @@ void bc_return(void);
 // Statement tokens
 void bc_stmt_clear(void);
 void bc_stmt_inputs(void);
-void bc_stmt_option(void);
 void bc_stmt_timer(void);
 
 // Math operators

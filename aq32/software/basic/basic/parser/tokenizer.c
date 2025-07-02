@@ -380,7 +380,7 @@ static int _get_token(void) {
             }
 
             if (cur_token == TOK_LINE) {
-                // No keyword following END, so estore position
+                // No keyword following LINE, so restore position
                 state.p_cur = p_save;
             }
         }
