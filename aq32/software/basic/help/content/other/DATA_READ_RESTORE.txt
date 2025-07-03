@@ -46,7 +46,7 @@ Example:
 
 Example:
 
-    f% = OPEN("data.bin" FOR INPUT)
+    OPEN "data.bin" FOR INPUT AS f%
     e$ = SPACE$(100)
     READ #f%, a%, b&, c!, d#, e$
     CLOSE f%

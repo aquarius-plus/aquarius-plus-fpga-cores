@@ -1,9 +1,9 @@
-OPEN Function
+OPEN Statement
 Opens a file.
 
-*filenumber% = OPEN(path$ FOR mode*)
+OPEN path$ FOR mode* AS variable%
 
-  @ *filenumber%*  File number returned by the function.
+  @ *variable%*    Variable receiving file number.
   @ *path$*        The path of the file to be opened.
   @ *mode*         One of the following file modes:
 
@@ -14,7 +14,7 @@ Opens a file.
                    end of file.
 
 Example:
-    f% = OPEN("test.txt" FOR INPUT)
+    OPEN "test.txt" FOR INPUT AS f%
     LINE INPUT #f%, ln$
     PRINT ln$
     CLOSE #f%

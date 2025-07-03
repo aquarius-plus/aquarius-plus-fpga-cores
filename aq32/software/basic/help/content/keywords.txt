@@ -46,6 +46,17 @@ Keywords by Programming Task
 
  File input/output
 
+  <OPEN|OPEN>
+  <CLOSE|CLOSE>
+  <READ #|READ>
+  <WRITE #|WRITE>
+  <SEEK|SEEK>
+  <LINE INPUT #|INPUT>
+
+  <CHDIR|CHDIR>
+  <MKDIR|MKDIR>
+  <RMDIR|RMDIR>
+
   <CVD|CVD>
   <CVI|CVI>
   <CVL|CVL>

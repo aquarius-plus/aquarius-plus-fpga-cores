@@ -73,7 +73,7 @@ BASIC Help Index
   <NOT  Operator|NOT>
 
   <OCT$ Function|OCT$>
-  <OPEN Function|OPEN>
+  <OPEN Statement|OPEN>
   <OR   Operator|OR>
 
   <POS   Function|POS>
@@ -108,5 +108,6 @@ BASIC Help Index
   <WEND  Keyword|WEND>
   <WHILE Statement|WHILE>
   <WIDTH Statement|WIDTH>
+  <WRITE Statement|WRITE>
 
   <XOR Operator|XOR>

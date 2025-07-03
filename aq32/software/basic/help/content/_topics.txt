@@ -124,3 +124,7 @@ CVS         file_io/MKx$_CVx.txt
 CVD         file_io/MKx$_CVx.txt
 OPEN        file_io/OPEN.txt
 CLOSE       file_io/CLOSE.txt
+WRITE       file_io/WRITE.txt
+CHDIR       file_io/CHDIR_MKDIR_RMDIR.txt
+MKDIR       file_io/CHDIR_MKDIR_RMDIR.txt
+RMDIR       file_io/CHDIR_MKDIR_RMDIR.txt

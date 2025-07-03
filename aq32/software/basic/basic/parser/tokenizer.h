@@ -125,6 +125,7 @@ enum {
     TOK_LOCATE,
     TOK_MKDIR,
     TOK_ON,
+    TOK_OPEN,
     TOK_PRINT,
     TOK_RANDOMIZE,
     TOK_READ,
@@ -176,7 +177,6 @@ enum {
     TOK_MKLs,   // MKL$
     TOK_MKSs,   // MKS$
     TOK_OCTs,   // OCT$
-    TOK_OPEN,
     TOK_POS,
     TOK_RIGHTs, // RIGHT$
     TOK_RND,

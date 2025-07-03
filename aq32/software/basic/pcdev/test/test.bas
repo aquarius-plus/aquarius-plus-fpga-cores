@@ -1,9 +1,9 @@
-a% = open("test.bin" FOR OUTPUT)
+open "test.bin" FOR OUTPUT AS a%
 q$ = "Hello world"
 write #a%, q$
 close #a%
 
-a% = open("test.bin" FOR INPUT)
+open "test.bin" FOR INPUT AS a%
 q$ = "12345"
 read #a%, q$
 
