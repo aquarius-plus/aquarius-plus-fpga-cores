@@ -3,9 +3,11 @@ DATA specifies values to be read by subsequent READ statements.
 READ reads those values and assigns them to variables.
 RESTORE allows READ to reread values in specified DATA statements.
 
-DATA constant[,constant]...
-READ variablelist
-RESTORE [line]
+See below for the *READ #* statement to read from files.
+
+*DATA constant[,constant]...*
+*READ variablelist*
+*RESTORE [line]*
 
     @ *constant*        One or more numeric or string constants specifying
                       the data to be read. String constants containing
@@ -29,3 +31,21 @@ Example:
         RESTORE
     NEXT i%
     DATA 1, "Repeat"
+
+
+*READ [#]filenumber%, variablelist*
+
+    @ *filenumber%*       The number of an open file.
+    @ *variablelist*      One or more variables, separated by commas, that are
+                        assigned data read from the file. When assigning data
+                        to a string variable, the variable should be preceeded
+                        by the length to read as an parenthesized expression.
+
+    @ READ reads the items from the file in their binary form.
+      Use INPUT # instead to read ASCII representations.
+
+Example:
+
+    f% = OPEN("data.bin" FOR INPUT)
+    READ #f%, a%, b&, c!, d#, (100) a$
+    CLOSE f%

@@ -1,8 +1,11 @@
 a% = open("test.bin" FOR OUTPUT)
 
-for i = 1 to 10
-    print #a%, "Hello world"; tab(40); i
-next
+q$ = "Hello world"
+write a%, q$, "Hi"
+
+' for i = 1 to 10
+'     print #a%, "Hello world"; tab(40); i
+' next
 
 close #a%
 

@@ -264,8 +264,8 @@ void bc_print_spc(void);
 void bc_print_tab(void);
 void bc_print_next_field(void);
 void bc_print_newline(void);
-void bc_print_to_file(void);
-void bc_print_to_screen(void);
+void bc_set_file(void);
+void bc_unset_file(void);
 
 // Error handling
 void bc_func_erl(void);
@@ -287,6 +287,9 @@ void bc_func_cvd(void);
 void bc_func_open(void);
 void bc_stmt_close(void);
 void bc_stmt_close_all(void);
+void bc_stmt_write(void);
+
+extern int file_io_cur_file;
 
 void     file_io_write(int filenr, const void *buf, size_t len);
 unsigned file_io_get_column(int filenr);

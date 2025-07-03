@@ -138,7 +138,7 @@ enum {
     TOK_WHILE,
     TOK_WIDTH,
     TOK_WRITE,
-    TOK_STMT_LAST = TOK_WIDTH,
+    TOK_STMT_LAST = TOK_WRITE,
 
     // Functions
     TOK_ABS,

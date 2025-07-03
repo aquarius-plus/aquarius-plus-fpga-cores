@@ -11,6 +11,8 @@ struct open_file {
 
 static struct open_file files[MAX_OPEN];
 
+int file_io_cur_file;
+
 void bc_func_mki_s(void) {
     int32_t val = bc_stack_pop_long();
     if (val < INT16_MIN || val > INT16_MAX)
@@ -115,6 +117,7 @@ static void get_str(char *tmp, unsigned sizeof_tmp_size) {
 
     memcpy(tmp, stk.val_str.p, stk.val_str.length);
     tmp[stk.val_str.length] = 0;
+    bc_free_temp_val(&stk);
 }
 
 void bc_func_open(void) {
@@ -185,6 +188,19 @@ unsigned file_io_get_column(int fn) {
     if (fn < 0 || fn >= MAX_OPEN || files[fn].f == NULL)
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
     return files[fn].column;
+}
+
+void bc_stmt_write(void) {
+    stkval_t *stk = bc_stack_pop();
+    switch (stk->type) {
+        case VT_LONG: file_io_write(file_io_cur_file, &stk->val_long, sizeof(stk->val_long)); break;
+        case VT_SINGLE: file_io_write(file_io_cur_file, &stk->val_single, sizeof(stk->val_single)); break;
+        case VT_DOUBLE: file_io_write(file_io_cur_file, &stk->val_double, sizeof(stk->val_double)); break;
+        case VT_STR:
+            file_io_write(file_io_cur_file, stk->val_str.p, stk->val_str.length);
+            bc_free_temp_val(stk);
+            break;
+    }
 }
 
 void bc_stmt_chdir(void) {

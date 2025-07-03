@@ -158,8 +158,8 @@ enum {
     BC_PRINT_TAB,
     BC_PRINT_NEXT_FIELD,
     BC_PRINT_NEWLINE,
-    BC_PRINT_TO_FILE,
-    BC_PRINT_TO_SCREEN,
+    BC_SET_FILE,
+    BC_UNSET_FILE,
 
     // Error handling
     BC_FUNC_ERL,
@@ -181,6 +181,7 @@ enum {
     BC_FUNC_OPEN,
     BC_STMT_CLOSE,
     BC_STMT_CLOSE_ALL,
+    BC_STMT_WRITE,
 
     BC_STMT_CHDIR,
     BC_STMT_MKDIR,

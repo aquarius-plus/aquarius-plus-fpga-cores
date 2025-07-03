@@ -341,8 +341,8 @@ static bc_handler_t bc_handlers[] = {
     [BC_PRINT_TAB]        = bc_print_tab,
     [BC_PRINT_NEXT_FIELD] = bc_print_next_field,
     [BC_PRINT_NEWLINE]    = bc_print_newline,
-    [BC_PRINT_TO_FILE]    = bc_print_to_file,
-    [BC_PRINT_TO_SCREEN]  = bc_print_to_screen,
+    [BC_SET_FILE]         = bc_set_file,
+    [BC_UNSET_FILE]       = bc_unset_file,
 
     // Operator tokens
     [BC_OP_POW]    = bc_op_pow,    // TOK_POW
@@ -383,6 +383,7 @@ static bc_handler_t bc_handlers[] = {
     [BC_STMT_RMDIR]     = bc_stmt_rmdir,
     [BC_STMT_TIMER]     = bc_stmt_timer,
     [BC_STMT_WIDTH]     = bc_stmt_width,
+    [BC_STMT_WRITE]     = bc_stmt_write,
 
     // Function tokens
     [BC_FUNC_ABS]     = bc_func_abs,

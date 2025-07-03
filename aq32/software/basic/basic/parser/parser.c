@@ -530,9 +530,9 @@ static void bc_emit_stmt_print(void) {
         ack_token();
         bc_emit_expr();
         expect(TOK_COMMA);
-        bc_emit(BC_PRINT_TO_FILE);
+        bc_emit(BC_SET_FILE);
     } else {
-        bc_emit(BC_PRINT_TO_SCREEN);
+        bc_emit(BC_UNSET_FILE);
     }
 
     bool newline = true;
@@ -1062,6 +1062,26 @@ static void bc_emit_stmt_close(void) {
     }
 }
 
+static void bc_emit_stmt_write(void) {
+    // Parse optional '#'
+    if (get_token() == TOK_HASH)
+        ack_token();
+
+    // File number
+    bc_emit_expr();
+    bc_emit(BC_SET_FILE);
+    expect(TOK_COMMA);
+
+    while (1) {
+        bc_emit_expr();
+        bc_emit(BC_STMT_WRITE);
+
+        if (get_token() != TOK_COMMA)
+            break;
+        ack_token();
+    }
+}
+
 struct stmt {
     uint8_t bc;
     int     num_params;
@@ -1099,6 +1119,7 @@ static const struct stmt stmts[TOK_STMT_LAST - TOK_STMT_FIRST + 1] = {
  // [TOK_TIMER      - TOK_STMT_FIRST] = {.bc = BC_STMT_TIMER,     .num_params = 0, .emit_stmt = NULL},
     [TOK_WHILE      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_while},
     [TOK_WIDTH      - TOK_STMT_FIRST] = {.bc = BC_STMT_WIDTH,     .num_params = 1, .emit_stmt = NULL},
+    [TOK_WRITE      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_write},
 };
 // clang-format on
 
