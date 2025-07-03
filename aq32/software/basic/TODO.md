@@ -7,7 +7,7 @@
 
 ## BASIC
 
-Support for integer (%) on stack, so BC_STMT_WRITE can write correct amount.
+Support for integer (%) on stack, so BC_FILE_WRITE can write correct amount.
 
 To be implemented:
 
@@ -29,7 +29,6 @@ To be implemented:
 ### File I/O
 
 - LINE INPUT #filenumber%, variable$
-- READ
 - SEEK
 
 ### Graphics

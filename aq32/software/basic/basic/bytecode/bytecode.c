@@ -367,11 +367,13 @@ static bc_handler_t bc_handlers[] = {
     [BC_OP_NEGATE] = bc_op_negate,
 
     // Statement tokens
+    [BC_FILE_CLOSE_ALL] = bc_file_close_all,
+    [BC_FILE_CLOSE]     = bc_file_close,
+    [BC_FILE_READ]      = bc_file_read,
+    [BC_FILE_WRITE]     = bc_file_write,
     [BC_RETURN]         = bc_return,
     [BC_STMT_CHDIR]     = bc_stmt_chdir,
     [BC_STMT_CLEAR]     = bc_stmt_clear,
-    [BC_STMT_CLOSE_ALL] = bc_stmt_close_all,
-    [BC_STMT_CLOSE]     = bc_stmt_close,
     [BC_STMT_CLS]       = bc_stmt_cls,
     [BC_STMT_COLOR]     = bc_stmt_color,
     [BC_STMT_ERROR]     = bc_stmt_error,
@@ -379,14 +381,13 @@ static bc_handler_t bc_handlers[] = {
     [BC_STMT_LOCATE]    = bc_stmt_locate,
     [BC_STMT_MKDIR]     = bc_stmt_mkdir,
     [BC_STMT_RANDOMIZE] = bc_stmt_randomize,
-    [BC_STMT_READ]      = bc_stmt_read,
     [BC_STMT_RESUME]    = bc_stmt_resume,
     [BC_STMT_RMDIR]     = bc_stmt_rmdir,
     [BC_STMT_TIMER]     = bc_stmt_timer,
     [BC_STMT_WIDTH]     = bc_stmt_width,
-    [BC_STMT_WRITE]     = bc_stmt_write,
 
     // Function tokens
+    [BC_FILE_OPEN]    = bc_func_open,
     [BC_FUNC_ABS]     = bc_func_abs,
     [BC_FUNC_ASC]     = bc_func_asc,
     [BC_FUNC_ATN]     = bc_func_atn,
@@ -420,7 +421,6 @@ static bc_handler_t bc_handlers[] = {
     [BC_FUNC_MKLs]    = bc_func_mkl_s,   // MKL$
     [BC_FUNC_MKSs]    = bc_func_mks_s,   // MKS$
     [BC_FUNC_OCTs]    = bc_func_oct_s,   // OCT$
-    [BC_FUNC_OPEN]    = bc_func_open,
     [BC_FUNC_POS]     = bc_func_pos,
     [BC_FUNC_RIGHTs]  = bc_func_right_s, // RIGHT$
     [BC_FUNC_RND]     = bc_func_rnd,

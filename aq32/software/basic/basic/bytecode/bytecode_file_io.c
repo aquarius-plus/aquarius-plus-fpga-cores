@@ -151,7 +151,7 @@ void bc_func_open(void) {
     bc_stack_push_long(idx);
 }
 
-void bc_stmt_close_all(void) {
+void bc_file_close_all(void) {
     for (int i = 0; i < MAX_OPEN; i++) {
         if (files[i].f != NULL) {
             fclose(files[i].f);
@@ -160,7 +160,7 @@ void bc_stmt_close_all(void) {
     }
 }
 
-void bc_stmt_close(void) {
+void bc_file_close(void) {
     int fn = bc_stack_pop_long();
     if (fn < 0 || fn >= MAX_OPEN || files[fn].f == NULL)
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
@@ -199,7 +199,7 @@ unsigned file_io_get_column(int fn) {
     return files[fn].column;
 }
 
-void bc_stmt_read(void) {
+void bc_file_read(void) {
     uint8_t  var_type = bc_get_u8();
     uint8_t *p_var    = &bc_state.p_vars[bc_get_u16()];
 
@@ -224,7 +224,7 @@ void bc_stmt_read(void) {
     file_io_read(file_io_cur_file, p_var, len);
 }
 
-void bc_stmt_write(void) {
+void bc_file_write(void) {
     stkval_t *stk = bc_stack_pop();
     switch (stk->type) {
         case VT_LONG: file_io_write(file_io_cur_file, &stk->val_long, sizeof(stk->val_long)); break;

@@ -76,17 +76,17 @@ static const char *bc_names[] = {
     [BC_OP_IMP]                       = "OP_IMP",
     [BC_OP_NEGATE]                    = "OP_NEGATE",
     [BC_STMT_CLEAR]                   = "STMT_CLEAR",
-    [BC_STMT_CLOSE_ALL]               = "STMT_CLOSE_ALL",
-    [BC_STMT_CLOSE]                   = "STMT_CLOSE",
+    [BC_FILE_CLOSE_ALL]               = "FILE_CLOSE_ALL",
+    [BC_FILE_CLOSE]                   = "FILE_CLOSE",
     [BC_STMT_CLS]                     = "STMT_CLS",
     [BC_STMT_COLOR]                   = "STMT_COLOR",
     [BC_STMT_ERROR]                   = "STMT_ERROR",
     [BC_STMT_INPUT]                   = "STMT_INPUT",
     [BC_STMT_LOCATE]                  = "STMT_LOCATE",
     [BC_STMT_RANDOMIZE]               = "STMT_RANDOMIZE",
-    [BC_STMT_READ]                    = "STMT_READ",
+    [BC_FILE_READ]                    = "FILE_READ",
     [BC_STMT_RESUME]                  = "STMT_RESUME",
-    [BC_STMT_WRITE]                   = "STMT_WRITE",
+    [BC_FILE_WRITE]                   = "FILE_WRITE",
     [BC_RETURN]                       = "STMT_RETURN",
     [BC_STMT_TIMER]                   = "STMT_TIMER",
     [BC_STMT_WIDTH]                   = "STMT_WIDTH",
@@ -124,7 +124,7 @@ static const char *bc_names[] = {
     [BC_FUNC_MKLs]                    = "FUNC_MKL$",
     [BC_FUNC_MKSs]                    = "FUNC_MKS$",
     [BC_FUNC_OCTs]                    = "FUNC_OCT$",
-    [BC_FUNC_OPEN]                    = "FUNC_OPEN",
+    [BC_FILE_OPEN]                    = "FILE_OPEN",
     [BC_FUNC_POS]                     = "FUNC_POS",
     [BC_FUNC_RIGHTs]                  = "FUNC_RIGHT$",
     [BC_FUNC_RND]                     = "FUNC_RND",
@@ -182,7 +182,7 @@ void bytecode_dump(void) {
                 break;
             }
 
-            case BC_STMT_READ: {
+            case BC_FILE_READ: {
                 printf(": type=%c offset=%u", p[0], read_u16(p + 1));
                 p += 3;
                 break;

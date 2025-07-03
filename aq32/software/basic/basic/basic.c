@@ -102,7 +102,7 @@ int basic_compile(struct editbuf *eb) {
 }
 
 int basic_run(void) {
-    bc_stmt_close_all();
+    bc_file_close_all();
 
     cur_error = 0;
     if (setjmp(jb_error) == 0) {
@@ -110,7 +110,7 @@ int basic_run(void) {
         bytecode_run(buf_bytecode, buf_bytecode_end - buf_bytecode, vars_total_size);
     }
 
-    bc_stmt_close_all();
+    bc_file_close_all();
     return cur_error;
 }
 

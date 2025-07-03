@@ -288,7 +288,7 @@ static void bc_emit_func_open(void) {
         }
     }
     expect(TOK_RPAREN);
-    bc_emit(BC_FUNC_OPEN);
+    bc_emit(BC_FILE_OPEN);
 }
 
 // clang-format off
@@ -892,12 +892,12 @@ static void bc_emit_stmt_read(void) {
         uint16_t var_offset = reloc_var_get(tokval_str, tokval_strlen);
 
         if (is_file) {
-            bc_emit(BC_STMT_READ);
+            bc_emit(BC_FILE_READ);
             bc_emit(var_type);
             bc_emit_u16(var_offset);
 
         } else {
-            bc_emit(is_file ? BC_STMT_READ : BC_DATA_READ);
+            bc_emit(is_file ? BC_FILE_READ : BC_DATA_READ);
             bc_emit_store_var(var_type, var_offset);
         }
 
@@ -1062,7 +1062,7 @@ static void bc_emit_stmt_line_input(void) {
 static void bc_emit_stmt_close(void) {
     uint8_t tok = get_token();
     if (tok == TOK_COLON || tok == TOK_EOL) {
-        bc_emit(BC_STMT_CLOSE_ALL);
+        bc_emit(BC_FILE_CLOSE_ALL);
         return;
     }
 
@@ -1071,7 +1071,7 @@ static void bc_emit_stmt_close(void) {
         if (get_token() == TOK_HASH)
             ack_token();
         bc_emit_expr();
-        bc_emit(BC_STMT_CLOSE);
+        bc_emit(BC_FILE_CLOSE);
 
         if (get_token() != TOK_COMMA)
             break;
@@ -1091,7 +1091,7 @@ static void bc_emit_stmt_write(void) {
 
     while (1) {
         bc_emit_expr();
-        bc_emit(BC_STMT_WRITE);
+        bc_emit(BC_FILE_WRITE);
 
         if (get_token() != TOK_COMMA)
             break;

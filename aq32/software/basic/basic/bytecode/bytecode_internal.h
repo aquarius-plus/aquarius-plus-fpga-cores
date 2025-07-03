@@ -285,10 +285,10 @@ void bc_func_cvs(void);
 void bc_func_cvd(void);
 
 void bc_func_open(void);
-void bc_stmt_close(void);
-void bc_stmt_close_all(void);
-void bc_stmt_read(void);
-void bc_stmt_write(void);
+void bc_file_close(void);
+void bc_file_close_all(void);
+void bc_file_read(void);
+void bc_file_write(void);
 
 extern int file_io_cur_file;
 
