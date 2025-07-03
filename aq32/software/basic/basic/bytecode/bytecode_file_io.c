@@ -169,6 +169,15 @@ void bc_stmt_close(void) {
     files[fn].f = NULL;
 }
 
+void file_io_read(int fn, void *buf, size_t len) {
+    if (fn < 0 || fn >= MAX_OPEN || files[fn].f == NULL)
+        _basic_error(ERR_ILLEGAL_FUNC_CALL);
+
+    if (fread(buf, len, 1, files[fn].f) != 1) {
+        check_errno_result(-1);
+    }
+}
+
 void file_io_write(int fn, const void *buf, size_t len) {
     if (fn < 0 || fn >= MAX_OPEN || files[fn].f == NULL)
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
@@ -188,6 +197,31 @@ unsigned file_io_get_column(int fn) {
     if (fn < 0 || fn >= MAX_OPEN || files[fn].f == NULL)
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
     return files[fn].column;
+}
+
+void bc_stmt_read(void) {
+    uint8_t  var_type = bc_get_u8();
+    uint8_t *p_var    = &bc_state.p_vars[bc_get_u16()];
+
+    unsigned len;
+    switch (var_type) {
+        case '%': len = sizeof(uint16_t); break;
+        case '&': len = sizeof(uint32_t); break;
+        case '!': len = sizeof(float); break;
+        case '#': len = sizeof(double); break;
+        case '$': {
+            uint8_t *p_str;
+            memcpy(&p_str, p_var, sizeof(uint8_t *));
+            if (!p_str)
+                return;
+
+            len   = read_u16(p_str);
+            p_var = p_str + 2;
+            break;
+        }
+        default: _basic_error(ERR_INTERNAL_ERROR);
+    }
+    file_io_read(file_io_cur_file, p_var, len);
 }
 
 void bc_stmt_write(void) {

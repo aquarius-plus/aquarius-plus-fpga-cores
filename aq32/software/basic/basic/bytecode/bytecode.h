@@ -181,6 +181,7 @@ enum {
     BC_FUNC_OPEN,
     BC_STMT_CLOSE,
     BC_STMT_CLOSE_ALL,
+    BC_STMT_READ,
     BC_STMT_WRITE,
 
     BC_STMT_CHDIR,

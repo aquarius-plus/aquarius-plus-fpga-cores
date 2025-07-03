@@ -379,6 +379,7 @@ static bc_handler_t bc_handlers[] = {
     [BC_STMT_LOCATE]    = bc_stmt_locate,
     [BC_STMT_MKDIR]     = bc_stmt_mkdir,
     [BC_STMT_RANDOMIZE] = bc_stmt_randomize,
+    [BC_STMT_READ]      = bc_stmt_read,
     [BC_STMT_RESUME]    = bc_stmt_resume,
     [BC_STMT_RMDIR]     = bc_stmt_rmdir,
     [BC_STMT_TIMER]     = bc_stmt_timer,

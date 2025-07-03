@@ -53,8 +53,8 @@ static const char *bc_names[] = {
     [BC_PRINT_TAB]                    = "PRINT_TAB",
     [BC_PRINT_NEXT_FIELD]             = "PRINT_NEXT_FIELD",
     [BC_PRINT_NEWLINE]                = "PRINT_NEWLINE",
-    [BC_SET_FILE]                     = "PRINT_TO_FILE",
-    [BC_UNSET_FILE]                   = "PRINT_TO_SCREEN",
+    [BC_SET_FILE]                     = "SET_FILE",
+    [BC_UNSET_FILE]                   = "UNSET_FILE",
     [BC_OP_POW]                       = "OP_POW",
     [BC_OP_MULT]                      = "OP_MULT",
     [BC_OP_DIV]                       = "OP_DIV",
@@ -84,6 +84,7 @@ static const char *bc_names[] = {
     [BC_STMT_INPUT]                   = "STMT_INPUT",
     [BC_STMT_LOCATE]                  = "STMT_LOCATE",
     [BC_STMT_RANDOMIZE]               = "STMT_RANDOMIZE",
+    [BC_STMT_READ]                    = "STMT_READ",
     [BC_STMT_RESUME]                  = "STMT_RESUME",
     [BC_STMT_WRITE]                   = "STMT_WRITE",
     [BC_RETURN]                       = "STMT_RETURN",
@@ -178,6 +179,12 @@ void bytecode_dump(void) {
             case BC_PUSH_CONST_STRING: {
                 printf(": \"%.*s\"", p[0], p + 1);
                 p += 1 + p[0];
+                break;
+            }
+
+            case BC_STMT_READ: {
+                printf(": type=%c offset=%u", p[0], read_u16(p + 1));
+                p += 3;
                 break;
             }
 

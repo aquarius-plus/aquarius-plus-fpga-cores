@@ -7,6 +7,6 @@ Returns a string of spaces.
 
 Example:
     FOR i% = 1 TO 5
-        x$ = SPACE$ (i%)
+        x$ = SPACE$(i%)
         PRINT x$; i%
     NEXT i%

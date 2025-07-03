@@ -287,10 +287,12 @@ void bc_func_cvd(void);
 void bc_func_open(void);
 void bc_stmt_close(void);
 void bc_stmt_close_all(void);
+void bc_stmt_read(void);
 void bc_stmt_write(void);
 
 extern int file_io_cur_file;
 
+void     file_io_read(int fn, void *buf, size_t len);
 void     file_io_write(int filenr, const void *buf, size_t len);
 unsigned file_io_get_column(int filenr);
 

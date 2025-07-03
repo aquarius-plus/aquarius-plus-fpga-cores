@@ -875,14 +875,31 @@ static void bc_emit_stmt_data(void) {
 }
 
 static void bc_emit_stmt_read(void) {
+    // Read fromfile?
+    bool is_file = false;
+    if (get_token() == TOK_HASH) {
+        ack_token();
+        bc_emit_expr();
+        expect(TOK_COMMA);
+        bc_emit(BC_SET_FILE);
+        is_file = true;
+    }
+
     while (1) {
         expect(TOK_IDENTIFIER);
         infer_identifier_type();
         uint8_t  var_type   = tokval_str[tokval_strlen - 1];
         uint16_t var_offset = reloc_var_get(tokval_str, tokval_strlen);
 
-        bc_emit(BC_DATA_READ);
-        bc_emit_store_var(var_type, var_offset);
+        if (is_file) {
+            bc_emit(BC_STMT_READ);
+            bc_emit(var_type);
+            bc_emit_u16(var_offset);
+
+        } else {
+            bc_emit(is_file ? BC_STMT_READ : BC_DATA_READ);
+            bc_emit_store_var(var_type, var_offset);
+        }
 
         if (get_token() != TOK_COMMA)
             break;
