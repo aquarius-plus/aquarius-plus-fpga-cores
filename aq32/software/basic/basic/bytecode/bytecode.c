@@ -271,7 +271,11 @@ void bc_func_erl(void) { _basic_error(ERR_UNHANDLED); }
 void bc_func_err(void) { _basic_error(ERR_UNHANDLED); }
 
 void bc_func_timer(void) {
+#ifndef PCDEV
     bc_stack_push_long(csr_read(time) / 1000);
+#else
+    bc_stack_push_long(1234);
+#endif
 }
 
 static bc_handler_t bc_handlers[] = {
@@ -337,6 +341,8 @@ static bc_handler_t bc_handlers[] = {
     [BC_PRINT_TAB]        = bc_print_tab,
     [BC_PRINT_NEXT_FIELD] = bc_print_next_field,
     [BC_PRINT_NEWLINE]    = bc_print_newline,
+    [BC_PRINT_TO_FILE]    = bc_print_to_file,
+    [BC_PRINT_TO_SCREEN]  = bc_print_to_screen,
 
     // Operator tokens
     [BC_OP_POW]    = bc_op_pow,    // TOK_POW
@@ -364,6 +370,8 @@ static bc_handler_t bc_handlers[] = {
     [BC_RETURN]         = bc_return,
     [BC_STMT_CHDIR]     = bc_stmt_chdir,
     [BC_STMT_CLEAR]     = bc_stmt_clear,
+    [BC_STMT_CLOSE_ALL] = bc_stmt_close_all,
+    [BC_STMT_CLOSE]     = bc_stmt_close,
     [BC_STMT_CLS]       = bc_stmt_cls,
     [BC_STMT_COLOR]     = bc_stmt_color,
     [BC_STMT_ERROR]     = bc_stmt_error,
@@ -410,6 +418,7 @@ static bc_handler_t bc_handlers[] = {
     [BC_FUNC_MKLs]    = bc_func_mkl_s,   // MKL$
     [BC_FUNC_MKSs]    = bc_func_mks_s,   // MKS$
     [BC_FUNC_OCTs]    = bc_func_oct_s,   // OCT$
+    [BC_FUNC_OPEN]    = bc_func_open,
     [BC_FUNC_POS]     = bc_func_pos,
     [BC_FUNC_RIGHTs]  = bc_func_right_s, // RIGHT$
     [BC_FUNC_RND]     = bc_func_rnd,
@@ -420,8 +429,8 @@ static bc_handler_t bc_handlers[] = {
     [BC_FUNC_SQR]     = bc_func_sqr,
     [BC_FUNC_STRINGs] = bc_func_string_s, // STRING$
     [BC_FUNC_STRs]    = bc_func_str_s,    // STR$
-    [BC_FUNC_TIMER]   = bc_func_timer,
     [BC_FUNC_TAN]     = bc_func_tan,
+    [BC_FUNC_TIMER]   = bc_func_timer,
     [BC_FUNC_UCASEs]  = bc_func_ucase_s, // UCASE$
     [BC_FUNC_VAL]     = bc_func_val,
 };

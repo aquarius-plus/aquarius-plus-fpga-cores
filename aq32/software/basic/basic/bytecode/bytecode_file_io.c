@@ -2,6 +2,15 @@
 #include <errno.h>
 #include <sys/stat.h>
 
+#define MAX_OPEN (10)
+
+struct open_file {
+    FILE    *f;
+    unsigned column;
+};
+
+static struct open_file files[MAX_OPEN];
+
 void bc_func_mki_s(void) {
     int32_t val = bc_stack_pop_long();
     if (val < INT16_MIN || val > INT16_MAX)
@@ -106,6 +115,76 @@ static void get_str(char *tmp, unsigned sizeof_tmp_size) {
 
     memcpy(tmp, stk.val_str.p, stk.val_str.length);
     tmp[stk.val_str.length] = 0;
+}
+
+void bc_func_open(void) {
+    char path[256];
+    int  mode = bc_stack_pop_long();
+    get_str(path, sizeof(path));
+
+    int idx = -1;
+    for (int i = 0; i < MAX_OPEN; i++) {
+        if (files[i].f == NULL) {
+            idx = i;
+            break;
+        }
+    }
+    if (idx < 0)
+        _basic_error(ERR_TOO_MANY_FILES);
+
+    const char *mode_str;
+    switch (mode) {
+        case OPEN_MODE_INPUT: mode_str = "rb"; break;
+        case OPEN_MODE_OUTPUT: mode_str = "wb"; break;
+        case OPEN_MODE_RANDOM: mode_str = "w+b"; break;
+        case OPEN_MODE_APPEND: mode_str = "ab"; break;
+        default: _basic_error(ERR_INTERNAL_ERROR);
+    }
+
+    if ((files[idx].f = fopen(path, mode_str)) == NULL)
+        check_errno_result(-1);
+    files[idx].column = 0;
+
+    bc_stack_push_long(idx);
+}
+
+void bc_stmt_close_all(void) {
+    for (int i = 0; i < MAX_OPEN; i++) {
+        if (files[i].f != NULL) {
+            fclose(files[i].f);
+            files[i].f = NULL;
+        }
+    }
+}
+
+void bc_stmt_close(void) {
+    int fn = bc_stack_pop_long();
+    if (fn < 0 || fn >= MAX_OPEN || files[fn].f == NULL)
+        _basic_error(ERR_ILLEGAL_FUNC_CALL);
+
+    fclose(files[fn].f);
+    files[fn].f = NULL;
+}
+
+void file_io_write(int fn, const void *buf, size_t len) {
+    if (fn < 0 || fn >= MAX_OPEN || files[fn].f == NULL)
+        _basic_error(ERR_ILLEGAL_FUNC_CALL);
+
+    if (fwrite(buf, len, 1, files[fn].f) != 1) {
+        check_errno_result(-1);
+    }
+
+    if (len == 1 && ((const char *)buf)[0] == '\n') {
+        files[fn].column = 0;
+    } else {
+        files[fn].column += len;
+    }
+}
+
+unsigned file_io_get_column(int fn) {
+    if (fn < 0 || fn >= MAX_OPEN || files[fn].f == NULL)
+        _basic_error(ERR_ILLEGAL_FUNC_CALL);
+    return files[fn].column;
 }
 
 void bc_stmt_chdir(void) {

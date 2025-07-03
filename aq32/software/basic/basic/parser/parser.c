@@ -267,6 +267,30 @@ static void bc_emit_func_pos(void) {
     bc_emit(BC_FUNC_POS);
 }
 
+static void bc_emit_func_open(void) {
+    expect(TOK_LPAREN);
+    bc_emit_expr();
+    expect(TOK_FOR);
+
+    if (get_token() == TOK_INPUT) {
+        ack_token();
+        bc_emit_push_const_int(OPEN_MODE_INPUT);
+    } else {
+        expect(TOK_IDENTIFIER);
+        if (strcmp(tokval_str, "OUTPUT") == 0) {
+            bc_emit_push_const_int(OPEN_MODE_OUTPUT);
+        } else if (strcmp(tokval_str, "RANDOM") == 0) {
+            bc_emit_push_const_int(OPEN_MODE_RANDOM);
+        } else if (strcmp(tokval_str, "APPEND") == 0) {
+            bc_emit_push_const_int(OPEN_MODE_APPEND);
+        } else {
+            _basic_error(ERR_SYNTAX_ERROR);
+        }
+    }
+    expect(TOK_RPAREN);
+    bc_emit(BC_FUNC_OPEN);
+}
+
 // clang-format off
 static const struct func funcs[TOK_FUNC_LAST - TOK_FUNC_FIRST + 1] = {
     [TOK_ABS        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ABS,     .num_params = 1, .emit_func = NULL},
@@ -303,6 +327,7 @@ static const struct func funcs[TOK_FUNC_LAST - TOK_FUNC_FIRST + 1] = {
     [TOK_MKLs       - TOK_FUNC_FIRST] = {.bc = BC_FUNC_MKLs,    .num_params = 1, .emit_func = NULL},
     [TOK_MKSs       - TOK_FUNC_FIRST] = {.bc = BC_FUNC_MKSs,    .num_params = 1, .emit_func = NULL},
     [TOK_OCTs       - TOK_FUNC_FIRST] = {.bc = BC_FUNC_OCTs,    .num_params = 1, .emit_func = NULL},
+    [TOK_OPEN       - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_open},
     [TOK_POS        - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_pos},
     [TOK_RIGHTs     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_RIGHTs,  .num_params = 2, .emit_func = NULL},
     [TOK_RND        - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_rnd},
@@ -500,6 +525,16 @@ static void bc_emit_expr_prec(uint8_t min_prec) {
 static void bc_emit_expr(void) { bc_emit_expr_prec(0); }
 
 static void bc_emit_stmt_print(void) {
+    // Print to file?
+    if (get_token() == TOK_HASH) {
+        ack_token();
+        bc_emit_expr();
+        expect(TOK_COMMA);
+        bc_emit(BC_PRINT_TO_FILE);
+    } else {
+        bc_emit(BC_PRINT_TO_SCREEN);
+    }
+
     bool newline = true;
     while (1) {
         uint8_t tok = get_token();
@@ -1007,6 +1042,26 @@ static void bc_emit_stmt_line_input(void) {
     // BC_STMT_INPUT
 }
 
+static void bc_emit_stmt_close(void) {
+    uint8_t tok = get_token();
+    if (tok == TOK_COLON || tok == TOK_EOL) {
+        bc_emit(BC_STMT_CLOSE_ALL);
+        return;
+    }
+
+    while (1) {
+        // Parse optional '#'
+        if (get_token() == TOK_HASH)
+            ack_token();
+        bc_emit_expr();
+        bc_emit(BC_STMT_CLOSE);
+
+        if (get_token() != TOK_COMMA)
+            break;
+        ack_token();
+    }
+}
+
 struct stmt {
     uint8_t bc;
     int     num_params;
@@ -1017,6 +1072,7 @@ struct stmt {
 static const struct stmt stmts[TOK_STMT_LAST - TOK_STMT_FIRST + 1] = {
     [TOK_CHDIR      - TOK_STMT_FIRST] = {.bc = BC_STMT_CHDIR,     .num_params = 1, .emit_stmt = NULL},
     [TOK_CLEAR      - TOK_STMT_FIRST] = {.bc = BC_STMT_CLEAR,     .num_params = 0, .emit_stmt = NULL},
+    [TOK_CLOSE      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_close},
     [TOK_CLS        - TOK_STMT_FIRST] = {.bc = BC_STMT_CLS,       .num_params = 0, .emit_stmt = NULL},
     [TOK_COLOR      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_color},
     [TOK_DATA       - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_data},

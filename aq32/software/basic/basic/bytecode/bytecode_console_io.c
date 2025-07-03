@@ -1,6 +1,8 @@
 #include "bytecode_internal.h"
 #include "console.h"
 
+static int print_filenr;
+
 void bc_stmt_cls(void) {
     console_clear_screen();
 }
@@ -66,27 +68,44 @@ void bc_print_val(void) {
     switch (val->type) {
         case VT_LONG: {
             char tmp[64];
-            snprintf(tmp, sizeof(tmp), "%s%d ", val->val_long >= 0 ? " " : "", (int)val->val_long);
-            console_puts(tmp);
+            int  len = snprintf(tmp, sizeof(tmp), "%s%d ", val->val_long >= 0 ? " " : "", (int)val->val_long);
+
+            if (print_filenr < 0) {
+                console_puts(tmp);
+            } else {
+                file_io_write(print_filenr, tmp, len);
+            }
             break;
         }
         case VT_SINGLE: {
             char tmp[64];
-            snprintf(tmp, sizeof(tmp), "%s%.7g ", val->val_single >= 0 ? " " : "", (double)val->val_single);
-            console_puts(tmp);
+            int  len = snprintf(tmp, sizeof(tmp), "%s%.7g ", val->val_single >= 0 ? " " : "", (double)val->val_single);
+            if (print_filenr < 0) {
+                console_puts(tmp);
+            } else {
+                file_io_write(print_filenr, tmp, len);
+            }
             break;
         }
         case VT_DOUBLE: {
             char tmp[64];
-            snprintf(tmp, sizeof(tmp), "%s%.16lg ", val->val_double >= 0 ? " " : "", val->val_double);
-            console_puts(tmp);
+            int  len = snprintf(tmp, sizeof(tmp), "%s%.16lg ", val->val_double >= 0 ? " " : "", val->val_double);
+            if (print_filenr < 0) {
+                console_puts(tmp);
+            } else {
+                file_io_write(print_filenr, tmp, len);
+            }
             break;
         }
         case VT_STR: {
-            const uint8_t *p     = val->val_str.p;
-            const uint8_t *p_end = p + val->val_str.length;
-            while (p < p_end)
-                console_putc(*(p++));
+            const uint8_t *p = val->val_str.p;
+            if (print_filenr < 0) {
+                const uint8_t *p_end = p + val->val_str.length;
+                while (p < p_end)
+                    console_putc(*(p++));
+            } else {
+                file_io_write(print_filenr, p, val->val_str.length);
+            }
             bc_free_temp_val(val);
             break;
         }
@@ -95,8 +114,13 @@ void bc_print_val(void) {
 
 void bc_print_spc(void) {
     int val = bc_stack_pop_long();
-    for (int i = 0; i < val; i++)
-        console_putc(' ');
+    if (print_filenr < 0) {
+        for (int i = 0; i < val; i++)
+            console_putc(' ');
+    } else {
+        for (int i = 0; i < val; i++)
+            file_io_write(print_filenr, " ", 1);
+    }
 }
 
 void bc_print_tab(void) {
@@ -104,30 +128,57 @@ void bc_print_tab(void) {
     if (val < 1)
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
     val -= 1;
-    val %= console_get_num_columns();
 
-    while (console_get_cursor_column() != val)
-        console_putc(' ');
+    if (print_filenr < 0) {
+        val %= console_get_num_columns();
+        while (console_get_cursor_column() != val)
+            console_putc(' ');
+    } else {
+        while (file_io_get_column(print_filenr) != (unsigned)val)
+            file_io_write(print_filenr, " ", 1);
+    }
 }
 
 void bc_print_next_field(void) {
-    int w = console_get_num_columns();
-    while (1) {
-        console_putc(' ');
-        int column = console_get_cursor_column();
-        if (column % 14 == 0 && column + 14 < w)
-            break;
+    if (print_filenr < 0) {
+        int w = console_get_num_columns();
+        while (1) {
+            console_putc(' ');
+            int column = console_get_cursor_column();
+            if (column % 14 == 0 && column + 14 < w)
+                break;
+        }
+    } else {
+        while (1) {
+            file_io_write(print_filenr, " ", 1);
+            int column = file_io_get_column(print_filenr);
+            if (column % 14 == 0)
+                break;
+        }
     }
 }
 
 void bc_print_newline(void) {
-    console_puts("\r\n");
+    if (print_filenr < 0) {
+        console_puts("\r\n");
+    } else {
+        file_io_write(print_filenr, "\n", 1);
+    }
+}
+
+void bc_print_to_file(void) {
+    print_filenr = bc_stack_pop_long();
+}
+
+void bc_print_to_screen(void) {
+    print_filenr = -1;
 }
 
 void bc_stmt_width(void) {
     int val = bc_stack_pop_long();
     if (!console_set_width(val))
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
+    console_set_width(val);
 }
 
 void bc_stmt_input(void) { _basic_error(ERR_UNHANDLED); }

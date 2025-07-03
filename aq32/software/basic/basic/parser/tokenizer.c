@@ -28,6 +28,7 @@ static const struct keyword keywords[] = {
     {.name = "CINT", .token = TOK_CINT},
     {.name = "CLEAR", .token = TOK_CLEAR},
     {.name = "CLNG", .token = TOK_CLNG},
+    {.name = "CLOSE", .token = TOK_CLOSE},
     {.name = "CLS", .token = TOK_CLS},
     {.name = "COLOR", .token = TOK_COLOR},
     {.name = "COS", .token = TOK_COS},
@@ -86,6 +87,7 @@ static const struct keyword keywords[] = {
     {.name = "OCT$", .token = TOK_OCTs},
     {.name = "OFF", .token = TOK_OFF},
     {.name = "ON", .token = TOK_ON},
+    {.name = "OPEN", .token = TOK_OPEN},
     {.name = "OR", .token = TOK_OR},
     {.name = "POS", .token = TOK_POS},
     {.name = "PRINT", .token = TOK_PRINT},
@@ -99,6 +101,7 @@ static const struct keyword keywords[] = {
     {.name = "RMDIR", .token = TOK_RMDIR},
     {.name = "RND", .token = TOK_RND},
     {.name = "RTRIM$", .token = TOK_RTRIMs},
+    {.name = "SEEK", .token = TOK_SEEK},
     {.name = "SGN", .token = TOK_SGN},
     {.name = "SIN", .token = TOK_SIN},
     {.name = "SPACE$", .token = TOK_SPACEs},
@@ -119,6 +122,7 @@ static const struct keyword keywords[] = {
     {.name = "WEND", .token = TOK_WEND},
     {.name = "WHILE", .token = TOK_WHILE},
     {.name = "WIDTH", .token = TOK_WIDTH},
+    {.name = "WRITE", .token = TOK_WRITE},
     {.name = "XOR", .token = TOK_XOR},
 };
 
@@ -339,6 +343,7 @@ static int _get_token(void) {
         case '?':  state.p_cur++; cur_token = TOK_PRINT;     return cur_token;
         case '(':  state.p_cur++; cur_token = TOK_LPAREN;    return cur_token;
         case ')':  state.p_cur++; cur_token = TOK_RPAREN;    return cur_token;
+        case '#':  state.p_cur++; cur_token = TOK_HASH;      return cur_token;
             // clang-format on
     }
 

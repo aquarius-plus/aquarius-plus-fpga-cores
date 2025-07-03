@@ -10,6 +10,13 @@ void bytecode_dump(void);
 void bytecode_run(const uint8_t *p_buf, size_t bc_size, size_t vars_sz);
 
 enum {
+    OPEN_MODE_INPUT = 0,
+    OPEN_MODE_OUTPUT,
+    OPEN_MODE_RANDOM,
+    OPEN_MODE_APPEND,
+};
+
+enum {
     BC_UNDEFINED = 0,
     BC_END,
     BC_LINE_TAG,
@@ -151,6 +158,8 @@ enum {
     BC_PRINT_TAB,
     BC_PRINT_NEXT_FIELD,
     BC_PRINT_NEWLINE,
+    BC_PRINT_TO_FILE,
+    BC_PRINT_TO_SCREEN,
 
     // Error handling
     BC_FUNC_ERL,
@@ -168,6 +177,10 @@ enum {
     BC_FUNC_CVL,
     BC_FUNC_CVS,
     BC_FUNC_CVD,
+
+    BC_FUNC_OPEN,
+    BC_STMT_CLOSE,
+    BC_STMT_CLOSE_ALL,
 
     BC_STMT_CHDIR,
     BC_STMT_MKDIR,

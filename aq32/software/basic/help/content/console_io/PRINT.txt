@@ -13,9 +13,9 @@ PRINT writes data to the screen or to a file.
                             Print zones are 14 characters wide.
 
 Example:
-    OPEN "TEST.DAT" FOR OUTPUT AS #1
-    PRINT #1, USING "##.###  "; 12.12345
+    f% = OPEN "TEST.DAT" FOR OUTPUT
+    PRINT #f%, 12.12345
     CLOSE
-    OPEN "TEST.DAT" FOR INPUT AS #1
-    INPUT #1, a$
+    f% = OPEN "TEST.DAT" FOR INPUT
+    INPUT #f%, a$
     PRINT a$

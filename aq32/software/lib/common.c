@@ -6,6 +6,7 @@ static const uint16_t palette[16] = {
     0x555, 0x55F, 0x5F5, 0x5FF, 0xF55, 0xF5F, 0xFF5, 0xFFF};
 
 void reinit_video(void) {
+#ifndef PCDEV
     REGS->VCTRL     = VCTRL_TEXT_MODE80 | VCTRL_TEXT_EN;
     TRAM->border_ch = 0;
 
@@ -17,6 +18,7 @@ void reinit_video(void) {
         esp_read(fd, (void *)CHRAM, 2048);
         esp_close(fd);
     }
+#endif
 }
 
 void hexdump(const void *buf, int length) {

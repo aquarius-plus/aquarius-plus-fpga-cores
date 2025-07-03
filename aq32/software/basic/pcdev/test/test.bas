@@ -1,10 +1,18 @@
-print inkey$
+a% = open("test.bin" FOR OUTPUT)
 
-print "bla"+"dinges"
-print "a" = "a"
-print "ab" >= "ab"
+for i = 1 to 10
+    print #a%, "Hello world"; tab(40); i
+next
 
-print inkey$
+close #a%
+
+' print inkey$
+
+' print "bla"+"dinges"
+' print "a" = "a"
+' print "ab" >= "ab"
+
+' print inkey$
 ' print timer
 
 ' print "0123456789012345678901234567890"

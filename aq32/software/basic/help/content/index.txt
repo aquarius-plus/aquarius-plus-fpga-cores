@@ -12,6 +12,7 @@ BASIC Help Index
   <CINT   Function|CINT>
   <CLEAR  Statement|CLEAR>
   <CLNG   Function|CLNG>
+  <CLOSE  Statement|CLOSE>
   <CLS    Statement|CLS>
   <COLOR  Statement|COLOR>
   <COS    Function|COS>
@@ -72,6 +73,7 @@ BASIC Help Index
   <NOT  Operator|NOT>
 
   <OCT$ Function|OCT$>
+  <OPEN Function|OPEN>
   <OR   Operator|OR>
 
   <POS   Function|POS>

@@ -5,6 +5,7 @@
 #include <setjmp.h>
 #include "console.h"
 #include "common/buffers.h"
+#include "bytecode/bytecode_internal.h"
 
 struct err_str {
     uint8_t     err;
@@ -101,14 +102,16 @@ int basic_compile(struct editbuf *eb) {
 }
 
 int basic_run(void) {
+    bc_stmt_close_all();
+
     cur_error = 0;
     if (setjmp(jb_error) == 0) {
         console_init();
         bytecode_run(buf_bytecode, buf_bytecode_end - buf_bytecode, vars_total_size);
-    } else {
-        return cur_error;
     }
-    return 0;
+
+    bc_stmt_close_all();
+    return cur_error;
 }
 
 int basic_get_error_line(void) {

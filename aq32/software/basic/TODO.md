@@ -26,15 +26,9 @@ To be implemented:
 
 ### File I/O
 
-- OPEN file$ FOR mode AS [#]filenumber%
 - LINE INPUT #filenumber%, variable$
-- CLOSE [#filenumber%]
 - WRITE
 - READ
-- FREEFILE
-- GET [#]filenumber%[,[recordnumber&][,variable]]
-- PUT [#]filenumber%[,[recordnumber&][,variable]]
-- PRINT #filenumber%
 - SEEK
 
 ### Graphics

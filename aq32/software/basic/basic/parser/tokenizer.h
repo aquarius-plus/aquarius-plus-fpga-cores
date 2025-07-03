@@ -55,10 +55,17 @@ enum {
     // Helper keywords
     TOK_COLON,
     TOK_COMMA,
-    TOK_LPAREN,
-    TOK_RPAREN,
+    TOK_ELSE,
+    TOK_ELSEIF,
+    TOK_ENDIF,
     TOK_FN,
+    TOK_HASH,
+    TOK_LET,
+    TOK_LPAREN,
+    TOK_NEXT,
     TOK_OFF,
+    TOK_REM,
+    TOK_RPAREN,
     TOK_SEMICOLON,
     TOK_SPC, // SPC(
     TOK_STEP,
@@ -66,13 +73,7 @@ enum {
     TOK_THEN,
     TOK_TO,
     TOK_USING,
-    TOK_REM,
-    TOK_ELSE,
-    TOK_ELSEIF,
-    TOK_ENDIF,
     TOK_WEND,
-    TOK_LET,
-    TOK_NEXT,
 
     // Operators (ordered by precedence)
     TOK_POW, // '^'
@@ -101,6 +102,7 @@ enum {
     TOK_CHDIR,
     TOK_STMT_FIRST = TOK_CHDIR,
     TOK_CLEAR,
+    TOK_CLOSE,
     TOK_CLS,
     TOK_COLOR,
     TOK_DATA,
@@ -130,10 +132,12 @@ enum {
     TOK_RESUME,
     TOK_RETURN,
     TOK_RMDIR,
+    TOK_SEEK,
     TOK_SWAP,
     TOK_TIMER,
     TOK_WHILE,
     TOK_WIDTH,
+    TOK_WRITE,
     TOK_STMT_LAST = TOK_WIDTH,
 
     // Functions
@@ -172,6 +176,7 @@ enum {
     TOK_MKLs,   // MKL$
     TOK_MKSs,   // MKS$
     TOK_OCTs,   // OCT$
+    TOK_OPEN,
     TOK_POS,
     TOK_RIGHTs, // RIGHT$
     TOK_RND,

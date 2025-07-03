@@ -122,3 +122,5 @@ CVI         file_io/MKx$_CVx.txt
 CVL         file_io/MKx$_CVx.txt
 CVS         file_io/MKx$_CVx.txt
 CVD         file_io/MKx$_CVx.txt
+OPEN        file_io/OPEN.txt
+CLOSE       file_io/CLOSE.txt
