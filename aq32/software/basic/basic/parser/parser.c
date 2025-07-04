@@ -295,6 +295,20 @@ static void bc_emit_func_lof(void) {
     bc_emit(BC_FILE_SIZE);
 }
 
+static void bc_emit_func_eof(void) {
+    expect(TOK_LPAREN);
+
+    // Parse optional '#'
+    if (get_token() == TOK_HASH)
+        ack_token();
+
+    // File number
+    bc_emit_expr();
+
+    expect(TOK_RPAREN);
+    bc_emit(BC_FILE_EOF);
+}
+
 // clang-format off
 static const struct func funcs[TOK_FUNC_LAST - TOK_FUNC_FIRST + 1] = {
     [TOK_ABS        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ABS,     .num_params = 1, .emit_func = NULL},
@@ -311,6 +325,7 @@ static const struct func funcs[TOK_FUNC_LAST - TOK_FUNC_FIRST + 1] = {
     [TOK_CVI        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CVI,     .num_params = 1, .emit_func = NULL},
     [TOK_CVL        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CVL,     .num_params = 1, .emit_func = NULL},
     [TOK_CVS        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_CVS,     .num_params = 1, .emit_func = NULL},
+    [TOK_EOF        - TOK_FUNC_FIRST] = {.bc = BC_FILE_EOF,     .num_params = 0, .emit_func = bc_emit_func_eof},
     [TOK_ERL        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ERL,     .num_params = 0, .emit_func = NULL},
     [TOK_ERR        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ERR,     .num_params = 0, .emit_func = NULL},
     [TOK_EXP        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_EXP,     .num_params = 1, .emit_func = NULL},
@@ -661,7 +676,7 @@ static void bc_emit_stmt_if(void) {
             if (tok == TOK_ENDIF || tok == TOK_ELSE || tok == TOK_ELSEIF)
                 break;
 
-            if (tok == TOK_EOF)
+            if (tok == TOK_END_OF_FILE)
                 _basic_error(ERR_BLOCK_IF_WITHOUT_ENDIF);
 
             expect(TOK_EOL);
@@ -699,7 +714,7 @@ static void bc_emit_stmt_if(void) {
             if (tok == TOK_ENDIF)
                 break;
 
-            if (tok == TOK_EOF)
+            if (tok == TOK_END_OF_FILE)
                 _basic_error(ERR_BLOCK_IF_WITHOUT_ENDIF);
 
             expect(TOK_EOL);
@@ -732,7 +747,7 @@ static void bc_emit_stmt_while(void) {
         if (tok == TOK_WEND)
             break;
 
-        if (tok == TOK_EOF)
+        if (tok == TOK_END_OF_FILE)
             _basic_error(ERR_WHILE_WITHOUT_WEND);
 
         expect(TOK_EOL);
@@ -840,7 +855,7 @@ static void bc_emit_stmt_for(void) {
         if (tok == TOK_NEXT)
             break;
 
-        if (tok == TOK_EOF)
+        if (tok == TOK_END_OF_FILE)
             _basic_error(ERR_FOR_WITHOUT_NEXT);
 
         expect(TOK_EOL);
@@ -1055,8 +1070,24 @@ static void bc_emit_stmt_input(void) {
 }
 
 static void bc_emit_stmt_line_input(void) {
-    _basic_error(ERR_UNHANDLED);
-    // BC_STMT_INPUT
+    if (get_token() == TOK_HASH) {
+        ack_token();
+        bc_emit_expr();
+        expect(TOK_COMMA);
+
+        expect(TOK_IDENTIFIER);
+        infer_identifier_type();
+        uint8_t  var_type   = tokval_str[tokval_strlen - 1];
+        uint16_t var_offset = reloc_var_get(tokval_str, tokval_strlen);
+        if (var_type != '$')
+            _basic_error(ERR_TYPE_MISMATCH);
+
+        bc_emit(BC_FILE_READLINE);
+        bc_emit_u16(var_offset);
+
+    } else {
+        _basic_error(ERR_UNHANDLED);
+    }
 }
 
 static void bc_emit_stmt_open(void) {
@@ -1199,7 +1230,7 @@ static const struct stmt stmts[TOK_STMT_LAST - TOK_STMT_FIRST + 1] = {
 
 static void parse_statement(void) {
     uint8_t tok = get_token();
-    if (tok == TOK_EOL || tok == TOK_EOF)
+    if (tok == TOK_EOL || tok == TOK_END_OF_FILE)
         return;
 
     // Default type keywords
@@ -1220,7 +1251,7 @@ static void parse_statement(void) {
     }
 
     tok = get_token();
-    if (tok == TOK_EOL || tok == TOK_EOF)
+    if (tok == TOK_EOL || tok == TOK_END_OF_FILE)
         return;
 
     if (tok == TOK_LET || tok == TOK_IDENTIFIER) {
@@ -1346,7 +1377,7 @@ void basic_parse(struct editbuf *eb) {
     while (1) {
         parse_statements();
 
-        if (get_token() == TOK_EOF)
+        if (get_token() == TOK_END_OF_FILE)
             break;
         expect(TOK_EOL);
         do_emit_line_tag = true;

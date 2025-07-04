@@ -133,6 +133,8 @@ static inline uint64_t bc_get_u64(void) {
     return result;
 }
 
+void store_var_string(uint8_t *p_var, const char *str, unsigned len);
+
 // Handlers
 void bc_end(void);
 void bc_line_tag(void);
@@ -288,10 +290,12 @@ void bc_func_open(void);
 void bc_file_close(void);
 void bc_file_close_all(void);
 void bc_file_read(void);
+void bc_file_readline(void);
 void bc_file_write(void);
 void bc_file_seek(void);
 void bc_file_tell(void);
 void bc_file_size(void);
+void bc_file_eof(void);
 
 extern int file_io_cur_file;
 

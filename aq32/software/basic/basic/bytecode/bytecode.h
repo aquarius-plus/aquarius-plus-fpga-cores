@@ -186,6 +186,8 @@ enum {
     BC_FILE_SEEK,
     BC_FILE_TELL,
     BC_FILE_SIZE,
+    BC_FILE_READLINE,
+    BC_FILE_EOF,
 
     BC_STMT_CHDIR,
     BC_STMT_MKDIR,

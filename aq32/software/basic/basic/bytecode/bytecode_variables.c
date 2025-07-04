@@ -66,20 +66,22 @@ static void _push_var_string(uint8_t *p_var) {
     stk->val_str.length = (p_str == NULL) ? 0 : read_u16(p_str);
 }
 
-static void _store_var_string(uint8_t *p_var) {
-    stkval_t *stk = bc_stack_pop_str();
-
+void store_var_string(uint8_t *p_var, const char *str, unsigned len) {
     uint8_t *p_str;
     memcpy(&p_str, p_var, sizeof(uint8_t *));
 
-    p_str = buf_realloc(p_str, 2 + stk->val_str.length);
+    p_str = buf_realloc(p_str, 2 + len);
     if (p_str == NULL)
         _basic_error(ERR_OUT_OF_MEM);
     memcpy(p_var, &p_str, sizeof(uint8_t *));
 
-    write_u16(p_str, stk->val_str.length);
-    memcpy(p_str + 2, stk->val_str.p, stk->val_str.length);
+    write_u16(p_str, len);
+    memcpy(p_str + 2, str, len);
+}
 
+static void _store_var_string(uint8_t *p_var) {
+    stkval_t *stk = bc_stack_pop_str();
+    store_var_string(p_var, (const char *)stk->val_str.p, stk->val_str.length);
     bc_free_temp_val(stk);
 }
 

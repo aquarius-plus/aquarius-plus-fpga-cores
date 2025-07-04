@@ -78,8 +78,10 @@ static const char *bc_names[] = {
     [BC_OP_NEGATE]                    = "OP_NEGATE",
     [BC_FILE_CLOSE_ALL]               = "FILE_CLOSE_ALL",
     [BC_FILE_CLOSE]                   = "FILE_CLOSE",
+    [BC_FILE_EOF]                     = "FILE_EOF",
     [BC_FILE_OPEN]                    = "FILE_OPEN",
     [BC_FILE_READ]                    = "FILE_READ",
+    [BC_FILE_READLINE]                = "FILE_READLINE",
     [BC_FILE_SEEK]                    = "FILE_SEEK",
     [BC_FILE_SIZE]                    = "FILE_SIZE",
     [BC_FILE_TELL]                    = "FILE_TELL",
@@ -207,7 +209,8 @@ void bytecode_dump(void) {
             case BC_STORE_VAR_SINGLE:
             case BC_STORE_VAR_DOUBLE:
             case BC_STORE_VAR_STRING:
-            case BC_FREE_ARRAY: {
+            case BC_FREE_ARRAY:
+            case BC_FILE_READLINE: {
                 printf(": %u", read_u16(p));
                 p += 2;
                 break;

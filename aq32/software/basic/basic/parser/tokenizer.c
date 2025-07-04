@@ -48,6 +48,7 @@ static const struct keyword keywords[] = {
     {.name = "ELSE", .token = TOK_ELSE},
     {.name = "ELSEIF", .token = TOK_ELSEIF},
     {.name = "END", .token = TOK_END},
+    {.name = "EOF", .token = TOK_EOF},
     {.name = "EQV", .token = TOK_EQV},
     {.name = "ERASE", .token = TOK_ERASE},
     {.name = "ERL", .token = TOK_ERL},
@@ -219,7 +220,7 @@ static int _get_token(void) {
     // Get next line
     if (state.p_cur == state.p_line_end) {
         if (state.cur_line >= editbuf_get_line_count(eb)) {
-            cur_token = TOK_EOF;
+            cur_token = TOK_END_OF_FILE;
             return cur_token;
         }
 
@@ -227,7 +228,7 @@ static int _get_token(void) {
 
         int line_len = editbuf_get_line(eb, state.cur_line, &state.p_line);
         if (line_len < 0) {
-            cur_token = TOK_EOF;
+            cur_token = TOK_END_OF_FILE;
             return cur_token;
         }
         // printf("%.*s\n", line_len, state.p_line);
@@ -418,7 +419,7 @@ void ack_token(void) {
     if (cur_token == TOK_EOL)
         err_line = state.cur_line;
 
-    if (cur_token != TOK_EOF)
+    if (cur_token != TOK_END_OF_FILE)
         cur_token = -1;
 }
 

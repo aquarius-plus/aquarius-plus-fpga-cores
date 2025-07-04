@@ -371,10 +371,12 @@ static bc_handler_t bc_handlers[] = {
     [BC_FILE_CLOSE_ALL] = bc_file_close_all,
     [BC_FILE_CLOSE]     = bc_file_close,
     [BC_FILE_READ]      = bc_file_read,
+    [BC_FILE_READLINE]  = bc_file_readline,
     [BC_FILE_SEEK]      = bc_file_seek,
     [BC_FILE_SIZE]      = bc_file_size,
     [BC_FILE_TELL]      = bc_file_tell,
     [BC_FILE_WRITE]     = bc_file_write,
+    [BC_FILE_EOF]       = bc_file_eof,
 
     [BC_STMT_CHDIR]     = bc_stmt_chdir,
     [BC_STMT_CLEAR]     = bc_stmt_clear,

@@ -33,7 +33,7 @@ extern char                tokval_str[MAX_STRLEN + 3];
 extern int                 tokval_strlen;
 
 enum {
-    TOK_EOF = 0x00,
+    TOK_END_OF_FILE = 0x00,
     TOK_EOL,
     TOK_LINENR,
     TOK_LABEL,
@@ -155,6 +155,7 @@ enum {
     TOK_CVI,
     TOK_CVL,
     TOK_CVS,
+    TOK_EOF,
     TOK_ERL,
     TOK_ERR,
     TOK_EXP,

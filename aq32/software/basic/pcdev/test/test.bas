@@ -1,16 +1,32 @@
+' open "test.bin" FOR OUTPUT AS a%
+' q$ = "Hello world"
+' write #a%, q$
+' close #a%
+
+' open "test.bin" FOR INPUT AS a%
+' ? "filesize ="; lof(a%)
+' q$ = "12345"
+' seek a%, 7
+' read #a%, q$
+' ? seek(a%)
+
+' print q$
+
+
 open "test.bin" FOR OUTPUT AS a%
-q$ = "Hello world"
-write #a%, q$
+print #a%, "Hello world"
+print #a%, "Test"
+print #a%, "123"
 close #a%
 
 open "test.bin" FOR INPUT AS a%
-? "filesize ="; lof(a%)
-q$ = "12345"
-seek a%, 7
-read #a%, q$
-? seek(a%)
+while eof(a%) = 0
+    line input #a%, q$
+    print q$
+wend
+close #a%
 
-print q$
+
 
 ' for i = 1 to 10
 '     print #a%, "Hello world"; tab(40); i
