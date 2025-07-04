@@ -902,7 +902,7 @@ static void bc_emit_stmt_read(void) {
             bc_emit_u16(var_offset);
 
         } else {
-            bc_emit(is_file ? BC_FILE_READ : BC_DATA_READ);
+            bc_emit(BC_DATA_READ);
             bc_emit_store_var(var_type, var_offset);
         }
 
@@ -1128,8 +1128,14 @@ static void bc_emit_stmt_write(void) {
     expect(TOK_COMMA);
 
     while (1) {
-        bc_emit_expr();
+        expect(TOK_IDENTIFIER);
+        infer_identifier_type();
+        uint8_t  var_type   = tokval_str[tokval_strlen - 1];
+        uint16_t var_offset = reloc_var_get(tokval_str, tokval_strlen);
+
         bc_emit(BC_FILE_WRITE);
+        bc_emit(var_type);
+        bc_emit_u16(var_offset);
 
         if (get_token() != TOK_COMMA)
             break;

@@ -225,16 +225,28 @@ void bc_file_read(void) {
 }
 
 void bc_file_write(void) {
-    stkval_t *stk = bc_stack_pop();
-    switch (stk->type) {
-        case VT_LONG: file_io_write(file_io_cur_file, &stk->val_long, sizeof(stk->val_long)); break;
-        case VT_SINGLE: file_io_write(file_io_cur_file, &stk->val_single, sizeof(stk->val_single)); break;
-        case VT_DOUBLE: file_io_write(file_io_cur_file, &stk->val_double, sizeof(stk->val_double)); break;
-        case VT_STR:
-            file_io_write(file_io_cur_file, stk->val_str.p, stk->val_str.length);
-            bc_free_temp_val(stk);
+    uint8_t  var_type = bc_get_u8();
+    uint8_t *p_var    = &bc_state.p_vars[bc_get_u16()];
+
+    unsigned len;
+    switch (var_type) {
+        case '%': len = sizeof(uint16_t); break;
+        case '&': len = sizeof(uint32_t); break;
+        case '!': len = sizeof(float); break;
+        case '#': len = sizeof(double); break;
+        case '$': {
+            uint8_t *p_str;
+            memcpy(&p_str, p_var, sizeof(uint8_t *));
+            if (!p_str)
+                return;
+
+            len   = read_u16(p_str);
+            p_var = p_str + 2;
             break;
+        }
+        default: _basic_error(ERR_INTERNAL_ERROR);
     }
+    file_io_write(file_io_cur_file, p_var, len);
 }
 
 void bc_file_seek(void) {

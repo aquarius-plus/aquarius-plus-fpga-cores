@@ -67,7 +67,6 @@ void bc_print_val(void) {
         case VT_LONG: {
             char tmp[64];
             int  len = snprintf(tmp, sizeof(tmp), "%s%d ", val->val_long >= 0 ? " " : "", (int)val->val_long);
-
             if (file_io_cur_file < 0) {
                 console_puts(tmp);
             } else {
