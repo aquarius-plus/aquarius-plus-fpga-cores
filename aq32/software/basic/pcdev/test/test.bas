@@ -25,6 +25,8 @@ while not eof(a%)
 wend
 close #a%
 
+kill "test.bin"
+
 
 
 ' for i = 1 to 10

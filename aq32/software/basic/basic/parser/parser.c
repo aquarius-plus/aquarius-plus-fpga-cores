@@ -1213,6 +1213,7 @@ static const struct stmt stmts[TOK_STMT_LAST - TOK_STMT_FIRST + 1] = {
     [TOK_GOTO       - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_goto},
     [TOK_IF         - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_if},
     [TOK_INPUT      - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_input},
+    [TOK_KILL       - TOK_STMT_FIRST] = {.bc = BC_STMT_KILL,      .num_params = 1, .emit_stmt = NULL},
     [TOK_LINE_INPUT - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_line_input},
     [TOK_LOCATE     - TOK_STMT_FIRST] = {.bc = 0,                 .num_params = 0, .emit_stmt = bc_emit_stmt_locate},
     [TOK_MKDIR      - TOK_STMT_FIRST] = {.bc = BC_STMT_MKDIR,     .num_params = 1, .emit_stmt = NULL},

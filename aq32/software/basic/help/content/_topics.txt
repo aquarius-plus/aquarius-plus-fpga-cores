@@ -130,6 +130,7 @@ SEEK        file_io/SEEK.txt
 LOF         file_io/LOF.txt
 EOF         file_io/EOF.txt
 
+KILL        file_io/KILL.txt
 CHDIR       file_io/CHDIR_MKDIR_RMDIR.txt
 MKDIR       file_io/CHDIR_MKDIR_RMDIR.txt
 RMDIR       file_io/CHDIR_MKDIR_RMDIR.txt

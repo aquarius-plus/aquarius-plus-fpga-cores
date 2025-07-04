@@ -303,6 +303,7 @@ void     file_io_read(int fn, void *buf, size_t len);
 void     file_io_write(int filenr, const void *buf, size_t len);
 unsigned file_io_get_column(int filenr);
 
+void bc_stmt_kill(void);
 void bc_stmt_chdir(void);
 void bc_stmt_mkdir(void);
 void bc_stmt_rmdir(void);

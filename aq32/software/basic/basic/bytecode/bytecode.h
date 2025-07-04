@@ -189,6 +189,7 @@ enum {
     BC_FILE_READLINE,
     BC_FILE_EOF,
 
+    BC_STMT_KILL,
     BC_STMT_CHDIR,
     BC_STMT_MKDIR,
     BC_STMT_RMDIR,

@@ -68,6 +68,7 @@ static const struct keyword keywords[] = {
     {.name = "INPUT$", .token = TOK_INPUTs},
     {.name = "INSTR", .token = TOK_INSTR},
     {.name = "INT", .token = TOK_INT},
+    {.name = "KILL", .token = TOK_KILL},
     {.name = "LCASE$", .token = TOK_LCASEs},
     {.name = "LEFT$", .token = TOK_LEFTs},
     {.name = "LEN", .token = TOK_LEN},

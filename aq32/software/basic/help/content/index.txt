@@ -57,6 +57,8 @@ BASIC Help Index
   <INSTR  Function|INSTR>
   <INT    Function|INT>
 
+  <KILL   Statement|KILL>
+
   <LEFT$  Function|LEFT$>
   <LEN    Function|LEN>
   <LET    Statement|LET>

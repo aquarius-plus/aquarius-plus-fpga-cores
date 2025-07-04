@@ -55,6 +55,7 @@ Keywords by Programming Task
   <EOF|EOF>
   <LINE INPUT #|INPUT>
 
+  <KILL|KILL>
   <CHDIR|CHDIR>
   <MKDIR|MKDIR>
   <RMDIR|RMDIR>

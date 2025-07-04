@@ -120,6 +120,7 @@ enum {
     TOK_GOTO,
     TOK_IF,
     TOK_INPUT,
+    TOK_KILL,
     TOK_LINE_INPUT,
     TOK_LINE,
     TOK_LOCATE,

@@ -321,6 +321,12 @@ void bc_file_eof(void) {
     bc_stack_push_bool(is_eof);
 }
 
+void bc_stmt_kill(void) {
+    char tmp[256];
+    get_str(tmp, sizeof(tmp));
+    check_errno_result(unlink(tmp));
+}
+
 void bc_stmt_chdir(void) {
     char tmp[256];
     get_str(tmp, sizeof(tmp));

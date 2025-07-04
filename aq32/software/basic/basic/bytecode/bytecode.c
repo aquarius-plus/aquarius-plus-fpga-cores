@@ -384,6 +384,7 @@ static bc_handler_t bc_handlers[] = {
     [BC_STMT_COLOR]     = bc_stmt_color,
     [BC_STMT_ERROR]     = bc_stmt_error,
     [BC_STMT_INPUT]     = bc_stmt_input,
+    [BC_STMT_KILL]      = bc_stmt_kill,
     [BC_STMT_LOCATE]    = bc_stmt_locate,
     [BC_STMT_MKDIR]     = bc_stmt_mkdir,
     [BC_STMT_RANDOMIZE] = bc_stmt_randomize,
