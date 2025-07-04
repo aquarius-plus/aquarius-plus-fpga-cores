@@ -296,6 +296,7 @@ void bc_file_seek(void);
 void bc_file_tell(void);
 void bc_file_size(void);
 void bc_file_eof(void);
+void bc_file_inputs_s(void);
 
 extern int file_io_cur_file;
 

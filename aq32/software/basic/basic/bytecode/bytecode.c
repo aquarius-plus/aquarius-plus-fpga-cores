@@ -377,6 +377,7 @@ static bc_handler_t bc_handlers[] = {
     [BC_FILE_TELL]      = bc_file_tell,
     [BC_FILE_WRITE]     = bc_file_write,
     [BC_FILE_EOF]       = bc_file_eof,
+    [BC_FILE_INPUTs]    = bc_file_inputs_s,
 
     [BC_STMT_CHDIR]     = bc_stmt_chdir,
     [BC_STMT_CLEAR]     = bc_stmt_clear,

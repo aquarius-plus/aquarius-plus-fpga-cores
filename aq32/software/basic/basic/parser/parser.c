@@ -225,11 +225,6 @@ static void bc_emit_func_instr(void) {
     bc_emit(BC_FUNC_INSTR);
 }
 
-static void bc_emit_func_input_s(void) {
-    _basic_error(ERR_UNHANDLED);
-    bc_emit(BC_FUNC_INPUTs);
-}
-
 static void bc_emit_func_mid_s(void) {
     expect(TOK_LPAREN);
     bc_emit_expr();
@@ -307,6 +302,25 @@ static void bc_emit_func_eof(void) {
 
     expect(TOK_RPAREN);
     bc_emit(BC_FILE_EOF);
+}
+
+static void bc_emit_func_input_s(void) {
+    expect(TOK_LPAREN);
+
+    // Number of characters to read
+    bc_emit_expr();
+
+    expect(TOK_COMMA);
+
+    // Parse optional '#'
+    if (get_token() == TOK_HASH)
+        ack_token();
+
+    // File number
+    bc_emit_expr();
+
+    expect(TOK_RPAREN);
+    bc_emit(BC_FILE_INPUTs);
 }
 
 // clang-format off

@@ -54,6 +54,7 @@ Keywords by Programming Task
   <LOF|LOF>
   <EOF|EOF>
   <LINE INPUT #|INPUT>
+  <INPUT$|INPUT$>
 
   <KILL|KILL>
   <CHDIR|CHDIR>

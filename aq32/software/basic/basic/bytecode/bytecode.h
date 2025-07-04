@@ -187,6 +187,7 @@ enum {
     BC_FILE_TELL,
     BC_FILE_SIZE,
     BC_FILE_READLINE,
+    BC_FILE_INPUTs,
     BC_FILE_EOF,
 
     BC_STMT_KILL,
@@ -194,6 +195,5 @@ enum {
     BC_STMT_MKDIR,
     BC_STMT_RMDIR,
 
-    BC_FUNC_INPUTs,
     BC_FUNC_TIMER,
 };

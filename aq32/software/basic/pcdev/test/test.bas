@@ -19,13 +19,17 @@ print #a%, "123"
 close #a%
 
 open "test.bin" FOR INPUT AS a%
-while not eof(a%)
-    line input #a%, q$
-    print q$
-wend
-close #a%
+print input$(5, a%)
+close
 
-kill "test.bin"
+' open "test.bin" FOR INPUT AS a%
+' while not eof(a%)
+'     line input #a%, q$
+'     print q$
+' wend
+' close #a%
+
+' kill "test.bin"
 
 
 

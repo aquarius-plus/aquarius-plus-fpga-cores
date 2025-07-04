@@ -54,6 +54,7 @@ BASIC Help Index
   <IMP    Operator|IMP>
   <INKEY$ Function|INKEY$>
   <INPUT  Statement|INPUT>
+  <INPUT$ Function|INPUT$>
   <INSTR  Function|INSTR>
   <INT    Function|INT>
 

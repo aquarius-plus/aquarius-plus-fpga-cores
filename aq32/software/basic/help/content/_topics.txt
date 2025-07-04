@@ -129,6 +129,7 @@ WRITE       file_io/WRITE.txt
 SEEK        file_io/SEEK.txt
 LOF         file_io/LOF.txt
 EOF         file_io/EOF.txt
+INPUT$      file_io/INPUT$.txt
 
 KILL        file_io/KILL.txt
 CHDIR       file_io/CHDIR_MKDIR_RMDIR.txt

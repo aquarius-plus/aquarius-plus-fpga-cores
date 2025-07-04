@@ -321,6 +321,17 @@ void bc_file_eof(void) {
     bc_stack_push_bool(is_eof);
 }
 
+void bc_file_inputs_s(void) {
+    int fn = bc_stack_pop_long();
+    int n  = bc_stack_pop_long();
+
+    if (n < 0 || fn < 0 || fn >= MAX_OPEN || files[fn].f == NULL)
+        _basic_error(ERR_ILLEGAL_FUNC_CALL);
+
+    stkval_t *stk = bc_stack_push_temp_str(n);
+    file_io_read(fn, stk->val_str.p, stk->val_str.length);
+}
+
 void bc_stmt_kill(void) {
     char tmp[256];
     get_str(tmp, sizeof(tmp));
