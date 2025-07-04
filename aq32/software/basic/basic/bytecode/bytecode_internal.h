@@ -263,6 +263,7 @@ void bc_func_pos(void);
 void bc_stmt_cls(void);
 void bc_stmt_color(void);
 void bc_stmt_input(void);
+void bc_stmt_line_input(void);
 void bc_stmt_locate(void);
 void bc_stmt_width(void);
 

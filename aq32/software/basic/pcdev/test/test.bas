@@ -1,11 +1,14 @@
-open "test.bin" FOR OUTPUT AS a%
-q$ = "Hello world"
-write #a%, q$
-close #a%
+' open "test.bin" FOR OUTPUT AS a%
+' q$ = "Hello world"
+' write #a%, q$
+' close #a%
 
-open "test.bin" FOR INPUT AS a%
-input #a%, q$, a
-print q$
+' open "test.bin" FOR INPUT AS a%
+' input #a%, q$, a
+' print q$
+
+line input "Hello"; a$
+print "|";a$;"|"
 
 ' ? "filesize ="; lof(a%)
 ' q$ = "12345"

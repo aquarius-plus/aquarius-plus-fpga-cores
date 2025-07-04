@@ -140,6 +140,7 @@ static const char *bc_names[] = {
     [BC_STMT_ERROR]                   = "STMT_ERROR",
     [BC_STMT_INPUT]                   = "STMT_INPUT",
     [BC_STMT_KILL]                    = "STMT_KILL",
+    [BC_STMT_LINE_INPUT]              = "STMT_LINE_INPUT",
     [BC_STMT_LOCATE]                  = "STMT_LOCATE",
     [BC_STMT_RANDOMIZE]               = "STMT_RANDOMIZE",
     [BC_STMT_RESUME]                  = "STMT_RESUME",
@@ -255,6 +256,19 @@ void bytecode_dump(void) {
                     p += 3;
                 }
                 p++;
+                break;
+            }
+
+            case BC_STMT_LINE_INPUT: {
+                printf(": \"%.*s\"", p[0], p + 1);
+                p += 1 + p[0];
+
+                printf(" flags=%u", p[0]);
+                p++;
+
+                printf(" var$:%u", read_u16(p));
+                p += 2;
+
                 break;
             }
         }

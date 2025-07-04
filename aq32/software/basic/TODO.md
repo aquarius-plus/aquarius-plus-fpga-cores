@@ -9,7 +9,6 @@
 
 To be implemented:
 
-- LINE INPUT statement
 - TIMER statement
 - ON TIMER statement
 - ON expr GOSUB

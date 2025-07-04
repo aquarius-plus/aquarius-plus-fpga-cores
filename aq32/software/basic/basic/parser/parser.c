@@ -1157,7 +1157,35 @@ static void bc_emit_stmt_line_input(void) {
         bc_emit_u16(var_offset);
 
     } else {
-        _basic_error(ERR_UNHANDLED);
+        bc_emit(BC_STMT_LINE_INPUT);
+
+        uint8_t flags = 0;
+        if (get_token() == TOK_SEMICOLON) {
+            ack_token();
+            flags |= 2;
+        }
+
+        if (get_token() == TOK_CONST_STR) {
+            ack_token();
+            bc_emit(tokval_strlen);
+            for (int i = 0; i < tokval_strlen; i++)
+                bc_emit(tokval_str[i]);
+            expect(TOK_SEMICOLON);
+        } else {
+            // Empty string literal
+            bc_emit(0);
+        }
+
+        bc_emit(flags);
+
+        expect(TOK_IDENTIFIER);
+        infer_identifier_type();
+        uint8_t  var_type   = tokval_str[tokval_strlen - 1];
+        uint16_t var_offset = reloc_var_get(tokval_str, tokval_strlen);
+        if (var_type != '$')
+            _basic_error(ERR_TYPE_MISMATCH);
+
+        bc_emit_u16(var_offset);
     }
 }
 

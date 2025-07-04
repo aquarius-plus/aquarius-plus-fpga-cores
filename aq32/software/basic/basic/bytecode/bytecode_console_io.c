@@ -274,6 +274,30 @@ redo:
     return;
 }
 
+void bc_stmt_line_input(void) {
+    char buf[256];
+
+    uint8_t len = bc_get_u8();
+    for (unsigned i = 0; i < len; i++)
+        console_putc(bc_get_u8());
+
+    uint8_t flags = bc_get_u8();
+    int     result;
+    if (flags & 2) {
+        result = readline_no_newline(buf, sizeof(buf));
+    } else {
+        result = readline(buf, sizeof(buf));
+    }
+    if (result < 0) {
+        // CTRL-C
+        bc_state.stop = true;
+        return;
+    }
+
+    uint8_t *p_var = &bc_state.p_vars[bc_get_u16()];
+    store_var_string(p_var, buf, result);
+}
+
 void bc_func_inkey_s(void) {
     uint8_t ch = console_getc();
     if (ch == 0) {
