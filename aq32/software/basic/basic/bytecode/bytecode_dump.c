@@ -242,6 +242,21 @@ void bytecode_dump(void) {
                 p += 2;
                 break;
             }
+
+            case BC_STMT_INPUT: {
+                printf(": \"%.*s\"", p[0], p + 1);
+                p += 1 + p[0];
+
+                printf(" flags=%u", p[0]);
+                p++;
+
+                while (p[0] != 0) {
+                    printf(" var%c:%u", p[0], read_u16(p + 1));
+                    p += 3;
+                }
+                p++;
+                break;
+            }
         }
 
         printf("\n");

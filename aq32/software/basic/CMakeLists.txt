@@ -67,6 +67,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     ../lib/esp.c
     ../lib/malloc.c
     ../lib/syscalls.c
+    ../lib/readline.c
 
     editor/cmd_edit.c
     editor/cmd_file.c

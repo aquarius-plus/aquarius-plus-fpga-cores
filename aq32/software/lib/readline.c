@@ -56,7 +56,7 @@ static void do_right(struct readline_context *ctx) {
     console_putc(ctx->buf[ctx->idx++]);
 }
 
-int readline(char *buf, size_t buf_size) {
+int readline_no_newline(char *buf, size_t buf_size) {
     struct readline_context ctx = {
         .buf      = buf,
         .buf_size = buf_size,
@@ -70,9 +70,8 @@ int readline(char *buf, size_t buf_size) {
             continue;
 
         switch (ch) {
+            case '\n':
             case CH_ENTER: {
-                console_putc('\r');
-                console_putc('\n');
                 ctx.buf[ctx.len] = 0;
                 return ctx.len;
             }
@@ -107,7 +106,7 @@ int readline(char *buf, size_t buf_size) {
                 break;
             }
             case 3: {
-                console_puts("^C\r\n");
+                console_puts("^C");
                 return -1;
             }
             default:
@@ -116,4 +115,11 @@ int readline(char *buf, size_t buf_size) {
                 break;
         }
     }
+}
+
+int readline(char *buf, size_t buf_size) {
+    int result = readline_no_newline(buf, buf_size);
+    console_putc('\r');
+    console_putc('\n');
+    return result;
 }

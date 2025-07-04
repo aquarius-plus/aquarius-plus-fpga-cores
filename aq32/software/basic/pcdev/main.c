@@ -1,11 +1,41 @@
 #include "basic.h"
 #include "editor/editbuf.h"
 #include "basic/bytecode/bytecode.h"
+#include <fcntl.h>
+#include <termios.h>
+#include <signal.h>
 
 static uint8_t editbuf_buf[128 * 1024];
 struct editbuf editbuf;
 
+static struct termios oldt, newt;
+
+static void term_init(void) {
+    // Get the current terminal settings
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+
+    // Disable canonical mode and echo
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+}
+
+static void term_restore(void) {
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+}
+
+static void sigint_handler(int) {
+    exit(1);
+}
+
 int main(int argc, const char **argv) {
+    term_init();
+    setbuf(stdin, NULL);
+    setbuf(stdout, NULL);
+    setbuf(stderr, NULL);
+    signal(SIGINT, sigint_handler);
+    atexit(term_restore);
+
     const char *filename = NULL;
 
     if (argc == 2) {

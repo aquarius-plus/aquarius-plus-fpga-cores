@@ -224,20 +224,24 @@ void bc_file_read(void) {
     file_io_read(file_io_cur_file, p_var, len);
 }
 
-void bc_file_readline(void) {
-    uint8_t *p_var = &bc_state.p_vars[bc_get_u16()];
-
-    int fn = bc_stack_pop_long();
+void file_io_readline(int fn, char *buf, size_t len) {
     if (fn < 0 || fn >= MAX_OPEN || files[fn].f == NULL)
         _basic_error(ERR_ILLEGAL_FUNC_CALL);
 
-    char tmp[256];
-    if (fgets(tmp, sizeof(tmp), files[fn].f) == NULL) {
+    if (fgets(buf, len, files[fn].f) == NULL) {
         if (feof(files[fn].f))
             _basic_error(ERR_INPUT_PAST_END_OF_FILE);
 
         check_errno_result(-1);
     }
+}
+
+void bc_file_readline(void) {
+    uint8_t *p_var = &bc_state.p_vars[bc_get_u16()];
+
+    int  fn = bc_stack_pop_long();
+    char tmp[256];
+    file_io_readline(fn, tmp, sizeof(tmp));
 
     unsigned len = strlen(tmp);
     while (len > 0 && (tmp[len - 1] == '\r' || tmp[len - 1] == '\n'))

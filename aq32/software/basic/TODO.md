@@ -10,8 +10,6 @@
 To be implemented:
 
 - LINE INPUT statement
-- INPUT statement
-- INPUT$ function
 - TIMER statement
 - ON TIMER statement
 - ON expr GOSUB

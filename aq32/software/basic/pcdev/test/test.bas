@@ -1,9 +1,12 @@
-' open "test.bin" FOR OUTPUT AS a%
-' q$ = "Hello world"
-' write #a%, q$
-' close #a%
+open "test.bin" FOR OUTPUT AS a%
+q$ = "Hello world"
+write #a%, q$
+close #a%
 
-' open "test.bin" FOR INPUT AS a%
+open "test.bin" FOR INPUT AS a%
+input #a%, q$, a
+print q$
+
 ' ? "filesize ="; lof(a%)
 ' q$ = "12345"
 ' seek a%, 7
@@ -12,15 +15,15 @@
 
 ' print q$
 
-open "test.bin" FOR OUTPUT AS a%
-print #a%, "Hello world"
-print #a%, "Test"
-print #a%, "123"
-close #a%
+' open "test.bin" FOR OUTPUT AS a%
+' print #a%, "Hello world"
+' print #a%, "Test"
+' print #a%, "123"
+' close #a%
 
-open "test.bin" FOR INPUT AS a%
-print input$(5, a%)
-close
+' open "test.bin" FOR INPUT AS a%
+' print input$(5, a%)
+' close
 
 ' open "test.bin" FOR INPUT AS a%
 ' while not eof(a%)

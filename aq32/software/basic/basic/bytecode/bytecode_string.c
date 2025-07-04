@@ -98,15 +98,17 @@ void bc_func_instr(void) {
     bc_stack_push_long(result);
 }
 
-void bc_func_val(void) {
-    stkval_t       val_str = *bc_stack_pop_str();
-    char           tmp[64];
-    char           type   = 0;
-    const uint8_t *ps     = val_str.val_str.p;
-    int            result = -1;
+void bc_str_parse_val(const uint8_t **ps, const uint8_t *ps_end) {
+    char tmp[64];
+    char type   = 0;
+    int  result = -1;
 
-    if (val_str.val_str.length > 0) {
-        result = copy_num_to_buf(&ps, ps + val_str.val_str.length, tmp, sizeof(tmp), &type);
+    // Skip leading whitespace
+    while ((*ps)[0] == ' ')
+        (*ps)++;
+
+    if ((*ps) < ps_end) {
+        result = copy_num_to_buf(ps, ps_end, tmp, sizeof(tmp), &type);
     }
     if (result < 0) {
         bc_stack_push_long(0);
@@ -131,6 +133,13 @@ void bc_func_val(void) {
             bc_stack_push_single(strtof(tmp, NULL));
         }
     }
+}
+
+void bc_func_val(void) {
+    stkval_t       val_str = *bc_stack_pop_str();
+    const uint8_t *ps      = val_str.val_str.p;
+    const uint8_t *ps_end  = ps + val_str.val_str.length;
+    bc_str_parse_val(&ps, ps_end);
     bc_free_temp_val(&val_str);
 }
 

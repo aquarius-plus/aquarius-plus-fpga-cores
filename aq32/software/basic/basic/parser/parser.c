@@ -1083,8 +1083,61 @@ void bc_emit_erase(void) {
 }
 
 static void bc_emit_stmt_input(void) {
-    _basic_error(ERR_UNHANDLED);
-    // BC_STMT_INPUT
+    if (get_token() == TOK_HASH) {
+        ack_token();
+
+        // File number
+        bc_emit_expr();
+        bc_emit(BC_SET_FILE);
+        expect(TOK_COMMA);
+
+        bc_emit(BC_STMT_INPUT);
+        bc_emit(0);
+        bc_emit(0);
+
+    } else {
+        uint8_t flags = 1; // bit1:stay on line after enter, bit0:show questionmark
+        bc_emit(BC_UNSET_FILE);
+        bc_emit(BC_STMT_INPUT);
+
+        if (get_token() == TOK_SEMICOLON) {
+            ack_token();
+            flags |= 2;
+        }
+
+        if (get_token() == TOK_CONST_STR) {
+            ack_token();
+            bc_emit(tokval_strlen);
+            for (int i = 0; i < tokval_strlen; i++)
+                bc_emit(tokval_str[i]);
+
+            if (get_token() == TOK_COMMA) {
+                ack_token();
+                flags &= ~1;
+            } else {
+                expect(TOK_SEMICOLON);
+            }
+        } else {
+            // Empty string literal
+            bc_emit(0);
+        }
+        bc_emit(flags);
+    }
+
+    while (1) {
+        expect(TOK_IDENTIFIER);
+        infer_identifier_type();
+        uint8_t  var_type   = tokval_str[tokval_strlen - 1];
+        uint16_t var_offset = reloc_var_get(tokval_str, tokval_strlen);
+
+        bc_emit(var_type);
+        bc_emit_u16(var_offset);
+
+        if (get_token() != TOK_COMMA)
+            break;
+        ack_token();
+    }
+    bc_emit(0);
 }
 
 static void bc_emit_stmt_line_input(void) {

@@ -134,6 +134,11 @@ static inline uint64_t bc_get_u64(void) {
 }
 
 void store_var_string(uint8_t *p_var, const char *str, unsigned len);
+void bc_str_parse_val(const uint8_t **ps, const uint8_t *ps_end);
+void _store_var_int(uint8_t *p_var);
+void _store_var_long(uint8_t *p_var);
+void _store_var_single(uint8_t *p_var);
+void _store_var_double(uint8_t *p_var);
 
 // Handlers
 void bc_end(void);
@@ -301,6 +306,7 @@ void bc_file_inputs_s(void);
 extern int file_io_cur_file;
 
 void     file_io_read(int fn, void *buf, size_t len);
+void     file_io_readline(int fn, char *buf, size_t len);
 void     file_io_write(int filenr, const void *buf, size_t len);
 unsigned file_io_get_column(int filenr);
 

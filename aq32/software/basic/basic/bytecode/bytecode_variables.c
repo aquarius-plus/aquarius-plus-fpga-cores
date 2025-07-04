@@ -28,24 +28,24 @@ static void _push_var_double(uint8_t *p_var) {
     bc_stack_push_double(*(double *)&u64);
 }
 
-static void _store_var_int(uint8_t *p_var) {
+void _store_var_int(uint8_t *p_var) {
     stkval_t *val = bc_stack_pop();
     bc_to_long_round(val);
     if (val->val_long < INT16_MIN || val->val_long >= INT16_MAX)
         _basic_error(ERR_OVERFLOW);
     write_u16(p_var, val->val_long);
 }
-static void _store_var_long(uint8_t *p_var) {
+void _store_var_long(uint8_t *p_var) {
     stkval_t *val = bc_stack_pop();
     bc_to_long_round(val);
     write_u32(p_var, val->val_long);
 }
-static void _store_var_single(uint8_t *p_var) {
+void _store_var_single(uint8_t *p_var) {
     stkval_t *val = bc_stack_pop();
     bc_to_single(val);
     write_u32(p_var, val->val_long);
 }
-static void _store_var_double(uint8_t *p_var) {
+void _store_var_double(uint8_t *p_var) {
     stkval_t *val = bc_stack_pop();
     bc_to_double(val);
     write_u64(p_var, val->val_longlong);

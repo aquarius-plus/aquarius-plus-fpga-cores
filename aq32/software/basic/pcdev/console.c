@@ -2,7 +2,8 @@
 
 static int cursor_column = 0;
 
-void console_init(void) {}
+void console_init(void) {
+}
 bool console_set_width(int width) {
     if (width != 40 && width != 80)
         return false;
@@ -40,5 +41,6 @@ void console_puts(const char *s) {
 }
 
 uint8_t console_getc(void) {
-    return 'A';
+    int ch = getchar();
+    return ch < 0 ? 0 : ch;
 }

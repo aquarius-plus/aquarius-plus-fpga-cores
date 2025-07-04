@@ -22,6 +22,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     buffers.c
 
     ../../lib/common.c
+    ../../lib/readline.c
 
     ../editor/editbuf.c
 
