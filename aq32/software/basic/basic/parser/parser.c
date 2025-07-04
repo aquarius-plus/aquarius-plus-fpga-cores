@@ -344,7 +344,7 @@ static const struct func funcs[TOK_FUNC_LAST - TOK_FUNC_FIRST + 1] = {
     [TOK_STRINGs    - TOK_FUNC_FIRST] = {.bc = BC_FUNC_STRINGs, .num_params = 2, .emit_func = NULL},
     [TOK_STRs       - TOK_FUNC_FIRST] = {.bc = BC_FUNC_STRs,    .num_params = 1, .emit_func = NULL},
     [TOK_TAN        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_TAN,     .num_params = 1, .emit_func = NULL},
-    [TOK_TIMER_FUNC - TOK_FUNC_FIRST] = {.bc = BC_FUNC_TIMER,   .num_params = 0, .emit_func = NULL},
+    [TOK_TIMER      - TOK_FUNC_FIRST] = {.bc = BC_FUNC_TIMER,   .num_params = 0, .emit_func = NULL},
     [TOK_UCASEs     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_UCASEs,  .num_params = 1, .emit_func = NULL},
     [TOK_VAL        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_VAL,     .num_params = 1, .emit_func = NULL},
 };
@@ -429,11 +429,6 @@ static void bc_emit_expr0(void) {
             break;
         }
         default: {
-            if (tok == TOK_TIMER) {
-                // TIMER can also be a statement
-                tok = TOK_TIMER_FUNC;
-            }
-
             if (tok >= TOK_FUNC_FIRST && tok <= TOK_FUNC_LAST) {
                 ack_token();
 
@@ -1156,6 +1151,10 @@ static void bc_emit_stmt_seek(void) {
     bc_emit(BC_FILE_SEEK);
 }
 
+static void bc_emit_stmt_timer(void) {
+    _basic_error(ERR_UNHANDLED);
+}
+
 struct stmt {
     uint8_t bc;
     int     num_params;
@@ -1311,6 +1310,12 @@ static void parse_statement(void) {
             case TOK_SEEK: {
                 ack_token();
                 bc_emit_stmt_seek();
+                break;
+            }
+
+            case TOK_TIMER: {
+                ack_token();
+                bc_emit_stmt_timer();
                 break;
             }
         }

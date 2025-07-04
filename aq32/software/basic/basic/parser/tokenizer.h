@@ -134,7 +134,6 @@ enum {
     TOK_RETURN,
     TOK_RMDIR,
     TOK_SWAP,
-    TOK_TIMER,
     TOK_WHILE,
     TOK_WIDTH,
     TOK_WRITE,
@@ -189,7 +188,7 @@ enum {
     TOK_STRINGs, // STRING$
     TOK_STRs,    // STR$
     TOK_TAN,
-    TOK_TIMER_FUNC,
+    TOK_TIMER,
     TOK_UCASEs, // UCASE$
     TOK_VAL,
     TOK_FUNC_LAST = TOK_VAL,
