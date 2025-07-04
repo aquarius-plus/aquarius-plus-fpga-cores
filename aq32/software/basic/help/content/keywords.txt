@@ -52,6 +52,7 @@ Keywords by Programming Task
   <WRITE #|WRITE>
   <SEEK|SEEK>
   <LOF|LOF>
+  <EOF|EOF>
   <LINE INPUT #|INPUT>
 
   <CHDIR|CHDIR>

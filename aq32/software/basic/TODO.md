@@ -24,10 +24,6 @@ To be implemented:
 - DO...LOOP
 - EXIT DO/FOR
 
-### File I/O
-
-- LINE INPUT #filenumber%, variable$
-
 ### Graphics
 
 SCREEN

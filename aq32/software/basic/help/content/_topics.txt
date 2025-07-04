@@ -128,6 +128,7 @@ CLOSE       file_io/CLOSE.txt
 WRITE       file_io/WRITE.txt
 SEEK        file_io/SEEK.txt
 LOF         file_io/LOF.txt
+EOF         file_io/EOF.txt
 
 CHDIR       file_io/CHDIR_MKDIR_RMDIR.txt
 MKDIR       file_io/CHDIR_MKDIR_RMDIR.txt

@@ -34,6 +34,7 @@ BASIC Help Index
   <ELSE   Keyword|ELSE>
   <ELSEIF Keyword|ELSEIF>
   <END    Statement|END>
+  <EOF    Function|EOF>
   <EQV    Operator|EQV>
   <ERASE  Statement|ERASE>
   <ERL    Function|ERL>
