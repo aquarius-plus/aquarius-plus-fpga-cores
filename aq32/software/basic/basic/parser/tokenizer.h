@@ -133,7 +133,6 @@ enum {
     TOK_RESUME,
     TOK_RETURN,
     TOK_RMDIR,
-    TOK_SEEK,
     TOK_SWAP,
     TOK_TIMER,
     TOK_WHILE,
@@ -169,6 +168,7 @@ enum {
     TOK_LCASEs, // LCASE$
     TOK_LEFTs,  // LEFT$
     TOK_LEN,
+    TOK_LOF,
     TOK_LOG,
     TOK_LTRIMs, // LTRIM$
     TOK_MIDs,   // MID$
@@ -181,6 +181,7 @@ enum {
     TOK_RIGHTs, // RIGHT$
     TOK_RND,
     TOK_RTRIMs, // RTRIM$
+    TOK_SEEK,
     TOK_SGN,
     TOK_SIN,
     TOK_SPACEs, // SPACE$

@@ -73,6 +73,7 @@ static const struct keyword keywords[] = {
     {.name = "LET", .token = TOK_LET},
     {.name = "LINE", .token = TOK_LINE},
     {.name = "LOCATE", .token = TOK_LOCATE},
+    {.name = "LOF", .token = TOK_LOF},
     {.name = "LOG", .token = TOK_LOG},
     {.name = "LTRIM$", .token = TOK_LTRIMs},
     {.name = "MID$", .token = TOK_MIDs},

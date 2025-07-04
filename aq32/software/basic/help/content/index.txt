@@ -60,6 +60,7 @@ BASIC Help Index
   <LEN    Function|LEN>
   <LET    Statement|LET>
   <LOCATE Statement|LOCATE>
+  <LOF    Function|LOF>
   <LOG    Function|LOG>
 
   <MID$ Function|MID$>
@@ -88,6 +89,7 @@ BASIC Help Index
   <RIGHT$    Function|RIGHT$>
   <RND       Function|RND>
 
+  <SEEK    Function and Statement|SEEK>
   <SGN     Function|SGN>
   <SIN     Function|SIN>
   <SPACE$  Function|SPACE$>

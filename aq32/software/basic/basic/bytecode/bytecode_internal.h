@@ -289,6 +289,9 @@ void bc_file_close(void);
 void bc_file_close_all(void);
 void bc_file_read(void);
 void bc_file_write(void);
+void bc_file_seek(void);
+void bc_file_tell(void);
+void bc_file_size(void);
 
 extern int file_io_cur_file;
 

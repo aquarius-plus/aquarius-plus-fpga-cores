@@ -267,6 +267,34 @@ static void bc_emit_func_pos(void) {
     bc_emit(BC_FUNC_POS);
 }
 
+static void bc_emit_func_seek(void) {
+    expect(TOK_LPAREN);
+
+    // Parse optional '#'
+    if (get_token() == TOK_HASH)
+        ack_token();
+
+    // File number
+    bc_emit_expr();
+
+    expect(TOK_RPAREN);
+    bc_emit(BC_FILE_TELL);
+}
+
+static void bc_emit_func_lof(void) {
+    expect(TOK_LPAREN);
+
+    // Parse optional '#'
+    if (get_token() == TOK_HASH)
+        ack_token();
+
+    // File number
+    bc_emit_expr();
+
+    expect(TOK_RPAREN);
+    bc_emit(BC_FILE_SIZE);
+}
+
 // clang-format off
 static const struct func funcs[TOK_FUNC_LAST - TOK_FUNC_FIRST + 1] = {
     [TOK_ABS        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_ABS,     .num_params = 1, .emit_func = NULL},
@@ -295,6 +323,7 @@ static const struct func funcs[TOK_FUNC_LAST - TOK_FUNC_FIRST + 1] = {
     [TOK_LCASEs     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LCASEs,  .num_params = 1, .emit_func = NULL},
     [TOK_LEFTs      - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LEFTs,   .num_params = 2, .emit_func = NULL},
     [TOK_LEN        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LEN,     .num_params = 1, .emit_func = NULL},
+    [TOK_LOF        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LOG,     .num_params = 0, .emit_func = bc_emit_func_lof},
     [TOK_LOG        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LOG,     .num_params = 1, .emit_func = NULL},
     [TOK_LTRIMs     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_LTRIMs,  .num_params = 1, .emit_func = NULL},
     [TOK_MIDs       - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_mid_s},
@@ -307,6 +336,7 @@ static const struct func funcs[TOK_FUNC_LAST - TOK_FUNC_FIRST + 1] = {
     [TOK_RIGHTs     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_RIGHTs,  .num_params = 2, .emit_func = NULL},
     [TOK_RND        - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_rnd},
     [TOK_RTRIMs     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_RTRIMs,  .num_params = 1, .emit_func = NULL},
+    [TOK_SEEK       - TOK_FUNC_FIRST] = {.bc = 0,               .num_params = 0, .emit_func = bc_emit_func_seek},
     [TOK_SGN        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SGN,     .num_params = 1, .emit_func = NULL},
     [TOK_SIN        - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SIN,     .num_params = 1, .emit_func = NULL},
     [TOK_SPACEs     - TOK_FUNC_FIRST] = {.bc = BC_FUNC_SPACEs,  .num_params = 1, .emit_func = NULL},
@@ -1107,6 +1137,19 @@ static void bc_emit_stmt_write(void) {
     }
 }
 
+static void bc_emit_stmt_seek(void) {
+    // Parse optional '#'
+    if (get_token() == TOK_HASH)
+        ack_token();
+
+    // File number
+    bc_emit_expr();
+    bc_emit(BC_SET_FILE);
+    expect(TOK_COMMA);
+    bc_emit_expr();
+    bc_emit(BC_FILE_SEEK);
+}
+
 struct stmt {
     uint8_t bc;
     int     num_params;
@@ -1256,6 +1299,15 @@ static void parse_statement(void) {
             bc_emit(stmts[tok - TOK_STMT_FIRST].bc);
         }
         return;
+
+    } else {
+        switch (tok) {
+            case TOK_SEEK: {
+                ack_token();
+                bc_emit_stmt_seek();
+                break;
+            }
+        }
     }
 }
 

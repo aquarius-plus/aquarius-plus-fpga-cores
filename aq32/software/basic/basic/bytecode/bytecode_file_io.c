@@ -237,6 +237,41 @@ void bc_file_write(void) {
     }
 }
 
+void bc_file_seek(void) {
+    int fn = file_io_cur_file;
+    if (fn < 0 || fn >= MAX_OPEN || files[fn].f == NULL)
+        _basic_error(ERR_ILLEGAL_FUNC_CALL);
+
+    int offset = bc_stack_pop_long();
+    if (offset < 1)
+        _basic_error(ERR_ILLEGAL_FUNC_CALL);
+
+    check_errno_result(fseek(files[fn].f, offset - 1, SEEK_SET));
+}
+
+void bc_file_tell(void) {
+    int fn = bc_stack_pop_long();
+    if (fn < 0 || fn >= MAX_OPEN || files[fn].f == NULL)
+        _basic_error(ERR_ILLEGAL_FUNC_CALL);
+
+    long result = ftell(files[fn].f);
+    check_errno_result((int)result);
+    bc_stack_push_long(result + 1);
+}
+
+void bc_file_size(void) {
+    int fn = bc_stack_pop_long();
+    if (fn < 0 || fn >= MAX_OPEN || files[fn].f == NULL)
+        _basic_error(ERR_ILLEGAL_FUNC_CALL);
+
+    long cur_pos = ftell(files[fn].f);
+    fseek(files[fn].f, 0, SEEK_END);
+    long file_size = ftell(files[fn].f);
+    fseek(files[fn].f, cur_pos, SEEK_SET);
+    check_errno_result((int)file_size);
+    bc_stack_push_long(file_size);
+}
+
 void bc_stmt_chdir(void) {
     char tmp[256];
     get_str(tmp, sizeof(tmp));

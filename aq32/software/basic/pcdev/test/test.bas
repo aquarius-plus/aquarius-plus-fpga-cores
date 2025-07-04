@@ -4,8 +4,11 @@ write #a%, q$
 close #a%
 
 open "test.bin" FOR INPUT AS a%
+? "filesize ="; lof(a%)
 q$ = "12345"
+seek a%, 7
 read #a%, q$
+? seek(a%)
 
 print q$
 
