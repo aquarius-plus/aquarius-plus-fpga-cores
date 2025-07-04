@@ -47,7 +47,7 @@ const struct menu menubar_menus[] = {
 };
 
 static void cmd_help_about(void) {
-    dialog_message("About", "Aquarius32 text editor v" PROJECT_VERSION);
+    dialog_message("About", "Aquarius32 text editor v" PROJECT_VERSION " by Frank van den Hoef");
 }
 
 int main(int argc, const char **argv) {

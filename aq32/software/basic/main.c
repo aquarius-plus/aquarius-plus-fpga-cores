@@ -176,7 +176,7 @@ static void cmd_help_reopen(void) {
 }
 
 static void cmd_help_about(void) {
-    dialog_message("About", "Aquarius32 BASIC v" PROJECT_VERSION);
+    dialog_message("About", "Aquarius32 BASIC v" PROJECT_VERSION " by Frank van den Hoef");
 }
 
 static __attribute__((section(".noinit"))) uint8_t buf_edit[128 * 1024];
