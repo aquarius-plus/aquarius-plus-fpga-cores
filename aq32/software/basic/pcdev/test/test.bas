@@ -12,7 +12,6 @@
 
 ' print q$
 
-
 open "test.bin" FOR OUTPUT AS a%
 print #a%, "Hello world"
 print #a%, "Test"
@@ -20,7 +19,7 @@ print #a%, "123"
 close #a%
 
 open "test.bin" FOR INPUT AS a%
-while eof(a%) = 0
+while not eof(a%)
     line input #a%, q$
     print q$
 wend

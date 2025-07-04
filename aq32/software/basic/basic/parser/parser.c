@@ -511,14 +511,24 @@ static void bc_emit_expr_prec(uint8_t min_prec) {
 
         if (tok_op == TOK_MINUS)
             bc_emit(BC_OP_NEGATE);
+    }
 
-    } else {
+    // Special handling of not operator
+    else if (tok_op == TOK_NOT && min_prec <= ops[tok_op - TOK_OP_FIRST].prec) {
+        const struct op *op = &ops[tok_op - TOK_OP_FIRST];
+        ack_token();
+        bc_emit_expr_prec(op->prec);
+        bc_emit(op->bc);
+    }
+
+    // Binary operation
+    else {
         bc_emit_expr0();
     }
 
     while (1) {
         tok_op = get_token();
-        if (tok_op < TOK_OP_FIRST || tok_op > TOK_OP_LAST)
+        if (tok_op < TOK_OP_FIRST || tok_op > TOK_OP_LAST || tok_op == TOK_NOT)
             break;
 
         const struct op *op = &ops[tok_op - TOK_OP_FIRST];
@@ -526,14 +536,8 @@ static void bc_emit_expr_prec(uint8_t min_prec) {
             break;
 
         ack_token();
-
-        // Special handling of unary NOT
-        if (tok_op == TOK_NOT) {
-            bc_emit(BC_OP_NOT);
-        } else {
-            bc_emit_expr_prec(op->prec + 1);
-            bc_emit(op->bc);
-        }
+        bc_emit_expr_prec(op->prec + 1);
+        bc_emit(op->bc);
     }
 }
 
