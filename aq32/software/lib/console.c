@@ -91,6 +91,15 @@ void console_init(void) {
 bool console_set_width(int width) {
     if (width != 40 && width != 80)
         return false;
+
+    if (width != _num_columns()) {
+        if (width == 80) {
+            REGS->VCTRL |= VCTRL_TEXT_MODE80;
+        } else {
+            REGS->VCTRL &= ~VCTRL_TEXT_MODE80;
+        }
+        _clear_screen();
+    }
     return true;
 }
 
