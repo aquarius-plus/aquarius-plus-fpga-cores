@@ -20,7 +20,6 @@ void console_set_cursor_row(int) {}
 void console_set_cursor_column(int) {}
 void console_set_foreground_color(int) {}
 void console_set_background_color(int) {}
-void console_set_border_color(int) {}
 
 void console_putc(char ch) {
     putchar(ch);

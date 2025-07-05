@@ -4,8 +4,8 @@
 
 #define CLIPBOARD_PATH "/.editor-clipboard"
 
-#define EDITOR_ROWS    22
-#define EDITOR_COLUMNS 78
+#define EDITOR_ROWS    (TEXT_ROWS - 3)
+#define EDITOR_COLUMNS (TEXT_COLUMNS - 2)
 #define TAB_SIZE       2
 
 struct editor_state {

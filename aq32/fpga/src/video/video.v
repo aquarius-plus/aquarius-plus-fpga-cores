@@ -28,9 +28,9 @@ module video(
 
     // Text RAM interface
     input  wire [10:0] tram_addr,
-    output wire [15:0] tram_rddata,
-    input  wire [15:0] tram_wrdata,
-    input  wire  [1:0] tram_bytesel,
+    output wire [31:0] tram_rddata,
+    input  wire [31:0] tram_wrdata,
+    input  wire  [3:0] tram_bytesel,
     input  wire        tram_wren,
 
     // Char RAM interface
@@ -129,43 +129,29 @@ module video(
     //////////////////////////////////////////////////////////////////////////
     // Character address
     //////////////////////////////////////////////////////////////////////////
-    reg  q_mode80 = 1'b0;
-
-    reg  [10:0] q_row_addr  = 11'd0;
-    reg  [10:0] q_char_addr = 11'd0;
-
-    wire        next_row         = (vpos9 >= 9'd23) && vnext && (vpos9[2:0] == 3'd7);
-    wire [10:0] d_row_addr       = q_row_addr + (q_mode80 ? 11'd80 : 11'd40);
-    wire [10:0] border_char_addr = 11'h7FF;
+    reg         q_mode80         = 1'b0;
+    reg  [11:0] q_row_addr       = 12'd0;
+    reg  [11:0] q_char_addr      = 12'd0;
+    wire        next_row         = vnext && (vpos9[2:0] == 3'd7);
+    wire [11:0] d_row_addr       = q_row_addr + (q_mode80 ? 12'd80 : 12'd40);
+    wire [11:0] border_char_addr = 12'h7FF;
 
     always @(posedge(clk))
         if (vblank) begin
             q_mode80   <= reg_text_mode80;
-            q_row_addr <= 11'd0;
+            q_row_addr <= 12'd0;
         end else if (next_row) begin
             q_row_addr <= d_row_addr;
         end
 
-    wire next_char = q_mode80 ? (hpos[2:0] == 3'd0) : (hpos[3:0] == 4'd0);
+    wire next_char    = q_mode80 ? (hpos[2:0] == 3'd0) : (hpos[3:0] == 4'd0);
+    wire start_active = q_blank && !blank;
 
-    wire border = vborder || hborder;
-    reg q_border;
-    always @(posedge clk) q_border <= border;
-
-    wire start_active = q_border && !border;
-
-    reg  [10:0] d_char_addr;
+    reg  [11:0] d_char_addr;
     always @* begin
-        d_char_addr = q_char_addr;
-        if (border)
-            d_char_addr = border_char_addr;
-        else if (start_active)
-            d_char_addr = q_row_addr;
-        else if (next_char)
-            d_char_addr = q_char_addr + 11'd1;
-
-        if (!q_mode80)
-            d_char_addr[10] = 0;
+        if      (start_active) d_char_addr = q_row_addr;
+        else if (next_char)    d_char_addr = q_char_addr + 12'd1;
+        else                   d_char_addr = q_char_addr;
     end
 
     always @(posedge(clk)) q_char_addr <= d_char_addr;
@@ -173,24 +159,26 @@ module video(
     //////////////////////////////////////////////////////////////////////////
     // Text RAM
     //////////////////////////////////////////////////////////////////////////
-    wire [15:0] textram_rddata;
+    wire [31:0] textram_rddata;
 
-    textram textram(
-        // First port - CPU access
-        .p1_clk(clk),
-        .p1_addr(tram_addr),
-        .p1_rddata(tram_rddata),
-        .p1_wrdata(tram_wrdata),
-        .p1_bytesel(tram_bytesel),
-        .p1_wren(tram_wren),
+    dpram8k textram(
+        .a_clk(clk),
+        .a_addr(tram_addr),
+        .a_wrdata(tram_wrdata),
+        .a_wrsel(tram_bytesel), 
+        .a_wren(tram_wren),
+        .a_rddata(tram_rddata),
 
-        // Second port - Video access
-        .p2_clk(clk),
-        .p2_addr(d_char_addr),
-        .p2_rddata(textram_rddata));
+        .b_clk(clk),
+        .b_addr(d_char_addr[11:1]),
+        .b_wrdata(32'b0),
+        .b_wrsel(4'b0), 
+        .b_wren(1'b0),
+        .b_rddata(textram_rddata));
 
-    wire [7:0] text_data  = textram_rddata[7:0];
-    wire [7:0] color_data = textram_rddata[15:8];
+    wire [15:0] textram_color_text = q_char_addr[0] ? textram_rddata[31:16] : textram_rddata[15:0];
+    wire  [7:0] text_data  = textram_color_text[7:0];
+    wire  [7:0] color_data = textram_color_text[15:8];
 
     reg [7:0] q_color_data;
     always @(posedge clk) q_color_data <= color_data;

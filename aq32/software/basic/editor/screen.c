@@ -126,6 +126,6 @@ void scr_puttext_filled(int w, const char *text, bool has_accel, bool pad) {
 
 void scr_status_msg(const char *s) {
     scr_setcolor(COLOR_STATUS);
-    scr_locate(24, 0);
+    scr_locate(TEXT_ROWS - 1, 0);
     scr_puttext_filled(68, s, false, true);
 }

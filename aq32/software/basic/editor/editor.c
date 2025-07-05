@@ -102,7 +102,7 @@ static void render_editor(void) {
 static void render_editor_border(void) {
     char title[65];
     snprintf(title, sizeof(title), "%s%s", *state.filename ? state.filename : "Untitled", editbuf_get_modified(state.editbuf) ? "\x88" : "");
-    scr_draw_border(1, 0, 80, 24, COLOR_EDITOR, BORDER_FLAG_NO_BOTTOM | BORDER_FLAG_NO_SHADOW | BORDER_FLAG_TITLE_INVERSE, title);
+    scr_draw_border(1, 0, TEXT_COLUMNS, TEXT_ROWS - 1, COLOR_EDITOR, BORDER_FLAG_NO_BOTTOM | BORDER_FLAG_NO_SHADOW | BORDER_FLAG_TITLE_INVERSE, title);
 }
 
 static void render_statusbar(void) {

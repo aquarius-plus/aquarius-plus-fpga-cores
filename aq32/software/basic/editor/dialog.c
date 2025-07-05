@@ -23,10 +23,10 @@ static void draw_current_dir(int y, int x, int w) {
 bool dialog_open(char *fn_buf, size_t fn_bufsize) {
     struct file_list_ctx flctx;
 
-    int w = 80 - 12;
-    int h = 25 - 6;
-    int x = (80 - w) / 2;
-    int y = (25 - h) / 2;
+    int w = TEXT_COLUMNS - 12;
+    int h = TEXT_ROWS - 6;
+    int x = (TEXT_COLUMNS - w) / 2;
+    int y = (TEXT_ROWS - h) / 2;
 
     scr_draw_border(y, x, w, h, COLOR_MENU, 0, "Open");
     scr_draw_separator(y + 2, x, w, COLOR_MENU);
@@ -99,10 +99,10 @@ bool dialog_save(char *fn_buf, size_t fn_bufsize) {
     struct file_list_ctx  flctx;
     struct edit_field_ctx efctx;
 
-    int w = 80 - 12;
-    int h = 25 - 6;
-    int x = (80 - w) / 2;
-    int y = (25 - h) / 2;
+    int w = TEXT_COLUMNS - 12;
+    int h = TEXT_ROWS - 6;
+    int x = (TEXT_COLUMNS - w) / 2;
+    int y = (TEXT_ROWS - h) / 2;
 
     scr_draw_border(y, x, w, h, COLOR_MENU, 0, "Save");
     scr_draw_separator(y + 2, x, w, COLOR_MENU);
@@ -186,8 +186,8 @@ int dialog_confirm(const char *title, const char *text) {
 
     int w = max(text_len, choices_len) + 4;
     int h = 7;
-    int x = (80 - w) / 2;
-    int y = (25 - h) / 2;
+    int x = (TEXT_COLUMNS - w) / 2;
+    int y = (TEXT_ROWS - h) / 2;
 
     scr_draw_border(y, x, w, h, COLOR_MENU, 0, title);
     scr_setcolor(COLOR_MENU);
@@ -222,8 +222,8 @@ void dialog_message(const char *title, const char *text) {
 
     int w = max(strlen(text), strlen(title)) + 4;
     int h = 5;
-    int x = (80 - w) / 2;
-    int y = (25 - h) / 2;
+    int x = (TEXT_COLUMNS - w) / 2;
+    int y = (TEXT_ROWS - h) / 2;
 
     scr_draw_border(y, x, w, h, COLOR_MENU, 0, title);
     scr_setcolor(COLOR_MENU);
@@ -254,8 +254,8 @@ bool dialog_edit_field(const char *title, char *buf, size_t buf_size) {
 
     int w = 70;
     int h = 5;
-    int x = (80 - w) / 2;
-    int y = (25 - h) / 2;
+    int x = (TEXT_COLUMNS - w) / 2;
+    int y = (TEXT_ROWS - h) / 2;
 
     scr_draw_border(y, x, w, h, COLOR_MENU, 0, title);
     scr_setcolor(COLOR_MENU);

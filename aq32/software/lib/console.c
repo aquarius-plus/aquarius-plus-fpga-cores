@@ -1,25 +1,8 @@
 #include "console.h"
 
-#define NUM_ROWS     25
 #define DEF_FGCOL    (0)
 #define DEF_BGCOL    (3)
 #define CURSOR_COLOR (0x80)
-
-static void memmove16(uint16_t *dst, const uint16_t *src, unsigned count) {
-    uint16_t       *d = dst;
-    const uint16_t *s = src;
-    if (d < s) {
-        while (count--) {
-            *(d++) = *(s++);
-        }
-    } else {
-        s += (count - 1);
-        d += (count - 1);
-        while (count--) {
-            *(d--) = *(s--);
-        }
-    }
-}
 
 static void memset16(uint16_t *dst, uint16_t val, unsigned count) {
     while (count--)
@@ -51,7 +34,7 @@ static void show_cursor(void) {
 void _clear_screen(void) {
     TRAM->cursor_row    = 0;
     TRAM->cursor_column = 0;
-    memset16(TRAM->text, TRAM->text_color | ' ', 80 * NUM_ROWS);
+    memset16(TRAM->text, TRAM->text_color | ' ', TEXT_COLUMNS * TEXT_ROWS);
 }
 
 #define INITVAL1 0xAA55
@@ -68,7 +51,6 @@ void console_init(void) {
         TRAM->cursor_visible = false;
         TRAM->cursor_enabled = true;
         TRAM->cursor_color   = (CURSOR_COLOR << 8);
-        TRAM->border_ch      = 0;
 
         _clear_screen();
 
@@ -117,14 +99,14 @@ void console_show_cursor(bool en) {
 
 void console_set_cursor_row(int val) {
     hide_cursor();
-    TRAM->cursor_row = clamp(val, 0, NUM_ROWS - 1);
+    TRAM->cursor_row = clamp(val, 0, TEXT_ROWS - 1);
     show_cursor();
 }
 int console_get_cursor_row(void) {
     return TRAM->cursor_row;
 }
 int console_get_num_rows(void) {
-    return NUM_ROWS;
+    return TEXT_ROWS;
 }
 
 void console_set_cursor_column(int val) {
@@ -140,9 +122,6 @@ void console_set_foreground_color(int val) {
 }
 void console_set_background_color(int val) {
     TRAM->text_color = (TRAM->text_color & 0xF000) | ((val & 0xF) << 8);
-}
-void console_set_border_color(int val) {
-    TRAM->border_ch = ((val & 0xF) << 12) | ((val & 0xF) << 8) | ' ';
 }
 
 static void _putc(char ch) {
@@ -178,10 +157,10 @@ static void _putc(char ch) {
         TRAM->cursor_column = 0;
         TRAM->cursor_row++;
     }
-    if (TRAM->cursor_row >= NUM_ROWS) {
-        memmove16((uint16_t *)TRAM, (uint16_t *)TRAM + _num_columns(), _num_columns() * (NUM_ROWS - 1));
-        memset16((uint16_t *)TRAM + _num_columns() * (NUM_ROWS - 1), TRAM->text_color | ' ', _num_columns());
-        TRAM->cursor_row = NUM_ROWS - 1;
+    if (TRAM->cursor_row >= TEXT_ROWS) {
+        memmove(TRAM->text, TRAM->text + _num_columns(), _num_columns() * (TEXT_ROWS - 1) * sizeof(uint16_t));
+        memset16(TRAM->text + _num_columns() * (TEXT_ROWS - 1), TRAM->text_color | ' ', _num_columns());
+        TRAM->cursor_row = TEXT_ROWS - 1;
     }
 }
 

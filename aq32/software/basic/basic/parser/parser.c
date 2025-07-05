@@ -975,28 +975,11 @@ static void bc_emit_stmt_color(void) {
 
     if (get_token() == TOK_COMMA) {
         ack_token();
-    } else {
-        bc_emit(BC_PUSH_CONST_UNSPECIFIED_PARAM);
-        bc_emit(BC_PUSH_CONST_UNSPECIFIED_PARAM);
-        bc_emit(BC_STMT_COLOR);
-        return;
-    }
-
-    if (get_token() != TOK_COMMA) {
         bc_emit_expr();
     } else {
         bc_emit(BC_PUSH_CONST_UNSPECIFIED_PARAM);
     }
 
-    if (get_token() == TOK_COMMA) {
-        ack_token();
-    } else {
-        bc_emit(BC_PUSH_CONST_UNSPECIFIED_PARAM);
-        bc_emit(BC_STMT_COLOR);
-        return;
-    }
-
-    bc_emit_expr();
     bc_emit(BC_STMT_COLOR);
 }
 

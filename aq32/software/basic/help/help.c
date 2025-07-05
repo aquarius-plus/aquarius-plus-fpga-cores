@@ -4,7 +4,7 @@
 #include "editor/dialog.h"
 
 #define HELP_FILE    "/cores/aq32/basic.hlp"
-#define HELP_ROWS    23
+#define HELP_ROWS    (TEXT_ROWS - 2)
 #define HISTORY_SIZE 20
 
 struct help_state {
@@ -188,7 +188,7 @@ static bool navigate_to_topic(const char *topic) {
 }
 
 static void draw_screen(void) {
-    scr_draw_border(0, 0, 80, 25, COLOR_HELP, BORDER_FLAG_NO_SHADOW | BORDER_FLAG_TITLE_INVERSE, state.window_title);
+    scr_draw_border(0, 0, TEXT_COLUMNS, TEXT_ROWS, COLOR_HELP, BORDER_FLAG_NO_SHADOW | BORDER_FLAG_TITLE_INVERSE, state.window_title);
 
     const uint8_t *p               = state.p_content;
     int            lines_remaining = state.num_lines;

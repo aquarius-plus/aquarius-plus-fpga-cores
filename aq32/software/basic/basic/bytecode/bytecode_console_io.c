@@ -8,15 +8,8 @@ void bc_stmt_cls(void) {
 }
 
 void bc_stmt_color(void) {
-    int color_border     = bc_stack_pop_long();
     int color_background = bc_stack_pop_long();
     int color_foreground = bc_stack_pop_long();
-
-    if (color_border != INT32_MIN) {
-        if (color_border < 0 || color_border > 15)
-            _basic_error(ERR_ILLEGAL_FUNC_CALL);
-        console_set_border_color(color_border);
-    }
 
     if (color_background != INT32_MIN) {
         if (color_background < 0 || color_background > 15)

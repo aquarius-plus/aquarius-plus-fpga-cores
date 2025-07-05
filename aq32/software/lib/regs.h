@@ -54,8 +54,11 @@ struct fmsynth {
 
 static_assert(sizeof(struct fmsynth) == 1024);
 
+#define TEXT_COLUMNS 80
+#define TEXT_ROWS    30
+
 struct tram {
-    uint16_t text[80 * 25];
+    uint16_t text[TEXT_COLUMNS * TEXT_ROWS];
     uint16_t init_val1;
     uint16_t text_color;
     uint16_t saved_color;
@@ -64,12 +67,8 @@ struct tram {
     uint8_t  cursor_column;
     uint8_t  cursor_visible;
     uint8_t  cursor_enabled;
-    uint8_t  pad[80];
     uint16_t init_val2;
-    uint16_t border_ch;
 };
-
-static_assert(sizeof(struct tram) == 4096);
 
 #define REGS     ((struct regs *)0x2000)
 #define PCM      ((struct pcm *)0x2400)
