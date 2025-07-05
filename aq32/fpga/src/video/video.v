@@ -109,9 +109,6 @@ module video(
 
     assign vpos9 = vpos10[9:1];
 
-    wire hborder = blank;
-    wire vborder = vpos9 < 9'd16 || vpos9 >= 9'd216;
-
     reg [9:0] q_hpos, q2_hpos;
     always @(posedge clk) q_hpos  <= hpos;
     always @(posedge clk) q2_hpos <= q_hpos;
@@ -274,12 +271,15 @@ module video(
 
     always @(posedge clk) q_linebuf_rdidx <= hpos[9:1];
 
-    reg q_hborder, q2_hborder;
-    always @(posedge clk) q_hborder  <= hborder;
-    always @(posedge clk) q2_hborder <= q_hborder;
-
     reg q_gfx_start;
     always @(posedge clk) q_gfx_start <= vnext;
+
+    reg  [7:0] gfx_vline;
+    always @* begin
+        if      (vpos9 == 9'd261) gfx_vline = 8'd0;
+        else if (vpos9 == 9'd262) gfx_vline = 8'd1;
+        else                      gfx_vline = vpos9[7:0] + 8'd1;
+    end
 
     gfx gfx(
         .clk(clk),
@@ -307,7 +307,7 @@ module video(
         .vdata(vram_rddata2),
 
         // Render parameters
-        .vline(vpos9[7:0]),
+        .vline(gfx_vline),
         .start(q_gfx_start),
 
         // Line buffer interface
@@ -318,22 +318,15 @@ module video(
     // Compositing
     //////////////////////////////////////////////////////////////////////////
     reg  [5:0] pixel_colidx;
-    wire       active = !vborder && !q2_hborder;
 
     always @* begin
         pixel_colidx = 6'b0;
-        if (!active) begin
-            if (reg_text_enable)
-                pixel_colidx = {2'b0, text_colidx};
-
-        end else begin
-            if (reg_text_enable && !reg_text_priority)
-                pixel_colidx = {2'b0, text_colidx};
-            if (reg_gfx_enable && (!reg_text_enable || reg_text_priority || linebuf_data[3:0] != 4'd0))
-                pixel_colidx = linebuf_data;
-            if (reg_text_enable && reg_text_priority && text_colidx != 4'd0)
-                pixel_colidx = {2'b0, text_colidx};
-        end
+        if (reg_text_enable && !reg_text_priority)
+            pixel_colidx = {2'b0, text_colidx};
+        if (reg_gfx_enable && (!reg_text_enable || reg_text_priority || linebuf_data[3:0] != 4'd0))
+            pixel_colidx = linebuf_data;
+        if (reg_text_enable && reg_text_priority && text_colidx != 4'd0)
+            pixel_colidx = {2'b0, text_colidx};
     end
 
     //////////////////////////////////////////////////////////////////////////

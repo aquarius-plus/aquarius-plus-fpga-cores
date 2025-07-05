@@ -84,7 +84,7 @@ module gfx(
     reg  [15:0] d_map_entry, q_map_entry;
     reg         d_busy,      q_busy;
 
-    wire  [7:0] line_idx      = vline - 8'd15;
+    wire  [7:0] line_idx      = vline;
     wire  [7:0] tline         = line_idx + scroll_y;
     wire  [4:0] row           = tline[7:3];
 
