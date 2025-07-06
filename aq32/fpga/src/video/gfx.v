@@ -85,9 +85,18 @@ module gfx(
     reg         d_busy,      q_busy;
 
     wire  [7:0] line_idx      = vline;
-    wire  [7:0] tline         = line_idx + scroll_y;
+    wire  [8:0] tline         = {1'b0, line_idx} + {1'b0, scroll_y};
     wire  [4:0] row           = tline[7:3];
 
+    reg   [8:0] bm_line;
+    always @* begin
+        bm_line = tline;
+        if (tline >= 9'd400)
+            bm_line = tline - 9'd400;
+        else if (tline >= 9'd200)
+            bm_line = tline - 9'd200;
+    end
+    
     wire [15:0] map_entry     = d_map_entry;
     wire  [9:0] tile_idx      = map_entry[9:0];
     wire        tile_hflip    = map_entry[11];
@@ -164,7 +173,7 @@ module gfx(
             d_col_cnt          = 0;
             d_spr_sel          = 0;
             d_state            = tilemode ? ST_MAP1 : ST_BM4BPP;
-            d_render_idx       = tilemode ? (9'd0 - {6'd0, scroll_x[2:0]}) : 9'd0;
+            d_render_idx       = 9'd0 - {6'd0, scroll_x[2:0]};
             d_col              = scroll_x[8:3];
 
         end else if (q_busy) begin
@@ -176,7 +185,7 @@ module gfx(
                     if (q_col_cnt == 6'd41) begin
                         d_state = sprites_enable ? ST_SPR : ST_DONE;
                     end else begin
-                        d_vaddr = {3'b111, row, d_col};
+                        d_vaddr = {3'b111, row, q_col};
                         d_state = ST_MAP2;
                     end
                 end
@@ -229,13 +238,14 @@ module gfx(
                 end
 
                 ST_BM4BPP: begin
-                    if (q_col_cnt == 6'd40) begin
+                    if (q_col_cnt == 6'd41) begin
                         d_state       = sprites_enable ? ST_SPR : ST_DONE;
                     end else begin
-                        d_vaddr       = (line_idx * 13'd80) + {6'b0, q_col_cnt, 1'b0};
+                        d_vaddr       = (bm_line[7:0] * 13'd80) + {6'b0, q_col, 1'b0};
                         d_state       = ST_BM4BPP2;
                     end
 
+                    d_col             = (q_col == 6'd39) ? 6'd0 : (q_col + 6'd1);
                     d_col_cnt         = q_col_cnt + 6'd1;
                     d_render_hflip    = 0;
                     d_render_palette  = 2'b01;
