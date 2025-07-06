@@ -26,15 +26,15 @@ module sprattr(
     wire [(NUMBITS-1):0] a_rddata;
     wire [(NUMBITS-1):0] a_wrdata = {
         sprattr_wrdata[15:0],    // Attributes
-        sprattr_wrdata[24:16],   // Y
-        sprattr_wrdata[7:0]      // X
+        sprattr_wrdata[23:16],   // Y
+        sprattr_wrdata[8:0]      // X
     };
 
-    assign sprattr_rddata = sprattr_addr[0] ? {16'b0, a_rddata[32:17]} : {8'b0, a_rddata[16:9], 7'b0, a_rddata[8:0]};
+    assign sprattr_rddata = !sprattr_addr[6] ? {16'b0, a_rddata[32:17]} : {8'b0, a_rddata[16:9], 7'b0, a_rddata[8:0]};
 
     wire [(NUMBITS-1):0] a_wren = {
-        {16{sprattr_wren &&  sprattr_addr[0]}},
-        {17{sprattr_wren && !sprattr_addr[0]}}
+        {16{sprattr_wren && !sprattr_addr[6]}},
+        {17{sprattr_wren &&  sprattr_addr[6]}}
     };
 
     wire [(NUMBITS-1):0] b_rddata;
@@ -57,12 +57,12 @@ module sprattr(
                 .D(a_wrdata[i]),
                 .WE(a_wren[i]),
 
-                .A5(sprattr_addr[6]),
-                .A4(sprattr_addr[5]),
-                .A3(sprattr_addr[4]),
-                .A2(sprattr_addr[3]),
-                .A1(sprattr_addr[2]),
-                .A0(sprattr_addr[1]),
+                .A5(sprattr_addr[5]),
+                .A4(sprattr_addr[4]),
+                .A3(sprattr_addr[3]),
+                .A2(sprattr_addr[2]),
+                .A1(sprattr_addr[1]),
+                .A0(sprattr_addr[0]),
                 .SPO(a_rddata[i]),
 
                 .DPRA5(spr_sel[5]),

@@ -73,10 +73,13 @@ struct tram {
 #define REGS     ((struct regs *)0x2000)
 #define PCM      ((struct pcm *)0x2400)
 #define FMSYNTH  ((struct fmsynth *)0x2800)
+#define SPRATTR  ((volatile uint32_t *)0x03000)
+#define SPRPOS   ((volatile uint32_t *)0x03100)
 #define PALETTE  ((volatile uint16_t *)0x04000)
 #define CHRAM    ((volatile uint8_t *)0x05000)
 #define TRAM     ((struct tram *)0x06000)
 #define VRAM     ((volatile uint8_t *)0x08000)
+#define TILEMAP  ((volatile uint16_t *)(VRAM + 0x7000))
 #define VRAM4BPP ((volatile uint8_t *)0x10000)
 
 enum {
