@@ -82,6 +82,23 @@ struct tram {
 #define TILEMAP  ((volatile uint16_t *)(VRAM + 0x7000))
 #define VRAM4BPP ((volatile uint8_t *)0x10000)
 
+#define SPRATTR_TILEIDX_Pos 0
+#define SPRATTR_TILEIDX_Msk (0x3FF << SPRATTR_TILEIDX_Pos)
+#define SPRATTR_H16         (1 << 10)
+#define SPRATTR_HFLIP       (1 << 11)
+#define SPRATTR_VFLIP       (1 << 12)
+#define SPRATTR_PALETTE_Pos 12
+#define SPRATTR_PALETTE_Msk (3 << SPRATTR_PALETTE_Pos)
+#define SPRATTR_PRIO        (1 << 15)
+
+#define TILEMAP_TILEIDX_Pos 0
+#define TILEMAP_TILEIDX_Msk (0x3FF << TILEMAP_TILEIDX_Pos)
+#define TILEMAP_HFLIP       (1 << 11)
+#define TILEMAP_VFLIP       (1 << 12)
+#define TILEMAP_PALETTE_Pos 12
+#define TILEMAP_PALETTE_Msk (3 << TILEMAP_PALETTE_Pos)
+#define TILEMAP_PRIO        (1 << 15)
+
 enum {
     ESPCMD_RESET       = 0x01, // Reset ESP
     ESPCMD_VERSION     = 0x02, // Get version string

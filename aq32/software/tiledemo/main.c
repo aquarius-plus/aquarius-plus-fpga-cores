@@ -3,6 +3,8 @@
 #include "csr.h"
 #include "console.h"
 
+#define NUM_BALLS 14
+
 // Structure to keep track of position and direction of ball sprites
 struct ball {
     uint16_t x;
@@ -10,7 +12,7 @@ struct ball {
     uint16_t dx;
     uint8_t  dy;
 };
-struct ball balls[16];
+struct ball balls[NUM_BALLS];
 
 // Each ball consist of 4 8x8 sprites
 static inline void setup_ball_sprites(uint8_t ball_idx) {
@@ -38,12 +40,12 @@ static inline void update_ball_sprites(uint8_t ball_idx) {
 
 // Position Sonic character sprite on give position
 static inline void sonic_sprite(uint8_t frame, int x, int y) {
-    uint8_t  base   = 32;
+    uint8_t  base   = 56;
     uint16_t spridx = 128 + 256 + (uint16_t)frame * 16;
     for (uint8_t j = 0; j < 2; j++) {
         int tx = x;
         for (uint8_t i = 0; i < 3; i++) {
-            SPRATTR[base] = (1 << 10) | spridx;
+            SPRATTR[base] = SPRATTR_H16 | spridx;
             SPRPOS[base]  = ((unsigned)y << 16) | tx;
             base++;
             spridx += 2;
@@ -91,16 +93,16 @@ int main(void) {
     {
         for (int j = 0; j < 5; j++) {
             for (int i = 0; i < 5; i++) {
-                TILEMAP[64 * (8 + j) + (7 + i)] |= 0x8000;
+                TILEMAP[64 * (8 + j) + (7 + i)] |= TILEMAP_PRIO;
             }
         }
         for (int j = 0; j < 5; j++) {
-            TILEMAP[64 * (13 + j) + 9] |= 0x8000;
+            TILEMAP[64 * (13 + j) + 9] |= TILEMAP_PRIO;
         }
     }
 
     // Init balls at random positions
-    for (uint8_t i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < NUM_BALLS; i++) {
         struct ball *ballp = &balls[i];
 
         ballp->x  = rand() % (320 - 16);
@@ -144,7 +146,7 @@ int main(void) {
         }
 
         // Move balls
-        for (uint8_t i = 0; i < 8; i++) {
+        for (uint8_t i = 0; i < NUM_BALLS; i++) {
             struct ball *ballp = &balls[i];
 
             // Move ball in horizontal direction. If it hits the screen edge, reverse direction.
