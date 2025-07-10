@@ -551,7 +551,7 @@ module aq32_top(
     wire [31:0] sprattr_rddata;
     wire [31:0] tram_rddata;
     wire  [7:0] chram_rddata;
-    wire [15:0] pal_rddata;
+    wire [11:0] pal_rddata;
     wire [31:0] vram_rddata;
     wire [31:0] vram4bpp_rddata;
 
@@ -633,7 +633,7 @@ module aq32_top(
 
         .pal_addr(cpu_addr[6:1]),
         .pal_rddata(pal_rddata),
-        .pal_wrdata(cpu_wrdata[15:0]),
+        .pal_wrdata(cpu_wrdata[11:0]),
         .pal_wren(pal_wren),
 
         .vram_addr(vram_addr),
@@ -761,7 +761,7 @@ module aq32_top(
         if (reg_mtimeh_strobe)     cpu_rddata = q_mtime[63:32];
         if (reg_mtimecmp_strobe)   cpu_rddata = q_mtimecmp[31:0];
         if (reg_mtimecmph_strobe)  cpu_rddata = q_mtimecmp[63:32];
-        if (pal_strobe)            cpu_rddata = {pal_rddata, pal_rddata};
+        if (pal_strobe)            cpu_rddata = {4'b0, pal_rddata, 4'b0, pal_rddata};
         if (sprattr_strobe)        cpu_rddata = sprattr_rddata;
         if (chram_strobe)          cpu_rddata = {chram_rddata, chram_rddata, chram_rddata, chram_rddata};
         if (tram_strobe)           cpu_rddata = tram_rddata;

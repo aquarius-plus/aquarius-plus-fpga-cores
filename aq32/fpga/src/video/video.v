@@ -41,8 +41,8 @@ module video(
 
     // Palette RAM interface
     input  wire  [5:0] pal_addr,
-    output wire [15:0] pal_rddata,
-    input  wire [15:0] pal_wrdata,
+    output wire [11:0] pal_rddata,
+    input  wire [11:0] pal_wrdata,
     input  wire        pal_wren,
 
     // Video RAM interface
@@ -214,27 +214,39 @@ module video(
     wire        spr_vflip;
     wire        spr_hflip;
 
-    sprattr sprattr(
+    localparam SPRATTR_BITS = 33;
+
+    wire [(SPRATTR_BITS-1):0] sprattr_a_rddata;
+    wire [(SPRATTR_BITS-1):0] sprattr_a_wrdata = {
+        sprattr_wrdata[15:0],    // Attributes
+        sprattr_wrdata[23:16],   // Y
+        sprattr_wrdata[8:0]      // X
+    };
+    wire [(SPRATTR_BITS-1):0] sprattr_a_wren = {
+        {16{sprattr_wren && !sprattr_addr[6]}},
+        {17{sprattr_wren &&  sprattr_addr[6]}}
+    };
+    assign sprattr_rddata = !sprattr_addr[6] ?
+        {16'b0, sprattr_a_rddata[32:17]} :
+        {8'b0, sprattr_a_rddata[16:9], 7'b0, sprattr_a_rddata[8:0]};
+
+    distram64d #(.WIDTH(SPRATTR_BITS)) sprattr(
         .clk(clk),
-        .reset(reset),
-
-        // First port - CPU access
-        .sprattr_addr(sprattr_addr),
-        .sprattr_rddata(sprattr_rddata),
-        .sprattr_wrdata(sprattr_wrdata),
-        .sprattr_wren(sprattr_wren),
-
-        // Second port - Video access
-        .spr_sel(spr_sel),
-        .spr_x(spr_x),
-        .spr_y(spr_y),
-        .spr_idx(spr_idx),
-        .spr_priority(spr_priority),
-        .spr_palette(spr_palette),
-        .spr_h16(spr_h16),
-        .spr_vflip(spr_vflip),
-        .spr_hflip(spr_hflip)
-    );
+        .a_addr(sprattr_addr[5:0]),
+        .a_rddata(sprattr_a_rddata),
+        .a_wrdata(sprattr_a_wrdata),
+        .a_wren(sprattr_a_wren),
+        .b_addr(spr_sel),
+        .b_rddata({
+            spr_priority,
+            spr_palette,
+            spr_vflip,
+            spr_hflip,
+            spr_h16,
+            spr_idx,
+            spr_y,
+            spr_x
+        }));
 
     //////////////////////////////////////////////////////////////////////////
     // VRAM
@@ -334,17 +346,14 @@ module video(
     //////////////////////////////////////////////////////////////////////////
     wire [3:0] pal_r, pal_g, pal_b;
 
-    palette palette(
+    distram64d #(.WIDTH(12)) palette(
         .clk(clk),
-        .addr(pal_addr),
-        .rddata(pal_rddata),
-        .wrdata(pal_wrdata),
-        .wren(pal_wren),
-
-        .palidx(pixel_colidx),
-        .pal_r(pal_r),
-        .pal_g(pal_g),
-        .pal_b(pal_b));
+        .a_addr(pal_addr),
+        .a_rddata(pal_rddata),
+        .a_wrdata(pal_wrdata),
+        .a_wren({12{pal_wren}}),
+        .b_addr(pixel_colidx),
+        .b_rddata({pal_r, pal_g, pal_b}));
 
     //////////////////////////////////////////////////////////////////////////
     // Output registers

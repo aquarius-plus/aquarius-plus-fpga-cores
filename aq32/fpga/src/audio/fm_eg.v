@@ -37,19 +37,12 @@ module fm_eg(
     reg   [9:0] d_eg_env;
     wire  [8:0] q_eg_env;
 
-    fm_op_data_eg fm_op_data_eg(
+    distram64s#(.WIDTH(26)) fm_op_data_eg(
         .clk(clk),
-        .idx(op_sel),
-        .wren(next),
-
-        .i_eg_stage(d_eg_stage),
-        .i_eg_cnt(d_eg_cnt[14:0]),
-        .i_eg_env(d_eg_env[8:0]),
-
-        .o_eg_stage(q_eg_stage),
-        .o_eg_cnt(q_eg_cnt),
-        .o_eg_env(q_eg_env)
-    );
+        .addr(op_sel),
+        .rddata({q_eg_stage, q_eg_cnt,       q_eg_env}),
+        .wrdata({d_eg_stage, d_eg_cnt[14:0], d_eg_env[8:0]}),
+        .wren({26{next}}));
 
     // KSL ROM
     reg [6:0] kslrom_val;

@@ -40,7 +40,7 @@ module RAM32X1S (O, A0, A1, A2, A3, A4, D, WCLK, WE);
 
     always @(posedge WCLK)
         if (WE == 1'b1)
-            mem[adr] <= D;  // #100 D;
+            mem[adr] <= D; // #100 D;
 
 endmodule
 

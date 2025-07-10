@@ -67,12 +67,12 @@ module fm_phase(
 
     wire [18:0] d_op_phase, q_op_phase;
 
-    fm_op_data_phase fm_op_data_phase(
+    distram64s#(.WIDTH(19)) fm_op_data_phase (
         .clk(clk),
-        .idx(op_sel),
+        .addr(op_sel),
+        .rddata(q_op_phase),
         .wrdata(d_op_phase),
-        .wren(next),
-        .rddata(q_op_phase));
+        .wren({19{next}}));
 
     assign d_op_phase = (restart ? 19'd0 : q_op_phase) + phase_inc[18:0];
 

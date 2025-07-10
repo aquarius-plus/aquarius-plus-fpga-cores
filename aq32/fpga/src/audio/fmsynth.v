@@ -109,27 +109,22 @@ module fmsynth(
     wire  [5:0] op_tl;
     wire  [3:0] op_ar, op_dr, op_sl, op_rr;
 
-    fm_op_attr fm_op_attr(
-        .clk(clk),
-        .addr(bus_addr[6:0]),
-        .wrdata(bus_wrdata),
-        .wren(sel_op_attr && bus_wr),
-        .rddata(op_attr_rddata),
+    wire [34:0] op_attr_a_rddata;
+    assign op_attr_rddata = bus_addr[6] ? {29'b0, op_attr_a_rddata[34:32]} : op_attr_a_rddata[31:0];
 
-        .op_sel(q_op_sel),
-        .op_ws(op_ws),
-        .op_am(op_am),
-        .op_vib(op_vib),
-        .op_sus(op_sus),
-        .op_ksr(op_ksr),
-        .op_mult(op_mult),
-        .op_ksl(op_ksl),
-        .op_tl(op_tl),
-        .op_ar(op_ar),
-        .op_dr(op_dr),
-        .op_sl(op_sl),
-        .op_rr(op_rr)
-    );
+    distram64d #(.WIDTH(35)) op_attr(
+        .clk(clk),
+        .a_addr(bus_addr[5:0]),
+        .a_rddata(op_attr_a_rddata),
+        .a_wrdata({bus_wrdata[2:0], bus_wrdata}),
+        .a_wren({{3{sel_op_attr && bus_wr && bus_addr[6]}}, {32{sel_op_attr && bus_wr && !bus_addr[6]}}}),
+        .b_addr(q_op_sel),
+        .b_rddata({
+            op_ws,
+            op_am, op_vib, op_sus, op_ksr, op_mult,
+            op_ksl, op_tl,
+            op_ar, op_dr, op_sl, op_rr
+        }));
 
     //////////////////////////////////////////////////////////////////////////
     // Channel attributes
@@ -145,19 +140,21 @@ module fmsynth(
     wire        alg_2op = q_alg[q_op_sel[5:1]];
     wire  [1:0] alg_4op = {q_alg[{q_op_sel[5:2], 1'b0}], q_alg[{q_op_sel[5:2], 1'b1}]};
 
-    fm_ch_attr fm_ch_attr(
-        .clk(clk),
-        .addr(bus_addr[4:0]),
-        .wrdata(bus_wrdata),
-        .wren(sel_ch_attr && bus_wr),
-        .rddata(ch_attr_rddata),
+    assign ch_attr_rddata[31:23] = 0;
 
-        .ch_sel(ch_sel),
-        .ch_pan(ch_pan),
-        .ch_fb(ch_fb),
-        .ch_block(ch_block),
-        .ch_fnum(ch_fnum)
-    );
+    distram32d #(.WIDTH(23)) ch_attr(
+        .clk(clk),
+        .a_addr(bus_addr[4:0]),
+        .a_rddata(ch_attr_rddata[22:0]),
+        .a_wrdata(bus_wrdata[22:0]),
+        .a_wren({23{sel_ch_attr && bus_wr}}),
+        .b_addr(ch_sel),
+        .b_rddata({
+            ch_pan,
+            ch_fb,
+            ch_block,
+            ch_fnum
+        }));
 
     reg do_fb;
     reg do_sum;
@@ -280,13 +277,12 @@ module fmsynth(
     //////////////////////////////////////////////////////////////////////////
     assign d_fb_data = {q_fb_data[12:0], d_op_result};
 
-    fm_ch_data_fb fm_ch_data_fb(
+    distram32s #(.WIDTH(26)) fm_ch_data_fb(
         .clk(clk),
-        .idx(ch_sel),
+        .addr(ch_sel),
+        .rddata(q_fb_data),
         .wrdata(d_fb_data),
-        .wren(q_op_next && !q_op_sel[0]),  // only store feedback for first operator in channel
-        .rddata(q_fb_data)
-    );
+        .wren({26{q_op_next && !q_op_sel[0]}}));  // only store feedback for first operator in channel
 
     wire [13:0] fb_sum = {q_fb_data[25], q_fb_data[25:13]} + {q_fb_data[12], q_fb_data[12:0]};
     assign      fb_mod = (ch_fb == 0) ? 0 : ($signed(fb_sum[13:2]) >>> (~ch_fb));
