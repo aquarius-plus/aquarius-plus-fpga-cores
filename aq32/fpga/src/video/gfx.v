@@ -8,16 +8,19 @@ module gfx(
     // Register values
     input  wire        tilemode,    // 0:bitmap, 1:tile mode
     input  wire        sprites_enable,
-    input  wire  [8:0] scroll_x,
-    input  wire  [7:0] scroll_y,
+    input  wire        layer2_enable,
+    input  wire  [8:0] layer1_scrx,
+    input  wire  [7:0] layer1_scry,
+    input  wire  [8:0] layer2_scrx,
+    input  wire  [7:0] layer2_scry,
 
     // Sprite attribute interface
-    output wire  [5:0] spr_sel,
+    output wire  [7:0] spr_sel,
     input  wire  [8:0] spr_x,
     input  wire  [7:0] spr_y,
     input  wire  [9:0] spr_idx,
-    input  wire        spr_priority,
-    input  wire  [1:0] spr_palette,
+    input  wire  [1:0] spr_zdepth,
+    input  wire  [2:0] spr_palette,
     input  wire        spr_h16,
     input  wire        spr_vflip,
     input  wire        spr_hflip,
@@ -32,17 +35,17 @@ module gfx(
 
     // Line buffer interface
     input  wire  [8:0] linebuf_rdidx,
-    output wire  [5:0] linebuf_data);
+    output wire  [6:0] linebuf_data);
 
-    reg  [6:0] d_spr_sel, q_spr_sel;
+    reg  [8:0] d_spr_sel, q_spr_sel;
 
-    assign spr_sel = q_spr_sel[5:0];
+    assign spr_sel = q_spr_sel[7:0];
 
     //////////////////////////////////////////////////////////////////////////
     // Line buffer
     //////////////////////////////////////////////////////////////////////////
     wire [8:0] wridx;
-    wire [5:0] wrdata;
+    wire [6:0] wrdata;
     wire       wren;
 
     reg d_linesel, q_linesel;
@@ -56,7 +59,7 @@ module gfx(
 
         .idx1(wridx),
         .rddata1(rddata),
-        .wrdata1({2'b0, wrdata}),
+        .wrdata1({1'b0, wrdata}),
         .wren1(wren),
 
         .idx2(linebuf_rdidx),
@@ -83,10 +86,11 @@ module gfx(
     reg   [3:0] d_nxtstate,  q_nxtstate;
     reg  [15:0] d_map_entry, q_map_entry;
     reg         d_busy,      q_busy;
+    reg         d_layer,     q_layer;
 
-    wire  [7:0] line_idx      = vline;
-    wire  [8:0] tline         = {1'b0, line_idx} + {1'b0, scroll_y};
-    wire  [4:0] row           = tline[7:3];
+    wire  [7:0] line_idx = vline;
+    wire  [8:0] tline    = {1'b0, line_idx} + {1'b0, q_layer ? layer2_scry : layer1_scry};
+    wire  [4:0] row      = tline[7:3];
 
     reg   [8:0] bm_line;
     always @* begin
@@ -99,28 +103,28 @@ module gfx(
     
     wire [15:0] map_entry     = d_map_entry;
     wire  [9:0] tile_idx      = map_entry[9:0];
+    wire        tile_priority = map_entry[10];
     wire        tile_hflip    = map_entry[11];
     wire        tile_vflip    = map_entry[12];
-    wire  [1:0] tile_palette  = map_entry[14:13];
-    wire        tile_priority = map_entry[15];
+    wire  [2:0] tile_palette  = map_entry[15:13];
 
     assign vaddr = d_vaddr;
 
     // Determine if sprite is on current line
     wire [3:0] spr_height  = (spr_h16 ? 4'd15 : 4'd7);
     wire [7:0] ydiff       = line_idx - spr_y;
-    wire       spr_on_line = (ydiff <= {4'd0, spr_height});
+    wire       spr_on_line = (ydiff <= {4'd0, spr_height}) && spr_zdepth != 2'd0;
     wire [3:0] spr_line    = spr_vflip ? (spr_height - ydiff[3:0]) : ydiff[3:0];
 
     //////////////////////////////////////////////////////////////////////////
     // Renderer
     //////////////////////////////////////////////////////////////////////////
-    reg  [8:0] d_render_idx,       q_render_idx;
-    reg [31:0] d_render_data,      q_render_data;
-    reg        d_render_is_sprite, q_render_is_sprite;
-    reg        d_render_hflip,     q_render_hflip;
-    reg  [1:0] d_render_palette,   q_render_palette;
-    reg        d_render_priority,  q_render_priority;
+    reg  [8:0] d_render_idx,         q_render_idx;
+    reg [31:0] d_render_data,        q_render_data;
+    reg        d_render_hflip,       q_render_hflip;
+    reg  [2:0] d_render_palette,     q_render_palette;
+    reg  [2:0] d_render_zdepth,      q_render_zdepth;
+    reg        d_render_zdepth_init, q_render_zdepth_init;
     reg        render_start;
     wire       render_last_pixel;
     wire       render_busy;
@@ -133,10 +137,10 @@ module gfx(
         .render_idx(q_render_idx),
         .render_data(d_render_data),
         .render_start(render_start),
-        .is_sprite(q_render_is_sprite),
         .hflip(q_render_hflip),
         .palette(q_render_palette),
-        .render_priority(q_render_priority),
+        .zdepth(d_render_zdepth),
+        .zdepth_init(q_render_zdepth_init),
         .last_pixel(render_last_pixel),
         .busy(render_busy),
 
@@ -148,33 +152,36 @@ module gfx(
     //////////////////////////////////////////////////////////////////////////
     // Data fetching
     //////////////////////////////////////////////////////////////////////////
+    reg layer_start;
+
     always @* begin
-        d_col              = q_col;
-        d_col_cnt          = q_col_cnt;
-        d_vaddr            = q_vaddr;
-        d_state            = q_state;
-        d_nxtstate         = q_nxtstate;
-        d_map_entry        = q_map_entry;
-        d_busy             = q_busy;
-        d_render_idx       = q_render_idx;
-        d_linesel          = q_linesel;
-        d_render_data      = q_render_data;
-        d_spr_sel          = q_spr_sel;
-        d_render_is_sprite = q_render_is_sprite;
-        d_render_hflip     = q_render_hflip;
-        d_render_palette   = q_render_palette;
-        d_render_priority  = q_render_priority;
-        render_start       = 0;
+        d_col                = q_col;
+        d_col_cnt            = q_col_cnt;
+        d_vaddr              = q_vaddr;
+        d_state              = q_state;
+        d_nxtstate           = q_nxtstate;
+        d_map_entry          = q_map_entry;
+        d_busy               = q_busy;
+        d_layer              = q_layer;
+        d_render_idx         = q_render_idx;
+        d_linesel            = q_linesel;
+        d_render_data        = q_render_data;
+        d_spr_sel            = q_spr_sel;
+        d_render_zdepth_init = q_render_zdepth_init;
+        d_render_hflip       = q_render_hflip;
+        d_render_palette     = q_render_palette;
+        d_render_zdepth      = q_render_zdepth;
+        render_start         = 0;
+        layer_start          = 0;
 
         if (start) begin
-            d_busy             = 1;
-            d_linesel          = !q_linesel;
-            d_render_is_sprite = 0;
-            d_col_cnt          = 0;
-            d_spr_sel          = 0;
-            d_state            = tilemode ? ST_MAP1 : ST_BM4BPP;
-            d_render_idx       = 9'd0 - {6'd0, scroll_x[2:0]};
-            d_col              = scroll_x[8:3];
+            d_busy               = 1;
+            d_linesel            = !q_linesel;
+            d_render_zdepth_init = 1;
+            d_spr_sel            = 0;
+            d_layer              = 0;
+            layer_start          = 1;
+            d_state              = tilemode ? ST_MAP1 : ST_BM4BPP;
 
         end else if (q_busy) begin
             case (q_state)
@@ -183,9 +190,17 @@ module gfx(
 
                 ST_MAP1: begin
                     if (q_col_cnt == 6'd41) begin
-                        d_state = sprites_enable ? ST_SPR : ST_DONE;
+                        d_render_zdepth_init = 0;
+
+                        if (!q_layer && layer2_enable) begin
+                            d_layer     = 1;
+                            layer_start = 1;
+                        end else begin
+                            d_state = sprites_enable ? ST_SPR : ST_DONE;
+                        end
+
                     end else begin
-                        d_vaddr = {3'b111, row, q_col};
+                        d_vaddr = {2'b11, !q_layer, row, q_col};
                         d_state = ST_MAP2;
                     end
                 end
@@ -199,26 +214,24 @@ module gfx(
                     d_col_cnt         = q_col_cnt + 6'd1;
                     d_render_hflip    = tile_hflip;
                     d_render_palette  = tile_palette;
-                    d_render_priority = tile_priority;
+                    d_render_zdepth   = {q_layer ? 2'd3 : 2'd2, tile_priority};
                 end
 
                 ST_SPR: begin
-                    d_render_is_sprite = 1;
-
-                    if (q_spr_sel[6]) begin
+                    if (q_spr_sel[8]) begin
                         d_state = ST_DONE;
 
                     end else if (spr_on_line) begin
                         d_render_idx      = spr_x;
                         d_render_hflip    = spr_hflip;
                         d_render_palette  = spr_palette;
-                        d_render_priority = spr_priority;
+                        d_render_zdepth   = {spr_zdepth, 1'b0};
                         d_vaddr           = {spr_idx[9:1], spr_idx[0] ^ spr_line[3], spr_line[2:0], 1'b0};
                         d_state           = ST_PAT1;
                         d_nxtstate        = ST_SPR;
                     end
 
-                    d_spr_sel = q_spr_sel + 7'd1;
+                    d_spr_sel = q_spr_sel + 9'd1;
                 end
 
                 ST_PAT1: begin
@@ -239,7 +252,8 @@ module gfx(
 
                 ST_BM4BPP: begin
                     if (q_col_cnt == 6'd41) begin
-                        d_state       = sprites_enable ? ST_SPR : ST_DONE;
+                        d_state              = sprites_enable ? ST_SPR : ST_DONE;
+                        d_render_zdepth_init = 0;
                     end else begin
                         d_vaddr       = (bm_line[7:0] * 13'd80) + {6'b0, q_col, 1'b0};
                         d_state       = ST_BM4BPP2;
@@ -248,8 +262,8 @@ module gfx(
                     d_col             = (q_col == 6'd39) ? 6'd0 : (q_col + 6'd1);
                     d_col_cnt         = q_col_cnt + 6'd1;
                     d_render_hflip    = 0;
-                    d_render_palette  = 2'b01;
-                    d_render_priority = 0;
+                    d_render_palette  = 3'd1;
+                    d_render_zdepth   = {2'd2, 1'b0};
                 end
 
                 ST_BM4BPP2: begin
@@ -271,42 +285,50 @@ module gfx(
 
             if (render_start) d_render_idx = q_render_idx + 9'd8;
         end
+
+        if (layer_start) begin
+            d_col_cnt    = 0;
+            d_render_idx = 9'd0 - {6'd0, d_layer ? layer2_scrx[2:0] : layer1_scrx[2:0]};
+            d_col        = d_layer ? layer2_scrx[8:3] : layer1_scrx[8:3];
+        end
     end
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
-            q_col              <= 0;
-            q_col_cnt          <= 0;
-            q_vaddr            <= 0;
-            q_state            <= ST_DONE;
-            q_nxtstate         <= ST_DONE;
-            q_map_entry        <= 0;
-            q_busy             <= 0;
-            q_render_idx       <= 0;
-            q_linesel          <= 0;
-            q_render_data      <= 0;
-            q_spr_sel          <= 0;
-            q_render_is_sprite <= 0;
-            q_render_hflip     <= 0;
-            q_render_palette   <= 0;
-            q_render_priority  <= 0;
+            q_col                <= 0;
+            q_col_cnt            <= 0;
+            q_vaddr              <= 0;
+            q_state              <= ST_DONE;
+            q_nxtstate           <= ST_DONE;
+            q_map_entry          <= 0;
+            q_busy               <= 0;
+            q_layer              <= 0;
+            q_render_idx         <= 0;
+            q_linesel            <= 0;
+            q_render_data        <= 0;
+            q_spr_sel            <= 0;
+            q_render_zdepth_init <= 0;
+            q_render_hflip       <= 0;
+            q_render_palette     <= 0;
+            q_render_zdepth      <= 0;
 
         end else begin
-            q_col              <= d_col;
-            q_col_cnt          <= d_col_cnt;
-            q_vaddr            <= d_vaddr;
-            q_state            <= d_state;
-            q_nxtstate         <= d_nxtstate;
-            q_map_entry        <= d_map_entry;
-            q_busy             <= d_busy;
-            q_render_idx       <= d_render_idx;
-            q_linesel          <= d_linesel;
-            q_render_data      <= d_render_data;
-            q_spr_sel          <= d_spr_sel;
-            q_render_is_sprite <= d_render_is_sprite;
-            q_render_hflip     <= d_render_hflip;
-            q_render_palette   <= d_render_palette;
-            q_render_priority  <= d_render_priority;
+            q_col                <= d_col;
+            q_col_cnt            <= d_col_cnt;
+            q_vaddr              <= d_vaddr;
+            q_state              <= d_state;
+            q_nxtstate           <= d_nxtstate;
+            q_map_entry          <= d_map_entry;
+            q_busy               <= d_busy;
+            q_layer              <= d_layer;
+            q_render_idx         <= d_render_idx;
+            q_linesel            <= d_linesel;
+            q_render_data        <= d_render_data;
+            q_spr_sel            <= d_spr_sel;
+            q_render_zdepth_init <= d_render_zdepth_init;
+            q_render_hflip       <= d_render_hflip;
+            q_render_palette     <= d_render_palette;
+            q_render_zdepth      <= d_render_zdepth;
         end
     end
 

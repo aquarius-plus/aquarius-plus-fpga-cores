@@ -559,10 +559,11 @@ module aq32_top(
     reg         q_vctrl_text_priority;
     reg         q_vctrl_gfx_tilemode;
     reg         q_vctrl_sprites_enable;
+    reg         q_vctrl_layer2_enable;
     reg         q_vctrl_gfx_enable;
     reg         q_vctrl_text_enable;
-    reg   [8:0] q_vscrx;
-    reg   [7:0] q_vscry;
+    reg   [8:0] q_l1_scrx, q_l2_scrx;
+    reg   [7:0] q_l1_scry, q_l2_scry;
     wire  [8:0] vline;
     reg   [8:0] q_virqline;
 
@@ -601,18 +602,21 @@ module aq32_top(
         .clk(clk),
         .reset(reset),
 
+        .reg_layer2_enable(q_vctrl_layer2_enable),
         .reg_sprites_enable(q_vctrl_sprites_enable),
         .reg_gfx_tilemode(q_vctrl_gfx_tilemode),
         .reg_gfx_enable(q_vctrl_gfx_enable),
         .reg_text_priority(q_vctrl_text_priority),
         .reg_text_mode80(q_vctrl_text_mode80),
         .reg_text_enable(q_vctrl_text_enable),
-        .reg_scroll_x(q_vscrx),
-        .reg_scroll_y(q_vscry),
+        .reg_layer1_scrx(q_l1_scrx),
+        .reg_layer1_scry(q_l1_scry),
+        .reg_layer2_scrx(q_l2_scrx),
+        .reg_layer2_scry(q_l2_scry),
         .reg_irqline(q_virqline),
         .vline(vline),
 
-        .sprattr_addr(cpu_addr[8:2]),
+        .sprattr_addr(cpu_addr[10:2]),
         .sprattr_rddata(sprattr_rddata),
         .sprattr_wrdata(cpu_wrdata),
         .sprattr_wren(sprattr_wren),
@@ -631,7 +635,7 @@ module aq32_top(
         .chram_wrdata(cpu_wrdata[7:0]),
         .chram_wren(chram_wren),
 
-        .pal_addr(cpu_addr[6:1]),
+        .pal_addr(cpu_addr[7:1]),
         .pal_rddata(pal_rddata),
         .pal_wrdata(cpu_wrdata[11:0]),
         .pal_wren(pal_wren),
@@ -697,19 +701,21 @@ module aq32_top(
     wire   reg_esp_status_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02000;
     assign reg_esp_data_strobe   = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02004;
     wire   reg_vctrl_strobe      = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02008;
-    wire   reg_vscrx_strobe      = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0200C;
-    wire   reg_vscry_strobe      = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02010;
+    wire   reg_l1_scrx_strobe    = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0200C;
+    wire   reg_l1_scry_strobe    = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02010;
     wire   reg_vline_strobe      = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02014;
     wire   reg_virqline_strobe   = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02018;
     assign reg_keybuf_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0201C;
+    wire   reg_l2_scrx_strobe    = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02020;
+    wire   reg_l2_scry_strobe    = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02024;
     assign reg_mtime_strobe      = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02080;
     assign reg_mtimeh_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02084;
     assign reg_mtimecmp_strobe   = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02088;
     assign reg_mtimecmph_strobe  = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0208C;
     assign pcm_strobe            = cpu_strobe && {cpu_addr[31: 4],  4'b0} == 32'h02400;
     assign fmsynth_strobe        = cpu_strobe && {cpu_addr[31:10], 10'b0} == 32'h02800;
-    assign sprattr_strobe        = cpu_strobe && {cpu_addr[31: 9],  9'b0} == 32'h03000;
-    assign pal_strobe            = cpu_strobe && {cpu_addr[31: 7],  7'b0} == 32'h04000;
+    assign sprattr_strobe        = cpu_strobe && {cpu_addr[31:11], 11'b0} == 32'h03000;
+    assign pal_strobe            = cpu_strobe && {cpu_addr[31: 8],  8'b0} == 32'h04000;
     assign chram_strobe          = cpu_strobe && {cpu_addr[31:11], 11'b0} == 32'h05000;
     assign tram_strobe           = cpu_strobe && {cpu_addr[31:13], 13'b0} == 32'h06000;
     assign vram_strobe           = cpu_strobe && {cpu_addr[31:15], 15'b0} == 32'h08000;
@@ -735,7 +741,8 @@ module aq32_top(
 
     wire [31:0] reg_vctrl_rddata = {
         24'b0,
-        2'b0,
+        1'b0,
+        q_vctrl_layer2_enable,
         q_vctrl_sprites_enable,
         q_vctrl_gfx_tilemode,
         q_vctrl_gfx_enable,
@@ -752,8 +759,10 @@ module aq32_top(
         if (reg_esp_status_strobe) cpu_rddata = {30'b0, esp_tx_fifo_full, !esp_rx_empty};
         if (reg_esp_data_strobe)   cpu_rddata = {23'b0, esp_rx_data};
         if (reg_vctrl_strobe)      cpu_rddata = reg_vctrl_rddata;
-        if (reg_vscrx_strobe)      cpu_rddata = {23'b0, q_vscrx};
-        if (reg_vscry_strobe)      cpu_rddata = {24'b0, q_vscry};
+        if (reg_l1_scrx_strobe)    cpu_rddata = {23'b0, q_l1_scrx};
+        if (reg_l1_scry_strobe)    cpu_rddata = {24'b0, q_l1_scry};
+        if (reg_l2_scrx_strobe)    cpu_rddata = {23'b0, q_l2_scrx};
+        if (reg_l2_scry_strobe)    cpu_rddata = {24'b0, q_l2_scry};
         if (reg_vline_strobe)      cpu_rddata = {23'b0, vline};
         if (reg_virqline_strobe)   cpu_rddata = {23'b0, q_virqline};
         if (reg_keybuf_strobe)     cpu_rddata = {kbbuf_empty, 15'b0, kbbuf_rddata};
@@ -775,19 +784,23 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     always @(posedge clk or posedge reset) begin
         if (reset) begin
+            q_vctrl_layer2_enable  <= 0;
             q_vctrl_sprites_enable <= 0;
             q_vctrl_gfx_tilemode   <= 0;
             q_vctrl_gfx_enable     <= 0;
             q_vctrl_text_priority  <= 0;
             q_vctrl_text_mode80    <= 0;
             q_vctrl_text_enable    <= 0;
-            q_vscrx                <= 0;
-            q_vscry                <= 0;
+            q_l1_scrx              <= 0;
+            q_l1_scry              <= 0;
+            q_l2_scrx              <= 0;
+            q_l2_scry              <= 0;
             q_virqline             <= 0;
 
         end else begin
             if (cpu_wren) begin
                 if (reg_vctrl_strobe) begin
+                    q_vctrl_layer2_enable  <= cpu_wrdata[6];
                     q_vctrl_sprites_enable <= cpu_wrdata[5];
                     q_vctrl_gfx_tilemode   <= cpu_wrdata[4];
                     q_vctrl_gfx_enable     <= cpu_wrdata[3];
@@ -795,9 +808,11 @@ module aq32_top(
                     q_vctrl_text_mode80    <= cpu_wrdata[1];
                     q_vctrl_text_enable    <= cpu_wrdata[0];
                 end
-                if (reg_vscrx_strobe) q_vscrx    <= cpu_wrdata[8:0];
-                if (reg_vscry_strobe) q_vscry    <= cpu_wrdata[7:0];
-                if (reg_vscry_strobe) q_virqline <= cpu_wrdata[8:0];
+                if (reg_l1_scrx_strobe)  q_l1_scrx  <= cpu_wrdata[8:0];
+                if (reg_l1_scry_strobe)  q_l1_scry  <= cpu_wrdata[7:0];
+                if (reg_l2_scrx_strobe)  q_l2_scrx  <= cpu_wrdata[8:0];
+                if (reg_l2_scry_strobe)  q_l2_scry  <= cpu_wrdata[7:0];
+                if (reg_virqline_strobe) q_virqline <= cpu_wrdata[8:0];
             end
         end
     end

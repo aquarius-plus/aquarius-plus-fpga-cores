@@ -9,30 +9,30 @@ module renderer(
     input  wire  [8:0] render_idx,
     input  wire [31:0] render_data,
     input  wire        render_start,
-    input  wire        is_sprite,
     input  wire        hflip,
-    input  wire  [1:0] palette,
-    input  wire        render_priority,
+    input  wire  [2:0] palette,
+    input  wire  [2:0] zdepth,
+    input  wire        zdepth_init,
     output wire        last_pixel,
     output wire        busy,
 
     // Line buffer interface
     output wire  [8:0] wridx,
-    output wire  [5:0] wrdata,
+    output wire  [6:0] wrdata,
     output wire        wren
 );
 
     reg [31:0] d_render_data, q_render_data;
-    reg  [1:0] d_palette,     q_palette;
+    reg  [2:0] d_palette,     q_palette;
     reg  [8:0] d_wridx,       q_wridx;
-    reg  [5:0] d_wrdata,      q_wrdata;
+    reg  [6:0] d_wrdata,      q_wrdata;
     reg        d_wren,        q_wren;
     reg  [2:0] d_datasel,     q_datasel;
     reg        d_busy,        q_busy;
     reg        d_last_pixel,  q_last_pixel;
-    reg        d_is_sprite,   q_is_sprite;
+    reg        d_zdepth_init, q_zdepth_init;
     reg        d_hflip,       q_hflip;
-    reg        d_priority,    q_priority;
+    reg  [2:0] d_zdepth,      q_zdepth;
 
     assign wridx      = q_wridx;
     assign wrdata     = q_wrdata;
@@ -52,17 +52,19 @@ module renderer(
         3'd7: pixel_data = d_render_data[ 3: 0];
     endcase
 
-    wire lab_priority;
-    wire lab_wrdata = q_priority && (q_wrdata[3:0] != 4'd0);
+    wire [2:0] cur_zdepth;
+    wire [2:0] lab_rddata;    // unused
+    wire [2:0] new_zdepth = (q_wrdata[3:0] == 4'd0) ? 3'd0 : zdepth;
 
-    lineattrbuf lab(
+    distram512d #(.WIDTH(3)) lineattrbuf(
         .clk(clk),
-        .idx1(q_wridx),
-        .wrdata1(lab_wrdata),
-        .wren1(q_wren),
+        .a_addr(q_wridx),
+        .a_rddata(lab_rddata),
+        .a_wrdata(new_zdepth),
+        .a_wren({3{q_wren}}),
 
-        .idx2(d_wridx),
-        .rddata2(lab_priority));
+        .b_addr(d_wridx),
+        .b_rddata(cur_zdepth));
 
     always @* begin
         d_render_data = q_render_data;
@@ -73,9 +75,9 @@ module renderer(
         d_datasel     = q_datasel;
         d_busy        = q_busy;
         d_last_pixel  = 0;
-        d_is_sprite   = q_is_sprite;
+        d_zdepth_init = q_zdepth_init;
         d_hflip       = q_hflip;
-        d_priority    = q_priority;
+        d_zdepth      = q_zdepth;
 
         if (render_start) begin
             d_render_data = render_data;
@@ -84,9 +86,9 @@ module renderer(
             d_wren        = 1;
             d_busy        = 1;
             d_wridx       = render_idx;
-            d_is_sprite   = is_sprite;
+            d_zdepth_init = zdepth_init;
             d_hflip       = hflip;
-            d_priority    = render_priority;
+            d_zdepth      = zdepth;
 
         end else if (q_busy) begin
             d_datasel = q_datasel + 3'd1;
@@ -102,11 +104,11 @@ module renderer(
             end
         end
 
-        d_wrdata[5:4] = d_palette[1:0];
+        d_wrdata[6:4] = d_palette[2:0];
         d_wrdata[3:0] = pixel_data;
 
         // Don't render transparent sprite pixels
-        if (d_is_sprite && (pixel_data == 4'd0 || (lab_priority && !q_priority)))
+        if (!d_zdepth_init && (pixel_data == 4'd0 || d_zdepth < cur_zdepth))
             d_wren = 0;
     end
 
@@ -120,9 +122,9 @@ module renderer(
             q_datasel     <= 0;
             q_busy        <= 0;
             q_last_pixel  <= 0;
-            q_is_sprite   <= 0;
+            q_zdepth_init <= 0;
             q_hflip       <= 0;
-            q_priority    <= 0;
+            q_zdepth      <= 0;
 
         end else begin
             q_render_data <= d_render_data;
@@ -133,9 +135,9 @@ module renderer(
             q_datasel     <= d_datasel;
             q_busy        <= d_busy;
             q_last_pixel  <= d_last_pixel;
-            q_is_sprite   <= d_is_sprite;
+            q_zdepth_init <= d_zdepth_init;
             q_hflip       <= d_hflip;
-            q_priority    <= d_priority;
+            q_zdepth      <= d_zdepth;
         end
     end
 

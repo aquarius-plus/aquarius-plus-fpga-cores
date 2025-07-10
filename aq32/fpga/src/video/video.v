@@ -6,14 +6,17 @@ module video(
     input  wire        reset,
 
     // Register interface
+    input  wire        reg_layer2_enable,
     input  wire        reg_sprites_enable,
     input  wire        reg_gfx_tilemode,
     input  wire        reg_gfx_enable,
     input  wire        reg_text_priority,
     input  wire        reg_text_mode80,
     input  wire        reg_text_enable,
-    input  wire  [8:0] reg_scroll_x,
-    input  wire  [7:0] reg_scroll_y,
+    input  wire  [8:0] reg_layer1_scrx,
+    input  wire  [7:0] reg_layer1_scry,
+    input  wire  [8:0] reg_layer2_scrx,
+    input  wire  [7:0] reg_layer2_scry,
     input  wire  [8:0] reg_irqline,
     output wire  [8:0] vline,
 
@@ -21,7 +24,7 @@ module video(
     output wire        irq_vblank,
 
     // Sprite attribute interface
-    input  wire  [6:0] sprattr_addr,
+    input  wire  [8:0] sprattr_addr,
     output wire [31:0] sprattr_rddata,
     input  wire [31:0] sprattr_wrdata,
     input  wire        sprattr_wren,
@@ -40,7 +43,7 @@ module video(
     input  wire        chram_wren,
 
     // Palette RAM interface
-    input  wire  [5:0] pal_addr,
+    input  wire  [6:0] pal_addr,
     output wire [11:0] pal_rddata,
     input  wire [11:0] pal_wrdata,
     input  wire        pal_wren,
@@ -204,41 +207,41 @@ module video(
     //////////////////////////////////////////////////////////////////////////
     // Sprite attribute RAM
     //////////////////////////////////////////////////////////////////////////
-    wire  [5:0] spr_sel;
+    wire  [7:0] spr_sel;
     wire  [8:0] spr_x;
     wire  [7:0] spr_y;
     wire  [9:0] spr_idx;
-    wire        spr_priority;
-    wire  [1:0] spr_palette;
+    wire  [1:0] spr_zdepth;
+    wire  [2:0] spr_palette;
     wire        spr_h16;
     wire        spr_vflip;
     wire        spr_hflip;
 
-    localparam SPRATTR_BITS = 33;
+    localparam SPRATTR_BITS = 35;
 
     wire [(SPRATTR_BITS-1):0] sprattr_a_rddata;
     wire [(SPRATTR_BITS-1):0] sprattr_a_wrdata = {
-        sprattr_wrdata[15:0],    // Attributes
+        sprattr_wrdata[17:0],    // Attributes
         sprattr_wrdata[23:16],   // Y
         sprattr_wrdata[8:0]      // X
     };
     wire [(SPRATTR_BITS-1):0] sprattr_a_wren = {
-        {16{sprattr_wren && !sprattr_addr[6]}},
-        {17{sprattr_wren &&  sprattr_addr[6]}}
+        {18{sprattr_wren && !sprattr_addr[8]}},
+        {17{sprattr_wren &&  sprattr_addr[8]}}
     };
-    assign sprattr_rddata = !sprattr_addr[6] ?
+    assign sprattr_rddata = !sprattr_addr[8] ?
         {16'b0, sprattr_a_rddata[32:17]} :
         {8'b0, sprattr_a_rddata[16:9], 7'b0, sprattr_a_rddata[8:0]};
 
-    distram64d #(.WIDTH(SPRATTR_BITS)) sprattr(
+    distram256d #(.WIDTH(SPRATTR_BITS)) sprattr(
         .clk(clk),
-        .a_addr(sprattr_addr[5:0]),
+        .a_addr(sprattr_addr[7:0]),
         .a_rddata(sprattr_a_rddata),
         .a_wrdata(sprattr_a_wrdata),
         .a_wren(sprattr_a_wren),
         .b_addr(spr_sel),
         .b_rddata({
-            spr_priority,
+            spr_zdepth,
             spr_palette,
             spr_vflip,
             spr_hflip,
@@ -278,7 +281,7 @@ module video(
     //////////////////////////////////////////////////////////////////////////
     // Graphics
     //////////////////////////////////////////////////////////////////////////
-    wire [5:0] linebuf_data;
+    wire [6:0] linebuf_data;
     reg  [8:0] q_linebuf_rdidx;
 
     always @(posedge clk) q_linebuf_rdidx <= hpos[9:1];
@@ -300,15 +303,18 @@ module video(
         // Register values
         .tilemode(reg_gfx_tilemode),
         .sprites_enable(reg_sprites_enable),
-        .scroll_x(reg_scroll_x),
-        .scroll_y(reg_scroll_y),
+        .layer2_enable(reg_layer2_enable),
+        .layer1_scrx(reg_layer1_scrx),
+        .layer1_scry(reg_layer1_scry),
+        .layer2_scrx(reg_layer2_scrx),
+        .layer2_scry(reg_layer2_scry),
 
         // Sprite attribute interface
         .spr_sel(spr_sel),
         .spr_x(spr_x),
         .spr_y(spr_y),
         .spr_idx(spr_idx),
-        .spr_priority(spr_priority),
+        .spr_zdepth(spr_zdepth),
         .spr_palette(spr_palette),
         .spr_h16(spr_h16),
         .spr_vflip(spr_vflip),
@@ -329,16 +335,16 @@ module video(
     //////////////////////////////////////////////////////////////////////////
     // Compositing
     //////////////////////////////////////////////////////////////////////////
-    reg  [5:0] pixel_colidx;
+    reg  [6:0] pixel_colidx;
 
     always @* begin
-        pixel_colidx = 6'b0;
+        pixel_colidx = 7'b0;
         if (reg_text_enable && !reg_text_priority)
-            pixel_colidx = {2'b0, text_colidx};
+            pixel_colidx = {3'b0, text_colidx};
         if (reg_gfx_enable && (!reg_text_enable || reg_text_priority || linebuf_data[3:0] != 4'd0))
             pixel_colidx = linebuf_data;
         if (reg_text_enable && reg_text_priority && text_colidx != 4'd0)
-            pixel_colidx = {2'b0, text_colidx};
+            pixel_colidx = {3'b0, text_colidx};
     end
 
     //////////////////////////////////////////////////////////////////////////
@@ -346,7 +352,7 @@ module video(
     //////////////////////////////////////////////////////////////////////////
     wire [3:0] pal_r, pal_g, pal_b;
 
-    distram64d #(.WIDTH(12)) palette(
+    distram128d #(.WIDTH(12)) palette(
         .clk(clk),
         .a_addr(pal_addr),
         .a_rddata(pal_rddata),

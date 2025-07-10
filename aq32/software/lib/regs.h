@@ -33,6 +33,8 @@ struct regs {
     volatile uint32_t VLINE;
     volatile uint32_t VIRQLINE;
     volatile int32_t  KEYBUF;
+    volatile uint32_t VSCRX2;
+    volatile uint32_t VSCRY2;
 };
 
 struct pcm {
@@ -74,12 +76,13 @@ struct tram {
 #define PCM      ((struct pcm *)0x2400)
 #define FMSYNTH  ((struct fmsynth *)0x2800)
 #define SPRATTR  ((volatile uint32_t *)0x03000)
-#define SPRPOS   ((volatile uint32_t *)0x03100)
+#define SPRPOS   ((volatile uint32_t *)0x03400)
 #define PALETTE  ((volatile uint16_t *)0x04000)
 #define CHRAM    ((volatile uint8_t *)0x05000)
 #define TRAM     ((struct tram *)0x06000)
 #define VRAM     ((volatile uint8_t *)0x08000)
-#define TILEMAP  ((volatile uint16_t *)(VRAM + 0x7000))
+#define TILEMAP2 ((volatile uint16_t *)(VRAM + 0x6000))
+#define TILEMAP1 ((volatile uint16_t *)(VRAM + 0x7000))
 #define VRAM4BPP ((volatile uint8_t *)0x10000)
 
 #define SPRATTR_TILEIDX_Pos 0
@@ -87,17 +90,18 @@ struct tram {
 #define SPRATTR_H16         (1 << 10)
 #define SPRATTR_HFLIP       (1 << 11)
 #define SPRATTR_VFLIP       (1 << 12)
-#define SPRATTR_PALETTE_Pos 12
-#define SPRATTR_PALETTE_Msk (3 << SPRATTR_PALETTE_Pos)
-#define SPRATTR_PRIO        (1 << 15)
+#define SPRATTR_PALETTE_Pos 13
+#define SPRATTR_PALETTE_Msk (7 << SPRATTR_PALETTE_Pos)
+#define SPRATTR_ZDEPTH_Pos  16
+#define SPRATTR_ZDEPTH_Msk  (1 << SPRATTR_ZDEPTH_Pos)
 
 #define TILEMAP_TILEIDX_Pos 0
 #define TILEMAP_TILEIDX_Msk (0x3FF << TILEMAP_TILEIDX_Pos)
+#define TILEMAP_PRIO        (1 << 10)
 #define TILEMAP_HFLIP       (1 << 11)
 #define TILEMAP_VFLIP       (1 << 12)
-#define TILEMAP_PALETTE_Pos 12
-#define TILEMAP_PALETTE_Msk (3 << TILEMAP_PALETTE_Pos)
-#define TILEMAP_PRIO        (1 << 15)
+#define TILEMAP_PALETTE_Pos 13
+#define TILEMAP_PALETTE_Msk (7 << TILEMAP_PALETTE_Pos)
 
 enum {
     ESPCMD_RESET       = 0x01, // Reset ESP
@@ -160,6 +164,7 @@ enum {
 #define VCTRL_GFX_EN       (1 << 3)
 #define VCTRL_GFX_TILEMODE (1 << 4)
 #define VCTRL_SPR_EN       (1 << 5)
+#define VCTRL_LAYER2_EN    (1 << 6)
 
 #define MAX_ARGS 64
 struct start_data {

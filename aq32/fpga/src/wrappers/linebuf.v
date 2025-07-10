@@ -12,13 +12,13 @@ module linebuf(
     input  wire        wren1,
 
     input  wire  [8:0] idx2,
-    output wire  [5:0] rddata2);
+    output wire  [6:0] rddata2);
 
     wire [10:0] addr1 = {1'b0,  linesel, idx1};
     wire [10:0] addr2 = {1'b0, !linesel, idx2};
 
     wire [7:0] lb_rddata2;
-    assign rddata2 = lb_rddata2[5:0];
+    assign rddata2 = lb_rddata2[6:0];
 
     wire [0:0] dopa, dopb; // unused
 
