@@ -698,20 +698,25 @@ module aq32_top(
     // CPU bus interconnect
     //////////////////////////////////////////////////////////////////////////
     wire   bootrom_strobe        = cpu_strobe && {cpu_addr[31:11], 11'b0} == 32'h00000;
+
     wire   reg_esp_status_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02000;
     assign reg_esp_data_strobe   = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02004;
-    wire   reg_vctrl_strobe      = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02008;
-    wire   reg_l1_scrx_strobe    = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0200C;
-    wire   reg_l1_scry_strobe    = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02010;
-    wire   reg_vline_strobe      = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02014;
-    wire   reg_virqline_strobe   = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02018;
-    assign reg_keybuf_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0201C;
-    wire   reg_l2_scrx_strobe    = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02020;
-    wire   reg_l2_scry_strobe    = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02024;
+
+    assign reg_keybuf_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02010;
+
+    wire   reg_vctrl_strobe      = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02040;
+    wire   reg_vline_strobe      = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02048;
+    wire   reg_virqline_strobe   = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0204C;
+    wire   reg_l1_scrx_strobe    = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02050;
+    wire   reg_l1_scry_strobe    = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02054;
+    wire   reg_l2_scrx_strobe    = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02058;
+    wire   reg_l2_scry_strobe    = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0205C;
+
     assign reg_mtime_strobe      = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02080;
     assign reg_mtimeh_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02084;
     assign reg_mtimecmp_strobe   = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02088;
     assign reg_mtimecmph_strobe  = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0208C;
+
     assign pcm_strobe            = cpu_strobe && {cpu_addr[31: 4],  4'b0} == 32'h02400;
     assign fmsynth_strobe        = cpu_strobe && {cpu_addr[31:10], 10'b0} == 32'h02800;
     assign sprattr_strobe        = cpu_strobe && {cpu_addr[31:11], 11'b0} == 32'h03000;

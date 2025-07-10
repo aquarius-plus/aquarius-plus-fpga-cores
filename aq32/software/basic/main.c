@@ -74,9 +74,9 @@ const struct menu menubar_menus[] = {
 
 static void wait_keypress(void) {
     int key;
-    while ((key = REGS->KEYBUF) >= 0);
+    while ((key = KEYBUF) >= 0);
     while (1) {
-        while ((key = REGS->KEYBUF) < 0);
+        while ((key = KEYBUF) < 0);
         if ((key & KEY_IS_SCANCODE) == 0) {
             break;
         }
@@ -107,9 +107,9 @@ static void cmd_run_start(void) {
 
     scr_status_msg("Press any key to continue");
     int key;
-    while ((key = REGS->KEYBUF) >= 0);
+    while ((key = KEYBUF) >= 0);
     while (1) {
-        while ((key = REGS->KEYBUF) < 0);
+        while ((key = KEYBUF) < 0);
         if ((key & KEY_IS_SCANCODE) == 0) {
             break;
         }

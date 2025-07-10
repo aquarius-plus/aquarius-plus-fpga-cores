@@ -141,7 +141,7 @@ int file_list_handle(struct file_list_ctx *ctx) {
         file_list_draw(ctx, true);
 
         int key;
-        while ((key = REGS->KEYBUF) < 0);
+        while ((key = KEYBUF) < 0);
         if (key & KEY_IS_SCANCODE) {
             return key;
 

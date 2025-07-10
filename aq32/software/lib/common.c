@@ -7,7 +7,7 @@ static const uint16_t palette[16] = {
 
 void reinit_video(void) {
 #ifndef PCDEV
-    REGS->VCTRL = VCTRL_TEXT_MODE80 | VCTRL_TEXT_EN;
+    GFX->CTRL = GFX_CTRL_TEXT_MODE80 | GFX_CTRL_TEXT_EN;
 
     for (int i = 0; i < 64; i++)
         PALETTE[i] = palette[i & 15];

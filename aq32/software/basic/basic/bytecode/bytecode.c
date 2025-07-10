@@ -467,7 +467,7 @@ void bytecode_run(const uint8_t *p_buf, size_t bc_size, size_t vars_sz) {
 
     while (!bc_state.stop) {
 #ifndef PCDEV
-        int key = REGS->KEYBUF;
+        int key = KEYBUF;
         if (key >= 0)
             _console_handle_key(key);
 #endif

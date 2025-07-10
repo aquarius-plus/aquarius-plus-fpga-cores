@@ -4,25 +4,25 @@
 #include "regs.h"
 
 static inline void esp_send_byte(uint8_t val) {
-    while (REGS->ESP_CTRL & 2) {
+    while (ESP_STATUS & ESP_STATUS_TXF) {
     }
-    REGS->ESP_DATA = val;
+    ESP_DATA = val;
 }
 
 static inline uint8_t esp_get_byte(void) {
-    while ((REGS->ESP_CTRL & 1) == 0) {
+    while ((ESP_STATUS & ESP_STATUS_RXNE) == 0) {
     }
-    return REGS->ESP_DATA;
+    return ESP_DATA;
 }
 
 static inline void esp_cmd(uint8_t cmd) {
-    while (REGS->ESP_CTRL & 1) {
-        (void)REGS->ESP_DATA;
+    while (ESP_STATUS & ESP_STATUS_RXNE) {
+        (void)ESP_DATA;
     }
 
-    while (REGS->ESP_CTRL & 2) {
+    while (ESP_STATUS & ESP_STATUS_TXF) {
     }
-    REGS->ESP_DATA = 0x100;
+    ESP_DATA = ESP_DATA_START_OF_MSG;
     esp_send_byte(cmd);
 }
 

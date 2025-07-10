@@ -123,22 +123,22 @@ int main(void) {
         update_ball_sprites(i);
     }
 
-    REGS->VCTRL = VCTRL_TEXT_PRIO | VCTRL_TEXT_EN | VCTRL_LAYER2_EN | VCTRL_SPR_EN | VCTRL_GFX_EN | VCTRL_GFX_TILEMODE;
+    GFX->CTRL =
+        GFX_CTRL_TEXT_PRIO | GFX_CTRL_TEXT_EN |
+        GFX_CTRL_LAYER2_EN | GFX_CTRL_SPR_EN | GFX_CTRL_GFX_EN | GFX_CTRL_GFX_TILEMODE;
 
     uint8_t anim_frame = 0;
     uint8_t anim_delay = 0;
     int     sonic_x    = 160 - 12;
     int     sonic_y    = 90;
 
-    // REGS->VSCRY = 3;
-
-    REGS->VSCRY2 = -24;
+    GFX->SCRY2 = -24;
     while (1) {
         wait_frame();
         PALETTE[0] = 0;
 
-        REGS->VSCRX++;
-        REGS->VSCRX2--;
+        GFX->SCRX1++;
+        GFX->SCRX2--;
 
         // Update Sonic sprite
         sonic_sprite(anim_frame, sonic_x, sonic_y);

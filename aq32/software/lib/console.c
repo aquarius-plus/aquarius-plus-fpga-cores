@@ -10,7 +10,7 @@ static void memset16(uint16_t *dst, uint16_t val, unsigned count) {
 }
 
 static inline int _num_columns(void) {
-    return (REGS->VCTRL & VCTRL_TEXT_MODE80) ? 80 : 40;
+    return (GFX->CTRL & GFX_CTRL_TEXT_MODE80) ? 80 : 40;
 }
 
 static void hide_cursor(void) {
@@ -41,7 +41,7 @@ void _clear_screen(void) {
 #define INITVAL2 0x55AA
 
 void console_init(void) {
-    if (REGS->VCTRL != (VCTRL_TEXT_MODE80 | VCTRL_TEXT_EN) ||
+    if (GFX->CTRL != (GFX_CTRL_TEXT_MODE80 | GFX_CTRL_TEXT_EN) ||
         TRAM->init_val1 != INITVAL1 ||
         TRAM->init_val2 != INITVAL2) {
 
@@ -60,7 +60,7 @@ void console_init(void) {
 
     hide_cursor();
 
-    REGS->VCTRL          = VCTRL_TEXT_MODE80 | VCTRL_TEXT_EN;
+    GFX->CTRL            = GFX_CTRL_TEXT_MODE80 | GFX_CTRL_TEXT_EN;
     TRAM->cursor_enabled = true;
     TRAM->text_color     = (DEF_FGCOL << 12) | (DEF_BGCOL << 8);
     TRAM->cursor_color   = (CURSOR_COLOR << 8);
@@ -76,9 +76,9 @@ bool console_set_width(int width) {
 
     if (width != _num_columns()) {
         if (width == 80) {
-            REGS->VCTRL |= VCTRL_TEXT_MODE80;
+            GFX->CTRL |= GFX_CTRL_TEXT_MODE80;
         } else {
-            REGS->VCTRL &= ~VCTRL_TEXT_MODE80;
+            GFX->CTRL &= ~GFX_CTRL_TEXT_MODE80;
         }
         _clear_screen();
     }
@@ -184,7 +184,7 @@ static uint8_t kb_cnt;
 
 static void _process_keybuf(void) {
     while (1) {
-        int key = REGS->KEYBUF;
+        int key = KEYBUF;
         if (key < 0)
             return;
         _console_handle_key(key);
@@ -208,7 +208,7 @@ uint8_t console_getc(void) {
 }
 
 void console_flush_input(void) {
-    while (REGS->KEYBUF >= 0) {
+    while (KEYBUF >= 0) {
     }
     kb_wridx = 0;
     kb_rdidx = 0;

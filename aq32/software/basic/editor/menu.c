@@ -245,7 +245,7 @@ void menubar_handle(const struct menu *menus, void (*redraw_screen)(void)) {
 
     // Wait for Alt to be released or an accelerator key pressed
     while (1) {
-        while ((key = REGS->KEYBUF) < 0);
+        while ((key = KEYBUF) < 0);
 
         if (key & KEY_IS_SCANCODE) {
             uint8_t scancode = key & 0xFF;
@@ -304,7 +304,7 @@ void menubar_handle(const struct menu *menus, void (*redraw_screen)(void)) {
             prev_menu = active_menu;
         }
 
-        while ((key = REGS->KEYBUF) < 0);
+        while ((key = KEYBUF) < 0);
 
         if (key & KEY_IS_SCANCODE) {
             uint8_t scancode = key & 0xFF;

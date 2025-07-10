@@ -250,14 +250,14 @@ void editor(struct editbuf *eb, const char *path) {
         }
     }
 
-    while (REGS->KEYBUF >= 0) {
+    while (KEYBUF >= 0) {
     }
 
     while (1) {
         editor_redraw_screen();
 
         int key;
-        while ((key = REGS->KEYBUF) < 0);
+        while ((key = KEYBUF) < 0);
 
         if (key & KEY_IS_SCANCODE) {
             uint8_t scancode = key & 0xFF;

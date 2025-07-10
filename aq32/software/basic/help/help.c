@@ -380,7 +380,7 @@ static void help_loop(void) {
         draw_screen();
 
         int key;
-        while ((key = REGS->KEYBUF) < 0);
+        while ((key = KEYBUF) < 0);
 
         if (key & KEY_IS_SCANCODE) {
             uint8_t scancode = key & 0xFF;

@@ -42,7 +42,7 @@ int edit_field_handle(struct edit_field_ctx *ctx) {
         edit_field_draw(ctx, true);
 
         int key;
-        while ((key = REGS->KEYBUF) < 0);
+        while ((key = KEYBUF) < 0);
         if (key & KEY_IS_SCANCODE) {
             return key;
 

@@ -24,27 +24,25 @@
 #define KEY_MOD_SHIFT   (1 << 9)
 #define KEY_MOD_CTRL    (1 << 8)
 
-struct regs {
-    volatile uint32_t ESP_CTRL;
-    volatile uint32_t ESP_DATA;
-    volatile uint32_t VCTRL;
-    volatile uint32_t VSCRX;
-    volatile uint32_t VSCRY;
-    volatile uint32_t VLINE;
-    volatile uint32_t VIRQLINE;
-    volatile int32_t  KEYBUF;
-    volatile uint32_t VSCRX2;
-    volatile uint32_t VSCRY2;
+struct regs_gfx {
+    volatile uint32_t CTRL;
+    volatile uint32_t LINE;
+    volatile uint32_t IRQLINE;
+    volatile uint32_t _pad;
+    volatile uint32_t SCRX1;
+    volatile uint32_t SCRY1;
+    volatile uint32_t SCRX2;
+    volatile uint32_t SCRY2;
 };
 
-struct pcm {
+struct regs_pcm {
     volatile uint32_t status;
     volatile uint32_t fifo_ctrl;
     volatile uint32_t rate;
     volatile uint32_t data;
 };
 
-struct fmsynth {
+struct regs_fmsynth {
     volatile uint32_t opmode;
     volatile uint32_t ctrl;
     volatile uint32_t key_on;
@@ -54,12 +52,12 @@ struct fmsynth {
     volatile uint32_t op_attr1[64];
 };
 
-static_assert(sizeof(struct fmsynth) == 1024);
+static_assert(sizeof(struct regs_fmsynth) == 1024);
 
 #define TEXT_COLUMNS 80
 #define TEXT_ROWS    30
 
-struct tram {
+struct regs_tram {
     uint16_t text[TEXT_COLUMNS * TEXT_ROWS];
     uint16_t init_val1;
     uint16_t text_color;
@@ -72,18 +70,21 @@ struct tram {
     uint16_t init_val2;
 };
 
-#define REGS     ((struct regs *)0x2000)
-#define PCM      ((struct pcm *)0x2400)
-#define FMSYNTH  ((struct fmsynth *)0x2800)
-#define SPRATTR  ((volatile uint32_t *)0x03000)
-#define SPRPOS   ((volatile uint32_t *)0x03400)
-#define PALETTE  ((volatile uint16_t *)0x04000)
-#define CHRAM    ((volatile uint8_t *)0x05000)
-#define TRAM     ((struct tram *)0x06000)
-#define VRAM     ((volatile uint8_t *)0x08000)
-#define TILEMAP2 ((volatile uint16_t *)(VRAM + 0x6000))
-#define TILEMAP1 ((volatile uint16_t *)(VRAM + 0x7000))
-#define VRAM4BPP ((volatile uint8_t *)0x10000)
+#define ESP_STATUS (*(volatile uint32_t *)0x2000)
+#define ESP_DATA   (*(volatile uint32_t *)0x2004)
+#define KEYBUF     (*(volatile int32_t *)0x2010)
+#define GFX        ((struct regs_gfx *)0x2040)
+#define PCM        ((struct regs_pcm *)0x2400)
+#define FMSYNTH    ((struct regs_fmsynth *)0x2800)
+#define SPRATTR    ((volatile uint32_t *)0x03000)
+#define SPRPOS     ((volatile uint32_t *)0x03400)
+#define PALETTE    ((volatile uint16_t *)0x04000)
+#define CHRAM      ((volatile uint8_t *)0x05000)
+#define TRAM       ((struct regs_tram *)0x06000)
+#define VRAM       ((volatile uint8_t *)0x08000)
+#define TILEMAP2   ((volatile uint16_t *)(VRAM + 0x6000))
+#define TILEMAP1   ((volatile uint16_t *)(VRAM + 0x7000))
+#define VRAM4BPP   ((volatile uint8_t *)0x10000)
 
 #define SPRATTR_TILEIDX_Pos 0
 #define SPRATTR_TILEIDX_Msk (0x3FF << SPRATTR_TILEIDX_Pos)
@@ -158,13 +159,17 @@ enum {
     FO_EXCL   = 0x20, // Error if already exists
 };
 
-#define VCTRL_TEXT_EN      (1 << 0)
-#define VCTRL_TEXT_MODE80  (1 << 1)
-#define VCTRL_TEXT_PRIO    (1 << 2)
-#define VCTRL_GFX_EN       (1 << 3)
-#define VCTRL_GFX_TILEMODE (1 << 4)
-#define VCTRL_SPR_EN       (1 << 5)
-#define VCTRL_LAYER2_EN    (1 << 6)
+#define ESP_STATUS_RXNE       (1 << 0)
+#define ESP_STATUS_TXF        (1 << 1)
+#define ESP_DATA_START_OF_MSG (1 << 8)
+
+#define GFX_CTRL_TEXT_EN      (1 << 0)
+#define GFX_CTRL_TEXT_MODE80  (1 << 1)
+#define GFX_CTRL_TEXT_PRIO    (1 << 2)
+#define GFX_CTRL_GFX_EN       (1 << 3)
+#define GFX_CTRL_GFX_TILEMODE (1 << 4)
+#define GFX_CTRL_SPR_EN       (1 << 5)
+#define GFX_CTRL_LAYER2_EN    (1 << 6)
 
 #define MAX_ARGS 64
 struct start_data {

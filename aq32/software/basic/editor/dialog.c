@@ -199,7 +199,7 @@ int dialog_confirm(const char *title, const char *text) {
 
     while (1) {
         int key;
-        while ((key = REGS->KEYBUF) < 0);
+        while ((key = KEYBUF) < 0);
 
         if (key & KEY_IS_SCANCODE) {
             uint8_t scancode = key & 0xFF;
@@ -233,7 +233,7 @@ void dialog_message(const char *title, const char *text) {
 
     while (1) {
         int key;
-        while ((key = REGS->KEYBUF) < 0);
+        while ((key = KEYBUF) < 0);
 
         if (key & KEY_IS_SCANCODE) {
             uint8_t scancode = key & 0xFF;
