@@ -7,6 +7,7 @@ module gfx(
 
     // Register values
     input  wire        tilemode,    // 0:bitmap, 1:tile mode
+    input  wire        bm_wrap,
     input  wire        sprites_enable,
     input  wire        layer2_enable,
     input  wire  [8:0] layer1_scrx,
@@ -94,11 +95,15 @@ module gfx(
 
     reg   [8:0] bm_line;
     always @* begin
-        bm_line = tline;
-        if (tline >= 9'd400)
-            bm_line = tline - 9'd400;
-        else if (tline >= 9'd200)
-            bm_line = tline - 9'd200;
+        if (bm_wrap) begin
+            bm_line = tline;
+            if (tline >= 9'd400)
+                bm_line = tline - 9'd400;
+            else if (tline >= 9'd200)
+                bm_line = tline - 9'd200;
+        end else begin
+            bm_line = {1'b0, tline[7:0]};
+        end
     end
     
     wire [15:0] map_entry     = d_map_entry;
@@ -255,11 +260,14 @@ module gfx(
                         d_state              = sprites_enable ? ST_SPR : ST_DONE;
                         d_render_zdepth_init = 0;
                     end else begin
-                        d_vaddr       = (bm_line[7:0] * 13'd80) + {6'b0, q_col, 1'b0};
+                        d_vaddr       = ({5'b0, bm_line} * 14'd80) + {7'b0, q_col, 1'b0};
                         d_state       = ST_BM4BPP2;
                     end
 
-                    d_col             = (q_col == 6'd39) ? 6'd0 : (q_col + 6'd1);
+                    d_col             = d_col + 6'd1;
+                    if (bm_wrap && q_col == 6'd39)
+                        d_col = 6'd0;
+
                     d_col_cnt         = q_col_cnt + 6'd1;
                     d_render_hflip    = 0;
                     d_render_palette  = 3'd1;
@@ -274,6 +282,9 @@ module gfx(
 
                 ST_BM4BPP3: begin
                     d_render_data[15:0] = {vdata[7:0], vdata[15:8]};
+                    if ((q_col >= 6'd40 || row >= 5'd25) && !bm_wrap)
+                        d_render_data = 0;
+
                     if (!render_busy || render_last_pixel) begin
                         render_start = 1;
                         d_state      = ST_BM4BPP;

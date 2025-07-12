@@ -6,6 +6,7 @@ module video(
     input  wire        reset,
 
     // Register interface
+    input  wire        reg_bm_wrap,
     input  wire        reg_layer2_enable,
     input  wire        reg_sprites_enable,
     input  wire        reg_gfx_tilemode,
@@ -302,6 +303,7 @@ module video(
 
         // Register values
         .tilemode(reg_gfx_tilemode),
+        .bm_wrap(reg_bm_wrap),
         .sprites_enable(reg_sprites_enable),
         .layer2_enable(reg_layer2_enable),
         .layer1_scrx(reg_layer1_scrx),

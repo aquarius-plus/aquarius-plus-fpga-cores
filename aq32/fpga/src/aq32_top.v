@@ -586,6 +586,7 @@ module aq32_top(
     reg         q_vctrl_gfx_tilemode;
     reg         q_vctrl_sprites_enable;
     reg         q_vctrl_layer2_enable;
+    reg         q_vctrl_bm_wrap;
     reg         q_vctrl_gfx_enable;
     reg         q_vctrl_text_enable;
     reg   [8:0] q_l1_scrx, q_l2_scrx;
@@ -628,6 +629,7 @@ module aq32_top(
         .clk(clk),
         .reset(reset),
 
+        .reg_bm_wrap(q_vctrl_bm_wrap),
         .reg_layer2_enable(q_vctrl_layer2_enable),
         .reg_sprites_enable(q_vctrl_sprites_enable),
         .reg_gfx_tilemode(q_vctrl_gfx_tilemode),
@@ -779,7 +781,7 @@ module aq32_top(
 
     wire [31:0] reg_vctrl_rddata = {
         24'b0,
-        1'b0,
+        q_vctrl_bm_wrap,
         q_vctrl_layer2_enable,
         q_vctrl_sprites_enable,
         q_vctrl_gfx_tilemode,
@@ -834,6 +836,7 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     always @(posedge clk or posedge reset) begin
         if (reset) begin
+            q_vctrl_bm_wrap        <= 0;
             q_vctrl_layer2_enable  <= 0;
             q_vctrl_sprites_enable <= 0;
             q_vctrl_gfx_tilemode   <= 0;
@@ -850,6 +853,7 @@ module aq32_top(
         end else begin
             if (cpu_wren) begin
                 if (reg_vctrl_strobe) begin
+                    q_vctrl_bm_wrap        <= cpu_wrdata[7];
                     q_vctrl_layer2_enable  <= cpu_wrdata[6];
                     q_vctrl_sprites_enable <= cpu_wrdata[5];
                     q_vctrl_gfx_tilemode   <= cpu_wrdata[4];

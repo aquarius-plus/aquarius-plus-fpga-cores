@@ -174,6 +174,7 @@ enum {
 #define GFX_CTRL_GFX_TILEMODE (1 << 4)
 #define GFX_CTRL_SPR_EN       (1 << 5)
 #define GFX_CTRL_LAYER2_EN    (1 << 6)
+#define GFX_CTRL_BM_WRAP      (1 << 7)
 
 #define MAX_ARGS 64
 struct start_data {
