@@ -14,6 +14,10 @@ module spiregs(
     output reg         reset_req,
     output reg         reset_req_cold,
     output reg  [63:0] keys,
+    output reg   [7:0] hctrl1,
+    output reg   [7:0] hctrl2,
+    output reg  [63:0] gamepad1,
+    output reg  [63:0] gamepad2,
 
     output reg  [15:0] kbbuf_data,
     output reg         kbbuf_wren);
@@ -27,7 +31,10 @@ module spiregs(
     localparam
         CMD_RESET           = 8'h01,
         CMD_SET_KEYB_MATRIX = 8'h10,
-        CMD_WRITE_KBBUF16   = 8'h13;
+        CMD_SET_HCTRL       = 8'h11,
+        CMD_WRITE_KBBUF16   = 8'h13,
+        CMD_WRITE_GAMEPAD1  = 8'h14,
+        CMD_WRITE_GAMEPAD2  = 8'h15;
 
     // 01h: Reset command
     always @(posedge clk) begin
@@ -47,6 +54,13 @@ module spiregs(
         else if (spi_cmd == CMD_SET_KEYB_MATRIX && spi_msg_end)
             keys <= spi_rxdata;
 
+    // 11h: Set handcontrollers
+    always @(posedge clk or posedge reset)
+        if (reset)
+            {hctrl2, hctrl1} <= 16'hFFFF;
+        else if (spi_cmd == CMD_SET_HCTRL && spi_msg_end)
+            {hctrl2, hctrl1} <= spi_rxdata[63:48];
+
     // 13h: Write keyboard buffer (16-bit)
     always @(posedge clk or posedge reset)
         if (reset) begin
@@ -59,5 +73,19 @@ module spiregs(
                 kbbuf_wren <= 1;
             end
         end
+
+    // 14h: Set gamepad1
+    always @(posedge clk or posedge reset)
+        if (reset)
+            gamepad1 <= 0;
+        else if (spi_cmd == CMD_WRITE_GAMEPAD1 && spi_msg_end)
+            gamepad1 <= spi_rxdata;
+
+    // 15h: Set gamepad2
+    always @(posedge clk or posedge reset)
+        if (reset)
+            gamepad2 <= 0;
+        else if (spi_cmd == CMD_WRITE_GAMEPAD2 && spi_msg_end)
+            gamepad2 <= spi_rxdata;
 
 endmodule

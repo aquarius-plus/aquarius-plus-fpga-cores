@@ -61,10 +61,6 @@ module aq32_top(
 );
 
     assign exp            = 9'b0;
-    assign hc1[7:0]       = 8'bZ;
-    assign hc2[7:0]       = 8'bZ;
-    assign hc1[8]         = 1'b0;
-    assign hc2[8]         = 1'b0;
     assign cassette_out   = 1'b0;
     assign printer_out    = 1'b0;
     assign ebus_cart_ce_n = 1'b1;
@@ -388,11 +384,37 @@ module aq32_top(
         .esp_miso(esp_miso),
         .esp_notify(esp_notify));
 
+    //////////////////////////////////////////////////////////////////////////
+    // Hand controller interface
+    //////////////////////////////////////////////////////////////////////////
+    assign hc1[7:0] = 8'bZ;
+    assign hc2[7:0] = 8'bZ;
+    assign hc1[8]   = 1'b0;
+    assign hc2[8]   = 1'b0;
+
+    wire [7:0] spi_hctrl1, spi_hctrl2;
+
+    wire [7:0] hctrl1 = hc1[7:0];
+    wire [7:0] hctrl2 = hc2[7:0];
+
+    // Synchronize inputs
+    reg [7:0] q_hctrl1, q2_hctrl1;
+    reg [7:0] q_hctrl2, q2_hctrl2;
+    always @(posedge clk) q_hctrl1  <= hctrl1;
+    always @(posedge clk) q2_hctrl1 <= q_hctrl1;
+    always @(posedge clk) q_hctrl2  <= hctrl2;
+    always @(posedge clk) q2_hctrl2 <= q_hctrl2;
+
+    // Combine data from ESP with data from handcontroller input
+    wire [7:0] hctrl1_data = q2_hctrl1 & spi_hctrl1;
+    wire [7:0] hctrl2_data = q2_hctrl2 & spi_hctrl2;
 
     //////////////////////////////////////////////////////////////////////////
     // SPI interface
     //////////////////////////////////////////////////////////////////////////
     wire [63:0] keys;
+    wire [63:0] gamepad1;
+    wire [63:0] gamepad2;
 
     wire [15:0] kbbuf_data;
     wire        kbbuf_wren;
@@ -410,6 +432,10 @@ module aq32_top(
         .reset_req(spi_reset_req),
         .reset_req_cold(reset_req_cold),
         .keys(keys),
+        .hctrl1(spi_hctrl1),
+        .hctrl2(spi_hctrl2),
+        .gamepad1(gamepad1),
+        .gamepad2(gamepad2),
 
         .kbbuf_data(kbbuf_data),
         .kbbuf_wren(kbbuf_wren));
@@ -703,6 +729,13 @@ module aq32_top(
     assign reg_esp_data_strobe   = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02004;
 
     assign reg_keybuf_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02010;
+    wire   reg_hctrl_strobe      = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02014;
+    wire   reg_keys_l_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02018;
+    wire   reg_keys_h_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0201C;
+    wire   reg_gamepad1_l_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02020;
+    wire   reg_gamepad1_h_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02024;
+    wire   reg_gamepad2_l_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02028;
+    wire   reg_gamepad2_h_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0202C;
 
     wire   reg_vctrl_strobe      = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02040;
     wire   reg_vline_strobe      = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02048;
@@ -761,20 +794,32 @@ module aq32_top(
         if (bootrom_strobe)        cpu_rddata = bootrom_rddata;
         if (pcm_strobe)            cpu_rddata = pcm_rddata;
         if (fmsynth_strobe)        cpu_rddata = fmsynth_rddata;
+
         if (reg_esp_status_strobe) cpu_rddata = {30'b0, esp_tx_fifo_full, !esp_rx_empty};
         if (reg_esp_data_strobe)   cpu_rddata = {23'b0, esp_rx_data};
+
+        if (reg_keybuf_strobe)     cpu_rddata = {kbbuf_empty, 15'b0, kbbuf_rddata};
+        if (reg_hctrl_strobe)      cpu_rddata = {16'b0, hctrl2_data, hctrl1_data};
+        if (reg_keys_l_strobe)     cpu_rddata = keys[31:0];
+        if (reg_keys_h_strobe)     cpu_rddata = keys[63:32];
+        if (reg_gamepad1_l_strobe) cpu_rddata = gamepad1[31:0];
+        if (reg_gamepad1_h_strobe) cpu_rddata = gamepad1[63:32];
+        if (reg_gamepad2_l_strobe) cpu_rddata = gamepad2[31:0];
+        if (reg_gamepad2_h_strobe) cpu_rddata = gamepad2[63:32];
+
         if (reg_vctrl_strobe)      cpu_rddata = reg_vctrl_rddata;
+        if (reg_vline_strobe)      cpu_rddata = {23'b0, vline};
+        if (reg_virqline_strobe)   cpu_rddata = {23'b0, q_virqline};
         if (reg_l1_scrx_strobe)    cpu_rddata = {23'b0, q_l1_scrx};
         if (reg_l1_scry_strobe)    cpu_rddata = {24'b0, q_l1_scry};
         if (reg_l2_scrx_strobe)    cpu_rddata = {23'b0, q_l2_scrx};
         if (reg_l2_scry_strobe)    cpu_rddata = {24'b0, q_l2_scry};
-        if (reg_vline_strobe)      cpu_rddata = {23'b0, vline};
-        if (reg_virqline_strobe)   cpu_rddata = {23'b0, q_virqline};
-        if (reg_keybuf_strobe)     cpu_rddata = {kbbuf_empty, 15'b0, kbbuf_rddata};
+
         if (reg_mtime_strobe)      cpu_rddata = q_mtime[31:0];
         if (reg_mtimeh_strobe)     cpu_rddata = q_mtime[63:32];
         if (reg_mtimecmp_strobe)   cpu_rddata = q_mtimecmp[31:0];
         if (reg_mtimecmph_strobe)  cpu_rddata = q_mtimecmp[63:32];
+
         if (pal_strobe)            cpu_rddata = {4'b0, pal_rddata, 4'b0, pal_rddata};
         if (sprattr_strobe)        cpu_rddata = sprattr_rddata;
         if (chram_strobe)          cpu_rddata = {chram_rddata, chram_rddata, chram_rddata, chram_rddata};
