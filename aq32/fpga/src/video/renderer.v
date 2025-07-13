@@ -54,7 +54,7 @@ module renderer(
 
     wire [2:0] cur_zdepth;
     wire [2:0] lab_rddata;    // unused
-    wire [2:0] new_zdepth = (q_wrdata[3:0] == 4'd0) ? 3'd0 : zdepth;
+    wire [2:0] new_zdepth = (q_wrdata[3:0] == 4'd0) ? 3'd0 : q_zdepth;
 
     distram512d #(.WIDTH(3)) lineattrbuf(
         .clk(clk),
