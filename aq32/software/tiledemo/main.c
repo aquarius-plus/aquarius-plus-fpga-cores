@@ -3,6 +3,7 @@
 #include "csr.h"
 #include "console.h"
 
+#define SHOW_BALLS
 #define NUM_BALLS ((256 - 8) / 4)
 
 // Structure to keep track of position and direction of ball sprites
@@ -14,6 +15,7 @@ struct ball {
 };
 struct ball balls[NUM_BALLS];
 
+#ifdef SHOW_BALLS
 // Each ball consist of 4 8x8 sprites
 static inline void setup_ball_sprites(uint8_t ball_idx) {
     uint8_t base = ball_idx * 4;
@@ -40,6 +42,7 @@ static inline void update_ball_sprites(uint8_t ball_idx) {
     SPRPOS[base++] = ((unsigned)y8 << 16) | x;
     SPRPOS[base]   = ((unsigned)y8 << 16) | x8;
 }
+#endif
 
 // Position Sonic character sprite on give position
 static inline void sonic_sprite(uint8_t frame, int x, int y) {
@@ -90,8 +93,8 @@ int main(void) {
     for (int i = 0; i < 16; i++)
         PALETTE[i] = palette[i];
 
-    for (int i = 0; i < 128; i++) {
-        SPRPOS[i] = 240 << 16;
+    for (int i = 0; i < 256; i++) {
+        SPRATTR[i] = 0;
     }
 
     // Manually patch the tilemap; give the palm tree priority, so sonic and the balls go behind it
@@ -106,6 +109,7 @@ int main(void) {
         }
     }
 
+#ifdef SHOW_BALLS
     // Init balls at random positions
     for (uint8_t i = 0; i < NUM_BALLS; i++) {
         struct ball *ballp = &balls[i];
@@ -122,15 +126,22 @@ int main(void) {
         setup_ball_sprites(i);
         update_ball_sprites(i);
     }
+#endif
 
     GFX->CTRL =
         GFX_CTRL_TEXT_PRIO | GFX_CTRL_TEXT_EN |
-        GFX_CTRL_LAYER2_EN | GFX_CTRL_SPR_EN | GFX_CTRL_GFX_EN | GFX_CTRL_GFX_TILEMODE;
+        GFX_CTRL_LAYER2_EN |
+        GFX_CTRL_SPR_EN |
+        GFX_CTRL_GFX_EN |
+        // GFX_CTRL_BM_WRAP |
+        GFX_CTRL_GFX_TILEMODE;
 
     uint8_t anim_frame = 0;
     uint8_t anim_delay = 0;
     int     sonic_x    = 160 - 12;
     int     sonic_y    = 90;
+
+    GFX->SCRX1 = 0;
 
     GFX->SCRY2 = -24;
     while (1) {
@@ -153,6 +164,7 @@ int main(void) {
             }
         }
 
+#ifdef SHOW_BALLS
         // Move balls
         for (uint8_t i = 0; i < NUM_BALLS; i++) {
             struct ball *ballp = &balls[i];
@@ -170,6 +182,32 @@ int main(void) {
             // Update ball sprite
             update_ball_sprites(i);
         }
+#endif
+
+        // Use joystick to move sonic
+        {
+            uint8_t joyval = ~(HANDCTRL & 0xFF);
+            if (joyval & (1 << 0))
+                sonic_y++;
+            if (joyval & (1 << 1)) {
+                GFX->SCRX1++;
+                sonic_x++;
+            }
+            if (joyval & (1 << 2))
+                sonic_y--;
+            if (joyval & (1 << 3)) {
+                GFX->SCRX1--;
+                sonic_x--;
+            }
+
+            sonic_x &= 511;
+            sonic_y &= 255;
+        }
+
+        console_set_cursor_row(0);
+        console_set_cursor_column(0);
+        printf("%3u %3u", (unsigned)GFX->SCRX1, (unsigned)GFX->SCRY1);
+
         PALETTE[0] = palette[0];
     }
 

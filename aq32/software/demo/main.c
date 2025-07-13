@@ -31,14 +31,14 @@ static_assert(sizeof(gamepad_data_t) == 8);
 
 int main(void) {
 
-    // uint64_t prev_keys = 0;
-    // while (1) {
-    //     uint64_t keys = KEYS;
-    //     if (prev_keys != keys) {
-    //         prev_keys = keys;
-    //         printf("%08X%08X\n", (unsigned)(keys >> 32), (unsigned)(keys & 0xFFFFFFFFU));
-    //     }
-    // }
+    uint64_t prev_keys = 0;
+    while (1) {
+        uint64_t keys = KEYS;
+        if (prev_keys != keys) {
+            prev_keys = keys;
+            printf("%08X%08X\n", (unsigned)(keys >> 32), (unsigned)(keys & 0xFFFFFFFFU));
+        }
+    }
 
     // uint64_t prev = -1;
     // while (1) {
@@ -56,14 +56,14 @@ int main(void) {
     //     }
     // }
 
-    uint16_t prev = 0;
-    while (1) {
-        uint16_t val = HANDCTRL;
-        if (prev != val) {
-            prev = val;
-            printf("%04X\n", val);
-        }
-    }
+    // uint16_t prev = 0;
+    // while (1) {
+    //     uint16_t val = HANDCTRL;
+    //     if (prev != val) {
+    //         prev = val;
+    //         printf("%04X\n", val);
+    //     }
+    // }
 
     return 0;
 }
