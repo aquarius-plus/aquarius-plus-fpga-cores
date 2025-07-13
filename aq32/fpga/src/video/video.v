@@ -302,6 +302,7 @@ module video(
         .reset(reset),
 
         // Register values
+        .gfx_enable(reg_gfx_enable),
         .tilemode(reg_gfx_tilemode),
         .bm_wrap(reg_bm_wrap),
         .sprites_enable(reg_sprites_enable),
@@ -343,7 +344,7 @@ module video(
         pixel_colidx = 7'b0;
         if (reg_text_enable && !reg_text_priority)
             pixel_colidx = {3'b0, text_colidx};
-        if (reg_gfx_enable && (!reg_text_enable || reg_text_priority || linebuf_data[3:0] != 4'd0))
+        if (!reg_text_enable || reg_text_priority || linebuf_data[3:0] != 4'd0)
             pixel_colidx = linebuf_data;
         if (reg_text_enable && reg_text_priority && text_colidx != 4'd0)
             pixel_colidx = {3'b0, text_colidx};

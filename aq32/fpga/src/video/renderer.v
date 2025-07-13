@@ -116,7 +116,7 @@ module renderer(
         if (reset) begin
             q_render_data <= 0;
             q_palette     <= 0;
-            q_wridx       <= 9'd511;
+            q_wridx       <= 0;
             q_wrdata      <= 0;
             q_wren        <= 0;
             q_datasel     <= 0;
