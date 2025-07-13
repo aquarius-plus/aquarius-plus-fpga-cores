@@ -74,10 +74,9 @@ module gfx(
         ST_DONE    = 3'd0,
         ST_MAP1    = 3'd1,
         ST_MAP2    = 3'd2,
-        ST_BM4BPP  = 3'd3,
-        ST_SPR     = 3'd4,
-        ST_PAT1    = 3'd5,
-        ST_PAT2    = 3'd6;
+        ST_SPR     = 3'd3,
+        ST_PAT1    = 3'd4,
+        ST_PAT2    = 3'd5;
 
     reg   [5:0] d_col,       q_col;
     reg   [5:0] d_col_cnt,   q_col_cnt;
@@ -188,7 +187,7 @@ module gfx(
             d_spr_sel            = 0;
             d_layer              = 0;
             layer_start          = 1;
-            d_state              = (!gfx_enable || tilemode) ? ST_MAP1 : ST_BM4BPP;
+            d_state              = ST_MAP1;
             d_blankout           = !gfx_enable;
 
         end else if (q_busy) begin
@@ -200,7 +199,7 @@ module gfx(
                     if (q_col_cnt == 6'd41) begin
                         d_render_zdepth_init = 0;
 
-                        if (!q_layer && layer2_enable) begin
+                        if (!q_layer && layer2_enable && tilemode) begin
                             d_layer     = 1;
                             layer_start = 1;
                         end else begin
@@ -214,36 +213,18 @@ module gfx(
                 end
 
                 ST_MAP2: begin
-                    d_map_entry       = vdata;
-                    d_vaddr           = {tile_idx, (tile_vflip ? ~tline[2:0] : tline[2:0]), 1'b0};
+                    d_map_entry = vdata;
+
+                    if (tilemode)
+                        d_vaddr = {tile_idx, (tile_vflip ? ~tline[2:0] : tline[2:0]), 1'b0};
+                    else
+                        d_vaddr = ({5'b0, bm_line} * 14'd80) + {7'b0, q_col, 1'b0};
+
                     d_state           = ST_PAT1;
                     d_nxtstate        = ST_MAP1;
-                    d_col             = q_col + 6'd1;
-                    d_col_cnt         = q_col_cnt + 6'd1;
-                    d_render_hflip    = tile_hflip;
-                    d_render_palette  = tile_palette;
-                    d_render_zdepth   = {q_layer ? 2'd3 : 2'd2, tile_priority};
-                end
-
-                ST_BM4BPP: begin
-                    if (q_col_cnt == 6'd41) begin
-                        d_render_zdepth_init = 0;
-                        d_state              = sprites_enable ? ST_SPR : ST_DONE;
-
-                    end else begin
-                        d_vaddr    = ({5'b0, bm_line} * 14'd80) + {7'b0, q_col, 1'b0};
-                        d_state    = ST_PAT1;
-                        d_nxtstate = ST_BM4BPP;
-                    end
-
-                    d_col             = q_col + 6'd1;
-                    d_col_cnt         = q_col_cnt + 6'd1;
-                    d_render_hflip    = 0;
-                    d_render_palette  = 3'd1;
-                    d_render_zdepth   = {2'd2, 1'b0};
-
-                    if (bm_wrap && q_col == 6'd39)
-                        d_col = 6'd0;
+                    d_render_hflip    = tilemode ? tile_hflip : 0;
+                    d_render_palette  = tilemode ? tile_palette : 3'd1;
+                    d_render_zdepth   = tilemode ? {q_layer ? 2'd3 : 2'd2, tile_priority} : {2'd2, 1'b0};
                 end
 
                 ST_SPR: begin
@@ -278,20 +259,25 @@ module gfx(
 
                     if (!render_busy || render_last_pixel) begin
                         render_start = 1;
+                        d_render_idx = q_render_idx + 9'd8;
                         d_state      = q_nxtstate;
+
+                        d_col        = q_col + 6'd1;
+                        d_col_cnt    = q_col_cnt + 6'd1;
+
+                        if (bm_wrap && q_col == 6'd39)
+                            d_col = 6'd0;
                     end
                 end
 
                 default: begin end
             endcase
-
-            if (render_start) d_render_idx = q_render_idx + 9'd8;
         end
 
         if (layer_start) begin
-            d_col_cnt    = 0;
             d_render_idx = 9'd0 - {6'd0, d_layer ? layer2_scrx[2:0] : layer1_scrx[2:0]};
             d_col        = d_layer ? layer2_scrx[8:3] : layer1_scrx[8:3];
+            d_col_cnt    = 0;
         end
     end
 
