@@ -128,7 +128,7 @@ static bool load_topic(int offset) {
 
         // Read page title
         uint8_t title_len = fgetc(f);
-        char    tmp[80];
+        char    tmp[74];
         if (title_len > sizeof(tmp) - 1)
             goto error;
         fread(tmp, title_len, 1, f);

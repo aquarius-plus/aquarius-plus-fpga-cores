@@ -3,6 +3,10 @@
 #include <stdint.h>
 #include <assert.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // KEYBUF
 // | Bit | Description                  |
 // | --: | ---------------------------- |
@@ -184,3 +188,7 @@ struct start_data {
 };
 
 #define STARTDATA ((struct start_data *)0x80000)
+
+#ifdef __cplusplus
+}
+#endif

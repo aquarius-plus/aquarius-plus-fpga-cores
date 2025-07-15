@@ -3,6 +3,10 @@
 #include <stddef.h>
 #include "regs.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static inline void esp_send_byte(uint8_t val) {
     while (ESP_STATUS & ESP_STATUS_TXF) {
     }
@@ -27,7 +31,7 @@ static inline void esp_cmd(uint8_t cmd) {
 }
 
 static inline void esp_send_bytes(const void *buf, unsigned length) {
-    const uint8_t *p = buf;
+    const uint8_t *p = (const uint8_t *)buf;
     while (length--) {
         esp_send_byte(*(p++));
     }
@@ -43,7 +47,7 @@ static inline void esp_send_str(const char *s) {
 }
 
 static inline void esp_get_bytes(void *buf, unsigned length) {
-    uint8_t *p = buf;
+    uint8_t *p = (uint8_t *)buf;
     while (length--) {
         *(p++) = esp_get_byte();
     }
@@ -90,3 +94,7 @@ int esp_closeall(void);
 int esp_set_errno(int esp_err);
 
 int esp_get_midi_data(void *buf, size_t buf_size);
+
+#ifdef __cplusplus
+}
+#endif

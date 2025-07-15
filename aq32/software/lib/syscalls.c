@@ -9,20 +9,23 @@
 #include "esp.h"
 #include "malloc.h"
 
-#ifndef SIZE_BUF_HEAP
-#define SIZE_BUF_HEAP 0x1000
-#endif
-
 #define FD_ESP_START 10
 #define XFER_MAX     0xF000
 
-static __attribute__((section(".noinit"))) uint8_t buf_heap[SIZE_BUF_HEAP];
-static mspace                                     *heap_space;
+static mspace *heap_space;
 
 static void assure_init(void) {
-    if (!heap_space) {
-        heap_space = create_mspace_with_base(buf_heap, sizeof(buf_heap), 0);
-    }
+    if (heap_space)
+        return;
+
+#ifdef SIZE_BUF_HEAP
+    static __attribute__((section(".noinit"))) uint8_t buf_heap[SIZE_BUF_HEAP];
+    heap_space = create_mspace_with_base(buf_heap, sizeof(buf_heap), 0);
+#else
+    extern char _end;
+    extern char __stack_start;
+    heap_space = create_mspace_with_base(&_end, &__stack_start - &_end, false);
+#endif
 }
 
 static void *_malloc(size_t sz) {

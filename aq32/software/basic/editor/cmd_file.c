@@ -27,7 +27,7 @@ static int load_file(const char *path) {
         dialog_message("Error", "Error loading file!");
         return -1;
     }
-    snprintf(state.filename, sizeof(state.filename), "%s", path);
+    strncpy(state.filename, path, sizeof(state.filename));
     return 0;
 }
 

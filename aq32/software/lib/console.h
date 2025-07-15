@@ -2,6 +2,10 @@
 
 #include "common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void console_init(void);
 bool console_set_width(int width);
 
@@ -26,3 +30,7 @@ uint8_t console_getc(void);
 
 void console_flush_input(void);
 void _console_handle_key(int key);
+
+#ifdef __cplusplus
+}
+#endif

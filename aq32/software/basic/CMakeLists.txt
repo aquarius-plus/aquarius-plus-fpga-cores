@@ -6,6 +6,8 @@ set(PRINTF_FLOAT ON)
 set(MATHLIB on)
 include(../lib/project.cmake)
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE SIZE_BUF_HEAP=0x1000)
+
 target_include_directories(${PROJECT_NAME} PRIVATE
     basic
 )

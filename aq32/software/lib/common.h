@@ -14,6 +14,11 @@
 #include <ctype.h>
 
 #include "regs.h"
+#include "csr.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define CH_TAB         '\t'
 #define CH_ENTER       '\r'
@@ -120,3 +125,7 @@ static inline char to_upper(char ch) { return is_lower(ch) ? (ch - 'a' + 'A') : 
 static inline char to_lower(char ch) { return is_upper(ch) ? (ch - 'A' + 'a') : ch; }
 static inline bool is_typechar(char ch) { return (ch == '%' || ch == '&' || ch == '!' || ch == '#' || ch == '$'); }
 static inline bool is_cntrl(uint8_t ch) { return (ch < 32 || (ch >= 127 && ch < 160)); }
+
+#ifdef __cplusplus
+}
+#endif
