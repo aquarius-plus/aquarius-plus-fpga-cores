@@ -1,0 +1,39 @@
+You first need to install the compiler. The one I use is called xpack. Which I specifically choose, because there are prebuilt binaries available for all major platforms.
+
+Frank
+https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack
+github.com
+
+Frank
+So you will probably need to download: xpack-riscv-none-elf-gcc-14.2.0-3-linux-x64.tar.gz
+
+Frank
+from the releases page
+
+Frank
+I have it unpacked to /opt
+
+Frank
+Then you'll need to add it to your path, eg. export PATH=$PATH:/opt/xpack/riscv-none-elf-gcc/bin
+
+Frank
+Within vscode you'll need to make sure that you have installed the C/C++ extension pack from the extensions tab
+Edited
+Then open the example you like to compile in vscode. (Not the whole tree, only for example tiledemo), eg. use File -> Open Folder and select the tiledemo folder
+
+Frank
+Then you should be able to open the main.c and press F7 to compile. It will ask you what compiler to use, select GCC 14.2.0 riscv-non-elf
+
+Frank
+Your resulting binary will be in the build directory
+
+Frank
+Someone should probably write a guide on how to do this on the various platforms.
+
+Frank
+After the project has been build by vscode, the run.sh and upload.sh scripts should also work.
+Edited
+alternatively you could do everything from the command line. Eg. go into tiledemo and type:
+cmake -B build -G Ninja
+ninja -C build
+Write to Frank van den Hoef

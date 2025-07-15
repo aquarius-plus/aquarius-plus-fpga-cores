@@ -36,7 +36,8 @@ int main(void) {
         uint64_t keys = KEYS;
         if (prev_keys != keys) {
             prev_keys = keys;
-            printf("%08X%08X\n", (unsigned)(keys >> 32), (unsigned)(keys & 0xFFFFFFFFU));
+            // printf("%08X%08X\n", (unsigned)(keys >> 32), (unsigned)(keys & 0xFFFFFFFFU));
+            printf("%08X\n", (unsigned)(keys & 0xFFFFFFFFU));
         }
     }
 
