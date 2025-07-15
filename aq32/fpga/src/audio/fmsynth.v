@@ -140,13 +140,14 @@ module fmsynth(
     wire        alg_2op = q_alg[q_op_sel[5:1]];
     wire  [1:0] alg_4op = {q_alg[{q_op_sel[5:2], 1'b0}], q_alg[{q_op_sel[5:2], 1'b1}]};
 
-    assign ch_attr_rddata[31:23] = 0;
+    assign ch_attr_rddata[31:27] = 0;
+    assign ch_attr_rddata[16:13] = 0;
 
     distram32d #(.WIDTH(23)) ch_attr(
         .clk(clk),
         .a_addr(bus_addr[4:0]),
-        .a_rddata(ch_attr_rddata[22:0]),
-        .a_wrdata(bus_wrdata[22:0]),
+        .a_rddata({ch_attr_rddata[26:17], ch_attr_rddata[12:0]}),
+        .a_wrdata({bus_wrdata[26:17], bus_wrdata[12:0]}),
         .a_wren({23{sel_ch_attr && bus_wr}}),
         .b_addr(ch_sel),
         .b_rddata({

@@ -26,18 +26,12 @@ module aqp_pwm_dac(
     end
 
     // PWM output
-    reg [16:0] q_pwmacc_left;
-    reg [16:0] q_pwmacc_right;
+    reg [16:0] q_pwmacc_left = 0;
+    reg [16:0] q_pwmacc_right = 0;
 
-    always @(posedge clk or posedge reset) begin
-        if (reset) begin
-            q_pwmacc_left  <= 0;
-            q_pwmacc_right <= 0;
-
-        end else begin
-            q_pwmacc_left  <= {1'b0, q_pwmacc_left[15:0]}  + {1'b0, q_left_sample};
-            q_pwmacc_right <= {1'b0, q_pwmacc_right[15:0]} + {1'b0, q_right_sample};
-        end
+    always @(posedge clk) begin
+        q_pwmacc_left  <= {1'b0, q_pwmacc_left[15:0]}  + {1'b0, q_left_sample};
+        q_pwmacc_right <= {1'b0, q_pwmacc_right[15:0]} + {1'b0, q_right_sample};
     end
 
     always @(posedge clk) begin
