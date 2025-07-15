@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "mem_access.h"
 
 #define SIZE_BUF_BYTECODE 0x10000
 

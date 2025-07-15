@@ -4,6 +4,7 @@
 #include "reloc.h"
 #include "bytecode/bytecode.h"
 #include "common/buffers.h"
+#include "ctype2.h"
 
 static uint8_t  default_type[26];
 static bool     do_emit_line_tag = false;

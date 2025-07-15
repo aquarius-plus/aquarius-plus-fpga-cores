@@ -1,6 +1,7 @@
 #include "readline.h"
 #include "common.h"
 #include "console.h"
+#include "ctype2.h"
 
 struct readline_context {
     char    *buf;

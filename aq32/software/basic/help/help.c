@@ -2,6 +2,7 @@
 #include "editor/screen.h"
 #include "basic/common/buffers.h"
 #include "editor/dialog.h"
+#include "ctype2.h"
 
 #define HELP_FILE    "/cores/aq32/basic.hlp"
 #define HELP_ROWS    (TEXT_ROWS - 2)

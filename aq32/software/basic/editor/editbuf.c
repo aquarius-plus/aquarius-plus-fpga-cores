@@ -1,4 +1,5 @@
 #include "editbuf.h"
+#include "ctype2.h"
 
 static inline bool inc_ptr(struct editbuf *eb, uint8_t **p) {
     uint8_t *p_old = *p;

@@ -1,6 +1,7 @@
 #include "tokenizer.h"
 #include "basic.h"
 #include "common/parsenum.h"
+#include "ctype2.h"
 
 static struct editbuf *eb;
 

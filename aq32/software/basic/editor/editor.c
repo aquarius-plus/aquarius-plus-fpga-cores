@@ -4,6 +4,7 @@
 #include "menu.h"
 #include "editbuf.h"
 #include "editor_internal.h"
+#include "ctype2.h"
 
 struct editor_state state;
 

@@ -3,6 +3,7 @@
 #include "basic/basic.h"
 #include "help/help.h"
 #include "video_save.h"
+#include "ctype2.h"
 
 static void cmd_run_start(void);
 

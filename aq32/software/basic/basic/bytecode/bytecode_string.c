@@ -1,5 +1,6 @@
 #include "bytecode_internal.h"
 #include "common/parsenum.h"
+#include "ctype2.h"
 
 void bc_func_len(void) {
     stkval_t *val = bc_stack_pop_str();
