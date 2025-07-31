@@ -216,26 +216,50 @@ module cpu #(
     wire is_div_rem = is_mul_div && funct3[2];
 
     // Divider
-    wire        div_done;
-    wire [31:0] div_quotient;
-    wire [31:0] div_remainder;
-    wire        div_busy;
+    reg  [31:0] q_quotient;
+    reg  [31:0] q_remainder;
+    reg         q_div_busy;
     reg         div_start;
+    wire        div_is_signed = !funct3[0] && is_div_rem;
 
-    div div(
-        .clk(clk),
-        .reset(reset),
+    reg  [31:0] q_div_dividend;
+    reg  [62:0] q_div_divisor;
+    reg  [31:0] q_div_quotient;
+    reg  [31:0] q_div_quotient_msk;
 
-        .operand_l(rs1_data),
-        .operand_r(rs2_data),
-        .is_signed(!funct3[0] && is_div_rem),
-        .start(div_start),
+    always @(posedge clk or posedge reset)
+        if (reset) begin
+            q_div_busy         <= 0;
+            q_quotient         <= 0;
+            q_remainder        <= 0;
+            q_div_dividend     <= 0;
+            q_div_divisor      <= 0;
+            q_div_quotient     <= 0;
+            q_div_quotient_msk <= 0;
 
-        .busy(div_busy),
-        .done(div_done),
-        .quotient(div_quotient),
-        .remainder(div_remainder)
-    );
+        end else begin
+            if (div_start) begin
+                q_div_busy         <= 1;
+                q_div_dividend     <=  (div_is_signed && rs1_data[31]) ? -rs1_data : rs1_data;
+                q_div_divisor      <= {(div_is_signed && rs2_data[31]) ? -rs2_data : rs2_data, 31'b0};
+                q_div_quotient     <= 0;
+                q_div_quotient_msk <= 32'h80000000;
+
+            end else if (q_div_quotient_msk == 0 && q_div_busy) begin
+                q_div_busy  <= 0;
+                q_quotient  <= (div_is_signed && rs1_data[31] != rs2_data[31] && rs2_data != 32'b0) ? -q_div_quotient : q_div_quotient;
+                q_remainder <= (div_is_signed && rs1_data[31]) ? -q_div_dividend : q_div_dividend;
+
+            end else begin
+                if (q_div_divisor <= {31'b0, q_div_dividend}) begin
+                    q_div_dividend <= q_div_dividend - q_div_divisor[31:0];
+                    q_div_quotient <= q_div_quotient | q_div_quotient_msk;
+                end
+
+                q_div_divisor      <= {1'b0, q_div_divisor[62:1]};
+                q_div_quotient_msk <= {1'b0, q_div_quotient_msk[31:1]};
+            end
+        end
 
     // Operation selection
     reg [31:0] alu_result;
@@ -246,10 +270,10 @@ module cpu #(
                 3'b001: alu_result = mult_result[63:32];    // MULH
                 3'b010: alu_result = mult_result[63:32];    // MULHSU
                 3'b011: alu_result = mult_result[63:32];    // MULHU
-                3'b100: alu_result = div_quotient;          // DIV
-                3'b101: alu_result = div_quotient;          // DIVU
-                3'b110: alu_result = div_remainder;         // REM
-                3'b111: alu_result = div_remainder;         // REMU
+                3'b100: alu_result = q_quotient;            // DIV
+                3'b101: alu_result = q_quotient;            // DIVU
+                3'b110: alu_result = q_remainder;           // REM
+                3'b111: alu_result = q_remainder;           // REMU
             endcase
         end else begin
             case (funct3)
@@ -581,7 +605,7 @@ module cpu #(
 
             StDiv: begin
                 // Wait for division to be done
-                if (!div_busy) begin
+                if (!q_div_busy) begin
                     rd_wr      = 1;
                     fetch(pc_plus4);
                 end

@@ -144,7 +144,7 @@ module aq32_top(
             q_mtime    <= 0;
             q_mtimecmp <= 0;
             q_mtimeirq <= 0;
-            
+
         end else begin
             if (q_time_tick)
                 q_mtime <= q_mtime + 64'd1;
@@ -163,7 +163,7 @@ module aq32_top(
     reg         cpu_wait;
     reg  [31:0] cpu_rddata;
     reg  [31:0] cpu_irq;
-    
+
     always @* begin
         cpu_irq = 32'b0;
         cpu_irq[20] = irq_uart;
