@@ -192,6 +192,9 @@ module fmsynth(
     wire [8:0] env;
     wire       restart;
 
+    reg        q_op_next;
+    reg        q_op_reset;
+
     fm_eg fm_eg(
         .clk(clk),
 
@@ -222,8 +225,6 @@ module fmsynth(
     //////////////////////////////////////////////////////////////////////////
     // Operator phase counter
     //////////////////////////////////////////////////////////////////////////
-    reg        q_op_next;
-    reg        q_op_reset;
     wire [9:0] phase;
 
     fm_phase fm_phase(
