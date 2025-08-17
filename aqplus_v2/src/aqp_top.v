@@ -65,23 +65,38 @@ module aqp_top(
     assign printer_out    = 1'b0;
     assign ebus_cart_ce_n = 1'b1;
     assign ebus_reset_n   = 1'bZ;
+    // assign ebus_wr_n      = 1'b1;
+    assign ebus_a[15:14]  = 2'bZ;
+    assign ebus_mreq_n    = 1'b1;
+    assign ebus_iorq_n    = 1'b1;
     assign ebus_int_n     = 1'bZ;
     assign ebus_busreq_n  = 1'b0;
 
-    wire  [7:0] ebus_d_out;
-    wire        ebus_d_oe;
+    wire [15:0] cpu_addr;
+    wire  [7:0] cpu_wrdata;
+    wire  [7:0] cpu_rddata = ebus_d;
+    wire        cpu_iorq;
+    wire        cpu_memrq;
+    wire        cpu_rd;
+    wire        cpu_wr;
+    wire        t80_dq_oe;
+
+    wire clk;
+
+    reg q_cpu_rd;
+    reg q_cpu_wr;
+    always @(posedge clk) q_cpu_rd <= cpu_rd;
+    always @(posedge clk) q_cpu_wr <= cpu_wr;
+
+    wire cpu_read  = cpu_rd & !q_cpu_rd;
+    wire cpu_write = cpu_wr & !q_cpu_wr;
 
     //////////////////////////////////////////////////////////////////////////
     // Clock synthesizer
     //////////////////////////////////////////////////////////////////////////
-    wire clk, video_clk;
-
     aqp_clkctrl clkctrl(
         .clk_in(sysclk),    // 14.31818MHz
-        .clk_out(clk)       // 25.175MHz
-    );
-
-    assign video_clk = clk;
+        .clk_out(clk));     // 25.175MHz
 
     //////////////////////////////////////////////////////////////////////////
     // System controller (reset and clock generation)
@@ -95,25 +110,6 @@ module aqp_top(
 
         .ebus_phi(ebus_phi),
         .reset(reset));
-
-    //////////////////////////////////////////////////////////////////////////
-    // Bus interface
-    //////////////////////////////////////////////////////////////////////////
-    wire ebus_int_n_pushpull;
-
-    // Register data from external bus
-    reg [7:0] ebus_d_in;
-    always @(posedge clk) if (!ebus_wr_n) ebus_d_in <= ebus_d;
-
-    // Synchronize RD#/WR# signals for when using external Z80
-    reg [2:0] q_ebus_wr_n;
-    reg [2:0] q_ebus_rd_n;
-    always @(posedge clk) q_ebus_wr_n <= {q_ebus_wr_n[1:0], ebus_wr_n};
-    always @(posedge clk) q_ebus_rd_n <= {q_ebus_rd_n[1:0], ebus_rd_n};
-
-    wire bus_read  = (q_ebus_rd_n[1:0]) == 2'b10;
-    wire bus_write = (q_ebus_wr_n[1:0]) == 2'b10;
-    wire ebus_stb  = (bus_read || bus_write);
 
     //////////////////////////////////////////////////////////////////////////
     // ESP32 UART
@@ -260,24 +256,24 @@ module aqp_top(
 
     wire       reg_fd_val;
 
-    wire [7:0] rddata_tram;             // MEM $3000-$37FF
+    wire [7:0] rddata_tram;         // MEM $3000-$37FF
     wire [7:0] rddata_chram;
     wire [7:0] rddata_vram;
     wire [7:0] rddata_rom;
 
-    wire [7:0] rddata_io_video;         // IO $E0-$EF
-    wire [7:0] rddata_espctrl;          // IO $F4
-    wire [7:0] rddata_espdata;          // IO $F5
-    wire [7:0] rddata_ay8910;           // IO $F6/F7
-    wire [7:0] rddata_ay8910_2;         // IO $F8/F9
-    wire [7:0] rddata_kbbuf;            // IO $FA
-    wire [7:0] rddata_keyboard;         // IO $FF:R
+    wire [7:0] rddata_io_video;     // IO $E0-$EF
+    wire [7:0] rddata_espctrl;      // IO $F4
+    wire [7:0] rddata_espdata;      // IO $F5
+    wire [7:0] rddata_ay8910;       // IO $F6/F7
+    wire [7:0] rddata_ay8910_2;     // IO $F8/F9
+    wire [7:0] rddata_kbbuf;        // IO $FA
+    wire [7:0] rddata_keyboard;     // IO $FF:R
 
-    reg  [7:0] q_audio_dac;             // IO $EC
-    reg  [7:0] q_reg_bank0;             // IO $F0
-    reg  [7:0] q_reg_bank1;             // IO $F1
-    reg  [7:0] q_reg_bank2;             // IO $F2
-    reg  [7:0] q_reg_bank3;             // IO $F3
+    reg  [7:0] q_audio_dac;         // IO $EC
+    reg  [7:0] q_reg_bank0;         // IO $F0
+    reg  [7:0] q_reg_bank1;         // IO $F1
+    reg  [7:0] q_reg_bank2;         // IO $F2
+    reg  [7:0] q_reg_bank3;         // IO $F3
 
     wire       spi_reset_req;
     wire       reset_req_cold;
@@ -296,7 +292,7 @@ module aqp_top(
 
     // Select banking register based on upper address bits
     reg [7:0] reg_bank;
-    always @* case (ebus_a[15:14])
+    always @* case (cpu_addr[15:14])
         2'd0: reg_bank = q_reg_bank0;
         2'd1: reg_bank = q_reg_bank1;
         2'd2: reg_bank = q_reg_bank2;
@@ -307,36 +303,34 @@ module aqp_top(
     wire       reg_bank_ro      = reg_bank[7];
     wire       reg_bank_overlay = reg_bank[6];
 
-    wire [7:0] wrdata = ebus_d_in;
-
-    wire bus_read2  = !ebus_rd_n && ebus_stb;    //  q_ebus_rd_n[2:1] == 2'b10;
-    wire bus_write2 = !ebus_wr_n && ebus_stb;    //  q_ebus_wr_n[2:1] == 2'b10;
+    wire [19:0] bus_addr = {reg_bank_page, cpu_addr[13:0]};
 
     // Memory space decoding
-    wire sel_mem_tram    = !ebus_mreq_n && reg_bank_overlay && ebus_a[13:11] == 3'b110;   // $3000-$37FF
-    wire sel_mem_sysram  = !ebus_mreq_n && reg_bank_overlay && ebus_a[13:11] == 3'b111;   // $3800-$3FFF
-    wire sel_mem_vram    = !ebus_mreq_n && reg_bank_page == 6'd20;                        // Page 20
-    wire sel_mem_chram   = !ebus_mreq_n && reg_bank_page == 6'd21;                        // Page 21
-    wire sel_mem_rom     = !ebus_mreq_n && reg_bank_page <= 6'd3;                         // Page 0-3
+    wire sel_mem_tram    = cpu_memrq && reg_bank_overlay && bus_addr[13:11] == 3'b110;   // $3000-$37FF
+    wire sel_mem_sysram  = cpu_memrq && reg_bank_overlay && bus_addr[13:11] == 3'b111;   // $3800-$3FFF
+    wire sel_mem_vram    = cpu_memrq && reg_bank_page == 6'd20;                          // Page 20
+    wire sel_mem_chram   = cpu_memrq && reg_bank_page == 6'd21;                          // Page 21
+    wire sel_mem_rom     = cpu_memrq && reg_bank_page <= 6'd3;                           // Page 0-3
 
-    assign ebus_ba = reg_bank_page[4:0];
+    assign ebus_ba      = bus_addr[18:14];
+    assign ebus_a[13:0] = bus_addr[13:0];
 
     // IO space decoding
-    wire sel_io_video     = !ebus_iorq_n && ebus_a[7:4] == 4'hE;
-    wire sel_io_audio_dac = !ebus_iorq_n && ebus_a[7:0] == 8'hEC;
-    wire sel_io_bank0     = !ebus_iorq_n && ebus_a[7:0] == 8'hF0;
-    wire sel_io_bank1     = !ebus_iorq_n && ebus_a[7:0] == 8'hF1;
-    wire sel_io_bank2     = !ebus_iorq_n && ebus_a[7:0] == 8'hF2;
-    wire sel_io_bank3     = !ebus_iorq_n && ebus_a[7:0] == 8'hF3;
-    wire sel_io_espctrl   = !ebus_iorq_n && ebus_a[7:0] == 8'hF4;
-    wire sel_io_espdata   = !ebus_iorq_n && ebus_a[7:0] == 8'hF5;
-    wire sel_io_ay8910    = !ebus_iorq_n && (ebus_a[7:0] == 8'hF6 || ebus_a[7:0] == 8'hF7);
-    wire sel_io_ay8910_2  = !ebus_iorq_n && (ebus_a[7:0] == 8'hF8 || ebus_a[7:0] == 8'hF9);
-    wire sel_io_kbbuf     = !ebus_iorq_n && ebus_a[7:0] == 8'hFA;
-    wire sel_io_sysctrl   = !ebus_iorq_n && ebus_a[7:0] == 8'hFB;
-    wire sel_io_cassette  = !ebus_iorq_n && ebus_a[7:0] == 8'hFC;
-    wire sel_io_vsync     = !ebus_iorq_n && ebus_a[7:0] == 8'hFD;
-    wire sel_io_keyb      = !ebus_iorq_n && ebus_a[7:0] == 8'hFF;
+    wire sel_io_video     = cpu_iorq &&  bus_addr[7:4] == 4'hE;
+    wire sel_io_audio_dac = cpu_iorq &&  bus_addr[7:0] == 8'hEC;
+    wire sel_io_bank0     = cpu_iorq &&  bus_addr[7:0] == 8'hF0;
+    wire sel_io_bank1     = cpu_iorq &&  bus_addr[7:0] == 8'hF1;
+    wire sel_io_bank2     = cpu_iorq &&  bus_addr[7:0] == 8'hF2;
+    wire sel_io_bank3     = cpu_iorq &&  bus_addr[7:0] == 8'hF3;
+    wire sel_io_espctrl   = cpu_iorq &&  bus_addr[7:0] == 8'hF4;
+    wire sel_io_espdata   = cpu_iorq &&  bus_addr[7:0] == 8'hF5;
+    wire sel_io_ay8910    = cpu_iorq && (bus_addr[7:0] == 8'hF6 || bus_addr[7:0] == 8'hF7);
+    wire sel_io_ay8910_2  = cpu_iorq && (bus_addr[7:0] == 8'hF8 || bus_addr[7:0] == 8'hF9);
+    wire sel_io_kbbuf     = cpu_iorq &&  bus_addr[7:0] == 8'hFA;
+    wire sel_io_sysctrl   = cpu_iorq &&  bus_addr[7:0] == 8'hFB;
+    wire sel_io_cassette  = cpu_iorq &&  bus_addr[7:0] == 8'hFC;
+    wire sel_io_vsync     = cpu_iorq &&  bus_addr[7:0] == 8'hFD;
+    wire sel_io_keyb      = cpu_iorq &&  bus_addr[7:0] == 8'hFF;
 
     wire sel_internal =
         sel_mem_tram | sel_mem_vram | sel_mem_chram | sel_mem_rom |
@@ -345,9 +339,9 @@ module aqp_top(
         sel_io_espctrl | sel_io_espdata | sel_io_ay8910 | sel_io_ay8910_2 | sel_io_kbbuf | sel_io_sysctrl |
         sel_io_cassette | sel_io_vsync | sel_io_keyb;
 
-    wire sel_mem_ram     = !ebus_mreq_n && !sel_internal && reg_bank_page[5];                       // Page 32-63
+    wire sel_mem_ram = cpu_memrq && !sel_internal && reg_bank_page[5];  // Page 32-63
 
-    assign ebus_ram_we_n  = !(sel_mem_ram && !ebus_wr_n && (!reg_bank_ro || sel_mem_sysram));
+    assign ebus_ram_we_n  = !(sel_mem_ram && cpu_wr && (!reg_bank_ro || sel_mem_sysram));
     assign ebus_ram_ce_n  = !sel_mem_ram;
 
     reg [7:0] rddata;
@@ -373,13 +367,6 @@ module aqp_top(
         if (sel_io_keyb)     rddata = rddata_keyboard;             // IO $FF
     end
 
-    assign ebus_d_oe  = !ebus_rd_n && sel_internal;
-    assign ebus_d_out = rddata;
-
-    wire video_irq;
-
-    assign ebus_int_n_pushpull = video_irq ? 1'b0 : 1'b1;
-
     reg q_beep;
 
     always @(posedge clk or posedge reset)
@@ -392,31 +379,31 @@ module aqp_top(
             q_beep      <= 0;
 
         end else begin
-            if (sel_io_audio_dac && bus_write2) q_audio_dac <= wrdata;
-            if (sel_io_bank0     && bus_write2) q_reg_bank0 <= wrdata;
-            if (sel_io_bank1     && bus_write2) q_reg_bank1 <= wrdata;
-            if (sel_io_bank2     && bus_write2) q_reg_bank2 <= wrdata;
-            if (sel_io_bank3     && bus_write2) q_reg_bank3 <= wrdata;
-            if (sel_io_cassette  && bus_write2) q_beep      <= wrdata[0];
+            if (sel_io_audio_dac && cpu_write) q_audio_dac <= cpu_wrdata;
+            if (sel_io_bank0     && cpu_write) q_reg_bank0 <= cpu_wrdata;
+            if (sel_io_bank1     && cpu_write) q_reg_bank1 <= cpu_wrdata;
+            if (sel_io_bank2     && cpu_write) q_reg_bank2 <= cpu_wrdata;
+            if (sel_io_bank3     && cpu_write) q_reg_bank3 <= cpu_wrdata;
+            if (sel_io_cassette  && cpu_write) q_beep      <= cpu_wrdata[0];
         end
 
-    always @(posedge clk) q_sysctrl_reset_req <= (sel_io_sysctrl && bus_write2 && wrdata[7]);
+    always @(posedge clk) q_sysctrl_reset_req <= (sel_io_sysctrl && cpu_write && cpu_wrdata[7]);
 
     //////////////////////////////////////////////////////////////////////////
     // Boot ROM
     //////////////////////////////////////////////////////////////////////////
     rom rom(
         .clk(clk),
-        .addr(ebus_a[7:0]),
+        .addr(bus_addr[7:0]),
         .rddata(rddata_rom)
     );
 
     //////////////////////////////////////////////////////////////////////////
     // ESP32 UART
     //////////////////////////////////////////////////////////////////////////
-    assign esp_tx_data = sel_io_espctrl ? 9'b100000000 : {1'b0, wrdata};
-    assign esp_tx_wr   = bus_write2 && (sel_io_espdata || (sel_io_espctrl && wrdata[7]));
-    assign esp_rx_rd   = bus_read2  &&  sel_io_espdata;
+    assign esp_tx_data = sel_io_espctrl ? 9'b100000000 : {1'b0, cpu_wrdata};
+    assign esp_tx_wr   = cpu_write && (sel_io_espdata || (sel_io_espctrl && cpu_wrdata[7]));
+    assign esp_rx_rd   = cpu_read  &&  sel_io_espdata;
 
     assign rddata_espctrl = {5'b0, esp_rx_data[8], esp_tx_fifo_full, !esp_rx_empty};
     assign rddata_espdata = esp_rx_data[7:0];
@@ -424,37 +411,39 @@ module aqp_top(
     //////////////////////////////////////////////////////////////////////////
     // Video
     //////////////////////////////////////////////////////////////////////////
-    wire tram_wren     = sel_mem_tram  && bus_write2;
-    wire vram_wren     = sel_mem_vram  && bus_write2;
-    wire chram_wren    = sel_mem_chram && bus_write2;
-    wire io_video_wren = sel_io_video  && bus_write2;
+    wire tram_wren     = sel_mem_tram  && cpu_write;
+    wire vram_wren     = sel_mem_vram  && cpu_write;
+    wire chram_wren    = sel_mem_chram && cpu_write;
+    wire io_video_wren = sel_io_video  && cpu_write;
+
+    wire video_irq;
 
     video video(
         .clk(clk),
         .reset(reset),
 
-        .vclk(video_clk),
+        .vclk(clk),
         .video_mode(1'b1),
 
-        .io_addr(ebus_a[3:0]),
+        .io_addr(bus_addr[3:0]),
         .io_rddata(rddata_io_video),
-        .io_wrdata(wrdata),
+        .io_wrdata(cpu_wrdata),
         .io_wren(io_video_wren),
         .irq(video_irq),
 
-        .tram_addr(ebus_a[10:0]),
+        .tram_addr(bus_addr[10:0]),
         .tram_rddata(rddata_tram),
-        .tram_wrdata(wrdata),
+        .tram_wrdata(cpu_wrdata),
         .tram_wren(tram_wren),
 
-        .chram_addr(ebus_a[10:0]),
+        .chram_addr(bus_addr[10:0]),
         .chram_rddata(rddata_chram),
-        .chram_wrdata(wrdata),
+        .chram_wrdata(cpu_wrdata),
         .chram_wren(chram_wren),
 
-        .vram_addr(ebus_a[13:0]),
+        .vram_addr(bus_addr[13:0]),
         .vram_rddata(rddata_vram),
-        .vram_wrdata(wrdata),
+        .vram_wrdata(cpu_wrdata),
         .vram_wren(vram_wren),
 
         .video_r(video_r),
@@ -519,21 +508,21 @@ module aqp_top(
     // Keyboard
     //////////////////////////////////////////////////////////////////////////
     assign rddata_keyboard =
-        (ebus_a[15] ? 8'hFF : keys[63:56]) &
-        (ebus_a[14] ? 8'hFF : keys[55:48]) &
-        (ebus_a[13] ? 8'hFF : keys[47:40]) &
-        (ebus_a[12] ? 8'hFF : keys[39:32]) &
-        (ebus_a[11] ? 8'hFF : keys[31:24]) &
-        (ebus_a[10] ? 8'hFF : keys[23:16]) &
-        (ebus_a[ 9] ? 8'hFF : keys[15: 8]) &
-        (ebus_a[ 8] ? 8'hFF : keys[ 7: 0]);
+        (cpu_addr[15] ? 8'hFF : keys[63:56]) &
+        (cpu_addr[14] ? 8'hFF : keys[55:48]) &
+        (cpu_addr[13] ? 8'hFF : keys[47:40]) &
+        (cpu_addr[12] ? 8'hFF : keys[39:32]) &
+        (cpu_addr[11] ? 8'hFF : keys[31:24]) &
+        (cpu_addr[10] ? 8'hFF : keys[23:16]) &
+        (cpu_addr[ 9] ? 8'hFF : keys[15: 8]) &
+        (cpu_addr[ 8] ? 8'hFF : keys[ 7: 0]);
 
     //////////////////////////////////////////////////////////////////////////
     // Keyboard buffer
     //////////////////////////////////////////////////////////////////////////
     wire [7:0] kbbuf_rddata;
-    wire       kbbuf_rden = sel_io_kbbuf && bus_read2;
-    wire       kbbuf_rst  = (sel_io_kbbuf && bus_write2) || reset;
+    wire       kbbuf_rden = (sel_io_kbbuf && cpu_read);
+    wire       kbbuf_rst  = (sel_io_kbbuf && cpu_write) || reset;
 
     kbbuf kbbuf(
         .clk(clk),
@@ -549,8 +538,8 @@ module aqp_top(
     //////////////////////////////////////////////////////////////////////////
     // AY-3-8910
     //////////////////////////////////////////////////////////////////////////
-    wire       ay8910_wren   = sel_io_ay8910   && bus_write2;
-    wire       ay8910_2_wren = sel_io_ay8910_2 && bus_write2;
+    wire       ay8910_wren   = sel_io_ay8910   && cpu_write;
+    wire       ay8910_2_wren = sel_io_ay8910_2 && cpu_write;
     wire [9:0] ay8910_ch_a,   ay8910_ch_b,   ay8910_ch_c;
     wire [9:0] ay8910_2_ch_a, ay8910_2_ch_b, ay8910_2_ch_c;
 
@@ -565,9 +554,9 @@ module aqp_top(
         .clk(clk),
         .reset(reset),
 
-        .a0(ebus_a[0]),
+        .a0(bus_addr[0]),
         .wren(ay8910_wren),
-        .wrdata(wrdata),
+        .wrdata(cpu_wrdata),
         .rddata(rddata_ay8910),
 
         .ioa_in_data(hctrl1_data),
@@ -586,9 +575,9 @@ module aqp_top(
         .clk(clk),
         .reset(reset),
 
-        .a0(ebus_a[0]),
+        .a0(bus_addr[0]),
         .wren(ay8910_2_wren),
-        .wrdata(wrdata),
+        .wrdata(cpu_wrdata),
         .rddata(rddata_ay8910_2),
 
         .ioa_in_data(8'h00),
@@ -622,7 +611,7 @@ module aqp_top(
     //////////////////////////////////////////////////////////////////////////
     aqp_overlay overlay(
         // Core video interface
-        .video_clk(video_clk),
+        .video_clk(clk),
         .video_r(video_r),
         .video_g(video_g),
         .video_b(video_b),
@@ -657,55 +646,41 @@ module aqp_top(
     );
 
     //////////////////////////////////////////////////////////////////////////
-    // T80 core
+    // T80 CPU core
     //////////////////////////////////////////////////////////////////////////
-    wire [15:0] t80_addr;        // should tristate when busak_n == 0
-    wire  [7:0] t80_dq_out;
-    wire  [7:0] t80_dq_in = ebus_d;
-    wire        t80_dq_oe;
-
-    wire        t80_mreq_n;      // should tristate when busak_n == 0
-    wire        t80_iorq_n;      // should tristate when busak_n == 0
-    wire        t80_rd_n;        // should tristate when busak_n == 0
-    wire        t80_wr_n;        // should tristate when busak_n == 0
-
-    wire        t80_busak_n;
-
-    wire        t80_int_n = ebus_int_n_pushpull;
+    wire cpu_wait = 0;
+    wire cpu_irq  = video_irq;
 
     aqp_t80 aqp_t80(
         .clk(clk),
         .reset(reset),
 
-        .addr(t80_addr),        // should tristate when busak_n == 0
-        .dq_out(t80_dq_out),
-        .dq_in(t80_dq_in),
+        .bus_addr(cpu_addr),
+        .bus_wrdata(cpu_wrdata),
+        .bus_rddata(cpu_rddata),
         .dq_oe(t80_dq_oe),
 
-        .mreq_n(t80_mreq_n),    // should tristate when busak_n == 0
-        .iorq_n(t80_iorq_n),    // should tristate when busak_n == 0
-        .rd_n(t80_rd_n),        // should tristate when busak_n == 0
-        .wr_n(t80_wr_n),        // should tristate when busak_n == 0
-        .wait_n(1'b1),
+        .bus_memrq(cpu_memrq),
+        .bus_iorq(cpu_iorq),
+        .bus_rd(cpu_rd),
+        .bus_wr(cpu_wr),
+        .bus_wait(cpu_wait),
 
-        .busrq_n(1'b1),
-        .busak_n(t80_busak_n),
-
-        .int_n(t80_int_n),
-        .nmi_n(1'b1)
+        .irq(cpu_irq)
     );
 
     //////////////////////////////////////////////////////////////////////////
     // Bus logic
     //////////////////////////////////////////////////////////////////////////
-    assign ebus_a      = t80_addr;
-    assign ebus_rd_n   = t80_rd_n;
-    assign ebus_wr_n   = t80_wr_n;
-    assign ebus_mreq_n = t80_mreq_n;
-    assign ebus_iorq_n = t80_iorq_n;
+
+    wire  [7:0] ebus_d_out = rddata;
+    wire        ebus_d_oe  = !ebus_rd_n && sel_internal;
+
+    assign ebus_rd_n   = !cpu_rd;
+    assign ebus_wr_n   = !cpu_wr;
 
     assign ebus_d =
-        (t80_dq_oe ? t80_dq_out :
+        (t80_dq_oe ? cpu_wrdata :
         (ebus_d_oe ? ebus_d_out :
          8'bZ));
 

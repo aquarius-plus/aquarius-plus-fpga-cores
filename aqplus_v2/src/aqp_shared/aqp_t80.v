@@ -5,22 +5,18 @@ module aqp_t80(
     input  wire        clk,
     input  wire        reset,
 
-    output wire [15:0] addr,        // should tristate when busak_n == 0
-    output wire  [7:0] dq_out,
-    input  wire  [7:0] dq_in,
+    output wire [15:0] bus_addr,
+    output wire  [7:0] bus_wrdata,
+    input  wire  [7:0] bus_rddata,
     output wire        dq_oe,
 
-    output wire        mreq_n,      // should tristate when busak_n == 0
-    output wire        iorq_n,      // should tristate when busak_n == 0
-    output wire        rd_n,        // should tristate when busak_n == 0
-    output wire        wr_n,        // should tristate when busak_n == 0
-    input  wire        wait_n,
+    output wire        bus_memrq,
+    output wire        bus_iorq,
+    output wire        bus_rd,
+    output wire        bus_wr,
+    input  wire        bus_wait,
 
-    input  wire        busrq_n,
-    output wire        busak_n,
-
-    input  wire        int_n,
-    input  wire        nmi_n
+    input  wire        irq
 );
 
     reg q_phi;
@@ -56,15 +52,16 @@ module aqp_t80(
     wire         t80_inte;
     wire         t80_stop;
     wire [211:0] t80_reg;
+    wire         t80_busak_n;
 
     wire   mreq_rw = q_mreq   && (Req_Inhibit || MReq_Inhibit);  // added MREQ timing control
     wire   iorq_rw = t80_iorq && !(IORQ_t1 || IORQ_t2);          // added IORQ generation timing control
 
-    assign mreq_n  = !mreq_rw;
-    assign iorq_n  = !((IORQ_int && !IORQ_int_inhibit[2]) || iorq_rw);
-    assign rd_n    = !(q_read && (mreq_rw || iorq_rw));
-    assign wr_n    = !(t80_write && ((WR_t2 && mreq_rw) || iorq_rw));
-    assign dq_oe   = busak_n && t80_write;
+    assign bus_memrq = mreq_rw;
+    assign bus_iorq  = ((IORQ_int && !IORQ_int_inhibit[2]) || iorq_rw);
+    assign bus_rd    = (q_read && (mreq_rw || iorq_rw));
+    assign bus_wr    = (t80_write && ((WR_t2 && mreq_rw) || iorq_rw));
+    assign dq_oe     = t80_write;
 
     T80 #(
         .Mode(0),
@@ -73,21 +70,21 @@ module aqp_t80(
         .RESET_n(!reset),
         .CLK_n(clk),
         .CEN(phi_rising),
-        .WAIT_n(wait_n),
-        .INT_n(int_n),
-        .NMI_n(nmi_n),
-        .BUSRQ_n(busrq_n),
+        .WAIT_n(!bus_wait),
+        .INT_n(!irq),
+        .NMI_n(1'b1),
+        .BUSRQ_n(1'b1),
         .M1_n(t80_m1_n),
         .IORQ(t80_iorq),
         .NoRead(t80_noread),
         .Write(t80_write),
         .RFSH_n(t80_rfsh_n),
         .HALT_n(t80_halt_n),
-        .BUSAK_n(busak_n),
-        .A(addr),
-        .DInst(dq_in),
+        .BUSAK_n(t80_busak_n),
+        .A(bus_addr),
+        .DInst(bus_rddata),
         .DI(q_t80_di),
-        .DO(dq_out),
+        .DO(bus_wrdata),
         .MC(t80_mc),
         .TS(t80_ts),
         .IntCycle_n(t80_int_cycle_n),
@@ -100,7 +97,7 @@ module aqp_t80(
         .DIR(212'b0)
     );
 
-    always @(posedge clk) if (phi_falling && t80_ts == 3'd3 && busak_n) q_t80_di <= dq_in;
+    always @(posedge clk) if (phi_falling && t80_ts == 3'd3) q_t80_di <= bus_rddata;
 
     // 30/10/19 Charlie Ingley - Generate WR_t2 to correct MREQ/WR timing
     always @(posedge clk or posedge reset)
