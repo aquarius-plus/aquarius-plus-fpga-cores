@@ -87,7 +87,6 @@ module aqp_top(
     // System controller (reset and clock generation)
     //////////////////////////////////////////////////////////////////////////
     wire reset_req;
-    wire ebus_phi_clken;
     wire reset;
 
     aqp_sysctrl sysctrl(
@@ -95,7 +94,6 @@ module aqp_top(
         .reset_req(reset_req),
 
         .ebus_phi(ebus_phi),
-        .ebus_phi_clken(ebus_phi_clken),
         .reset(reset));
 
     //////////////////////////////////////////////////////////////////////////
@@ -309,16 +307,7 @@ module aqp_top(
     wire       reg_bank_ro      = reg_bank[7];
     wire       reg_bank_overlay = reg_bank[6];
 
-    // Register data from external bus
-    // reg [7:0] wrdata;
-    // always @(posedge clk) if (!ebus_wr_n) wrdata <= ebus_d_in;
-
     wire [7:0] wrdata = ebus_d_in;
-
-    // reg [2:0] q_ebus_wr_n;
-    // reg [2:0] q_ebus_rd_n;
-    // always @(posedge clk) q_ebus_wr_n <= {q_ebus_wr_n[1:0], ebus_wr_n};
-    // always @(posedge clk) q_ebus_rd_n <= {q_ebus_rd_n[1:0], ebus_rd_n};
 
     wire bus_read2  = !ebus_rd_n && ebus_stb;    //  q_ebus_rd_n[2:1] == 2'b10;
     wire bus_write2 = !ebus_wr_n && ebus_stb;    //  q_ebus_wr_n[2:1] == 2'b10;
@@ -687,8 +676,6 @@ module aqp_top(
     aqp_t80 aqp_t80(
         .clk(clk),
         .reset(reset),
-        .clken(ebus_phi_clken),
-        .phi(ebus_phi),
 
         .addr(t80_addr),        // should tristate when busak_n == 0
         .dq_out(t80_dq_out),

@@ -6,7 +6,6 @@ module aqp_sysctrl(
     input  wire reset_req,
 
     output wire ebus_phi,
-    output reg  ebus_phi_clken,
     output wire reset);
 
     //////////////////////////////////////////////////////////////////////////
@@ -72,15 +71,11 @@ module aqp_sysctrl(
     assign ebus_phi = q2_phi;
     
     always @(posedge sysclk) begin
-        ebus_phi_clken <= 1'b0;
         q2_phi <= q_phi;
 
         if (q_phi_div == 2'd3) begin
             q_phi     <= !q_phi;
             q_phi_div <= 2'd0;
-
-            ebus_phi_clken <= 1'b1;
-
         end else begin
             q_phi_div <= q_phi_div + 2'd1;
         end

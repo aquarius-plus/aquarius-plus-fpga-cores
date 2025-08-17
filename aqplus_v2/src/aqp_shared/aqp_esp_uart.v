@@ -123,15 +123,13 @@ module aqp_esp_uart(
     wire       rxfifo_almost_full;
 
     assign esp_rts = rxfifo_almost_full;
-    wire framing_error;
 
     aqp_esp_uart_rx esp_uart_rx(
         .clk(clk),
         .reset(reset),
         .uart_rxd(esp_rx),
         .rx_data(rx_data),
-        .rx_valid(rx_valid),
-        .framing_error(framing_error));
+        .rx_valid(rx_valid));
 
     reg [8:0] q_rxfifo_wrdata;
     reg       q_rxfifo_wr;

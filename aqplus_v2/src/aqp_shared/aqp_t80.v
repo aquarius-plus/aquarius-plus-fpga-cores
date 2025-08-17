@@ -4,8 +4,6 @@
 module aqp_t80(
     input  wire        clk,
     input  wire        reset,
-    input  wire        clken,
-    input  wire        phi,
 
     output wire [15:0] addr,        // should tristate when busak_n == 0
     output wire  [7:0] dq_out,
@@ -26,10 +24,12 @@ module aqp_t80(
 );
 
     reg q_phi;
-    always @(posedge clk) q_phi <= phi;
+    always @(posedge clk or posedge reset)
+        if (reset) q_phi <= 0;
+        else       q_phi <= !q_phi;
 
-    wire   phi_rising  = clken && !phi;
-    wire   phi_falling = clken &&  phi;
+    wire   phi_rising  = !q_phi;
+    wire   phi_falling =  q_phi;
 
     reg        q_mreq;
     reg        q_read;
