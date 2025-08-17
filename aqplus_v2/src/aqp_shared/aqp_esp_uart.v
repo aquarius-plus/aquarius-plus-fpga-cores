@@ -42,7 +42,9 @@ module aqp_esp_uart(
     reg  [1:0] q_tx_state;
     wire       tx_valid = (q_tx_state == 2'b00) && !q_tx_start && !q_cts[1] && !txfifo_empty && !tx_busy;
 
-    aqp_esp_uart_tx_fifo tx_fifo(
+    wire       txfifo_almost_full; // unused
+
+    aqp_esp_uart_fifo tx_fifo(
 	    .clk(clk),
         .reset(reset),
 
@@ -53,7 +55,8 @@ module aqp_esp_uart(
     	.rd_en(tx_valid),
 
     	.empty(txfifo_empty),
-    	.full(txfifo_full));
+    	.full(txfifo_full),
+        .almost_full(txfifo_almost_full));
 
     // State machine to send escaped data
     always @(posedge clk or posedge reset) begin
@@ -120,13 +123,15 @@ module aqp_esp_uart(
     wire       rxfifo_almost_full;
 
     assign esp_rts = rxfifo_almost_full;
+    wire framing_error;
 
     aqp_esp_uart_rx esp_uart_rx(
         .clk(clk),
         .reset(reset),
         .uart_rxd(esp_rx),
         .rx_data(rx_data),
-        .rx_valid(rx_valid));
+        .rx_valid(rx_valid),
+        .framing_error(framing_error));
 
     reg [8:0] q_rxfifo_wrdata;
     reg       q_rxfifo_wr;
@@ -158,7 +163,7 @@ module aqp_esp_uart(
         end
     end
 
-    aqp_esp_uart_rx_fifo rx_fifo(
+    aqp_esp_uart_fifo rx_fifo(
 	    .clk(clk),
         .reset(reset),
 

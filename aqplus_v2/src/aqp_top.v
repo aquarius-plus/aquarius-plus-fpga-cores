@@ -5,7 +5,7 @@ module aqp_top(
     input  wire        sysclk,          // 14.31818MHz
 
     // Z80 bus interface
-    inout  wire        ebus_reset_n,
+    output wire        ebus_reset_n,
     output wire        ebus_phi,        // 3.579545MHz
     output wire [15:0] ebus_a,
     inout  wire  [7:0] ebus_d,
@@ -65,10 +65,6 @@ module aqp_top(
     assign printer_out    = 1'b0;
     assign ebus_cart_ce_n = 1'b1;
     assign ebus_reset_n   = 1'bZ;
-    // assign ebus_wr_n      = 1'b1;
-    assign ebus_a[15:14]  = 2'bZ;
-    // assign ebus_mreq_n    = 1'b1;
-    // assign ebus_iorq_n    = 1'b1;
     assign ebus_int_n     = 1'bZ;
     assign ebus_busreq_n  = 1'b0;
 
@@ -78,11 +74,14 @@ module aqp_top(
     //////////////////////////////////////////////////////////////////////////
     // Clock synthesizer
     //////////////////////////////////////////////////////////////////////////
-    wire clk;
+    wire clk, video_clk;
+
     aqp_clkctrl clkctrl(
-        .clk_in(sysclk),        // 14.31818MHz
-        .clk_out(clk)           // 25.175MHz
+        .clk_in(sysclk),    // 14.31818MHz
+        .clk_out(clk)       // 25.175MHz
     );
+
+    assign video_clk = clk;
 
     //////////////////////////////////////////////////////////////////////////
     // System controller (reset and clock generation)
@@ -346,6 +345,7 @@ module aqp_top(
     wire sel_io_ay8910_2  = !ebus_iorq_n && (ebus_a[7:0] == 8'hF8 || ebus_a[7:0] == 8'hF9);
     wire sel_io_kbbuf     = !ebus_iorq_n && ebus_a[7:0] == 8'hFA;
     wire sel_io_sysctrl   = !ebus_iorq_n && ebus_a[7:0] == 8'hFB;
+    wire sel_io_cassette  = !ebus_iorq_n && ebus_a[7:0] == 8'hFC;
     wire sel_io_vsync     = !ebus_iorq_n && ebus_a[7:0] == 8'hFD;
     wire sel_io_keyb      = !ebus_iorq_n && ebus_a[7:0] == 8'hFF;
 
@@ -354,7 +354,7 @@ module aqp_top(
         sel_io_video |
         sel_io_bank0 | sel_io_bank1 | sel_io_bank2 | sel_io_bank3 |
         sel_io_espctrl | sel_io_espdata | sel_io_ay8910 | sel_io_ay8910_2 | sel_io_kbbuf | sel_io_sysctrl |
-        sel_io_vsync | sel_io_keyb;
+        sel_io_cassette | sel_io_vsync | sel_io_keyb;
 
     wire sel_mem_ram     = !ebus_mreq_n && !sel_internal && reg_bank_page[5];                       // Page 32-63
 
@@ -391,20 +391,24 @@ module aqp_top(
 
     assign ebus_int_n_pushpull = video_irq ? 1'b0 : 1'b1;
 
+    reg q_beep;
+
     always @(posedge clk or posedge reset)
         if (reset) begin
-            q_audio_dac               <= 8'b0;
-            q_reg_bank0               <= {2'b00, 6'd0};
-            q_reg_bank1               <= {2'b00, 6'd0};
-            q_reg_bank2               <= {2'b00, 6'd0};
-            q_reg_bank3               <= {2'b00, 6'd0};
+            q_audio_dac <= 8'b0;
+            q_reg_bank0 <= {2'b00, 6'd0};
+            q_reg_bank1 <= {2'b00, 6'd0};
+            q_reg_bank2 <= {2'b00, 6'd0};
+            q_reg_bank3 <= {2'b00, 6'd0};
+            q_beep      <= 0;
 
         end else begin
-            if (sel_io_audio_dac     && bus_write2) q_audio_dac     <= wrdata;
-            if (sel_io_bank0         && bus_write2) q_reg_bank0     <= wrdata;
-            if (sel_io_bank1         && bus_write2) q_reg_bank1     <= wrdata;
-            if (sel_io_bank2         && bus_write2) q_reg_bank2     <= wrdata;
-            if (sel_io_bank3         && bus_write2) q_reg_bank3     <= wrdata;
+            if (sel_io_audio_dac && bus_write2) q_audio_dac <= wrdata;
+            if (sel_io_bank0     && bus_write2) q_reg_bank0 <= wrdata;
+            if (sel_io_bank1     && bus_write2) q_reg_bank1 <= wrdata;
+            if (sel_io_bank2     && bus_write2) q_reg_bank2 <= wrdata;
+            if (sel_io_bank3     && bus_write2) q_reg_bank3 <= wrdata;
+            if (sel_io_cassette  && bus_write2) q_beep      <= wrdata[0];
         end
 
     always @(posedge clk) q_sysctrl_reset_req <= (sel_io_sysctrl && bus_write2 && wrdata[7]);
@@ -440,7 +444,7 @@ module aqp_top(
         .clk(clk),
         .reset(reset),
 
-        .vclk(clk),
+        .vclk(video_clk),
         .video_mode(1'b1),
 
         .io_addr(ebus_a[3:0]),
@@ -561,6 +565,8 @@ module aqp_top(
     wire [9:0] ay8910_ch_a,   ay8910_ch_b,   ay8910_ch_c;
     wire [9:0] ay8910_2_ch_a, ay8910_2_ch_b, ay8910_2_ch_c;
 
+    wire [9:0] beep = q_beep ? 10'd1023 : 10'd0;
+
     wire [7:0] ay8190_2_ioa_out_data;
     wire       ay8190_2_ioa_oe;
     wire [7:0] ay8190_2_iob_out_data;
@@ -612,12 +618,12 @@ module aqp_top(
     wire [13:0] mix_l =
         {2'b0, ay8910_ch_a,   1'b0} + {2'b0, ay8910_ch_b,   1'b0} + {4'b0, ay8910_ch_c  } +
         {2'b0, ay8910_2_ch_a, 1'b0} + {2'b0, ay8910_2_ch_b, 1'b0} + {4'b0, ay8910_2_ch_c} +
-        {2'b0, q_audio_dac,   4'b0};
+        {2'b0, q_audio_dac,   4'b0} + {4'b0, beep};
 
     wire [13:0] mix_r =
         {4'b0, ay8910_ch_a  }     + {2'b0, ay8910_ch_b,   1'b0} + {2'b0, ay8910_ch_c,   1'b0} +
         {4'b0, ay8910_2_ch_a}     + {2'b0, ay8910_2_ch_b, 1'b0} + {2'b0, ay8910_2_ch_c, 1'b0} +
-        {2'b0, q_audio_dac, 4'b0};
+        {2'b0, q_audio_dac, 4'b0} + {4'b0, beep};
 
     always @(posedge clk) common_audio_l <= {~mix_l[13], mix_l[12:0], 2'b0};
     always @(posedge clk) common_audio_r <= {~mix_r[13], mix_r[12:0], 2'b0};
@@ -627,7 +633,7 @@ module aqp_top(
     //////////////////////////////////////////////////////////////////////////
     aqp_overlay overlay(
         // Core video interface
-        .video_clk(clk),
+        .video_clk(video_clk),
         .video_r(video_r),
         .video_g(video_g),
         .video_b(video_b),
@@ -673,12 +679,10 @@ module aqp_top(
     wire        t80_iorq_n;      // should tristate when busak_n == 0
     wire        t80_rd_n;        // should tristate when busak_n == 0
     wire        t80_wr_n;        // should tristate when busak_n == 0
-    wire        t80_wait_n = 1'b1;
 
     wire        t80_busak_n;
 
     wire        t80_int_n = ebus_int_n_pushpull;
-    wire        t80_nmi_n = 1'b1;
 
     aqp_t80 aqp_t80(
         .clk(clk),
@@ -701,7 +705,7 @@ module aqp_top(
         .busak_n(t80_busak_n),
 
         .int_n(t80_int_n),
-        .nmi_n(t80_nmi_n)
+        .nmi_n(1'b1)
     );
 
     //////////////////////////////////////////////////////////////////////////
