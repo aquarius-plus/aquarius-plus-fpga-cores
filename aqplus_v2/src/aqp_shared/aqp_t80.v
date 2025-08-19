@@ -31,11 +31,11 @@ module aqp_t80(
     reg        q_read;
     reg        MReq_Inhibit;
     reg        Req_Inhibit;
-    reg        IORQ_t1;            // 30/10/19 Charlie Ingley - add IORQ control
-    reg        IORQ_t2;            // 30/10/19 Charlie Ingley - add IORQ control
-    reg        IORQ_int;           // 30/10/19 Charlie Ingley - add IORQ interrupt control
+    reg        IORQ_t1;
+    reg        IORQ_t2;
+    reg        IORQ_int;
     reg  [2:0] IORQ_int_inhibit;
-    reg        WR_t2;              // 30/10/19 Charlie Ingley - add WR control
+    reg        WR_t2;
 
     wire       t80_iorq;
     wire       t80_noread;
@@ -54,8 +54,8 @@ module aqp_t80(
     wire         t80_stop;
     wire [211:0] t80_reg;
 
-    wire   mreq_rw = q_mreq   && (Req_Inhibit || MReq_Inhibit);  // added MREQ timing control
-    wire   iorq_rw = t80_iorq && !(IORQ_t1 || IORQ_t2);          // added IORQ generation timing control
+    wire   mreq_rw = q_mreq   && (Req_Inhibit || MReq_Inhibit);
+    wire   iorq_rw = t80_iorq && !(IORQ_t1 || IORQ_t2);
 
     assign bus_memrq = mreq_rw;
     assign bus_iorq  = ((IORQ_int && !IORQ_int_inhibit[2]) || iorq_rw);
@@ -99,27 +99,23 @@ module aqp_t80(
 
     always @(posedge clk) if (phi_falling && t80_ts == 3'd3) q_t80_di <= bus_rddata;
 
-    // 30/10/19 Charlie Ingley - Generate WR_t2 to correct MREQ/WR timing
     always @(posedge clk or posedge reset)
         if (reset) begin
             WR_t2 <= 1'b0;
 
         end else if (phi_falling) begin
-            if (t80_ts == 3'd2 && t80_mc != 3'd1) WR_t2 <= t80_write;  // WR starts on falling edge of T2 for MREQ
-            if (t80_ts == 3'd3)                   WR_t2 <= 1'b0;       // end WR
+            if (t80_ts == 3'd2 && t80_mc != 3'd1) WR_t2 <= t80_write;
+            if (t80_ts == 3'd3)                   WR_t2 <= 1'b0;
         end
 
-    // Generate Req_Inhibit
     always @(posedge clk or posedge reset)
-        if (reset)           Req_Inhibit <= 1'b1;                                // Charlie Ingley 30/10/19 - changed Req_Inhibit polarity
-        else if (phi_rising) Req_Inhibit <= !(t80_mc == 3'd1 && t80_ts == 3'd2); // by Fabio Belavenuto - fix behavior of Wait_n
+        if (reset)           Req_Inhibit <= 1'b1;
+        else if (phi_rising) Req_Inhibit <= !(t80_mc == 3'd1 && t80_ts == 3'd2);
 
-    // Generate MReq_Inhibit
     always @(posedge clk or posedge reset)
-        if (reset)            MReq_Inhibit <= 1'b1;                                // Charlie Ingley 30/10/19 - changed Req_Inhibit polarity
-        else if (phi_falling) MReq_Inhibit <= !(t80_mc == 3'd1 && t80_ts == 3'd2); // by Fabio Belavenuto - fix behavior of Wait_n
+        if (reset)            MReq_Inhibit <= 1'b1;
+        else if (phi_falling) MReq_Inhibit <= !(t80_mc == 3'd1 && t80_ts == 3'd2);
 
-    // Generate q_read for MREQ
     always @(posedge clk or posedge reset)
         if (reset) begin
             q_read <= 1'b0;
@@ -150,7 +146,6 @@ module aqp_t80(
             end
         end
 
-    // 30/10/19 Charlie Ingley - Generate IORQ_int for IORQ interrupt timing control
     always @(posedge clk or posedge reset)
         if (reset) begin
             IORQ_int <= 1'b0;
@@ -171,7 +166,6 @@ module aqp_t80(
             end
         end
 
-    // 30/10/19 Charlie Ingley - Generate IORQ_t1 for IORQ timing control
     always @(posedge clk or posedge reset)
         if (reset) begin
             IORQ_t1 <= 1'b1;
@@ -180,7 +174,6 @@ module aqp_t80(
             if (t80_ts == 3'd3) IORQ_t1 <= 1'b1;
         end
 
-    // 30/10/19 Charlie Ingley - Generate IORQ_t2 for IORQ timing control
     always @(posedge clk or posedge reset)
         if (reset)           IORQ_t2 <= 1'b1;
         else if (phi_rising) IORQ_t2 <= IORQ_t1;

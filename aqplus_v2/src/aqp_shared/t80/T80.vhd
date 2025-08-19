@@ -6,15 +6,7 @@ use work.T80_Pack.all;
 
 entity T80 is
     generic(
-        Mode   : integer := 0;  -- 0 => Z80, 1 => Fast Z80, 2 => 8080, 3 => GB
-        Flag_C : integer := 0;
-        Flag_N : integer := 1;
-        Flag_P : integer := 2;
-        Flag_X : integer := 3;
-        Flag_H : integer := 4;
-        Flag_Y : integer := 5;
-        Flag_Z : integer := 6;
-        Flag_S : integer := 7
+        Mode   : integer := 0  -- 0 => Z80, 1 => Fast Z80
     );
     port(
         RESET_n    : in  std_logic;
@@ -195,15 +187,7 @@ begin
 
     mcode : T80_MCode
         generic map(
-            Mode   => Mode,
-            Flag_C => Flag_C,
-            Flag_N => Flag_N,
-            Flag_P => Flag_P,
-            Flag_X => Flag_X,
-            Flag_H => Flag_H,
-            Flag_Y => Flag_Y,
-            Flag_Z => Flag_Z,
-            Flag_S => Flag_S)
+            Mode   => Mode)
         port map(
             IR          => IR,
             ISet        => ISet,
@@ -270,15 +254,6 @@ begin
             XYbit_undoc => XYbit_undoc);
 
     alu : T80_ALU
-        generic map(
-            Flag_C => Flag_C,
-            Flag_N => Flag_N,
-            Flag_P => Flag_P,
-            Flag_X => Flag_X,
-            Flag_H => Flag_H,
-            Flag_Y => Flag_Y,
-            Flag_Z => Flag_Z,
-            Flag_S => Flag_S)
         port map(
             Arith16 => Arith16_r,
             Z16     => Z16_r,
@@ -328,11 +303,6 @@ begin
 
             ACC <= (others => '1');
             F <= (others => '1');
-            if Mode = 3 then
-                ACC <= (others => '0');
-                F <= "11110000";
-            end if;
-
             Ap <= (others => '1');
             Fp <= (others => '1');
             I <= (others => '0');
@@ -389,9 +359,7 @@ begin
                     F(Flag_C) <= temp_c(8);
                 end if;
 
-                if Mode = 3 then
-                    IStatus <= "10";
-                elsif IMode /= "11" then
+                if IMode /= "11" then
                     IStatus <= IMode;
                 end if;
 
@@ -407,11 +375,9 @@ begin
                 -- MCycle = 1 and TState = 1, 2, or 3
 
                     if TState = 2 and Wait_n = '1' then
-                        if Mode < 2 then
-                            A(7 downto 0) <= std_logic_vector(R);
-                            A(15 downto 8) <= I;
-                            R(6 downto 0) <= R(6 downto 0) + 1;
-                        end if;
+                        A(7 downto 0) <= std_logic_vector(R);
+                        A(15 downto 8) <= I;
+                        R(6 downto 0) <= R(6 downto 0) + 1;
 
                         if Jump = '0' and Call = '0' and NMICycle = '0' and IntCycle = '0' and not (Halt_FF = '1' or Halt = '1') then
                             PC <= PC + 1;
@@ -425,7 +391,7 @@ begin
                             IR <= DInst;
                         end if;
 
-                        if Mode <= 1 and IntCycle = '1' and IStatus = "10" then
+                        if IntCycle = '1' and IStatus = "10" then
                             -- IM2 vector address low byte from bus
                             WZ(7 downto 0) <= DInst;
                         end if;
@@ -477,7 +443,7 @@ begin
                         elsif MCycle = MCycles and NMICycle = '1' then
                             A <= "0000000001100110";
                             PC <= "0000000001100110";
-                        elsif ((Mode /= 3 and MCycle = "011") or (Mode = 3 and MCycle = "100"))
+                        elsif (MCycle = "011")
                             and IntCycle = '1' and IStatus = "10" then
                             A(15 downto 8) <= I;
                             A(7 downto 0) <= WZ(7 downto 0);
@@ -496,33 +462,19 @@ begin
                                     end if;
                                 end if;
                             when aIOA =>
-                                if Mode = 3 then
-                                    -- Memory map I/O on GBZ80
-                                    A(15 downto 8) <= (others => '1');
-                                elsif Mode = 2 then
-                                    -- Duplicate I/O address on 8080
-                                    A(15 downto 8) <= DI_Reg;
-                                else
-                                    A(15 downto 8) <= ACC;
-                                end if;
+                                A(15 downto 8) <= ACC;
                                 A(7 downto 0) <= DI_Reg;
                                 WZ <= (ACC & DI_Reg) + "1";
                             when aSP =>
                                 A <= std_logic_vector(SP);
                             when aBC =>
-                                if Mode = 3 and IORQ_i = '1' then
-                                    -- Memory map I/O on GBZ80
-                                    A(15 downto 8) <= (others => '1');
-                                    A(7 downto 0) <= RegBusC(7 downto 0);
-                                else
-                                    A <= RegBusC;
-                                    if SetWZ = "01" then
-                                        WZ <= RegBusC + "1";
-                                    end if;
-                                    if SetWZ = "10" then
-                                        WZ(7 downto 0) <= RegBusC(7 downto 0) + "1";
-                                        WZ(15 downto 8) <= ACC;
-                                    end if;
+                                A <= RegBusC;
+                                if SetWZ = "01" then
+                                    WZ <= RegBusC + "1";
+                                end if;
+                                if SetWZ = "10" then
+                                    WZ(7 downto 0) <= RegBusC(7 downto 0) + "1";
+                                    WZ(15 downto 8) <= ACC;
                                 end if;
                             when aDE =>
                                 A <= RegBusC;
@@ -545,7 +497,7 @@ begin
                                 if ISet = "10" and IR(7 downto 4) = x"B" and IR(2 downto 1) = "01" and MCycle = 3 and No_BTR = '0' then
                                     -- INIR, INDR, OTIR, OTDR
                                     A <= RegBusA_r;
-                                elsif No_PC = '0' or No_BTR = '1' or (I_DJNZ = '1' and IncDecZ = '1') or Mode > 1 then
+                                elsif No_PC = '0' or No_BTR = '1' or (I_DJNZ = '1' and IncDecZ = '1') then
                                     A <= std_logic_vector(PC);
                                 end if;
                             end case;
@@ -558,50 +510,29 @@ begin
                         Save_ALU_r <= Save_ALU;
                         ALU_Op_r <= ALU_Op;
 
-                        if Mode = 3 then
-                            if I_CPL = '1' then
-                                -- CPL
-                                ACC <= not ACC;
-                                F(Flag_H) <= '1';
-                                F(Flag_N) <= '1';
-                            end if;
-                            if I_CCF = '1' then
-                                -- CCF
-                                F(Flag_C) <= not F(Flag_C);
-                                F(Flag_H) <= '0';
-                                F(Flag_N) <= '0';
-                            end if;
-                            if I_SCF = '1' then
-                                -- SCF
-                                F(Flag_C) <= '1';
-                                F(Flag_H) <= '0';
-                                F(Flag_N) <= '0';
-                            end if;
-                        else
-                            if I_CPL = '1' then
-                                -- CPL
-                                ACC <= not ACC;
-                                F(Flag_Y) <= not ACC(5);
-                                F(Flag_H) <= '1';
-                                F(Flag_X) <= not ACC(3);
-                                F(Flag_N) <= '1';
-                            end if;
-                            if I_CCF = '1' then
-                                -- CCF
-                                F(Flag_C) <= not F(Flag_C);
-                                F(Flag_Y) <= ACC(5);
-                                F(Flag_H) <= F(Flag_C);
-                                F(Flag_X) <= ACC(3);
-                                F(Flag_N) <= '0';
-                            end if;
-                            if I_SCF = '1' then
-                                -- SCF
-                                F(Flag_C) <= '1';
-                                F(Flag_Y) <= ACC(5);
-                                F(Flag_H) <= '0';
-                                F(Flag_X) <= ACC(3);
-                                F(Flag_N) <= '0';
-                            end if;
+                        if I_CPL = '1' then
+                            -- CPL
+                            ACC <= not ACC;
+                            F(Flag_Y) <= not ACC(5);
+                            F(Flag_H) <= '1';
+                            F(Flag_X) <= not ACC(3);
+                            F(Flag_N) <= '1';
+                        end if;
+                        if I_CCF = '1' then
+                            -- CCF
+                            F(Flag_C) <= not F(Flag_C);
+                            F(Flag_Y) <= ACC(5);
+                            F(Flag_H) <= F(Flag_C);
+                            F(Flag_X) <= ACC(3);
+                            F(Flag_N) <= '0';
+                        end if;
+                        if I_SCF = '1' then
+                            -- SCF
+                            F(Flag_C) <= '1';
+                            F(Flag_Y) <= ACC(5);
+                            F(Flag_H) <= '0';
+                            F(Flag_X) <= ACC(3);
+                            F(Flag_N) <= '0';
                         end if;
                     end if;
 
@@ -723,18 +654,9 @@ begin
                 end if;
 
                 if (I_DJNZ = '0' and Save_ALU_r = '1') or ALU_Op_r = "1001" then
-                    if Mode = 3 then
-                        F(6) <= F_Out(6);
-                        F(5) <= F_Out(5);
-                        F(7) <= F_Out(7);
-                        if PreserveC_r = '0' then
-                            F(4) <= F_Out(4);
-                        end if;
-                    else
-                        F(7 downto 1) <= F_Out(7 downto 1);
-                        if PreserveC_r = '0' then
-                            F(Flag_C) <= F_Out(0);
-                        end if;
+                    F(7 downto 1) <= F_Out(7 downto 1);
+                    if PreserveC_r = '0' then
+                        F(Flag_C) <= F_Out(0);
                     end if;
                 end if;
                 if T_Res = '1' and I_INRC = '1' then
@@ -804,12 +726,7 @@ begin
                     when "11001" =>
                         SP(15 downto 8) <= unsigned(Save_Mux);
                     when "11011" =>
-                        if Mode = 3 then
-                            F(7 downto 4) <= Save_Mux(7 downto 4);
-                            F(3 downto 0) <= "0000"; -- bit 3 to 0 always return 0
-                        else
-                            F <= Save_Mux;
-                        end if;
+                        F <= Save_Mux;
                     when others =>
                     end case;
                     if XYbit_undoc='1' then
@@ -887,7 +804,7 @@ begin
                     RegAddrC <= XY_State(1) & "11";
                 end if;
 
-                if I_DJNZ = '1' and Save_ALU_r = '1' and Mode < 2 then
+                if I_DJNZ = '1' and Save_ALU_r = '1' then
                     IncDecZ <= F_Out(Flag_Z);
                 end if;
                 if (TState = 2 or (TState = 3 and MCycle = "001")) and IncDec_16(2 downto 0) = "100" then
@@ -1205,20 +1122,13 @@ begin
                         BusAck <= '0';
                         if TState = 2 and Really_Wait = '1' then
                         elsif T_Res = '1' then
-                            if Halt = '1' and  ( not(Mode = 3 and INT_n = '0' and IntE_FF1 = '0')) then  -- halt bug when Mode = 3 , INT_n = '0' and IME=0
+                            if Halt = '1' then
                                 Halt_FF <= '1';
                             end if;
                             if BusReq_s = '1' then
                                 BusAck <= '1';
                             else
                                 TState <= "001";
-                                if (IntCycle = '1' and Mode = 3) then -- GB: read interrupt at MCycle 3
-                                    if (MCycle = "010") then
-                                        M1_n <= '0';
-                                    else
-                                        M1_n <= '1';
-                                    end if;
-                                end if;
                                 if NextIs_XY_Fetch = '1' then
                                     MCycle <= "110";
                                     Pre_XY_F_M <= MCycle;
@@ -1240,8 +1150,6 @@ begin
                                         IntCycle <= '1';
                                         IntE_FF1 <= '0';
                                         IntE_FF2 <= '0';
-                                    elsif (Halt_FF = '1' and INT_n = '0' and Mode = 3) then
-                                        Halt_FF <= '0';
                                     end if;
                                 else
                                     MCycle <= std_logic_vector(unsigned(MCycle) + 1);

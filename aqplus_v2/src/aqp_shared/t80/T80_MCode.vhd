@@ -5,15 +5,7 @@ use work.T80_Pack.all;
 
 entity T80_MCode is
     generic(
-        Mode   : integer := 0;
-        Flag_C : integer := 0;
-        Flag_N : integer := 1;
-        Flag_P : integer := 2;
-        Flag_X : integer := 3;
-        Flag_H : integer := 4;
-        Flag_Y : integer := 5;
-        Flag_Z : integer := 6;
-        Flag_S : integer := 7
+        Mode   : integer := 0
     );
     port(
       IR          : in std_logic_vector(7 downto 0);

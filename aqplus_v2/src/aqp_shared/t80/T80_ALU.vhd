@@ -1,18 +1,9 @@
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
+use work.T80_Pack.all;
 
 entity T80_ALU is
-    generic(
-        Flag_C : integer := 0;
-        Flag_N : integer := 1;
-        Flag_P : integer := 2;
-        Flag_X : integer := 3;
-        Flag_H : integer := 4;
-        Flag_Y : integer := 5;
-        Flag_Z : integer := 6;
-        Flag_S : integer := 7
-    );
     port(
         Arith16         : in  std_logic;
         Z16             : in  std_logic;

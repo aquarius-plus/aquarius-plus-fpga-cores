@@ -11,17 +11,18 @@ package T80_Pack is
     constant aSP        : std_logic_vector(2 downto 0) := "101";
     constant aZI        : std_logic_vector(2 downto 0) := "110";
 
+    constant Flag_C : integer := 0;
+    constant Flag_N : integer := 1;
+    constant Flag_P : integer := 2;
+    constant Flag_X : integer := 3;
+    constant Flag_H : integer := 4;
+    constant Flag_Y : integer := 5;
+    constant Flag_Z : integer := 6;
+    constant Flag_S : integer := 7;
+
     component T80
     generic(
-        Mode : integer := 0;    -- 0 => Z80, 1 => Fast Z80, 2 => 8080, 3 => GB
-        Flag_C : integer := 0;
-        Flag_N : integer := 1;
-        Flag_P : integer := 2;
-        Flag_X : integer := 3;
-        Flag_H : integer := 4;
-        Flag_Y : integer := 5;
-        Flag_Z : integer := 6;
-        Flag_S : integer := 7
+        Mode : integer := 0    -- 0 => Z80, 1 => Fast Z80, 2 => 8080, 3 => GB
     );
     port(
         RESET_n         : in std_logic;
@@ -80,15 +81,7 @@ package T80_Pack is
 
     component T80_MCode
     generic(
-        Mode   : integer := 0;
-        Flag_C : integer := 0;
-        Flag_N : integer := 1;
-        Flag_P : integer := 2;
-        Flag_X : integer := 3;
-        Flag_H : integer := 4;
-        Flag_Y : integer := 5;
-        Flag_Z : integer := 6;
-        Flag_S : integer := 7
+        Mode   : integer := 0
     );
     port(
         IR                      : in  std_logic_vector(7 downto 0);
@@ -159,16 +152,6 @@ package T80_Pack is
     end component;
 
     component T80_ALU
-    generic(
-        Flag_C : integer := 0;
-        Flag_N : integer := 1;
-        Flag_P : integer := 2;
-        Flag_X : integer := 3;
-        Flag_H : integer := 4;
-        Flag_Y : integer := 5;
-        Flag_Z : integer := 6;
-        Flag_S : integer := 7
-    );
     port(
         Arith16         : in  std_logic;
         Z16             : in  std_logic;
