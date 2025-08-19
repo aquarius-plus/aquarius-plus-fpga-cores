@@ -4,7 +4,6 @@ use IEEE.numeric_std.all;
 
 entity T80_ALU is
     generic(
-        Mode : integer := 0;
         Flag_C : integer := 0;
         Flag_N : integer := 1;
         Flag_P : integer := 2;
@@ -80,14 +79,9 @@ begin
     AddSub(BusA(6 downto 4), BusB(6 downto 4), ALU_Op(1), HalfCarry_v, Q_v(6 downto 4), Carry7_v);
     AddSub(BusA(7 downto 7), BusB(7 downto 7), ALU_Op(1), Carry7_v, Q_v(7 downto 7), Carry_v);
 
-    -- bug fix - parity flag is just parity for 8080, also overflow for Z80
     process (Carry_v, Carry7_v, Q_v)
     begin
-        if(Mode=2) then
-            OverFlow_v <= not (Q_v(0) xor Q_v(1) xor Q_v(2) xor Q_v(3) xor
-                       Q_v(4) xor Q_v(5) xor Q_v(6) xor Q_v(7));  else
-            OverFlow_v <= Carry_v xor Carry7_v;
-        end if;
+        OverFlow_v <= Carry_v xor Carry7_v;
     end process;
 
     process (Arith16, ALU_OP, F_In, BusA, BusB, IR, Q_v, Carry_v, HalfCarry_v, OverFlow_v, BitMask, ISet, Z16, Rot_Akku, WZ, XY_State)
@@ -152,66 +146,38 @@ begin
             end if;
         when "1100" =>
             -- DAA
-            if Mode = 3 then
-                F_Out(Flag_H) <= '0';
-                F_Out(Flag_C) <= F_In(Flag_C);
-                DAA_Q(7 downto 0) := unsigned(BusA);
-                DAA_Q(8) := '0';
-                if F_In(Flag_N) = '0' then
-                    -- After addition
-                    -- Alow > 9 or H = 1
-                    if DAA_Q(3 downto 0) > 9 or F_In(Flag_H) = '1' then
-                            DAA_Q := DAA_Q + 6;
+            F_Out(Flag_H) <= F_In(Flag_H);
+            F_Out(Flag_C) <= F_In(Flag_C);
+            DAA_Q(7 downto 0) := unsigned(BusA);
+            DAA_Q(8) := '0';
+            if F_In(Flag_N) = '0' then
+                -- After addition
+                -- Alow > 9 or H = 1
+                if DAA_Q(3 downto 0) > 9 or F_In(Flag_H) = '1' then
+                    if (DAA_Q(3 downto 0) > 9) then
+                        F_Out(Flag_H) <= '1';
+                    else
+                        F_Out(Flag_H) <= '0';
                     end if;
-                    -- new Ahigh > 9 or C = 1
-                    if DAA_Q(8 downto 4) > 9 or F_In(Flag_C) = '1' then
-                        DAA_Q := DAA_Q + 96; -- 0x60
-                    end if;
-                else
-                    -- After subtraction
-                    if F_In(Flag_H) = '1' then
-                        DAA_Q := DAA_Q - 6;
-                        if F_In(Flag_C) = '0' then
-                            DAA_Q(8) := '0';
-                        end if;
-                    end if;
-                    if F_In(Flag_C) = '1' then
-                        DAA_Q := DAA_Q - 96; -- 0x60
-                    end if;
+                    DAA_Q := DAA_Q + 6;
+                end if;
+                -- new Ahigh > 9 or C = 1
+                if DAA_Q(8 downto 4) > 9 or F_In(Flag_C) = '1' then
+                    DAA_Q := DAA_Q + 96; -- 0x60
                 end if;
             else
-                F_Out(Flag_H) <= F_In(Flag_H);
-                F_Out(Flag_C) <= F_In(Flag_C);
-                DAA_Q(7 downto 0) := unsigned(BusA);
-                DAA_Q(8) := '0';
-                if F_In(Flag_N) = '0' then
-                    -- After addition
-                    -- Alow > 9 or H = 1
-                    if DAA_Q(3 downto 0) > 9 or F_In(Flag_H) = '1' then
-                        if (DAA_Q(3 downto 0) > 9) then
-                            F_Out(Flag_H) <= '1';
-                        else
-                            F_Out(Flag_H) <= '0';
-                        end if;
-                        DAA_Q := DAA_Q + 6;
+                -- After subtraction
+                if DAA_Q(3 downto 0) > 9 or F_In(Flag_H) = '1' then
+                    if DAA_Q(3 downto 0) > 5 then
+                        F_Out(Flag_H) <= '0';
                     end if;
-                    -- new Ahigh > 9 or C = 1
-                    if DAA_Q(8 downto 4) > 9 or F_In(Flag_C) = '1' then
-                        DAA_Q := DAA_Q + 96; -- 0x60
-                    end if;
-                else
-                    -- After subtraction
-                    if DAA_Q(3 downto 0) > 9 or F_In(Flag_H) = '1' then
-                        if DAA_Q(3 downto 0) > 5 then
-                            F_Out(Flag_H) <= '0';
-                        end if;
-                        DAA_Q(7 downto 0) := DAA_Q(7 downto 0) - 6;
-                    end if;
-                    if unsigned(BusA) > 153 or F_In(Flag_C) = '1' then
-                        DAA_Q := DAA_Q - 352; -- 0x160
-                    end if;
+                    DAA_Q(7 downto 0) := DAA_Q(7 downto 0) - 6;
+                end if;
+                if unsigned(BusA) > 153 or F_In(Flag_C) = '1' then
+                    DAA_Q := DAA_Q - 352; -- 0x160
                 end if;
             end if;
+
             F_Out(Flag_X) <= DAA_Q(3);
             F_Out(Flag_Y) <= DAA_Q(5);
             F_Out(Flag_C) <= F_In(Flag_C) or DAA_Q(8);
@@ -294,15 +260,9 @@ begin
                 Q_t(0) := '0';
                 F_Out(Flag_C) <= BusA(7);
             when "110" => -- SLL (Undocumented) / SWAP
-                if Mode = 3 then
-                    Q_t(7 downto 4) := BusA(3 downto 0);
-                    Q_t(3 downto 0) := BusA(7 downto 4);
-                    F_Out(Flag_C) <= '0';
-                else
-                    Q_t(7 downto 1) := BusA(6 downto 0);
-                    Q_t(0) := '1';
-                    F_Out(Flag_C) <= BusA(7);
-                end if;
+                Q_t(7 downto 1) := BusA(6 downto 0);
+                Q_t(0) := '1';
+                F_Out(Flag_C) <= BusA(7);
             when "101" => -- SRA
                 Q_t(6 downto 0) := BusA(7 downto 1);
                 Q_t(7) := BusA(7);
@@ -329,9 +289,6 @@ begin
                 F_Out(Flag_S) <= F_In(Flag_S);
                 F_Out(Flag_Z) <= F_In(Flag_Z);
             end if;
-            if Mode = 3 and Rot_Akku = '1'  then
-                    F_Out(Flag_Z) <= '0';
-            end if; 
         when others =>
             null;
         end case;

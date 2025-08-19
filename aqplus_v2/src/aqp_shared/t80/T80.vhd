@@ -271,7 +271,6 @@ begin
 
     alu : T80_ALU
         generic map(
-            Mode   => Mode,
             Flag_C => Flag_C,
             Flag_N => Flag_N,
             Flag_P => Flag_P,
