@@ -249,15 +249,15 @@ module t80(
                 //----------------------------------------------------------------------------
                 case (IR)
                     // 8 BIT LOAD GROUP
-                    8'b01000000,8'b01000001,8'b01000010,8'b01000011,8'b01000100,8'b01000101,
-                    8'b01000111,8'b01001000,8'b01001001,8'b01001010,8'b01001011,8'b01001100,
-                    8'b01001101,8'b01001111,8'b01010000,8'b01010001,8'b01010010,8'b01010011,
-                    8'b01010100,8'b01010101,8'b01010111,8'b01011000,8'b01011001,8'b01011010,
-                    8'b01011011,8'b01011100,8'b01011101,8'b01011111,8'b01100000,8'b01100001,
-                    8'b01100010,8'b01100011,8'b01100100,8'b01100101,8'b01100111,8'b01101000,
-                    8'b01101001,8'b01101010,8'b01101011,8'b01101100,8'b01101101,8'b01101111,
-                    8'b01111000,8'b01111001,8'b01111010,8'b01111011,8'b01111100,8'b01111101,
-                    8'b01111111: begin
+                    8'h40,8'h41,8'h42,8'h43,8'h44,8'h45,
+                    8'h47,8'h48,8'h49,8'h4a,8'h4b,8'h4c,
+                    8'h4d,8'h4f,8'h50,8'h51,8'h52,8'h53,
+                    8'h54,8'h55,8'h57,8'h58,8'h59,8'h5a,
+                    8'h5b,8'h5c,8'h5d,8'h5f,8'h60,8'h61,
+                    8'h62,8'h63,8'h64,8'h65,8'h67,8'h68,
+                    8'h69,8'h6a,8'h6b,8'h6c,8'h6d,8'h6f,
+                    8'h78,8'h79,8'h7a,8'h7b,8'h7c,8'h7d,
+                    8'h7f: begin
 
                         // LD r,r'
                         Set_BusB_To[2:0] = SSS;
@@ -266,7 +266,7 @@ module t80(
                         Read_To_Reg      = 1;
                     end
 
-                    8'b00000110,8'b00001110,8'b00010110,8'b00011110,8'b00100110,8'b00101110,8'b00111110: begin
+                    8'h06,8'h0e,8'h16,8'h1e,8'h26,8'h2e,8'h3e: begin
                         // LD r,n
                         MCycles_d = 3'b010;
                         case (MCycle)
@@ -279,7 +279,7 @@ module t80(
                         endcase
                     end
 
-                    8'b01000110,8'b01001110,8'b01010110,8'b01011110,8'b01100110,8'b01101110,8'b01111110: begin
+                    8'h46,8'h4e,8'h56,8'h5e,8'h66,8'h6e,8'h7e: begin
                         // LD r,(HL)
                         MCycles_d = 3'b010;
                         case (MCycle)
@@ -294,7 +294,7 @@ module t80(
                         end
                         endcase
                     end
-                8'b01110000,8'b01110001,8'b01110010,8'b01110011,8'b01110100,8'b01110101,8'b01110111: begin
+                8'h70,8'h71,8'h72,8'h73,8'h74,8'h75,8'h77: begin
                     // LD (HL),r
                     MCycles_d = 3'b010;
                     case (MCycle)
@@ -310,7 +310,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b00110110: begin
+                8'h36: begin
                     // LD (HL),n
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -327,7 +327,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b00001010: begin
+                8'h0a: begin
                     // LD A,(BC)
                     MCycles_d = 3'b010;
                     case (MCycle)
@@ -341,7 +341,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b00011010: begin
+                8'h1a: begin
                     // LD A,(DE)
                     MCycles_d = 3'b010;
                     case (MCycle)
@@ -355,7 +355,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b00111010: begin
+                8'h3a: begin
                     // LD A,(nn)
                     MCycles_d = 3'b100;
                     case (MCycle)
@@ -374,7 +374,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b00000010: begin
+                8'h02: begin
                     // LD (BC),A
                     MCycles_d = 3'b010;
                     case (MCycle)
@@ -390,7 +390,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b00010010: begin
+                8'h12: begin
                     // LD (DE),A
                     MCycles_d = 3'b010;
                     case (MCycle)
@@ -406,7 +406,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b00110010: begin
+                8'h32: begin
                     // LD (nn),A
                     MCycles_d = 3'b100;
                     case (MCycle)
@@ -428,7 +428,7 @@ module t80(
                     endcase
                     // 16 BIT LOAD GROUP
                 end
-                8'b00000001,8'b00010001,8'b00100001,8'b00110001: begin
+                8'h01,8'h11,8'h21,8'h31: begin
                     // LD dd,nn
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -458,7 +458,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b00101010: begin
+                8'h2a: begin
                     // LD HL,(nn)
                     MCycles_d = 3'b101;
                     case (MCycle)
@@ -487,7 +487,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b00100010: begin
+                8'h22: begin
                     // LD (nn),HL
                     MCycles_d = 3'b101;
                     case (MCycle)
@@ -516,12 +516,12 @@ module t80(
                     end
                     endcase
                 end
-                8'b11111001: begin
+                8'hf9: begin
                     // LD SP,HL
                     TStates = 3'b110;
                     LDSPHL = 1'b1;
                 end
-                8'b11000101,8'b11010101,8'b11100101,8'b11110101: begin
+                8'hc5,8'hd5,8'he5,8'hf5: begin
                     // PUSH qq
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -558,7 +558,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b11000001,8'b11010001,8'b11100001,8'b11110001: begin
+                8'hc1,8'hd1,8'he1,8'hf1: begin
                     // POP qq
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -593,19 +593,19 @@ module t80(
                     endcase
                     // EXCHANGE, BLOCK TRANSFER AND SEARCH GROUP
                 end
-                8'b11101011: begin
+                8'heb: begin
                     // EX DE,HL
                     ExchangeDH = 1'b1;
                 end
-                8'b00001000: begin
+                8'h08: begin
                     // EX AF,AF'
                     ExchangeAF = 1'b1;
                 end
-                8'b11011001: begin
+                8'hd9: begin
                     // EXX
                     ExchangeRS = 1'b1;
                 end
-                8'b11100011: begin
+                8'he3: begin
                     // EX (SP),HL
                     MCycles_d = 3'b101;
                     case (MCycle)
@@ -642,7 +642,7 @@ module t80(
                     endcase
                     // 8 BIT ARITHMETIC AND LOGICAL GROUP
                 end
-                8'b10000000,8'b10000001,8'b10000010,8'b10000011,8'b10000100,8'b10000101,8'b10000111,8'b10001000,8'b10001001,8'b10001010,8'b10001011,8'b10001100,8'b10001101,8'b10001111,8'b10010000,8'b10010001,8'b10010010,8'b10010011,8'b10010100,8'b10010101,8'b10010111,8'b10011000,8'b10011001,8'b10011010,8'b10011011,8'b10011100,8'b10011101,8'b10011111,8'b10100000,8'b10100001,8'b10100010,8'b10100011,8'b10100100,8'b10100101,8'b10100111,8'b10101000,8'b10101001,8'b10101010,8'b10101011,8'b10101100,8'b10101101,8'b10101111,8'b10110000,8'b10110001,8'b10110010,8'b10110011,8'b10110100,8'b10110101,8'b10110111,8'b10111000,8'b10111001,8'b10111010,8'b10111011,8'b10111100,8'b10111101,8'b10111111: begin
+                8'h80,8'h81,8'h82,8'h83,8'h84,8'h85,8'h87,8'h88,8'h89,8'h8a,8'h8b,8'h8c,8'h8d,8'h8f,8'h90,8'h91,8'h92,8'h93,8'h94,8'h95,8'h97,8'h98,8'h99,8'h9a,8'h9b,8'h9c,8'h9d,8'h9f,8'ha0,8'ha1,8'ha2,8'ha3,8'ha4,8'ha5,8'ha7,8'ha8,8'ha9,8'haa,8'hab,8'hac,8'had,8'haf,8'hb0,8'hb1,8'hb2,8'hb3,8'hb4,8'hb5,8'hb7,8'hb8,8'hb9,8'hba,8'hbb,8'hbc,8'hbd,8'hbf: begin
                     // ADD A,r
                     // ADC A,r
                     // SUB A,r
@@ -656,7 +656,7 @@ module t80(
                     Read_To_Reg = 1'b1;
                     Save_ALU = 1'b1;
                 end
-                8'b10000110,8'b10001110,8'b10010110,8'b10011110,8'b10100110,8'b10101110,8'b10110110,8'b10111110: begin
+                8'h86,8'h8e,8'h96,8'h9e,8'ha6,8'hae,8'hb6,8'hbe: begin
                     // ADD A,(HL)
                     // ADC A,(HL)
                     // SUB A,(HL)
@@ -680,7 +680,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b11000110,8'b11001110,8'b11010110,8'b11011110,8'b11100110,8'b11101110,8'b11110110,8'b11111110: begin
+                8'hc6,8'hce,8'hd6,8'hde,8'he6,8'hee,8'hf6,8'hfe: begin
                     // ADD A,n
                     // ADC A,n
                     // SUB A,n
@@ -698,7 +698,7 @@ module t80(
                         Set_BusA_To[2:0] = 3'b111;
                     end
                 end
-                8'b00000100,8'b00001100,8'b00010100,8'b00011100,8'b00100100,8'b00101100,8'b00111100: begin
+                8'h04,8'h0c,8'h14,8'h1c,8'h24,8'h2c,8'h3c: begin
                     // INC r
                     Set_BusB_To = 4'b1010;
                     Set_BusA_To[2:0] = DDD;
@@ -707,7 +707,7 @@ module t80(
                     PreserveC = 1'b1;
                     ALU_Op = 4'b0000;
                 end
-                8'b00110100: begin
+                8'h34: begin
                     // INC (HL)
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -731,7 +731,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b00000101,8'b00001101,8'b00010101,8'b00011101,8'b00100101,8'b00101101,8'b00111101: begin
+                8'h05,8'h0d,8'h15,8'h1d,8'h25,8'h2d,8'h3d: begin
                     // DEC r
                     Set_BusB_To = 4'b1010;
                     Set_BusA_To[2:0] = DDD;
@@ -740,7 +740,7 @@ module t80(
                     PreserveC = 1'b1;
                     ALU_Op = 4'b0010;
                 end
-                8'b00110101: begin
+                8'h35: begin
                     // DEC (HL)
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -765,26 +765,26 @@ module t80(
                     endcase
                     // GENERAL PURPOSE ARITHMETIC AND CPU CONTROL GROUPS
                 end
-                8'b00100111: begin
+                8'h27: begin
                     // DAA
                     Set_BusA_To[2:0] = 3'b111;
                     Read_To_Reg = 1'b1;
                     ALU_Op = 4'b1100;
                     Save_ALU = 1'b1;
                 end
-                8'b00101111: begin
+                8'h2f: begin
                     // CPL
                     I_CPL = 1'b1;
                 end
-                8'b00111111: begin
+                8'h3f: begin
                     // CCF
                     I_CCF = 1'b1;
                 end
-                8'b00110111: begin
+                8'h37: begin
                     // SCF
                     I_SCF = 1'b1;
                 end
-                8'b00000000: begin
+                8'h00: begin
                     if (NMICycle == 1'b1) begin
                         // NMI
                         MCycles_d = 3'b011;
@@ -844,20 +844,20 @@ module t80(
                         // NOP
                     end
                 end
-                8'b01110110: begin
+                8'h76: begin
                     // HALT
                     Halt = 1'b1;
                 end
-                8'b11110011: begin
+                8'hf3: begin
                     // DI
                     SetDI = 1'b1;
                 end
-                8'b11111011: begin
+                8'hfb: begin
                     // EI
                     SetEI = 1'b1;
                     // 16 BIT ARITHMETIC GROUP
                 end
-                8'b00001001,8'b00011001,8'b00101001,8'b00111001: begin
+                8'h09,8'h19,8'h29,8'h39: begin
                     // ADD HL,ss
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -904,13 +904,13 @@ module t80(
                     end
                     endcase
                 end
-                8'b00000011,8'b00010011,8'b00100011,8'b00110011: begin
+                8'h03,8'h13,8'h23,8'h33: begin
                     // INC ss
                     TStates = 3'b110;
                     IncDec_16[3:2] = 2'b01;
                     IncDec_16[1:0] = DPair;
                 end
-                8'b00001011,8'b00011011,8'b00101011,8'b00111011: begin
+                8'h0b,8'h1b,8'h2b,8'h3b: begin
                     // DEC ss
                     TStates = 3'b110;
                     IncDec_16[3:2] = 2'b11;
@@ -918,14 +918,14 @@ module t80(
                     // ROTATE AND SHIFT GROUP
                     // RLCA|RLA|RRCA|RRA
                 end
-                8'b00000111,8'b00010111,8'b00001111,8'b00011111: begin
+                8'h07,8'h17,8'h0f,8'h1f: begin
                     Set_BusA_To[2:0] = 3'b111;
                     ALU_Op = 4'b1000;
                     Read_To_Reg = 1'b1;
                     Save_ALU = 1'b1;
                     // JUMP GROUP
                 end
-                8'b11000011: begin
+                8'hc3: begin
                     // JP nn
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -942,7 +942,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b11000010,8'b11001010,8'b11010010,8'b11011010,8'b11100010,8'b11101010,8'b11110010,8'b11111010: begin
+                8'hc2,8'hca,8'hd2,8'hda,8'he2,8'hea,8'hf2,8'hfa: begin
                     // JP cc,nn
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -961,7 +961,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b00011000: begin
+                8'h18: begin
                     // JR e
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -978,7 +978,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b00111000: begin
+                8'h38: begin
                     // JR C,e
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -1000,7 +1000,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b00110000: begin
+                8'h30: begin
                     // JR NC,e
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -1022,7 +1022,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b00101000: begin
+                8'h28: begin
                     // JR Z,e
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -1044,7 +1044,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b00100000: begin
+                8'h20: begin
                     // JR NZ,e
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -1066,11 +1066,11 @@ module t80(
                     end
                     endcase
                 end
-                8'b11101001: begin
+                8'he9: begin
                     // JP (HL)
                     JumpXY = 1'b1;
                 end
-                8'b00010000: begin
+                8'h10: begin
                     // DJNZ,e
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -1098,7 +1098,7 @@ module t80(
                     endcase
                     // CALL AND RETURN GROUP
                 end
-                8'b11001101: begin
+                8'hcd: begin
                     // CALL nn
                     MCycles_d = 3'b101;
                     case (MCycle)
@@ -1128,7 +1128,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b11000100,8'b11001100,8'b11010100,8'b11011100,8'b11100100,8'b11101100,8'b11110100,8'b11111100: begin
+                8'hc4,8'hcc,8'hd4,8'hdc,8'he4,8'hec,8'hf4,8'hfc: begin
                     // CALL cc,nn
                     MCycles_d = 3'b101;
                     case (MCycle)
@@ -1163,7 +1163,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b11001001: begin
+                8'hc9: begin
                     // RET
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -1184,7 +1184,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b11000000,8'b11001000,8'b11010000,8'b11011000,8'b11100000,8'b11101000,8'b11110000,8'b11111000: begin
+                8'hc0,8'hc8,8'hd0,8'hd8,8'he0,8'he8,8'hf0,8'hf8: begin
                     // RET cc
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -1210,7 +1210,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b11000111,8'b11001111,8'b11010111,8'b11011111,8'b11100111,8'b11101111,8'b11110111,8'b11111111: begin
+                8'hc7,8'hcf,8'hd7,8'hdf,8'he7,8'hef,8'hf7,8'hff: begin
                     // RST p
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -1235,7 +1235,7 @@ module t80(
                     endcase
                     // INPUT AND OUTPUT GROUP
                 end
-                8'b11011011: begin
+                8'hdb: begin
                     // IN A,(n)
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -1251,7 +1251,7 @@ module t80(
                     end
                     endcase
                 end
-                8'b11010011: begin
+                8'hd3: begin
                     // OUT (n),A
                     MCycles_d = 3'b011;
                     case (MCycle)
@@ -1273,13 +1273,13 @@ module t80(
                     //----------------------------------------------------------------------------
                     //----------------------------------------------------------------------------
                 end
-                8'b11001011: begin
+                8'hcb: begin
                     Prefix = 2'b01;
                 end
-                8'b11101101: begin
+                8'hed: begin
                     Prefix = 2'b10;
                 end
-                8'b11011101,8'b11111101: begin
+                8'hdd,8'hfd: begin
                     Prefix = 2'b11;
                 end
                 default: begin
@@ -1295,7 +1295,7 @@ module t80(
             Set_BusA_To[2:0] = IR[2:0];
             Set_BusB_To[2:0] = IR[2:0];
             case (IR)
-            8'b00000000,8'b00000001,8'b00000010,8'b00000011,8'b00000100,8'b00000101,8'b00000111,8'b00010000,8'b00010001,8'b00010010,8'b00010011,8'b00010100,8'b00010101,8'b00010111,8'b00001000,8'b00001001,8'b00001010,8'b00001011,8'b00001100,8'b00001101,8'b00001111,8'b00011000,8'b00011001,8'b00011010,8'b00011011,8'b00011100,8'b00011101,8'b00011111,8'b00100000,8'b00100001,8'b00100010,8'b00100011,8'b00100100,8'b00100101,8'b00100111,8'b00101000,8'b00101001,8'b00101010,8'b00101011,8'b00101100,8'b00101101,8'b00101111,8'b00110000,8'b00110001,8'b00110010,8'b00110011,8'b00110100,8'b00110101,8'b00110111,8'b00111000,8'b00111001,8'b00111010,8'b00111011,8'b00111100,8'b00111101,8'b00111111: begin
+            8'h00,8'h01,8'h02,8'h03,8'h04,8'h05,8'h07,8'h10,8'h11,8'h12,8'h13,8'h14,8'h15,8'h17,8'h08,8'h09,8'h0a,8'h0b,8'h0c,8'h0d,8'h0f,8'h18,8'h19,8'h1a,8'h1b,8'h1c,8'h1d,8'h1f,8'h20,8'h21,8'h22,8'h23,8'h24,8'h25,8'h27,8'h28,8'h29,8'h2a,8'h2b,8'h2c,8'h2d,8'h2f,8'h30,8'h31,8'h32,8'h33,8'h34,8'h35,8'h37,8'h38,8'h39,8'h3a,8'h3b,8'h3c,8'h3d,8'h3f: begin
                 // RLC r
                 // RL r
                 // RRC r
@@ -1334,7 +1334,7 @@ module t80(
                     endcase
                 end
             end
-            8'b00000110,8'b00010110,8'b00001110,8'b00011110,8'b00101110,8'b00111110,8'b00100110,8'b00110110: begin
+            8'h06,8'h16,8'h0e,8'h1e,8'h2e,8'h3e,8'h26,8'h36: begin
                 // RLC (HL)
                 // RL (HL)
                 // RRC (HL)
@@ -1362,7 +1362,7 @@ module t80(
                 end
                 endcase
             end
-            8'b01000000,8'b01000001,8'b01000010,8'b01000011,8'b01000100,8'b01000101,8'b01000111,8'b01001000,8'b01001001,8'b01001010,8'b01001011,8'b01001100,8'b01001101,8'b01001111,8'b01010000,8'b01010001,8'b01010010,8'b01010011,8'b01010100,8'b01010101,8'b01010111,8'b01011000,8'b01011001,8'b01011010,8'b01011011,8'b01011100,8'b01011101,8'b01011111,8'b01100000,8'b01100001,8'b01100010,8'b01100011,8'b01100100,8'b01100101,8'b01100111,8'b01101000,8'b01101001,8'b01101010,8'b01101011,8'b01101100,8'b01101101,8'b01101111,8'b01110000,8'b01110001,8'b01110010,8'b01110011,8'b01110100,8'b01110101,8'b01110111,8'b01111000,8'b01111001,8'b01111010,8'b01111011,8'b01111100,8'b01111101,8'b01111111: begin
+            8'h40,8'h41,8'h42,8'h43,8'h44,8'h45,8'h47,8'h48,8'h49,8'h4a,8'h4b,8'h4c,8'h4d,8'h4f,8'h50,8'h51,8'h52,8'h53,8'h54,8'h55,8'h57,8'h58,8'h59,8'h5a,8'h5b,8'h5c,8'h5d,8'h5f,8'h60,8'h61,8'h62,8'h63,8'h64,8'h65,8'h67,8'h68,8'h69,8'h6a,8'h6b,8'h6c,8'h6d,8'h6f,8'h70,8'h71,8'h72,8'h73,8'h74,8'h75,8'h77,8'h78,8'h79,8'h7a,8'h7b,8'h7c,8'h7d,8'h7f: begin
                 // BIT b,r
                 if (XY_State == 2'b00) begin
                     if (MCycle == 3'b001) begin
@@ -1387,7 +1387,7 @@ module t80(
                     endcase
                 end
             end
-            8'b01000110,8'b01001110,8'b01010110,8'b01011110,8'b01100110,8'b01101110,8'b01110110,8'b01111110: begin
+            8'h46,8'h4e,8'h56,8'h5e,8'h66,8'h6e,8'h76,8'h7e: begin
                 // BIT b,(HL)
                 MCycles_d = 3'b010;
                 case (MCycle)
@@ -1402,7 +1402,7 @@ module t80(
                 end
                 endcase
             end
-            8'b11000000,8'b11000001,8'b11000010,8'b11000011,8'b11000100,8'b11000101,8'b11000111,8'b11001000,8'b11001001,8'b11001010,8'b11001011,8'b11001100,8'b11001101,8'b11001111,8'b11010000,8'b11010001,8'b11010010,8'b11010011,8'b11010100,8'b11010101,8'b11010111,8'b11011000,8'b11011001,8'b11011010,8'b11011011,8'b11011100,8'b11011101,8'b11011111,8'b11100000,8'b11100001,8'b11100010,8'b11100011,8'b11100100,8'b11100101,8'b11100111,8'b11101000,8'b11101001,8'b11101010,8'b11101011,8'b11101100,8'b11101101,8'b11101111,8'b11110000,8'b11110001,8'b11110010,8'b11110011,8'b11110100,8'b11110101,8'b11110111,8'b11111000,8'b11111001,8'b11111010,8'b11111011,8'b11111100,8'b11111101,8'b11111111: begin
+            8'hc0,8'hc1,8'hc2,8'hc3,8'hc4,8'hc5,8'hc7,8'hc8,8'hc9,8'hca,8'hcb,8'hcc,8'hcd,8'hcf,8'hd0,8'hd1,8'hd2,8'hd3,8'hd4,8'hd5,8'hd7,8'hd8,8'hd9,8'hda,8'hdb,8'hdc,8'hdd,8'hdf,8'he0,8'he1,8'he2,8'he3,8'he4,8'he5,8'he7,8'he8,8'he9,8'hea,8'heb,8'hec,8'hed,8'hef,8'hf0,8'hf1,8'hf2,8'hf3,8'hf4,8'hf5,8'hf7,8'hf8,8'hf9,8'hfa,8'hfb,8'hfc,8'hfd,8'hff: begin
                 // SET b,r
                 if (XY_State == 2'b00) begin
                     if (MCycle == 3'b001) begin
@@ -1434,7 +1434,7 @@ module t80(
                     endcase
                 end
             end
-            8'b11000110,8'b11001110,8'b11010110,8'b11011110,8'b11100110,8'b11101110,8'b11110110,8'b11111110: begin
+            8'hc6,8'hce,8'hd6,8'hde,8'he6,8'hee,8'hf6,8'hfe: begin
                 // SET b,(HL)
                 MCycles_d = 3'b011;
                 case (MCycle)
@@ -1455,7 +1455,7 @@ module t80(
                 end
                 endcase
             end
-            8'b10000000,8'b10000001,8'b10000010,8'b10000011,8'b10000100,8'b10000101,8'b10000111,8'b10001000,8'b10001001,8'b10001010,8'b10001011,8'b10001100,8'b10001101,8'b10001111,8'b10010000,8'b10010001,8'b10010010,8'b10010011,8'b10010100,8'b10010101,8'b10010111,8'b10011000,8'b10011001,8'b10011010,8'b10011011,8'b10011100,8'b10011101,8'b10011111,8'b10100000,8'b10100001,8'b10100010,8'b10100011,8'b10100100,8'b10100101,8'b10100111,8'b10101000,8'b10101001,8'b10101010,8'b10101011,8'b10101100,8'b10101101,8'b10101111,8'b10110000,8'b10110001,8'b10110010,8'b10110011,8'b10110100,8'b10110101,8'b10110111,8'b10111000,8'b10111001,8'b10111010,8'b10111011,8'b10111100,8'b10111101,8'b10111111: begin
+            8'h80,8'h81,8'h82,8'h83,8'h84,8'h85,8'h87,8'h88,8'h89,8'h8a,8'h8b,8'h8c,8'h8d,8'h8f,8'h90,8'h91,8'h92,8'h93,8'h94,8'h95,8'h97,8'h98,8'h99,8'h9a,8'h9b,8'h9c,8'h9d,8'h9f,8'ha0,8'ha1,8'ha2,8'ha3,8'ha4,8'ha5,8'ha7,8'ha8,8'ha9,8'haa,8'hab,8'hac,8'had,8'haf,8'hb0,8'hb1,8'hb2,8'hb3,8'hb4,8'hb5,8'hb7,8'hb8,8'hb9,8'hba,8'hbb,8'hbc,8'hbd,8'hbf: begin
                 // RES b,r
                 if (XY_State == 2'b00) begin
                     if (MCycle == 3'b001) begin
@@ -1487,7 +1487,7 @@ module t80(
                     endcase
                 end
             end
-            8'b10000110,8'b10001110,8'b10010110,8'b10011110,8'b10100110,8'b10101110,8'b10110110,8'b10111110: begin
+            8'h86,8'h8e,8'h96,8'h9e,8'ha6,8'hae,8'hb6,8'hbe: begin
                 // RES b,(HL)
                 MCycles_d = 3'b011;
                 case (MCycle)
@@ -1519,35 +1519,35 @@ module t80(
             //
             //----------------------------------------------------------------------------
             case (IR)
-            8'b00000000,8'b00000001,8'b00000010,8'b00000011,8'b00000100,8'b00000101,8'b00000110,8'b00000111,8'b00001000,8'b00001001,8'b00001010,8'b00001011,8'b00001100,8'b00001101,8'b00001110,8'b00001111,8'b00010000,8'b00010001,8'b00010010,8'b00010011,8'b00010100,8'b00010101,8'b00010110,8'b00010111,8'b00011000,8'b00011001,8'b00011010,8'b00011011,8'b00011100,8'b00011101,8'b00011110,8'b00011111,8'b00100000,8'b00100001,8'b00100010,8'b00100011,8'b00100100,8'b00100101,8'b00100110,8'b00100111,8'b00101000,8'b00101001,8'b00101010,8'b00101011,8'b00101100,8'b00101101,8'b00101110,8'b00101111,8'b00110000,8'b00110001,8'b00110010,8'b00110011,8'b00110100,8'b00110101,8'b00110110,8'b00110111,8'b00111000,8'b00111001,8'b00111010,8'b00111011,8'b00111100,8'b00111101,8'b00111110,8'b00111111,8'b10000000,8'b10000001,8'b10000010,8'b10000011,8'b10000100,8'b10000101,8'b10000110,8'b10000111,8'b10001000,8'b10001001,8'b10001010,8'b10001011,8'b10001100,8'b10001101,8'b10001110,8'b10001111,8'b10010000,8'b10010001,8'b10010010,8'b10010011,8'b10010100,8'b10010101,8'b10010110,8'b10010111,8'b10011000,8'b10011001,8'b10011010,8'b10011011,8'b10011100,8'b10011101,8'b10011110,8'b10011111,8'b10100100,8'b10100101,8'b10100110,8'b10100111,8'b10101100,8'b10101101,8'b10101110,8'b10101111,8'b10110100,8'b10110101,8'b10110110,8'b10110111,8'b10111100,8'b10111101,8'b10111110,8'b10111111,8'b11000000,8'b11000010,8'b11000100,8'b11000101,8'b11000110,8'b11000111,8'b11001000,8'b11001010,8'b11001011,8'b11001100,8'b11001101,8'b11001110,8'b11001111,8'b11010000,8'b11010010,8'b11010011,8'b11010100,8'b11010101,8'b11010110,8'b11010111,8'b11011000,8'b11011010,8'b11011011,8'b11011100,8'b11011101,8'b11011110,8'b11011111,8'b11100000,8'b11100001,8'b11100010,8'b11100011,8'b11100100,8'b11100101,8'b11100110,8'b11100111,8'b11101000,8'b11101001,8'b11101010,8'b11101011,8'b11101100,8'b11101101,8'b11101110,8'b11101111,8'b11110000,8'b11110001,8'b11110010,8'b11110100,8'b11110101,8'b11110110,8'b11110111,8'b11111000,8'b11111001,8'b11111010,8'b11111011,8'b11111100,8'b11111101,8'b11111110,8'b11111111: begin
+            8'h00,8'h01,8'h02,8'h03,8'h04,8'h05,8'h06,8'h07,8'h08,8'h09,8'h0a,8'h0b,8'h0c,8'h0d,8'h0e,8'h0f,8'h10,8'h11,8'h12,8'h13,8'h14,8'h15,8'h16,8'h17,8'h18,8'h19,8'h1a,8'h1b,8'h1c,8'h1d,8'h1e,8'h1f,8'h20,8'h21,8'h22,8'h23,8'h24,8'h25,8'h26,8'h27,8'h28,8'h29,8'h2a,8'h2b,8'h2c,8'h2d,8'h2e,8'h2f,8'h30,8'h31,8'h32,8'h33,8'h34,8'h35,8'h36,8'h37,8'h38,8'h39,8'h3a,8'h3b,8'h3c,8'h3d,8'h3e,8'h3f,8'h80,8'h81,8'h82,8'h83,8'h84,8'h85,8'h86,8'h87,8'h88,8'h89,8'h8a,8'h8b,8'h8c,8'h8d,8'h8e,8'h8f,8'h90,8'h91,8'h92,8'h93,8'h94,8'h95,8'h96,8'h97,8'h98,8'h99,8'h9a,8'h9b,8'h9c,8'h9d,8'h9e,8'h9f,8'ha4,8'ha5,8'ha6,8'ha7,8'hac,8'had,8'hae,8'haf,8'hb4,8'hb5,8'hb6,8'hb7,8'hbc,8'hbd,8'hbe,8'hbf,8'hc0,8'hc2,8'hc4,8'hc5,8'hc6,8'hc7,8'hc8,8'hca,8'hcb,8'hcc,8'hcd,8'hce,8'hcf,8'hd0,8'hd2,8'hd3,8'hd4,8'hd5,8'hd6,8'hd7,8'hd8,8'hda,8'hdb,8'hdc,8'hdd,8'hde,8'hdf,8'he0,8'he1,8'he2,8'he3,8'he4,8'he5,8'he6,8'he7,8'he8,8'he9,8'hea,8'heb,8'hec,8'hed,8'hee,8'hef,8'hf0,8'hf1,8'hf2,8'hf4,8'hf5,8'hf6,8'hf7,8'hf8,8'hf9,8'hfa,8'hfb,8'hfc,8'hfd,8'hfe,8'hff: begin
                 // NOP, undocumented
             end
-            8'b01110111,8'b01111111: begin
+            8'h77,8'h7f: begin
                 // NOP, undocumented
                                 // 8 BIT LOAD GROUP
             end
-            8'b01010111: begin
+            8'h57: begin
                 // LD A,I
                 Special_LD = 3'b100;
                 TStates = 3'b101;
             end
-            8'b01011111: begin
+            8'h5f: begin
                 // LD A,R
                 Special_LD = 3'b101;
                 TStates = 3'b101;
             end
-            8'b01000111: begin
+            8'h47: begin
                 // LD I,A
                 Special_LD = 3'b110;
                 TStates = 3'b101;
             end
-            8'b01001111: begin
+            8'h4f: begin
                 // LD R,A
                 Special_LD = 3'b111;
                 TStates = 3'b101;
                 // 16 BIT LOAD GROUP
             end
-            8'b01001011,8'b01011011,8'b01101011,8'b01111011: begin
+            8'h4b,8'h5b,8'h6b,8'h7b: begin
                 // LD dd,(nn)
                 MCycles_d = 3'b101;
                 case (MCycle)
@@ -1586,7 +1586,7 @@ module t80(
                 end
                 endcase
             end
-            8'b01000011,8'b01010011,8'b01100011,8'b01110011: begin
+            8'h43,8'h53,8'h63,8'h73: begin
                 // LD (nn),dd
                 MCycles_d = 3'b101;
                 case (MCycle)
@@ -1627,7 +1627,7 @@ module t80(
                 end
                 endcase
             end
-            8'b10100000,8'b10101000,8'b10110000,8'b10111000: begin
+            8'ha0,8'ha8,8'hb0,8'hb8: begin
                 // LDI, LDD, LDIR, LDDR
                 MCycles_d = 3'b100;
                 case (MCycle)
@@ -1670,7 +1670,7 @@ module t80(
                 end
                 endcase
             end
-            8'b10100001,8'b10101001,8'b10110001,8'b10111001: begin
+            8'ha1,8'ha9,8'hb1,8'hb9: begin
                 // CPI, CPD, CPIR, CPDR
                 MCycles_d = 3'b100;
                 case (MCycle)
@@ -1707,7 +1707,7 @@ module t80(
                 end
                 endcase
             end
-            8'b01000100,8'b01001100,8'b01010100,8'b01011100,8'b01100100,8'b01101100,8'b01110100,8'b01111100: begin
+            8'h44,8'h4c,8'h54,8'h5c,8'h64,8'h6c,8'h74,8'h7c: begin
                 // NEG
                 ALU_Op = 4'b0010;
                 Set_BusB_To = 4'b0111;
@@ -1715,20 +1715,20 @@ module t80(
                 Read_To_Acc = 1'b1;
                 Save_ALU = 1'b1;
             end
-            8'b01000110,8'b01001110,8'b01100110,8'b01101110: begin
+            8'h46,8'h4e,8'h66,8'h6e: begin
                 // IM 0
                 IMode = 2'b00;
             end
-            8'b01010110,8'b01110110: begin
+            8'h56,8'h76: begin
                 // IM 1
                 IMode = 2'b01;
             end
-            8'b01011110,8'b01111110: begin
+            8'h5e,8'h7e: begin
                 // IM 2
                 IMode = 2'b10;
                 // 16 bit arithmetic
             end
-            8'b01001010,8'b01011010,8'b01101010,8'b01111010: begin
+            8'h4a,8'h5a,8'h6a,8'h7a: begin
                 // ADC HL,ss
                 MCycles_d = 3'b011;
                 case (MCycle)
@@ -1774,7 +1774,7 @@ module t80(
                 end
                 endcase
             end
-            8'b01000010,8'b01010010,8'b01100010,8'b01110010: begin
+            8'h42,8'h52,8'h62,8'h72: begin
                 // SBC HL,ss
                 MCycles_d = 3'b011;
                 case (MCycle)
@@ -1819,7 +1819,7 @@ module t80(
                 end
                 endcase
             end
-            8'b01101111: begin
+            8'h6f: begin
                 // RLD -- Read in M2, not M3! fixed by Sorgelig
                 MCycles_d = 3'b100;
                 case (MCycle)
@@ -1847,7 +1847,7 @@ module t80(
                 end
                 endcase
             end
-            8'b01100111: begin
+            8'h67: begin
                 // RRD -- Read in M2, not M3! fixed by Sorgelig
                 MCycles_d = 3'b100;
                 case (MCycle)
@@ -1875,7 +1875,7 @@ module t80(
                 end
                 endcase
             end
-            8'b01000101,8'b01001101,8'b01010101,8'b01011101,8'b01100101,8'b01101101,8'b01110101,8'b01111101: begin
+            8'h45,8'h4d,8'h55,8'h5d,8'h65,8'h6d,8'h75,8'h7d: begin
                 // RETI/RETN
                 MCycles_d = 3'b011;
                 case (MCycle)
@@ -1897,7 +1897,7 @@ module t80(
                 end
                 endcase
             end
-            8'b01000000,8'b01001000,8'b01010000,8'b01011000,8'b01100000,8'b01101000,8'b01110000,8'b01111000: begin
+            8'h40,8'h48,8'h50,8'h58,8'h60,8'h68,8'h70,8'h78: begin
                 // IN r,(C)
                 MCycles_d = 3'b010;
                 case (MCycle)
@@ -1917,7 +1917,7 @@ module t80(
                 end
                 endcase
             end
-            8'b01000001,8'b01001001,8'b01010001,8'b01011001,8'b01100001,8'b01101001,8'b01110001,8'b01111001: begin
+            8'h41,8'h49,8'h51,8'h59,8'h61,8'h69,8'h71,8'h79: begin
                 // OUT (C),r
                 // OUT (C),0
                 MCycles_d = 3'b010;
@@ -1938,7 +1938,7 @@ module t80(
                 end
                 endcase
             end
-            8'b10100010,8'b10101010,8'b10110010,8'b10111010: begin
+            8'ha2,8'haa,8'hb2,8'hba: begin
                 // INI, IND, INIR, INDR
                 MCycles_d = 3'b100;
                 case (MCycle)
@@ -1976,7 +1976,7 @@ module t80(
                 end
                 endcase
             end
-            8'b10100011,8'b10101011,8'b10110011,8'b10111011: begin
+            8'ha3,8'hab,8'hb3,8'hbb: begin
                 // OUTI, OUTD, OTIR, OTDR
                 MCycles_d = 3'b100;
                 case (MCycle)
@@ -2014,9 +2014,9 @@ module t80(
                 end
                 endcase
             end
-            8'b11000001,8'b11001001,8'b11010001,8'b11011001: begin
+            8'hc1,8'hc9,8'hd1,8'hd9: begin
             end
-            8'b11000011,8'b11110011: begin
+            8'hc3,8'hf3: begin
             end
             default: begin
             end
@@ -2039,10 +2039,10 @@ module t80(
                 Set_BusB_To[2:0] = SSS;
                 Set_BusB_To[3] = 1'b0;
             end
-            if (IR == 8'b00110110 || IR == 8'b11001011) begin
+            if (IR == 8'h36 || IR == 8'hcb) begin
                 Set_Addr_To = aNone;
             end
-            if (!(IR == 8'b00110110 || ISet == 2'b01)) begin
+            if (!(IR == 8'h36 || ISet == 2'b01)) begin
                 No_PC = 1'b1;
             end
         end
@@ -2055,7 +2055,7 @@ module t80(
             end
             Set_BusB_To[2:0] = SSS;
             Set_BusB_To[3] = 1'b0;
-            if (IR == 8'b00110110 || ISet == 2'b01) begin
+            if (IR == 8'h36 || ISet == 2'b01) begin
                 // LD (HL),n
                 Inc_PC = 1'b1;
             end
@@ -2070,14 +2070,14 @@ module t80(
     //------------------------------------------------------------------------
     reg [7:0] alu_bitmask;
     always @* case (IR[5:3])
-        3'b000:  alu_bitmask = 8'b00000001;
-        3'b001:  alu_bitmask = 8'b00000010;
-        3'b010:  alu_bitmask = 8'b00000100;
-        3'b011:  alu_bitmask = 8'b00001000;
-        3'b100:  alu_bitmask = 8'b00010000;
-        3'b101:  alu_bitmask = 8'b00100000;
-        3'b110:  alu_bitmask = 8'b01000000;
-        default: alu_bitmask = 8'b10000000;
+        3'b000:  alu_bitmask = 8'h01;
+        3'b001:  alu_bitmask = 8'h02;
+        3'b010:  alu_bitmask = 8'h04;
+        3'b011:  alu_bitmask = 8'h08;
+        3'b100:  alu_bitmask = 8'h10;
+        3'b101:  alu_bitmask = 8'h20;
+        3'b110:  alu_bitmask = 8'h40;
+        default: alu_bitmask = 8'h80;
     endcase
 
     wire       alu_do_sub        = ALU_Op_r[1];
@@ -2261,7 +2261,7 @@ module t80(
     assign Really_Wait     = ~WAIT_n & (Write_i | ~NoRead_i);
     assign ClkEn           = CEN;
     assign T_Res           = TState == (TStates) ? 1'b1 : 1'b0;
-    assign NextIs_XY_Fetch = XY_State != 2'b00 && XY_Ind == 1'b0 && ((Set_Addr_To == aXY) || (MCycle == 3'b001 && IR == 8'b11001011) || (MCycle == 3'b001 && IR == 8'b00110110)) ? 1'b1 : 1'b0;
+    assign NextIs_XY_Fetch = XY_State != 2'b00 && XY_Ind == 1'b0 && ((Set_Addr_To == aXY) || (MCycle == 3'b001 && IR == 8'hcb) || (MCycle == 3'b001 && IR == 8'h36)) ? 1'b1 : 1'b0;
     assign Save_Mux        = ExchangeRp == 1'b1 ? BusB : Save_ALU_r == 1'b0 ? DI_Reg : ALU_Q;
 
     always @(posedge clk or posedge reset) begin : p1
@@ -2811,8 +2811,8 @@ module t80(
     reg [7:0] RegsH [7:0] /* synthesis syn_ramstyle = "distributed_ram" */;
     reg [7:0] RegsL [7:0] /* synthesis syn_ramstyle = "distributed_ram" */;
 
-    always @(posedge clk) if (ClkEn && RegWEH) RegsH[RegAddrA] <= RegDIH; 
-    always @(posedge clk) if (ClkEn && RegWEL) RegsL[RegAddrA] <= RegDIL; 
+    always @(posedge clk) if (ClkEn && RegWEH) RegsH[RegAddrA] <= RegDIH;
+    always @(posedge clk) if (ClkEn && RegWEL) RegsL[RegAddrA] <= RegDIL;
 
     assign RegBusA[15:8] = RegsH[RegAddrA];
     assign RegBusA[ 7:0] = RegsL[RegAddrA];
@@ -2943,7 +2943,7 @@ module t80(
                     if (NextIs_XY_Fetch == 1'b1) begin
                         MCycle <= 3'b110;
                         Pre_XY_F_M <= MCycle;
-                        if (IR == 8'b00110110 && Mode == 0) begin
+                        if (IR == 8'h36 && Mode == 0) begin
                             Pre_XY_F_M <= 3'b010;
                         end
                     end
