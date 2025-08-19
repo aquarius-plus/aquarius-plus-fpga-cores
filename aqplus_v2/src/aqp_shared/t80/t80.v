@@ -283,505 +283,898 @@ module t80(
                         end
                         3'd2: begin
                             Set_BusA_To[2:0] = DDD;
-                            Read_To_Reg = 1;
+                            Read_To_Reg      = 1;
                         end
-                        default: begin
-                        end
+                        default: begin end
                         endcase
                     end
-                8'h70,8'h71,8'h72,8'h73,8'h74,8'h75,8'h77: begin
-                    // LD (HL),r
-                    MCycles_d = 3'd2;
-                    case (MCycle)
-                    3'd1: begin
-                        Set_Addr_To = aXY;
-                        Set_BusB_To[2:0] = SSS;
-                        Set_BusB_To[3] = 0;
-                    end
-                    3'd2: begin
-                        Write_i = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'h36: begin
-                    // LD (HL),n
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        Set_Addr_To = aXY;
-                        Set_BusB_To[2:0] = SSS;
-                        Set_BusB_To[3] = 0;
-                    end
-                    3'd3: begin
-                        Write_i = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'h0a: begin
-                    // LD A,(BC)
-                    MCycles_d = 3'd2;
-                    case (MCycle)
-                    3'd1: begin
-                        Set_Addr_To = aBC;
-                    end
-                    3'd2: begin
-                        Read_To_Acc = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'h1a: begin
-                    // LD A,(DE)
-                    MCycles_d = 3'd2;
-                    case (MCycle)
-                    3'd1: begin
-                        Set_Addr_To = aDE;
-                    end
-                    3'd2: begin
-                        Read_To_Acc = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'h3a: begin
-                    // LD A,(nn)
-                    MCycles_d = 3'd4;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        LDZ = 1;
-                    end
-                    3'd3: begin
-                        Set_Addr_To = aZI;
-                        Inc_PC = 1;
-                    end
-                    3'd4: begin
-                        Read_To_Acc = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'h02: begin
-                    // LD (BC),A
-                    MCycles_d = 3'd2;
-                    case (MCycle)
-                    3'd1: begin
-                        Set_Addr_To = aBC;
-                        Set_BusB_To = 4'b0111;
-                        SetWZ = 2'b10;
-                    end
-                    3'd2: begin
-                        Write_i = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'h12: begin
-                    // LD (DE),A
-                    MCycles_d = 3'd2;
-                    case (MCycle)
-                    3'd1: begin
-                        Set_Addr_To = aDE;
-                        Set_BusB_To = 4'b0111;
-                        SetWZ = 2'b10;
-                    end
-                    3'd2: begin
-                        Write_i = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'h32: begin
-                    // LD (nn),A
-                    MCycles_d = 3'd4;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        LDZ = 1;
-                    end
-                    3'd3: begin
-                        Set_Addr_To = aZI;
-                        SetWZ = 2'b10;
-                        Inc_PC = 1;
-                        Set_BusB_To = 4'b0111;
-                    end
-                    3'd4: begin
-                        Write_i = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                    // 16 BIT LOAD GROUP
-                end
-                8'h01,8'h11,8'h21,8'h31: begin
-                    // LD dd,nn
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        Read_To_Reg = 1;
-                        if (DPair == 2'b11) begin
-                            Set_BusA_To[3:0] = 4'b1000;
+
+                    8'h70,8'h71,8'h72,8'h73,8'h74,8'h75,8'h77: begin
+                        // LD (HL),r
+                        MCycles_d = 3'd2;
+                        case (MCycle)
+                        3'd1: begin
+                            Set_Addr_To = aXY;
+                            Set_BusB_To[2:0] = SSS;
+                            Set_BusB_To[3] = 0;
                         end
-                        else begin
-                            Set_BusA_To[2:1] = DPair;
-                            Set_BusA_To[0] = 1;
+                        3'd2: begin
+                            Write_i = 1;
                         end
+                        default: begin end
+                        endcase
                     end
-                    3'd3: begin
-                        Inc_PC = 1;
-                        Read_To_Reg = 1;
-                        if (DPair == 2'b11) begin
-                            Set_BusA_To[3:0] = 4'b1001;
+                    8'h36: begin
+                        // LD (HL),n
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd2: begin
+                            Inc_PC = 1;
+                            Set_Addr_To = aXY;
+                            Set_BusB_To[2:0] = SSS;
+                            Set_BusB_To[3] = 0;
                         end
-                        else begin
-                            Set_BusA_To[2:1] = DPair;
-                            Set_BusA_To[0] = 0;
+                        3'd3: begin
+                            Write_i = 1;
                         end
+                        default: begin end
+                        endcase
                     end
-                    default: begin
+                    8'h0a: begin
+                        // LD A,(BC)
+                        MCycles_d = 3'd2;
+                        case (MCycle)
+                        3'd1: begin
+                            Set_Addr_To = aBC;
+                        end
+                        3'd2: begin
+                            Read_To_Acc = 1;
+                        end
+                        default: begin end
+                        endcase
                     end
-                    endcase
-                end
-                8'h2a: begin
-                    // LD HL,(nn)
-                    MCycles_d = 3'd5;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        LDZ = 1;
+                    8'h1a: begin
+                        // LD A,(DE)
+                        MCycles_d = 3'd2;
+                        case (MCycle)
+                        3'd1: begin
+                            Set_Addr_To = aDE;
+                        end
+                        3'd2: begin
+                            Read_To_Acc = 1;
+                        end
+                        default: begin end
+                        endcase
                     end
-                    3'd3: begin
-                        Set_Addr_To = aZI;
-                        Inc_PC = 1;
-                        LDW = 1;
+                    8'h3a: begin
+                        // LD A,(nn)
+                        MCycles_d = 3'd4;
+                        case (MCycle)
+                        3'd2: begin
+                            Inc_PC = 1;
+                            LDZ = 1;
+                        end
+                        3'd3: begin
+                            Set_Addr_To = aZI;
+                            Inc_PC = 1;
+                        end
+                        3'd4: begin
+                            Read_To_Acc = 1;
+                        end
+                        default: begin end
+                        endcase
                     end
-                    3'd4: begin
-                        Set_BusA_To[2:0] = 3'd5;
-                        // L
-                        Read_To_Reg = 1;
-                        Inc_WZ = 1;
-                        Set_Addr_To = aZI;
+                    8'h02: begin
+                        // LD (BC),A
+                        MCycles_d = 3'd2;
+                        case (MCycle)
+                        3'd1: begin
+                            Set_Addr_To = aBC;
+                            Set_BusB_To = 4'b0111;
+                            SetWZ = 2'b10;
+                        end
+                        3'd2: begin
+                            Write_i = 1;
+                        end
+                        default: begin end
+                        endcase
                     end
-                    3'd5: begin
-                        Set_BusA_To[2:0] = 3'd4;
-                        // H
-                        Read_To_Reg = 1;
+                    8'h12: begin
+                        // LD (DE),A
+                        MCycles_d = 3'd2;
+                        case (MCycle)
+                        3'd1: begin
+                            Set_Addr_To = aDE;
+                            Set_BusB_To = 4'b0111;
+                            SetWZ = 2'b10;
+                        end
+                        3'd2: begin
+                            Write_i = 1;
+                        end
+                        default: begin end
+                        endcase
                     end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'h22: begin
-                    // LD (nn),HL
-                    MCycles_d = 3'd5;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        LDZ = 1;
-                    end
-                    3'd3: begin
-                        Set_Addr_To = aZI;
-                        Inc_PC = 1;
-                        LDW = 1;
-                        Set_BusB_To = 4'b0101;
-                        // L
-                    end
-                    3'd4: begin
-                        Inc_WZ = 1;
-                        Set_Addr_To = aZI;
-                        Write_i = 1;
-                        Set_BusB_To = 4'b0100;
-                        // H
-                    end
-                    3'd5: begin
-                        Write_i = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'hf9: begin
-                    // LD SP,HL
-                    TStates = 3'd6;
-                    LDSPHL = 1;
-                end
-                8'hc5,8'hd5,8'he5,8'hf5: begin
-                    // PUSH qq
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd1: begin
-                        TStates = 3'd5;
-                        IncDec_16 = 4'b1111;
-                        Set_Addr_To = aSP;
-                        if (DPair == 2'b11) begin
+                    8'h32: begin
+                        // LD (nn),A
+                        MCycles_d = 3'd4;
+                        case (MCycle)
+                        3'd2: begin
+                            Inc_PC = 1;
+                            LDZ = 1;
+                        end
+                        3'd3: begin
+                            Set_Addr_To = aZI;
+                            SetWZ = 2'b10;
+                            Inc_PC = 1;
                             Set_BusB_To = 4'b0111;
                         end
-                        else begin
-                            Set_BusB_To[2:1] = DPair;
-                            Set_BusB_To[0] = 0;
-                            Set_BusB_To[3] = 0;
+                        3'd4: begin
+                            Write_i = 1;
                         end
+                        default: begin end
+                        endcase
+                        // 16 BIT LOAD GROUP
                     end
-                    3'd2: begin
-                        IncDec_16 = 4'b1111;
-                        Set_Addr_To = aSP;
-                        if (DPair == 2'b11) begin
-                            Set_BusB_To = 4'b1011;
+                    8'h01,8'h11,8'h21,8'h31: begin
+                        // LD dd,nn
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd2: begin
+                            Inc_PC = 1;
+                            Read_To_Reg = 1;
+                            if (DPair == 2'b11) begin
+                                Set_BusA_To[3:0] = 4'b1000;
+                            end
+                            else begin
+                                Set_BusA_To[2:1] = DPair;
+                                Set_BusA_To[0] = 1;
+                            end
                         end
-                        else begin
-                            Set_BusB_To[2:1] = DPair;
-                            Set_BusB_To[0] = 1;
-                            Set_BusB_To[3] = 0;
+                        3'd3: begin
+                            Inc_PC = 1;
+                            Read_To_Reg = 1;
+                            if (DPair == 2'b11) begin
+                                Set_BusA_To[3:0] = 4'b1001;
+                            end
+                            else begin
+                                Set_BusA_To[2:1] = DPair;
+                                Set_BusA_To[0] = 0;
+                            end
                         end
-                        Write_i = 1;
+                        default: begin end
+                        endcase
                     end
-                    3'd3: begin
-                        Write_i = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'hc1,8'hd1,8'he1,8'hf1: begin
-                    // POP qq
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd1: begin
-                        Set_Addr_To = aSP;
-                    end
-                    3'd2: begin
-                        IncDec_16 = 4'b0111;
-                        Set_Addr_To = aSP;
-                        Read_To_Reg = 1;
-                        if (DPair == 2'b11) begin
-                            Set_BusA_To[3:0] = 4'b1011;
+                    8'h2a: begin
+                        // LD HL,(nn)
+                        MCycles_d = 3'd5;
+                        case (MCycle)
+                        3'd2: begin
+                            Inc_PC = 1;
+                            LDZ = 1;
                         end
-                        else begin
-                            Set_BusA_To[2:1] = DPair;
-                            Set_BusA_To[0] = 1;
+                        3'd3: begin
+                            Set_Addr_To = aZI;
+                            Inc_PC = 1;
+                            LDW = 1;
                         end
-                    end
-                    3'd3: begin
-                        IncDec_16 = 4'b0111;
-                        Read_To_Reg = 1;
-                        if (DPair == 2'b11) begin
-                            Set_BusA_To[3:0] = 4'b0111;
+                        3'd4: begin
+                            Set_BusA_To[2:0] = 3'd5;
+                            // L
+                            Read_To_Reg = 1;
+                            Inc_WZ = 1;
+                            Set_Addr_To = aZI;
                         end
-                        else begin
-                            Set_BusA_To[2:1] = DPair;
-                            Set_BusA_To[0] = 0;
+                        3'd5: begin
+                            Set_BusA_To[2:0] = 3'd4;
+                            // H
+                            Read_To_Reg = 1;
                         end
+                        default: begin end
+                        endcase
                     end
-                    default: begin
+                    8'h22: begin
+                        // LD (nn),HL
+                        MCycles_d = 3'd5;
+                        case (MCycle)
+                        3'd2: begin
+                            Inc_PC = 1;
+                            LDZ = 1;
+                        end
+                        3'd3: begin
+                            Set_Addr_To = aZI;
+                            Inc_PC = 1;
+                            LDW = 1;
+                            Set_BusB_To = 4'b0101;
+                            // L
+                        end
+                        3'd4: begin
+                            Inc_WZ = 1;
+                            Set_Addr_To = aZI;
+                            Write_i = 1;
+                            Set_BusB_To = 4'b0100;
+                            // H
+                        end
+                        3'd5: begin
+                            Write_i = 1;
+                        end
+                        default: begin end
+                        endcase
                     end
-                    endcase
-                    // EXCHANGE, BLOCK TRANSFER AND SEARCH GROUP
-                end
-                8'heb: begin
-                    // EX DE,HL
-                    ExchangeDH = 1;
-                end
-                8'h08: begin
-                    // EX AF,AF'
-                    ExchangeAF = 1;
-                end
-                8'hd9: begin
-                    // EXX
-                    ExchangeRS = 1;
-                end
-                8'he3: begin
-                    // EX (SP),HL
-                    MCycles_d = 3'd5;
-                    case (MCycle)
-                    3'd1: begin
-                        Set_Addr_To = aSP;
+                    8'hf9: begin
+                        // LD SP,HL
+                        TStates = 3'd6;
+                        LDSPHL = 1;
                     end
-                    3'd2: begin
-                        Set_Addr_To = aSP;
-                        LDZ = 1;
-                        IncDec_16 = 4'b0111;
-                        // SP = SP+1
+                    8'hc5,8'hd5,8'he5,8'hf5: begin
+                        // PUSH qq
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd1: begin
+                            TStates = 3'd5;
+                            IncDec_16 = 4'b1111;
+                            Set_Addr_To = aSP;
+                            if (DPair == 2'b11) begin
+                                Set_BusB_To = 4'b0111;
+                            end
+                            else begin
+                                Set_BusB_To[2:1] = DPair;
+                                Set_BusB_To[0] = 0;
+                                Set_BusB_To[3] = 0;
+                            end
+                        end
+                        3'd2: begin
+                            IncDec_16 = 4'b1111;
+                            Set_Addr_To = aSP;
+                            if (DPair == 2'b11) begin
+                                Set_BusB_To = 4'b1011;
+                            end
+                            else begin
+                                Set_BusB_To[2:1] = DPair;
+                                Set_BusB_To[0] = 1;
+                                Set_BusB_To[3] = 0;
+                            end
+                            Write_i = 1;
+                        end
+                        3'd3: begin
+                            Write_i = 1;
+                        end
+                        default: begin end
+                        endcase
                     end
-                    3'd3: begin
-                        TStates = 3'd4;
-                        Set_BusB_To = 4'b0100;
-                        Set_Addr_To = aSP;
-                        LDW = 1;
+                    8'hc1,8'hd1,8'he1,8'hf1: begin
+                        // POP qq
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd1: begin
+                            Set_Addr_To = aSP;
+                        end
+                        3'd2: begin
+                            IncDec_16 = 4'b0111;
+                            Set_Addr_To = aSP;
+                            Read_To_Reg = 1;
+                            if (DPair == 2'b11) begin
+                                Set_BusA_To[3:0] = 4'b1011;
+                            end
+                            else begin
+                                Set_BusA_To[2:1] = DPair;
+                                Set_BusA_To[0] = 1;
+                            end
+                        end
+                        3'd3: begin
+                            IncDec_16 = 4'b0111;
+                            Read_To_Reg = 1;
+                            if (DPair == 2'b11) begin
+                                Set_BusA_To[3:0] = 4'b0111;
+                            end
+                            else begin
+                                Set_BusA_To[2:1] = DPair;
+                                Set_BusA_To[0] = 0;
+                            end
+                        end
+                        default: begin end
+                        endcase
+                        // EXCHANGE, BLOCK TRANSFER AND SEARCH GROUP
                     end
-                    3'd4: begin
-                        Set_BusB_To = 4'b0101;
-                        Write_i = 1;
-                        IncDec_16 = 4'b1111;
-                        // SP = SP-1
-                        Set_Addr_To = aSP;
+                    8'heb: begin
+                        // EX DE,HL
+                        ExchangeDH = 1;
                     end
-                    3'd5: begin
-                        ExchangeWH = 1;
-                        // save WZ to HL
-                        TStates = 3'd5;
-                        Write_i = 1;
+                    8'h08: begin
+                        // EX AF,AF'
+                        ExchangeAF = 1;
                     end
-                    default: begin
+                    8'hd9: begin
+                        // EXX
+                        ExchangeRS = 1;
                     end
-                    endcase
-                    // 8 BIT ARITHMETIC AND LOGICAL GROUP
-                end
-                8'h80,8'h81,8'h82,8'h83,8'h84,8'h85,8'h87,8'h88,8'h89,8'h8a,8'h8b,8'h8c,8'h8d,8'h8f,8'h90,8'h91,8'h92,8'h93,8'h94,8'h95,8'h97,8'h98,8'h99,8'h9a,8'h9b,8'h9c,8'h9d,8'h9f,8'ha0,8'ha1,8'ha2,8'ha3,8'ha4,8'ha5,8'ha7,8'ha8,8'ha9,8'haa,8'hab,8'hac,8'had,8'haf,8'hb0,8'hb1,8'hb2,8'hb3,8'hb4,8'hb5,8'hb7,8'hb8,8'hb9,8'hba,8'hbb,8'hbc,8'hbd,8'hbf: begin
-                    // ADD A,r
-                    // ADC A,r
-                    // SUB A,r
-                    // SBC A,r
-                    // AND A,r
-                    // OR A,r
-                    // XOR A,r
-                    // CP A,r
-                    Set_BusB_To[2:0] = SSS;
-                    Set_BusA_To[2:0] = 3'd7;
-                    Read_To_Reg = 1;
-                    Save_ALU = 1;
-                end
-                8'h86,8'h8e,8'h96,8'h9e,8'ha6,8'hae,8'hb6,8'hbe: begin
-                    // ADD A,(HL)
-                    // ADC A,(HL)
-                    // SUB A,(HL)
-                    // SBC A,(HL)
-                    // AND A,(HL)
-                    // OR A,(HL)
-                    // XOR A,(HL)
-                    // CP A,(HL)
-                    MCycles_d = 3'd2;
-                    case (MCycle)
-                    3'd1: begin
-                        Set_Addr_To = aXY;
+                    8'he3: begin
+                        // EX (SP),HL
+                        MCycles_d = 3'd5;
+                        case (MCycle)
+                        3'd1: begin
+                            Set_Addr_To = aSP;
+                        end
+                        3'd2: begin
+                            Set_Addr_To = aSP;
+                            LDZ = 1;
+                            IncDec_16 = 4'b0111;
+                            // SP = SP+1
+                        end
+                        3'd3: begin
+                            TStates = 3'd4;
+                            Set_BusB_To = 4'b0100;
+                            Set_Addr_To = aSP;
+                            LDW = 1;
+                        end
+                        3'd4: begin
+                            Set_BusB_To = 4'b0101;
+                            Write_i = 1;
+                            IncDec_16 = 4'b1111;
+                            // SP = SP-1
+                            Set_Addr_To = aSP;
+                        end
+                        3'd5: begin
+                            ExchangeWH = 1;
+                            // save WZ to HL
+                            TStates = 3'd5;
+                            Write_i = 1;
+                        end
+                        default: begin end
+                        endcase
+                        // 8 BIT ARITHMETIC AND LOGICAL GROUP
                     end
-                    3'd2: begin
-                        Read_To_Reg = 1;
-                        Save_ALU = 1;
+                    8'h80,8'h81,8'h82,8'h83,8'h84,8'h85,8'h87,8'h88,8'h89,8'h8a,8'h8b,8'h8c,8'h8d,8'h8f,8'h90,8'h91,8'h92,8'h93,8'h94,8'h95,8'h97,8'h98,8'h99,8'h9a,8'h9b,8'h9c,8'h9d,8'h9f,8'ha0,8'ha1,8'ha2,8'ha3,8'ha4,8'ha5,8'ha7,8'ha8,8'ha9,8'haa,8'hab,8'hac,8'had,8'haf,8'hb0,8'hb1,8'hb2,8'hb3,8'hb4,8'hb5,8'hb7,8'hb8,8'hb9,8'hba,8'hbb,8'hbc,8'hbd,8'hbf: begin
+                        // ADD A,r
+                        // ADC A,r
+                        // SUB A,r
+                        // SBC A,r
+                        // AND A,r
+                        // OR A,r
+                        // XOR A,r
+                        // CP A,r
                         Set_BusB_To[2:0] = SSS;
                         Set_BusA_To[2:0] = 3'd7;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'hc6,8'hce,8'hd6,8'hde,8'he6,8'hee,8'hf6,8'hfe: begin
-                    // ADD A,n
-                    // ADC A,n
-                    // SUB A,n
-                    // SBC A,n
-                    // AND A,n
-                    // OR A,n
-                    // XOR A,n
-                    // CP A,n
-                    MCycles_d = 3'd2;
-                    if (MCycle == 3'd2) begin
-                        Inc_PC = 1;
                         Read_To_Reg = 1;
                         Save_ALU = 1;
-                        Set_BusB_To[2:0] = SSS;
-                        Set_BusA_To[2:0] = 3'd7;
                     end
-                end
-                8'h04,8'h0c,8'h14,8'h1c,8'h24,8'h2c,8'h3c: begin
-                    // INC r
-                    Set_BusB_To = 4'b1010;
-                    Set_BusA_To[2:0] = DDD;
-                    Read_To_Reg = 1;
-                    Save_ALU = 1;
-                    PreserveC = 1;
-                    ALU_Op = 4'b0000;
-                end
-                8'h34: begin
-                    // INC (HL)
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd1: begin
-                        Set_Addr_To = aXY;
+                    8'h86,8'h8e,8'h96,8'h9e,8'ha6,8'hae,8'hb6,8'hbe: begin
+                        // ADD A,(HL)
+                        // ADC A,(HL)
+                        // SUB A,(HL)
+                        // SBC A,(HL)
+                        // AND A,(HL)
+                        // OR A,(HL)
+                        // XOR A,(HL)
+                        // CP A,(HL)
+                        MCycles_d = 3'd2;
+                        case (MCycle)
+                        3'd1: begin
+                            Set_Addr_To = aXY;
+                        end
+                        3'd2: begin
+                            Read_To_Reg = 1;
+                            Save_ALU = 1;
+                            Set_BusB_To[2:0] = SSS;
+                            Set_BusA_To[2:0] = 3'd7;
+                        end
+                        default: begin end
+                        endcase
                     end
-                    3'd2: begin
-                        TStates = 3'd4;
-                        Set_Addr_To = aXY;
+                    8'hc6,8'hce,8'hd6,8'hde,8'he6,8'hee,8'hf6,8'hfe: begin
+                        // ADD A,n
+                        // ADC A,n
+                        // SUB A,n
+                        // SBC A,n
+                        // AND A,n
+                        // OR A,n
+                        // XOR A,n
+                        // CP A,n
+                        MCycles_d = 3'd2;
+                        if (MCycle == 3'd2) begin
+                            Inc_PC = 1;
+                            Read_To_Reg = 1;
+                            Save_ALU = 1;
+                            Set_BusB_To[2:0] = SSS;
+                            Set_BusA_To[2:0] = 3'd7;
+                        end
+                    end
+                    8'h04,8'h0c,8'h14,8'h1c,8'h24,8'h2c,8'h3c: begin
+                        // INC r
+                        Set_BusB_To = 4'b1010;
+                        Set_BusA_To[2:0] = DDD;
                         Read_To_Reg = 1;
                         Save_ALU = 1;
                         PreserveC = 1;
                         ALU_Op = 4'b0000;
+                    end
+                    8'h34: begin
+                        // INC (HL)
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd1: begin
+                            Set_Addr_To = aXY;
+                        end
+                        3'd2: begin
+                            TStates = 3'd4;
+                            Set_Addr_To = aXY;
+                            Read_To_Reg = 1;
+                            Save_ALU = 1;
+                            PreserveC = 1;
+                            ALU_Op = 4'b0000;
+                            Set_BusB_To = 4'b1010;
+                            Set_BusA_To[2:0] = DDD;
+                        end
+                        3'd3: begin
+                            Write_i = 1;
+                        end
+                        default: begin end
+                        endcase
+                    end
+                    8'h05,8'h0d,8'h15,8'h1d,8'h25,8'h2d,8'h3d: begin
+                        // DEC r
                         Set_BusB_To = 4'b1010;
                         Set_BusA_To[2:0] = DDD;
-                    end
-                    3'd3: begin
-                        Write_i = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'h05,8'h0d,8'h15,8'h1d,8'h25,8'h2d,8'h3d: begin
-                    // DEC r
-                    Set_BusB_To = 4'b1010;
-                    Set_BusA_To[2:0] = DDD;
-                    Read_To_Reg = 1;
-                    Save_ALU = 1;
-                    PreserveC = 1;
-                    ALU_Op = 4'b0010;
-                end
-                8'h35: begin
-                    // DEC (HL)
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd1: begin
-                        Set_Addr_To = aXY;
-                    end
-                    3'd2: begin
-                        TStates = 3'd4;
-                        Set_Addr_To = aXY;
-                        ALU_Op = 4'b0010;
                         Read_To_Reg = 1;
                         Save_ALU = 1;
                         PreserveC = 1;
-                        Set_BusB_To = 4'b1010;
-                        Set_BusA_To[2:0] = DDD;
+                        ALU_Op = 4'b0010;
                     end
-                    3'd3: begin
-                        Write_i = 1;
+                    8'h35: begin
+                        // DEC (HL)
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd1: begin
+                            Set_Addr_To = aXY;
+                        end
+                        3'd2: begin
+                            TStates = 3'd4;
+                            Set_Addr_To = aXY;
+                            ALU_Op = 4'b0010;
+                            Read_To_Reg = 1;
+                            Save_ALU = 1;
+                            PreserveC = 1;
+                            Set_BusB_To = 4'b1010;
+                            Set_BusA_To[2:0] = DDD;
+                        end
+                        3'd3: begin
+                            Write_i = 1;
+                        end
+                        default: begin end
+                        endcase
+                        // GENERAL PURPOSE ARITHMETIC AND CPU CONTROL GROUPS
                     end
-                    default: begin
+                    8'h27: begin
+                        // DAA
+                        Set_BusA_To[2:0] = 3'd7;
+                        Read_To_Reg = 1;
+                        ALU_Op = 4'b1100;
+                        Save_ALU = 1;
                     end
-                    endcase
-                    // GENERAL PURPOSE ARITHMETIC AND CPU CONTROL GROUPS
-                end
-                8'h27: begin
-                    // DAA
-                    Set_BusA_To[2:0] = 3'd7;
-                    Read_To_Reg = 1;
-                    ALU_Op = 4'b1100;
-                    Save_ALU = 1;
-                end
-                8'h2f: begin
-                    // CPL
-                    I_CPL = 1;
-                end
-                8'h3f: begin
-                    // CCF
-                    I_CCF = 1;
-                end
-                8'h37: begin
-                    // SCF
-                    I_SCF = 1;
-                end
-                8'h00: begin
-                    if (NMICycle == 1'b1) begin
-                        // NMI
+                    8'h2f: begin
+                        // CPL
+                        I_CPL = 1;
+                    end
+                    8'h3f: begin
+                        // CCF
+                        I_CCF = 1;
+                    end
+                    8'h37: begin
+                        // SCF
+                        I_SCF = 1;
+                    end
+                    8'h00: begin
+                        if (NMICycle == 1'b1) begin
+                            // NMI
+                            MCycles_d = 3'd3;
+                            case (MCycle)
+                            3'd1: begin
+                                TStates = 3'd5;
+                                IncDec_16 = 4'b1111;
+                                Set_Addr_To = aSP;
+                                Set_BusB_To = 4'b1101;
+                            end
+                            3'd2: begin
+                                Write_i = 1;
+                                IncDec_16 = 4'b1111;
+                                Set_Addr_To = aSP;
+                                Set_BusB_To = 4'b1100;
+                            end
+                            3'd3: begin
+                                Write_i = 1;
+                            end
+                            default: begin end
+                            endcase
+                        end
+                        else if (IntCycle_i == 1'b1) begin
+                            // INT (IM 2)
+                            MCycles_d = 3'd5;
+                            case (MCycle)
+                            3'd1: begin
+                                TStates = 3'd5;
+                                IncDec_16 = 4'b1111;
+                                Set_Addr_To = aSP;
+                                Set_BusB_To = 4'b1101;
+                            end
+                            3'd2: begin
+                                //TStates = "100";
+                                Write_i = 1;
+                                IncDec_16 = 4'b1111;
+                                Set_Addr_To = aSP;
+                                Set_BusB_To = 4'b1100;
+                            end
+                            3'd3: begin
+                                //TStates = "100";
+                                Write_i = 1;
+                            end
+                            3'd4: begin
+                                Inc_PC = 1;
+                                LDZ = 1;
+                            end
+                            3'd5: begin
+                                Jump = 1;
+                            end
+                            default: begin end
+                            endcase
+                        end
+                        else begin
+                            // NOP
+                        end
+                    end
+                    8'h76: begin
+                        // HALT
+                        Halt = 1;
+                    end
+                    8'hf3: begin
+                        // DI
+                        SetDI = 1;
+                    end
+                    8'hfb: begin
+                        // EI
+                        SetEI = 1;
+                        // 16 BIT ARITHMETIC GROUP
+                    end
+                    8'h09,8'h19,8'h29,8'h39: begin
+                        // ADD HL,ss
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd1: begin
+                            No_PC = 1;
+                        end
+                        3'd2: begin
+                            NoRead_i = 1;
+                            ALU_Op = 4'b0000;
+                            Read_To_Reg = 1;
+                            Save_ALU = 1;
+                            Set_BusA_To[2:0] = 3'd5;
+                            case (IR[5:4])
+                            2'b00,2'b01,2'b10: begin
+                                Set_BusB_To[2:1] = IR[5:4];
+                                Set_BusB_To[0] = 1;
+                            end
+                            default: begin
+                                Set_BusB_To = 4'b1000;
+                            end
+                            endcase
+                            TStates = 3'd4;
+                            Arith16 = 1;
+                            SetWZ = 2'b11;
+                            No_PC = 1;
+                        end
+                        3'd3: begin
+                            NoRead_i = 1;
+                            Read_To_Reg = 1;
+                            Save_ALU = 1;
+                            ALU_Op = 4'b0001;
+                            Set_BusA_To[2:0] = 3'd4;
+                            case (IR[5:4])
+                            2'b00,2'b01,2'b10: begin
+                                Set_BusB_To[2:1] = IR[5:4];
+                            end
+                            default: begin
+                                Set_BusB_To = 4'b1001;
+                            end
+                            endcase
+                            Arith16 = 1;
+                        end
+                        default: begin end
+                        endcase
+                    end
+                    8'h03,8'h13,8'h23,8'h33: begin
+                        // INC ss
+                        TStates = 3'd6;
+                        IncDec_16[3:2] = 2'b01;
+                        IncDec_16[1:0] = DPair;
+                    end
+                    8'h0b,8'h1b,8'h2b,8'h3b: begin
+                        // DEC ss
+                        TStates = 3'd6;
+                        IncDec_16[3:2] = 2'b11;
+                        IncDec_16[1:0] = DPair;
+                        // ROTATE AND SHIFT GROUP
+                        // RLCA|RLA|RRCA|RRA
+                    end
+                    8'h07,8'h17,8'h0f,8'h1f: begin
+                        Set_BusA_To[2:0] = 3'd7;
+                        ALU_Op = 4'b1000;
+                        Read_To_Reg = 1;
+                        Save_ALU = 1;
+                        // JUMP GROUP
+                    end
+                    8'hc3: begin
+                        // JP nn
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd2: begin
+                            Inc_PC = 1;
+                            LDZ = 1;
+                        end
+                        3'd3: begin
+                            Inc_PC = 1;
+                            Jump = 1;
+                            LDW = 1;
+                        end
+                        default: begin end
+                        endcase
+                    end
+                    8'hc2,8'hca,8'hd2,8'hda,8'he2,8'hea,8'hf2,8'hfa: begin
+                        // JP cc,nn
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd2: begin
+                            Inc_PC = 1;
+                            LDZ = 1;
+                        end
+                        3'd3: begin
+                            LDW = 1;
+                            Inc_PC = 1;
+                            if (cc_is_true == 1'b1) begin
+                                Jump = 1;
+                            end
+                        end
+                        default: begin end
+                        endcase
+                    end
+                    8'h18: begin
+                        // JR e
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd2: begin
+                            Inc_PC = 1;
+                            No_PC = 1;
+                        end
+                        3'd3: begin
+                            NoRead_i = 1;
+                            JumpE = 1;
+                            TStates = 3'd5;
+                        end
+                        default: begin end
+                        endcase
+                    end
+                    8'h38: begin
+                        // JR C,e
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd2: begin
+                            Inc_PC = 1;
+                            if (F[Flag_C] == 1'b0) begin
+                                MCycles_d = 3'd2;
+                            end
+                            else begin
+                                No_PC = 1;
+                            end
+                        end
+                        3'd3: begin
+                            NoRead_i = 1;
+                            JumpE = 1;
+                            TStates = 3'd5;
+                        end
+                        default: begin end
+                        endcase
+                    end
+                    8'h30: begin
+                        // JR NC,e
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd2: begin
+                            Inc_PC = 1;
+                            if (F[Flag_C] == 1'b1) begin
+                                MCycles_d = 3'd2;
+                            end
+                            else begin
+                                No_PC = 1;
+                            end
+                        end
+                        3'd3: begin
+                            NoRead_i = 1;
+                            JumpE = 1;
+                            TStates = 3'd5;
+                        end
+                        default: begin end
+                        endcase
+                    end
+                    8'h28: begin
+                        // JR Z,e
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd2: begin
+                            Inc_PC = 1;
+                            if (F[Flag_Z] == 1'b0) begin
+                                MCycles_d = 3'd2;
+                            end
+                            else begin
+                                No_PC = 1;
+                            end
+                        end
+                        3'd3: begin
+                            NoRead_i = 1;
+                            JumpE = 1;
+                            TStates = 3'd5;
+                        end
+                        default: begin end
+                        endcase
+                    end
+                    8'h20: begin
+                        // JR NZ,e
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd2: begin
+                            Inc_PC = 1;
+                            if (F[Flag_Z] == 1'b1) begin
+                                MCycles_d = 3'd2;
+                            end
+                            else begin
+                                No_PC = 1;
+                            end
+                        end
+                        3'd3: begin
+                            NoRead_i = 1;
+                            JumpE = 1;
+                            TStates = 3'd5;
+                        end
+                        default: begin end
+                        endcase
+                    end
+                    8'he9: begin
+                        // JP (HL)
+                        JumpXY = 1;
+                    end
+                    8'h10: begin
+                        // DJNZ,e
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd1: begin
+                            TStates = 3'd5;
+                            I_DJNZ = 1;
+                            Set_BusB_To = 4'b1010;
+                            Set_BusA_To[2:0] = 3'd0;
+                            Read_To_Reg = 1;
+                            Save_ALU = 1;
+                            ALU_Op = 4'b0010;
+                        end
+                        3'd2: begin
+                            I_DJNZ = 1;
+                            Inc_PC = 1;
+                            No_PC = 1;
+                        end
+                        3'd3: begin
+                            NoRead_i = 1;
+                            JumpE = 1;
+                            TStates = 3'd5;
+                        end
+                        default: begin end
+                        endcase
+                        // CALL AND RETURN GROUP
+                    end
+                    8'hcd: begin
+                        // CALL nn
+                        MCycles_d = 3'd5;
+                        case (MCycle)
+                        3'd2: begin
+                            Inc_PC = 1;
+                            LDZ = 1;
+                        end
+                        3'd3: begin
+                            IncDec_16 = 4'b1111;
+                            Inc_PC = 1;
+                            TStates = 3'd4;
+                            Set_Addr_To = aSP;
+                            LDW = 1;
+                            Set_BusB_To = 4'b1101;
+                        end
+                        3'd4: begin
+                            Write_i = 1;
+                            IncDec_16 = 4'b1111;
+                            Set_Addr_To = aSP;
+                            Set_BusB_To = 4'b1100;
+                        end
+                        3'd5: begin
+                            Write_i = 1;
+                            Call = 1;
+                        end
+                        default: begin end
+                        endcase
+                    end
+                    8'hc4,8'hcc,8'hd4,8'hdc,8'he4,8'hec,8'hf4,8'hfc: begin
+                        // CALL cc,nn
+                        MCycles_d = 3'd5;
+                        case (MCycle)
+                        3'd2: begin
+                            Inc_PC = 1;
+                            LDZ = 1;
+                        end
+                        3'd3: begin
+                            Inc_PC = 1;
+                            LDW = 1;
+                            if (cc_is_true == 1'b1) begin
+                                IncDec_16 = 4'b1111;
+                                Set_Addr_To = aSP;
+                                TStates = 3'd4;
+                                Set_BusB_To = 4'b1101;
+                            end
+                            else begin
+                                MCycles_d = 3'd3;
+                            end
+                        end
+                        3'd4: begin
+                            Write_i = 1;
+                            IncDec_16 = 4'b1111;
+                            Set_Addr_To = aSP;
+                            Set_BusB_To = 4'b1100;
+                        end
+                        3'd5: begin
+                            Write_i = 1;
+                            Call = 1;
+                        end
+                        default: begin end
+                        endcase
+                    end
+                    8'hc9: begin
+                        // RET
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd1: begin
+                            //TStates = "101";
+                            Set_Addr_To = aSP;
+                        end
+                        3'd2: begin
+                            IncDec_16 = 4'b0111;
+                            Set_Addr_To = aSP;
+                            LDZ = 1;
+                        end
+                        3'd3: begin
+                            Jump = 1;
+                            IncDec_16 = 4'b0111;
+                        end
+                        default: begin end
+                        endcase
+                    end
+                    8'hc0,8'hc8,8'hd0,8'hd8,8'he0,8'he8,8'hf0,8'hf8: begin
+                        // RET cc
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd1: begin
+                            if (cc_is_true == 1'b1) begin
+                                Set_Addr_To = aSP;
+                            end
+                            else begin
+                                MCycles_d = 3'd1;
+                            end
+                            TStates = 3'd5;
+                        end
+                        3'd2: begin
+                            IncDec_16 = 4'b0111;
+                            Set_Addr_To = aSP;
+                            LDZ = 1;
+                        end
+                        3'd3: begin
+                            Jump = 1;
+                            IncDec_16 = 4'b0111;
+                        end
+                        default: begin end
+                        endcase
+                    end
+                    8'hc7,8'hcf,8'hd7,8'hdf,8'he7,8'hef,8'hf7,8'hff: begin
+                        // RST p
                         MCycles_d = 3'd3;
                         case (MCycle)
                         3'd1: begin
@@ -798,1241 +1191,851 @@ module t80(
                         end
                         3'd3: begin
                             Write_i = 1;
+                            RstP = 1;
                         end
-                        default: begin
-                        end
+                        default: begin end
                         endcase
+                        // INPUT AND OUTPUT GROUP
                     end
-                    else if (IntCycle_i == 1'b1) begin
-                        // INT (IM 2)
-                        MCycles_d = 3'd5;
+                    8'hdb: begin
+                        // IN A,(n)
+                        MCycles_d = 3'd3;
                         case (MCycle)
-                        3'd1: begin
-                            TStates = 3'd5;
-                            IncDec_16 = 4'b1111;
-                            Set_Addr_To = aSP;
-                            Set_BusB_To = 4'b1101;
-                        end
                         3'd2: begin
-                            //TStates = "100";
-                            Write_i = 1;
-                            IncDec_16 = 4'b1111;
-                            Set_Addr_To = aSP;
-                            Set_BusB_To = 4'b1100;
+                            Inc_PC = 1;
+                            Set_Addr_To = aIOA;
                         end
                         3'd3: begin
-                            //TStates = "100";
-                            Write_i = 1;
+                            Read_To_Acc = 1;
+                            IORQ_i = 1;
                         end
-                        3'd4: begin
+                        default: begin end
+                        endcase
+                    end
+                    8'hd3: begin
+                        // OUT (n),A
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                        3'd2: begin
                             Inc_PC = 1;
-                            LDZ = 1;
+                            Set_Addr_To = aIOA;
+                            Set_BusB_To = 4'b0111;
                         end
-                        3'd5: begin
-                            Jump = 1;
+                        3'd3: begin
+                            Write_i = 1;
+                            IORQ_i = 1;
                         end
-                        default: begin
-                        end
+                        default: begin end
                         endcase
+                        //----------------------------------------------------------------------------
+                        //----------------------------------------------------------------------------
+                        // MULTIBYTE INSTRUCTIONS
+                        //----------------------------------------------------------------------------
+                        //----------------------------------------------------------------------------
                     end
-                    else begin
-                        // NOP
+                    8'hcb: begin
+                        Prefix = 2'b01;
                     end
-                end
-                8'h76: begin
-                    // HALT
-                    Halt = 1;
-                end
-                8'hf3: begin
-                    // DI
-                    SetDI = 1;
-                end
-                8'hfb: begin
-                    // EI
-                    SetEI = 1;
-                    // 16 BIT ARITHMETIC GROUP
-                end
-                8'h09,8'h19,8'h29,8'h39: begin
-                    // ADD HL,ss
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd1: begin
-                        No_PC = 1;
+                    8'hed: begin
+                        Prefix = 2'b10;
                     end
-                    3'd2: begin
-                        NoRead_i = 1;
-                        ALU_Op = 4'b0000;
-                        Read_To_Reg = 1;
-                        Save_ALU = 1;
-                        Set_BusA_To[2:0] = 3'd5;
-                        case (IR[5:4])
-                        2'b00,2'b01,2'b10: begin
-                            Set_BusB_To[2:1] = IR[5:4];
-                            Set_BusB_To[0] = 1;
-                        end
-                        default: begin
-                            Set_BusB_To = 4'b1000;
-                        end
-                        endcase
-                        TStates = 3'd4;
-                        Arith16 = 1;
-                        SetWZ = 2'b11;
-                        No_PC = 1;
+                    8'hdd,8'hfd: begin
+                        Prefix = 2'b11;
                     end
-                    3'd3: begin
-                        NoRead_i = 1;
-                        Read_To_Reg = 1;
-                        Save_ALU = 1;
-                        ALU_Op = 4'b0001;
-                        Set_BusA_To[2:0] = 3'd4;
-                        case (IR[5:4])
-                        2'b00,2'b01,2'b10: begin
-                            Set_BusB_To[2:1] = IR[5:4];
-                        end
-                        default: begin
-                            Set_BusB_To = 4'b1001;
-                        end
-                        endcase
-                        Arith16 = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'h03,8'h13,8'h23,8'h33: begin
-                    // INC ss
-                    TStates = 3'd6;
-                    IncDec_16[3:2] = 2'b01;
-                    IncDec_16[1:0] = DPair;
-                end
-                8'h0b,8'h1b,8'h2b,8'h3b: begin
-                    // DEC ss
-                    TStates = 3'd6;
-                    IncDec_16[3:2] = 2'b11;
-                    IncDec_16[1:0] = DPair;
-                    // ROTATE AND SHIFT GROUP
-                    // RLCA|RLA|RRCA|RRA
-                end
-                8'h07,8'h17,8'h0f,8'h1f: begin
-                    Set_BusA_To[2:0] = 3'd7;
-                    ALU_Op = 4'b1000;
-                    Read_To_Reg = 1;
-                    Save_ALU = 1;
-                    // JUMP GROUP
-                end
-                8'hc3: begin
-                    // JP nn
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        LDZ = 1;
-                    end
-                    3'd3: begin
-                        Inc_PC = 1;
-                        Jump = 1;
-                        LDW = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'hc2,8'hca,8'hd2,8'hda,8'he2,8'hea,8'hf2,8'hfa: begin
-                    // JP cc,nn
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        LDZ = 1;
-                    end
-                    3'd3: begin
-                        LDW = 1;
-                        Inc_PC = 1;
-                        if (cc_is_true == 1'b1) begin
-                            Jump = 1;
-                        end
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'h18: begin
-                    // JR e
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        No_PC = 1;
-                    end
-                    3'd3: begin
-                        NoRead_i = 1;
-                        JumpE = 1;
-                        TStates = 3'd5;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'h38: begin
-                    // JR C,e
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        if (F[Flag_C] == 1'b0) begin
-                            MCycles_d = 3'd2;
-                        end
-                        else begin
-                            No_PC = 1;
-                        end
-                    end
-                    3'd3: begin
-                        NoRead_i = 1;
-                        JumpE = 1;
-                        TStates = 3'd5;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'h30: begin
-                    // JR NC,e
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        if (F[Flag_C] == 1'b1) begin
-                            MCycles_d = 3'd2;
-                        end
-                        else begin
-                            No_PC = 1;
-                        end
-                    end
-                    3'd3: begin
-                        NoRead_i = 1;
-                        JumpE = 1;
-                        TStates = 3'd5;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'h28: begin
-                    // JR Z,e
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        if (F[Flag_Z] == 1'b0) begin
-                            MCycles_d = 3'd2;
-                        end
-                        else begin
-                            No_PC = 1;
-                        end
-                    end
-                    3'd3: begin
-                        NoRead_i = 1;
-                        JumpE = 1;
-                        TStates = 3'd5;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'h20: begin
-                    // JR NZ,e
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        if (F[Flag_Z] == 1'b1) begin
-                            MCycles_d = 3'd2;
-                        end
-                        else begin
-                            No_PC = 1;
-                        end
-                    end
-                    3'd3: begin
-                        NoRead_i = 1;
-                        JumpE = 1;
-                        TStates = 3'd5;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'he9: begin
-                    // JP (HL)
-                    JumpXY = 1;
-                end
-                8'h10: begin
-                    // DJNZ,e
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd1: begin
-                        TStates = 3'd5;
-                        I_DJNZ = 1;
-                        Set_BusB_To = 4'b1010;
-                        Set_BusA_To[2:0] = 3'd0;
-                        Read_To_Reg = 1;
-                        Save_ALU = 1;
-                        ALU_Op = 4'b0010;
-                    end
-                    3'd2: begin
-                        I_DJNZ = 1;
-                        Inc_PC = 1;
-                        No_PC = 1;
-                    end
-                    3'd3: begin
-                        NoRead_i = 1;
-                        JumpE = 1;
-                        TStates = 3'd5;
-                    end
-                    default: begin
-                    end
-                    endcase
-                    // CALL AND RETURN GROUP
-                end
-                8'hcd: begin
-                    // CALL nn
-                    MCycles_d = 3'd5;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        LDZ = 1;
-                    end
-                    3'd3: begin
-                        IncDec_16 = 4'b1111;
-                        Inc_PC = 1;
-                        TStates = 3'd4;
-                        Set_Addr_To = aSP;
-                        LDW = 1;
-                        Set_BusB_To = 4'b1101;
-                    end
-                    3'd4: begin
-                        Write_i = 1;
-                        IncDec_16 = 4'b1111;
-                        Set_Addr_To = aSP;
-                        Set_BusB_To = 4'b1100;
-                    end
-                    3'd5: begin
-                        Write_i = 1;
-                        Call = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'hc4,8'hcc,8'hd4,8'hdc,8'he4,8'hec,8'hf4,8'hfc: begin
-                    // CALL cc,nn
-                    MCycles_d = 3'd5;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        LDZ = 1;
-                    end
-                    3'd3: begin
-                        Inc_PC = 1;
-                        LDW = 1;
-                        if (cc_is_true == 1'b1) begin
-                            IncDec_16 = 4'b1111;
-                            Set_Addr_To = aSP;
-                            TStates = 3'd4;
-                            Set_BusB_To = 4'b1101;
-                        end
-                        else begin
-                            MCycles_d = 3'd3;
-                        end
-                    end
-                    3'd4: begin
-                        Write_i = 1;
-                        IncDec_16 = 4'b1111;
-                        Set_Addr_To = aSP;
-                        Set_BusB_To = 4'b1100;
-                    end
-                    3'd5: begin
-                        Write_i = 1;
-                        Call = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'hc9: begin
-                    // RET
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd1: begin
-                        //TStates = "101";
-                        Set_Addr_To = aSP;
-                    end
-                    3'd2: begin
-                        IncDec_16 = 4'b0111;
-                        Set_Addr_To = aSP;
-                        LDZ = 1;
-                    end
-                    3'd3: begin
-                        Jump = 1;
-                        IncDec_16 = 4'b0111;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'hc0,8'hc8,8'hd0,8'hd8,8'he0,8'he8,8'hf0,8'hf8: begin
-                    // RET cc
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd1: begin
-                        if (cc_is_true == 1'b1) begin
-                            Set_Addr_To = aSP;
-                        end
-                        else begin
-                            MCycles_d = 3'd1;
-                        end
-                        TStates = 3'd5;
-                    end
-                    3'd2: begin
-                        IncDec_16 = 4'b0111;
-                        Set_Addr_To = aSP;
-                        LDZ = 1;
-                    end
-                    3'd3: begin
-                        Jump = 1;
-                        IncDec_16 = 4'b0111;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'hc7,8'hcf,8'hd7,8'hdf,8'he7,8'hef,8'hf7,8'hff: begin
-                    // RST p
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd1: begin
-                        TStates = 3'd5;
-                        IncDec_16 = 4'b1111;
-                        Set_Addr_To = aSP;
-                        Set_BusB_To = 4'b1101;
-                    end
-                    3'd2: begin
-                        Write_i = 1;
-                        IncDec_16 = 4'b1111;
-                        Set_Addr_To = aSP;
-                        Set_BusB_To = 4'b1100;
-                    end
-                    3'd3: begin
-                        Write_i = 1;
-                        RstP = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                    // INPUT AND OUTPUT GROUP
-                end
-                8'hdb: begin
-                    // IN A,(n)
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        Set_Addr_To = aIOA;
-                    end
-                    3'd3: begin
-                        Read_To_Acc = 1;
-                        IORQ_i = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-                8'hd3: begin
-                    // OUT (n),A
-                    MCycles_d = 3'd3;
-                    case (MCycle)
-                    3'd2: begin
-                        Inc_PC = 1;
-                        Set_Addr_To = aIOA;
-                        Set_BusB_To = 4'b0111;
-                    end
-                    3'd3: begin
-                        Write_i = 1;
-                        IORQ_i = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                    //----------------------------------------------------------------------------
-                    //----------------------------------------------------------------------------
-                    // MULTIBYTE INSTRUCTIONS
-                    //----------------------------------------------------------------------------
-                    //----------------------------------------------------------------------------
-                end
-                8'hcb: begin
-                    Prefix = 2'b01;
-                end
-                8'hed: begin
-                    Prefix = 2'b10;
-                end
-                8'hdd,8'hfd: begin
-                    Prefix = 2'b11;
-                end
-                default: begin
-                end
-            endcase
-        end
-        2'b01: begin
-            //----------------------------------------------------------------------------
-            //
+                    default: begin end
+                endcase
+            end
+
+            //----------------------------------------------------------------
             // CB prefixed instructions
-            //
-            //----------------------------------------------------------------------------
-            Set_BusA_To[2:0] = IR[2:0];
-            Set_BusB_To[2:0] = IR[2:0];
-            case (IR)
-            8'h00,8'h01,8'h02,8'h03,8'h04,8'h05,8'h07,8'h10,8'h11,8'h12,8'h13,8'h14,8'h15,8'h17,8'h08,8'h09,8'h0a,8'h0b,8'h0c,8'h0d,8'h0f,8'h18,8'h19,8'h1a,8'h1b,8'h1c,8'h1d,8'h1f,8'h20,8'h21,8'h22,8'h23,8'h24,8'h25,8'h27,8'h28,8'h29,8'h2a,8'h2b,8'h2c,8'h2d,8'h2f,8'h30,8'h31,8'h32,8'h33,8'h34,8'h35,8'h37,8'h38,8'h39,8'h3a,8'h3b,8'h3c,8'h3d,8'h3f: begin
-                // RLC r
-                // RL r
-                // RRC r
-                // RR r
-                // SLA r
-                // SRA r
-                // SRL r
-                // SLL r (Undocumented) / SWAP r
-                if (XY_State == 2'b00) begin
-                    if (MCycle == 3'd1) begin
-                        ALU_Op = 4'b1000;
-                        Read_To_Reg = 1;
-                        Save_ALU = 1;
+            //----------------------------------------------------------------
+            2'b01: begin
+                Set_BusA_To[2:0] = IR[2:0];
+                Set_BusB_To[2:0] = IR[2:0];
+
+                case (IR)
+                    8'h00,8'h01,8'h02,8'h03,8'h04,8'h05,8'h07,          // RLC r
+                    8'h08,8'h09,8'h0a,8'h0b,8'h0c,8'h0d,8'h0f,          // RRC r
+                    8'h10,8'h11,8'h12,8'h13,8'h14,8'h15,8'h17,          // RL r
+                    8'h18,8'h19,8'h1a,8'h1b,8'h1c,8'h1d,8'h1f,          // RR r
+                    8'h20,8'h21,8'h22,8'h23,8'h24,8'h25,8'h27,          // SLA r
+                    8'h28,8'h29,8'h2a,8'h2b,8'h2c,8'h2d,8'h2f,          // SRA r
+                    8'h30,8'h31,8'h32,8'h33,8'h34,8'h35,8'h37,          // SLL r
+                    8'h38,8'h39,8'h3a,8'h3b,8'h3c,8'h3d,8'h3f: begin    // SRL r
+                    
+                        if (XY_State == 2'b00) begin
+                            if (MCycle == 3'd1) begin
+                                ALU_Op      = 4'b1000;
+                                Read_To_Reg = 1;
+                                Save_ALU    = 1;
+                            end
+
+                        end else begin
+                            // R/S (IX+d),Reg, undocumented
+                            MCycles_d   = 3'd3;
+                            XYbit_undoc = 1;
+                            case (MCycle)
+                                3'd1,3'd7: begin
+                                    Set_Addr_To = aXY;
+                                end
+                                3'd2: begin
+                                    ALU_Op      = 4'b1000;
+                                    Read_To_Reg = 1;
+                                    Save_ALU    = 1;
+                                    Set_Addr_To = aXY;
+                                    TStates     = 3'd4;
+                                end
+                                3'd3: begin
+                                    Write_i = 1;
+                                end
+                                default: begin end
+                            endcase
+                        end
                     end
-                end
-                else begin
-                    // R/S (IX+d),Reg, undocumented
-                    MCycles_d = 3'd3;
-                    XYbit_undoc = 1;
-                    case (MCycle)
-                    3'd1,3'd7: begin
-                        Set_Addr_To = aXY;
+
+                    8'h06,8'h0e,        // RLC (HL)     RRC (HL)
+                    8'h16,8'h1e,        // RL (HL)      RR (HL)
+                    8'h26,8'h2e,        // SLA (HL)     SRA (HL)
+                    8'h36,8'h3e: begin  // SLL (HL)     SRL (HL)
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                            3'd1,3'd7: begin
+                                Set_Addr_To = aXY;
+                            end
+                            3'd2: begin
+                                ALU_Op      = 4'b1000;
+                                Read_To_Reg = 1;
+                                Save_ALU    = 1;
+                                Set_Addr_To = aXY;
+                                TStates     = 3'd4;
+                            end
+                            3'd3: begin
+                                Write_i = 1;
+                            end
+                            default: begin end
+                        endcase
                     end
-                    3'd2: begin
-                        ALU_Op = 4'b1000;
-                        Read_To_Reg = 1;
-                        Save_ALU = 1;
-                        Set_Addr_To = aXY;
-                        TStates = 3'd4;
+
+                    8'h40,8'h41,8'h42,8'h43,8'h44,8'h45,8'h47,
+                    8'h48,8'h49,8'h4a,8'h4b,8'h4c,8'h4d,8'h4f,
+                    8'h50,8'h51,8'h52,8'h53,8'h54,8'h55,8'h57,
+                    8'h58,8'h59,8'h5a,8'h5b,8'h5c,8'h5d,8'h5f,
+                    8'h60,8'h61,8'h62,8'h63,8'h64,8'h65,8'h67,
+                    8'h68,8'h69,8'h6a,8'h6b,8'h6c,8'h6d,8'h6f,
+                    8'h70,8'h71,8'h72,8'h73,8'h74,8'h75,8'h77,
+                    8'h78,8'h79,8'h7a,8'h7b,8'h7c,8'h7d,8'h7f: begin
+                        if (XY_State == 2'b00) begin
+                            // BIT b,r
+                            if (MCycle == 3'd1) begin
+                                Set_BusB_To[2:0] = IR[2:0];
+                                ALU_Op           = 4'b1001;
+                            end
+
+                        end else begin
+                            // BIT b,(IX+d), undocumented
+                            MCycles_d   = 3'd2;
+                            XYbit_undoc = 1;
+                            case (MCycle)
+                                3'd1,3'd7: begin
+                                    Set_Addr_To = aXY;
+                                end
+                                3'd2: begin
+                                    ALU_Op  = 4'b1001;
+                                    TStates = 3'd4;
+                                end
+                                default: begin end
+                            endcase
+                        end
                     end
-                    3'd3: begin
-                        Write_i = 1;
+
+                    8'h46,8'h4e,8'h56,8'h5e,8'h66,8'h6e,8'h76,8'h7e: begin
+                        // BIT b,(HL)
+                        MCycles_d = 3'd2;
+                        case (MCycle)
+                            3'd1,3'd7: begin
+                                Set_Addr_To = aXY;
+                            end
+                            3'd2: begin
+                                ALU_Op  = 4'b1001;
+                                TStates = 3'd4;
+                            end
+                            default: begin end
+                        endcase
                     end
-                    default: begin
+
+                    8'hc0,8'hc1,8'hc2,8'hc3,8'hc4,8'hc5,8'hc7,
+                    8'hc8,8'hc9,8'hca,8'hcb,8'hcc,8'hcd,8'hcf,
+                    8'hd0,8'hd1,8'hd2,8'hd3,8'hd4,8'hd5,8'hd7,
+                    8'hd8,8'hd9,8'hda,8'hdb,8'hdc,8'hdd,8'hdf,
+                    8'he0,8'he1,8'he2,8'he3,8'he4,8'he5,8'he7,
+                    8'he8,8'he9,8'hea,8'heb,8'hec,8'hed,8'hef,
+                    8'hf0,8'hf1,8'hf2,8'hf3,8'hf4,8'hf5,8'hf7,
+                    8'hf8,8'hf9,8'hfa,8'hfb,8'hfc,8'hfd,8'hff: begin
+                        // SET b,r
+                        if (XY_State == 2'b00) begin
+                            if (MCycle == 3'd1) begin
+                                ALU_Op      = 4'b1010;
+                                Read_To_Reg = 1;
+                                Save_ALU    = 1;
+                            end
+
+                        end else begin
+                            // SET b,(IX+d),Reg, undocumented
+                            MCycles_d = 3'd3;
+                            XYbit_undoc = 1;
+                            case (MCycle)
+                                3'd1,3'd7: begin
+                                    Set_Addr_To = aXY;
+                                end
+                                3'd2: begin
+                                    ALU_Op      = 4'b1010;
+                                    Read_To_Reg = 1;
+                                    Save_ALU    = 1;
+                                    Set_Addr_To = aXY;
+                                    TStates     = 3'd4;
+                                end
+                                3'd3: begin
+                                    Write_i = 1;
+                                end
+                                default: begin end
+                            endcase
+                        end
                     end
-                    endcase
-                end
-            end
-            8'h06,8'h16,8'h0e,8'h1e,8'h2e,8'h3e,8'h26,8'h36: begin
-                // RLC (HL)
-                // RL (HL)
-                // RRC (HL)
-                // RR (HL)
-                // SRA (HL)
-                // SRL (HL)
-                // SLA (HL)
-                // SLL (HL) (Undocumented) / SWAP (HL)
-                MCycles_d = 3'd3;
-                case (MCycle)
-                3'd1,3'd7: begin
-                    Set_Addr_To = aXY;
-                end
-                3'd2: begin
-                    ALU_Op = 4'b1000;
-                    Read_To_Reg = 1;
-                    Save_ALU = 1;
-                    Set_Addr_To = aXY;
-                    TStates = 3'd4;
-                end
-                3'd3: begin
-                    Write_i = 1;
-                end
-                default: begin
-                end
+
+                    8'hc6,8'hce,8'hd6,8'hde,8'he6,8'hee,8'hf6,8'hfe: begin
+                        // SET b,(HL)
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                            3'd1,3'd7: begin
+                                Set_Addr_To = aXY;
+                            end
+                            3'd2: begin
+                                ALU_Op      = 4'b1010;
+                                Read_To_Reg = 1;
+                                Save_ALU    = 1;
+                                Set_Addr_To = aXY;
+                                TStates     = 3'd4;
+                            end
+                            3'd3: begin
+                                Write_i = 1;
+                            end
+                            default: begin end
+                        endcase
+                    end
+
+                    8'h80,8'h81,8'h82,8'h83,8'h84,8'h85,8'h87,
+                    8'h88,8'h89,8'h8a,8'h8b,8'h8c,8'h8d,8'h8f,
+                    8'h90,8'h91,8'h92,8'h93,8'h94,8'h95,8'h97,
+                    8'h98,8'h99,8'h9a,8'h9b,8'h9c,8'h9d,8'h9f,
+                    8'ha0,8'ha1,8'ha2,8'ha3,8'ha4,8'ha5,8'ha7,
+                    8'ha8,8'ha9,8'haa,8'hab,8'hac,8'had,8'haf,
+                    8'hb0,8'hb1,8'hb2,8'hb3,8'hb4,8'hb5,8'hb7,
+                    8'hb8,8'hb9,8'hba,8'hbb,8'hbc,8'hbd,8'hbf: begin
+                        // RES b,r
+                        if (XY_State == 2'b00) begin
+                            if (MCycle == 3'd1) begin
+                                ALU_Op      = 4'b1011;
+                                Read_To_Reg = 1;
+                                Save_ALU    = 1;
+                            end
+                        end else begin
+                            // RES b,(IX+d),Reg, undocumented
+                            MCycles_d   = 3'd3;
+                            XYbit_undoc = 1;
+                            case (MCycle)
+                                3'd1,3'd7: begin
+                                    Set_Addr_To = aXY;
+                                end
+                                3'd2: begin
+                                    ALU_Op      = 4'b1011;
+                                    Read_To_Reg = 1;
+                                    Save_ALU    = 1;
+                                    Set_Addr_To = aXY;
+                                    TStates     = 3'd4;
+                                end
+                                3'd3: begin
+                                    Write_i = 1;
+                                end
+                                default: begin end
+                            endcase
+                        end
+                    end
+
+                    8'h86,8'h8e,8'h96,8'h9e,8'ha6,8'hae,8'hb6,8'hbe: begin
+                        // RES b,(HL)
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                            3'd1,3'd7: begin
+                                Set_Addr_To = aXY;
+                            end
+                            3'd2: begin
+                                ALU_Op      = 4'b1011;
+                                Read_To_Reg = 1;
+                                Save_ALU    = 1;
+                                Set_Addr_To = aXY;
+                                TStates     = 3'd4;
+                            end
+                            3'd3: begin
+                                Write_i = 1;
+                            end
+                            default: begin end
+                        endcase
+                    end
+
+                    default: begin end
                 endcase
             end
-            8'h40,8'h41,8'h42,8'h43,8'h44,8'h45,8'h47,8'h48,8'h49,8'h4a,8'h4b,8'h4c,8'h4d,8'h4f,8'h50,8'h51,8'h52,8'h53,8'h54,8'h55,8'h57,8'h58,8'h59,8'h5a,8'h5b,8'h5c,8'h5d,8'h5f,8'h60,8'h61,8'h62,8'h63,8'h64,8'h65,8'h67,8'h68,8'h69,8'h6a,8'h6b,8'h6c,8'h6d,8'h6f,8'h70,8'h71,8'h72,8'h73,8'h74,8'h75,8'h77,8'h78,8'h79,8'h7a,8'h7b,8'h7c,8'h7d,8'h7f: begin
-                // BIT b,r
-                if (XY_State == 2'b00) begin
-                    if (MCycle == 3'd1) begin
-                        Set_BusB_To[2:0] = IR[2:0];
-                        ALU_Op = 4'b1001;
-                    end
-                end
-                else begin
-                    // BIT b,(IX+d), undocumented
-                    MCycles_d = 3'd2;
-                    XYbit_undoc = 1;
-                    case (MCycle)
-                    3'd1,3'd7: begin
-                        Set_Addr_To = aXY;
-                    end
-                    3'd2: begin
-                        ALU_Op = 4'b1001;
-                        TStates = 3'd4;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-            end
-            8'h46,8'h4e,8'h56,8'h5e,8'h66,8'h6e,8'h76,8'h7e: begin
-                // BIT b,(HL)
-                MCycles_d = 3'd2;
-                case (MCycle)
-                3'd1,3'd7: begin
-                    Set_Addr_To = aXY;
-                end
-                3'd2: begin
-                    ALU_Op = 4'b1001;
-                    TStates = 3'd4;
-                end
-                default: begin
-                end
-                endcase
-            end
-            8'hc0,8'hc1,8'hc2,8'hc3,8'hc4,8'hc5,8'hc7,8'hc8,8'hc9,8'hca,8'hcb,8'hcc,8'hcd,8'hcf,8'hd0,8'hd1,8'hd2,8'hd3,8'hd4,8'hd5,8'hd7,8'hd8,8'hd9,8'hda,8'hdb,8'hdc,8'hdd,8'hdf,8'he0,8'he1,8'he2,8'he3,8'he4,8'he5,8'he7,8'he8,8'he9,8'hea,8'heb,8'hec,8'hed,8'hef,8'hf0,8'hf1,8'hf2,8'hf3,8'hf4,8'hf5,8'hf7,8'hf8,8'hf9,8'hfa,8'hfb,8'hfc,8'hfd,8'hff: begin
-                // SET b,r
-                if (XY_State == 2'b00) begin
-                    if (MCycle == 3'd1) begin
-                        ALU_Op = 4'b1010;
-                        Read_To_Reg = 1;
-                        Save_ALU = 1;
-                    end
-                end
-                else begin
-                    // SET b,(IX+d),Reg, undocumented
-                    MCycles_d = 3'd3;
-                    XYbit_undoc = 1;
-                    case (MCycle)
-                    3'd1,3'd7: begin
-                        Set_Addr_To = aXY;
-                    end
-                    3'd2: begin
-                        ALU_Op = 4'b1010;
-                        Read_To_Reg = 1;
-                        Save_ALU = 1;
-                        Set_Addr_To = aXY;
-                        TStates = 3'd4;
-                    end
-                    3'd3: begin
-                        Write_i = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-            end
-            8'hc6,8'hce,8'hd6,8'hde,8'he6,8'hee,8'hf6,8'hfe: begin
-                // SET b,(HL)
-                MCycles_d = 3'd3;
-                case (MCycle)
-                3'd1,3'd7: begin
-                    Set_Addr_To = aXY;
-                end
-                3'd2: begin
-                    ALU_Op = 4'b1010;
-                    Read_To_Reg = 1;
-                    Save_ALU = 1;
-                    Set_Addr_To = aXY;
-                    TStates = 3'd4;
-                end
-                3'd3: begin
-                    Write_i = 1;
-                end
-                default: begin
-                end
-                endcase
-            end
-            8'h80,8'h81,8'h82,8'h83,8'h84,8'h85,8'h87,8'h88,8'h89,8'h8a,8'h8b,8'h8c,8'h8d,8'h8f,8'h90,8'h91,8'h92,8'h93,8'h94,8'h95,8'h97,8'h98,8'h99,8'h9a,8'h9b,8'h9c,8'h9d,8'h9f,8'ha0,8'ha1,8'ha2,8'ha3,8'ha4,8'ha5,8'ha7,8'ha8,8'ha9,8'haa,8'hab,8'hac,8'had,8'haf,8'hb0,8'hb1,8'hb2,8'hb3,8'hb4,8'hb5,8'hb7,8'hb8,8'hb9,8'hba,8'hbb,8'hbc,8'hbd,8'hbf: begin
-                // RES b,r
-                if (XY_State == 2'b00) begin
-                    if (MCycle == 3'd1) begin
-                        ALU_Op = 4'b1011;
-                        Read_To_Reg = 1;
-                        Save_ALU = 1;
-                    end
-                end
-                else begin
-                    // RES b,(IX+d),Reg, undocumented
-                    MCycles_d = 3'd3;
-                    XYbit_undoc = 1;
-                    case (MCycle)
-                    3'd1,3'd7: begin
-                        Set_Addr_To = aXY;
-                    end
-                    3'd2: begin
-                        ALU_Op = 4'b1011;
-                        Read_To_Reg = 1;
-                        Save_ALU = 1;
-                        Set_Addr_To = aXY;
-                        TStates = 3'd4;
-                    end
-                    3'd3: begin
-                        Write_i = 1;
-                    end
-                    default: begin
-                    end
-                    endcase
-                end
-            end
-            8'h86,8'h8e,8'h96,8'h9e,8'ha6,8'hae,8'hb6,8'hbe: begin
-                // RES b,(HL)
-                MCycles_d = 3'd3;
-                case (MCycle)
-                3'd1,3'd7: begin
-                    Set_Addr_To = aXY;
-                end
-                3'd2: begin
-                    ALU_Op = 4'b1011;
-                    Read_To_Reg = 1;
-                    Save_ALU = 1;
-                    Set_Addr_To = aXY;
-                    TStates = 3'd4;
-                end
-                3'd3: begin
-                    Write_i = 1;
-                end
-                default: begin
-                end
-                endcase
-            end
-            default: begin
-            end
-            endcase
-        end
-        default: begin
-            //----------------------------------------------------------------------------
-            //
+
+            //----------------------------------------------------------------
             // ED prefixed instructions
-            //
-            //----------------------------------------------------------------------------
-            case (IR)
-            8'h00,8'h01,8'h02,8'h03,8'h04,8'h05,8'h06,8'h07,8'h08,8'h09,8'h0a,8'h0b,8'h0c,8'h0d,8'h0e,8'h0f,8'h10,8'h11,8'h12,8'h13,8'h14,8'h15,8'h16,8'h17,8'h18,8'h19,8'h1a,8'h1b,8'h1c,8'h1d,8'h1e,8'h1f,8'h20,8'h21,8'h22,8'h23,8'h24,8'h25,8'h26,8'h27,8'h28,8'h29,8'h2a,8'h2b,8'h2c,8'h2d,8'h2e,8'h2f,8'h30,8'h31,8'h32,8'h33,8'h34,8'h35,8'h36,8'h37,8'h38,8'h39,8'h3a,8'h3b,8'h3c,8'h3d,8'h3e,8'h3f,8'h80,8'h81,8'h82,8'h83,8'h84,8'h85,8'h86,8'h87,8'h88,8'h89,8'h8a,8'h8b,8'h8c,8'h8d,8'h8e,8'h8f,8'h90,8'h91,8'h92,8'h93,8'h94,8'h95,8'h96,8'h97,8'h98,8'h99,8'h9a,8'h9b,8'h9c,8'h9d,8'h9e,8'h9f,8'ha4,8'ha5,8'ha6,8'ha7,8'hac,8'had,8'hae,8'haf,8'hb4,8'hb5,8'hb6,8'hb7,8'hbc,8'hbd,8'hbe,8'hbf,8'hc0,8'hc2,8'hc4,8'hc5,8'hc6,8'hc7,8'hc8,8'hca,8'hcb,8'hcc,8'hcd,8'hce,8'hcf,8'hd0,8'hd2,8'hd3,8'hd4,8'hd5,8'hd6,8'hd7,8'hd8,8'hda,8'hdb,8'hdc,8'hdd,8'hde,8'hdf,8'he0,8'he1,8'he2,8'he3,8'he4,8'he5,8'he6,8'he7,8'he8,8'he9,8'hea,8'heb,8'hec,8'hed,8'hee,8'hef,8'hf0,8'hf1,8'hf2,8'hf4,8'hf5,8'hf6,8'hf7,8'hf8,8'hf9,8'hfa,8'hfb,8'hfc,8'hfd,8'hfe,8'hff: begin
-                // NOP, undocumented
-            end
-            8'h77,8'h7f: begin
-                // NOP, undocumented
-                                // 8 BIT LOAD GROUP
-            end
-            8'h57: begin
-                // LD A,I
-                Special_LD = 3'd4;
-                TStates = 3'd5;
-            end
-            8'h5f: begin
-                // LD A,R
-                Special_LD = 3'd5;
-                TStates = 3'd5;
-            end
-            8'h47: begin
-                // LD I,A
-                Special_LD = 3'd6;
-                TStates = 3'd5;
-            end
-            8'h4f: begin
-                // LD R,A
-                Special_LD = 3'd7;
-                TStates = 3'd5;
-                // 16 BIT LOAD GROUP
-            end
-            8'h4b,8'h5b,8'h6b,8'h7b: begin
-                // LD dd,(nn)
-                MCycles_d = 3'd5;
-                case (MCycle)
-                3'd2: begin
-                    Inc_PC = 1;
-                    LDZ = 1;
-                end
-                3'd3: begin
-                    Set_Addr_To = aZI;
-                    Inc_PC = 1;
-                    LDW = 1;
-                end
-                3'd4: begin
-                    Read_To_Reg = 1;
-                    if (IR[5:4] == 2'b11) begin
-                        Set_BusA_To = 4'b1000;
-                    end
-                    else begin
-                        Set_BusA_To[2:1] = IR[5:4];
-                        Set_BusA_To[0] = 1;
-                    end
-                    Inc_WZ = 1;
-                    Set_Addr_To = aZI;
-                end
-                3'd5: begin
-                    Read_To_Reg = 1;
-                    if (IR[5:4] == 2'b11) begin
-                        Set_BusA_To = 4'b1001;
-                    end
-                    else begin
-                        Set_BusA_To[2:1] = IR[5:4];
-                        Set_BusA_To[0] = 0;
-                    end
-                end
-                default: begin
-                end
-                endcase
-            end
-            8'h43,8'h53,8'h63,8'h73: begin
-                // LD (nn),dd
-                MCycles_d = 3'd5;
-                case (MCycle)
-                3'd2: begin
-                    Inc_PC = 1;
-                    LDZ = 1;
-                end
-                3'd3: begin
-                    Set_Addr_To = aZI;
-                    Inc_PC = 1;
-                    LDW = 1;
-                    if (IR[5:4] == 2'b11) begin
-                        Set_BusB_To = 4'b1000;
-                    end
-                    else begin
-                        Set_BusB_To[2:1] = IR[5:4];
-                        Set_BusB_To[0] = 1;
-                        Set_BusB_To[3] = 0;
-                    end
-                end
-                3'd4: begin
-                    Inc_WZ = 1;
-                    Set_Addr_To = aZI;
-                    Write_i = 1;
-                    if (IR[5:4] == 2'b11) begin
-                        Set_BusB_To = 4'b1001;
-                    end
-                    else begin
-                        Set_BusB_To[2:1] = IR[5:4];
-                        Set_BusB_To[0] = 0;
-                        Set_BusB_To[3] = 0;
-                    end
-                end
-                3'd5: begin
-                    Write_i = 1;
-                end
-                default: begin
-                end
-                endcase
-            end
-            8'ha0,8'ha8,8'hb0,8'hb8: begin
-                // LDI, LDD, LDIR, LDDR
-                MCycles_d = 3'd4;
-                case (MCycle)
-                3'd1: begin
-                    Set_Addr_To = aXY;
-                    IncDec_16 = 4'b1100;
-                    // BC
-                end
-                3'd2: begin
-                    Set_BusB_To = 4'b0110;
-                    Set_BusA_To[2:0] = 3'd7;
-                    ALU_Op = 4'b0000;
-                    Set_Addr_To = aDE;
-                    if (IR[3] == 1'b0) begin
-                        IncDec_16 = 4'b0110;
-                        // IX
-                    end
-                    else begin
-                        IncDec_16 = 4'b1110;
-                    end
-                end
-                3'd3: begin
-                    I_BT = 1;
-                    TStates = 3'd5;
-                    Write_i = 1;
-                    if (IR[3] == 1'b0) begin
-                        IncDec_16 = 4'b0101;
-                        // DE
-                    end
-                    else begin
-                        IncDec_16 = 4'b1101;
-                    end
-                    No_PC = 1;
-                end
-                3'd4: begin
-                    NoRead_i = 1;
-                    TStates = 3'd5;
-                end
-                default: begin
-                end
-                endcase
-            end
-            8'ha1,8'ha9,8'hb1,8'hb9: begin
-                // CPI, CPD, CPIR, CPDR
-                MCycles_d = 3'd4;
-                case (MCycle)
-                3'd1: begin
-                    Set_Addr_To = aXY;
-                    IncDec_16 = 4'b1100;
-                    // BC
-                end
-                3'd2: begin
-                    Set_BusB_To = 4'b0110;
-                    Set_BusA_To[2:0] = 3'd7;
-                    ALU_Op = 4'b0111;
-                    Save_ALU = 1;
-                    PreserveC = 1;
-                    if (IR[3] == 1'b0) begin
-                        IncDec_16 = 4'b0110;
-                    end
-                    else begin
-                        IncDec_16 = 4'b1110;
-                    end
-                    No_PC = 1;
-                end
-                3'd3: begin
-                    NoRead_i = 1;
-                    I_BC = 1;
-                    TStates = 3'd5;
-                    No_PC = 1;
-                end
-                3'd4: begin
-                    NoRead_i = 1;
-                    TStates = 3'd5;
-                end
-                default: begin
-                end
-                endcase
-            end
-            8'h44,8'h4c,8'h54,8'h5c,8'h64,8'h6c,8'h74,8'h7c: begin
-                // NEG
-                ALU_Op = 4'b0010;
-                Set_BusB_To = 4'b0111;
-                Set_BusA_To = 4'b1010;
-                Read_To_Acc = 1;
-                Save_ALU = 1;
-            end
-            8'h46,8'h4e,8'h66,8'h6e: begin
-                // IM 0
-                IMode = 2'b00;
-            end
-            8'h56,8'h76: begin
-                // IM 1
-                IMode = 2'b01;
-            end
-            8'h5e,8'h7e: begin
-                // IM 2
-                IMode = 2'b10;
-                // 16 bit arithmetic
-            end
-            8'h4a,8'h5a,8'h6a,8'h7a: begin
-                // ADC HL,ss
-                MCycles_d = 3'd3;
-                case (MCycle)
-                3'd1: begin
-                    No_PC = 1;
-                end
-                3'd2: begin
-                    NoRead_i = 1;
-                    ALU_Op = 4'b0001;
-                    Read_To_Reg = 1;
-                    Save_ALU = 1;
-                    Set_BusA_To[2:0] = 3'd5;
-                    case (IR[5:4])
-                    2'b00,2'b01,2'b10: begin
-                        Set_BusB_To[2:1] = IR[5:4];
-                        Set_BusB_To[0] = 1;
-                    end
-                    default: begin
-                        Set_BusB_To = 4'b1000;
-                    end
-                    endcase
-                    TStates = 3'd4;
-                    SetWZ = 2'b11;
-                    No_PC = 1;
-                end
-                3'd3: begin
-                    NoRead_i = 1;
-                    Read_To_Reg = 1;
-                    Save_ALU = 1;
-                    ALU_Op = 4'b0001;
-                    Set_BusA_To[2:0] = 3'd4;
-                    case (IR[5:4])
-                    2'b00,2'b01,2'b10: begin
-                        Set_BusB_To[2:1] = IR[5:4];
-                        Set_BusB_To[0] = 0;
-                    end
-                    default: begin
-                        Set_BusB_To = 4'b1001;
-                    end
-                    endcase
-                end
-                default: begin
-                end
-                endcase
-            end
-            8'h42,8'h52,8'h62,8'h72: begin
-                // SBC HL,ss
-                MCycles_d = 3'd3;
-                case (MCycle)
-                3'd1: begin
-                    No_PC = 1;
-                end
-                3'd2: begin
-                    NoRead_i = 1;
-                    ALU_Op = 4'b0011;
-                    Read_To_Reg = 1;
-                    Save_ALU = 1;
-                    Set_BusA_To[2:0] = 3'd5;
-                    case (IR[5:4])
-                    2'b00,2'b01,2'b10: begin
-                        Set_BusB_To[2:1] = IR[5:4];
-                        Set_BusB_To[0] = 1;
-                    end
-                    default: begin
-                        Set_BusB_To = 4'b1000;
-                    end
-                    endcase
-                    TStates = 3'd4;
-                    SetWZ = 2'b11;
-                    No_PC = 1;
-                end
-                3'd3: begin
-                    NoRead_i = 1;
-                    ALU_Op = 4'b0011;
-                    Read_To_Reg = 1;
-                    Save_ALU = 1;
-                    Set_BusA_To[2:0] = 3'd4;
-                    case (IR[5:4])
-                    2'b00,2'b01,2'b10: begin
-                        Set_BusB_To[2:1] = IR[5:4];
-                    end
-                    default: begin
-                        Set_BusB_To = 4'b1001;
-                    end
-                    endcase
-                end
-                default: begin
-                end
-                endcase
-            end
-            8'h6f: begin
-                // RLD -- Read in M2, not M3! fixed by Sorgelig
-                MCycles_d = 3'd4;
-                case (MCycle)
-                3'd1: begin
-                    Set_Addr_To = aXY;
-                end
-                3'd2: begin
-                    Read_To_Reg = 1;
-                    Set_BusB_To[2:0] = 3'd6;
-                    Set_BusA_To[2:0] = 3'd7;
-                    ALU_Op = 4'b1101;
-                    Save_ALU = 1;
-                    No_PC = 1;
-                end
-                3'd3: begin
-                    TStates = 3'd4;
-                    I_RLD = 1;
-                    NoRead_i = 1;
-                    Set_Addr_To = aXY;
-                end
-                3'd4: begin
-                    Write_i = 1;
-                end
-                default: begin
-                end
-                endcase
-            end
-            8'h67: begin
-                // RRD -- Read in M2, not M3! fixed by Sorgelig
-                MCycles_d = 3'd4;
-                case (MCycle)
-                3'd1: begin
-                    Set_Addr_To = aXY;
-                end
-                3'd2: begin
-                    Read_To_Reg = 1;
-                    Set_BusB_To[2:0] = 3'd6;
-                    Set_BusA_To[2:0] = 3'd7;
-                    ALU_Op = 4'b1110;
-                    Save_ALU = 1;
-                    No_PC = 1;
-                end
-                3'd3: begin
-                    TStates = 3'd4;
-                    I_RRD = 1;
-                    NoRead_i = 1;
-                    Set_Addr_To = aXY;
-                end
-                3'd4: begin
-                    Write_i = 1;
-                end
-                default: begin
-                end
-                endcase
-            end
-            8'h45,8'h4d,8'h55,8'h5d,8'h65,8'h6d,8'h75,8'h7d: begin
-                // RETI/RETN
-                MCycles_d = 3'd3;
-                case (MCycle)
-                3'd1: begin
-                    Set_Addr_To = aSP;
-                end
-                3'd2: begin
-                    IncDec_16 = 4'b0111;
-                    Set_Addr_To = aSP;
-                    LDZ = 1;
-                end
-                3'd3: begin
-                    Jump = 1;
-                    IncDec_16 = 4'b0111;
-                    LDW = 1;
-                    I_RETN = 1;
-                end
-                default: begin
-                end
-                endcase
-            end
-            8'h40,8'h48,8'h50,8'h58,8'h60,8'h68,8'h70,8'h78: begin
-                // IN r,(C)
-                MCycles_d = 3'd2;
-                case (MCycle)
-                3'd1: begin
-                    Set_Addr_To = aBC;
-                    SetWZ = 2'b01;
-                end
-                3'd2: begin
-                    IORQ_i = 1;
-                    if (IR[5:3] != 3'd6) begin
-                        Read_To_Reg = 1;
-                        Set_BusA_To[2:0] = IR[5:3];
-                    end
-                    I_INRC = 1;
-                end
-                default: begin
-                end
-                endcase
-            end
-            8'h41,8'h49,8'h51,8'h59,8'h61,8'h69,8'h71,8'h79: begin
-                // OUT (C),r
-                // OUT (C),0
-                MCycles_d = 3'd2;
-                case (MCycle)
-                3'd1: begin
-                    Set_Addr_To = aBC;
-                    SetWZ = 2'b01;
-                    Set_BusB_To[2:0] = IR[5:3];
-                    if (IR[5:3] == 3'd6) begin
-                        Set_BusB_To[3] = 1;
-                    end
-                end
-                3'd2: begin
-                    Write_i = 1;
-                    IORQ_i = 1;
-                end
-                default: begin
-                end
-                endcase
-            end
-            8'ha2,8'haa,8'hb2,8'hba: begin
-                // INI, IND, INIR, INDR
-                MCycles_d = 3'd4;
-                case (MCycle)
-                3'd1: begin
-                    TStates = 3'd5;
-                    Set_Addr_To = aBC;
-                    Set_BusB_To = 4'b1010;
-                    Set_BusA_To = 4'b0000;
-                    Read_To_Reg = 1;
-                    Save_ALU = 1;
-                    ALU_Op = 4'b0010;
-                    SetWZ = 2'b11;
-                    IncDec_16[3] = IR[3];
-                end
-                3'd2: begin
-                    IORQ_i = 1;
-                    Set_BusB_To = 4'b0110;
-                    Set_Addr_To = aXY;
-                end
-                3'd3: begin
-                    if (IR[3] == 1'b0) begin
-                        IncDec_16 = 4'b0110;
-                    end
-                    else begin
-                        IncDec_16 = 4'b1110;
-                    end
-                    Write_i = 1;
-                    I_BTR = 1;
-                end
-                3'd4: begin
-                    NoRead_i = 1;
-                    TStates = 3'd5;
-                end
-                default: begin
-                end
-                endcase
-            end
-            8'ha3,8'hab,8'hb3,8'hbb: begin
-                // OUTI, OUTD, OTIR, OTDR
-                MCycles_d = 3'd4;
-                case (MCycle)
-                3'd1: begin
-                    TStates = 3'd5;
-                    Set_Addr_To = aXY;
-                    Set_BusB_To = 4'b1010;
-                    Set_BusA_To = 4'b0000;
-                    Read_To_Reg = 1;
-                    Save_ALU = 1;
-                    ALU_Op = 4'b0010;
-                end
-                3'd2: begin
-                    Set_BusB_To = 4'b0110;
-                    Set_Addr_To = aBC;
-                    SetWZ = 2'b11;
-                    IncDec_16[3] = IR[3];
-                end
-                3'd3: begin
-                    if (IR[3] == 1'b0) begin
-                        IncDec_16 = 4'b0110;
-                    end
-                    else begin
-                        IncDec_16 = 4'b1110;
-                    end
-                    IORQ_i = 1;
-                    Write_i = 1;
-                    I_BTR = 1;
-                end
-                3'd4: begin
-                    NoRead_i = 1;
-                    TStates = 3'd5;
-                end
-                default: begin
-                end
-                endcase
-            end
-            8'hc1,8'hc9,8'hd1,8'hd9: begin
-            end
-            8'hc3,8'hf3: begin
-            end
+            //----------------------------------------------------------------
             default: begin
+                case (IR)
+                    8'h00,8'h01,8'h02,8'h03,8'h04,8'h05,8'h06,8'h07,
+                    8'h08,8'h09,8'h0a,8'h0b,8'h0c,8'h0d,8'h0e,8'h0f,
+                    8'h10,8'h11,8'h12,8'h13,8'h14,8'h15,8'h16,8'h17,
+                    8'h18,8'h19,8'h1a,8'h1b,8'h1c,8'h1d,8'h1e,8'h1f,
+                    8'h20,8'h21,8'h22,8'h23,8'h24,8'h25,8'h26,8'h27,
+                    8'h28,8'h29,8'h2a,8'h2b,8'h2c,8'h2d,8'h2e,8'h2f,
+                    8'h30,8'h31,8'h32,8'h33,8'h34,8'h35,8'h36,8'h37,
+                    8'h38,8'h39,8'h3a,8'h3b,8'h3c,8'h3d,8'h3e,8'h3f,
+                    8'h80,8'h81,8'h82,8'h83,8'h84,8'h85,8'h86,8'h87,
+                    8'h88,8'h89,8'h8a,8'h8b,8'h8c,8'h8d,8'h8e,8'h8f,
+                    8'h90,8'h91,8'h92,8'h93,8'h94,8'h95,8'h96,8'h97,
+                    8'h98,8'h99,8'h9a,8'h9b,8'h9c,8'h9d,8'h9e,8'h9f,
+                                            8'ha4,8'ha5,8'ha6,8'ha7,
+                                            8'hac,8'had,8'hae,8'haf,
+                                            8'hb4,8'hb5,8'hb6,8'hb7,
+                                            8'hbc,8'hbd,8'hbe,8'hbf,
+                    8'hc0,      8'hc2,      8'hc4,8'hc5,8'hc6,8'hc7,
+                    8'hc8,      8'hca,8'hcb,8'hcc,8'hcd,8'hce,8'hcf,
+                    8'hd0,      8'hd2,8'hd3,8'hd4,8'hd5,8'hd6,8'hd7,
+                    8'hd8,      8'hda,8'hdb,8'hdc,8'hdd,8'hde,8'hdf,
+                    8'he0,8'he1,8'he2,8'he3,8'he4,8'he5,8'he6,8'he7,
+                    8'he8,8'he9,8'hea,8'heb,8'hec,8'hed,8'hee,8'hef,
+                    8'hf0,8'hf1,8'hf2,      8'hf4,8'hf5,8'hf6,8'hf7,
+                    8'hf8,8'hf9,8'hfa,8'hfb,8'hfc,8'hfd,8'hfe,8'hff: begin
+                        // NOP, undocumented
+                    end
+
+                    8'h77,8'h7f: begin
+                        // NOP, undocumented
+                        // 8 BIT LOAD GROUP
+                    end
+
+                    8'h57: begin
+                        // LD A,I
+                        Special_LD = 3'd4;
+                        TStates    = 3'd5;
+                    end
+
+                    8'h5f: begin
+                        // LD A,R
+                        Special_LD = 3'd5;
+                        TStates    = 3'd5;
+                    end
+
+                    8'h47: begin
+                        // LD I,A
+                        Special_LD = 3'd6;
+                        TStates    = 3'd5;
+                    end
+
+                    8'h4f: begin
+                        // LD R,A
+                        Special_LD = 3'd7;
+                        TStates = 3'd5;
+                        // 16 BIT LOAD GROUP
+                    end
+
+                    8'h4b,8'h5b,8'h6b,8'h7b: begin
+                        // LD dd,(nn)
+                        MCycles_d = 3'd5;
+                        case (MCycle)
+                            3'd2: begin
+                                Inc_PC = 1;
+                                LDZ    = 1;
+                            end
+                            3'd3: begin
+                                Set_Addr_To = aZI;
+                                Inc_PC      = 1;
+                                LDW         = 1;
+                            end
+                            3'd4: begin
+                                Read_To_Reg = 1;
+                                if (IR[5:4] == 2'b11) begin
+                                    Set_BusA_To = 4'b1000;
+                                end else begin
+                                    Set_BusA_To[2:1] = IR[5:4];
+                                    Set_BusA_To[0]   = 1;
+                                end
+                                Inc_WZ      = 1;
+                                Set_Addr_To = aZI;
+                            end
+                            3'd5: begin
+                                Read_To_Reg = 1;
+                                if (IR[5:4] == 2'b11) begin
+                                    Set_BusA_To = 4'b1001;
+                                end else begin
+                                    Set_BusA_To[2:1] = IR[5:4];
+                                    Set_BusA_To[0] = 0;
+                                end
+                            end
+                            default: begin end
+                        endcase
+                    end
+
+                    8'h43,8'h53,8'h63,8'h73: begin
+                        // LD (nn),dd
+                        MCycles_d = 3'd5;
+                        case (MCycle)
+                            3'd2: begin
+                                Inc_PC = 1;
+                                LDZ    = 1;
+                            end
+                            3'd3: begin
+                                Set_Addr_To = aZI;
+                                Inc_PC      = 1;
+                                LDW         = 1;
+                                if (IR[5:4] == 2'b11) begin
+                                    Set_BusB_To = 4'b1000;
+                                end else begin
+                                    Set_BusB_To[2:1] = IR[5:4];
+                                    Set_BusB_To[0]   = 1;
+                                    Set_BusB_To[3]   = 0;
+                                end
+                            end
+                            3'd4: begin
+                                Inc_WZ      = 1;
+                                Set_Addr_To = aZI;
+                                Write_i     = 1;
+                                if (IR[5:4] == 2'b11) begin
+                                    Set_BusB_To = 4'b1001;
+                                end else begin
+                                    Set_BusB_To[2:1] = IR[5:4];
+                                    Set_BusB_To[0]   = 0;
+                                    Set_BusB_To[3]   = 0;
+                                end
+                            end
+                            3'd5: begin
+                                Write_i = 1;
+                            end
+                            default: begin end
+                        endcase
+                    end
+
+                    8'ha0,8'ha8,8'hb0,8'hb8: begin
+                        // LDI, LDD, LDIR, LDDR
+                        MCycles_d = 3'd4;
+                        case (MCycle)
+                            3'd1: begin
+                                Set_Addr_To = aXY;
+                                IncDec_16   = 4'b1100;
+                                // BC
+                            end
+                            3'd2: begin
+                                Set_BusB_To      = 4'b0110;
+                                Set_BusA_To[2:0] = 3'd7;
+                                ALU_Op           = 4'b0000;
+                                Set_Addr_To      = aDE;
+                                if (IR[3] == 1'b0) begin
+                                    IncDec_16 = 4'b0110;
+                                    // IX
+                                end else begin
+                                    IncDec_16 = 4'b1110;
+                                end
+                            end
+                            3'd3: begin
+                                I_BT    = 1;
+                                TStates = 3'd5;
+                                Write_i = 1;
+                                if (IR[3] == 1'b0) begin
+                                    IncDec_16 = 4'b0101;
+                                    // DE
+                                end else begin
+                                    IncDec_16 = 4'b1101;
+                                end
+                                No_PC = 1;
+                            end
+                            3'd4: begin
+                                NoRead_i = 1;
+                                TStates  = 3'd5;
+                            end
+                            default: begin end
+                        endcase
+                    end
+
+                    8'ha1,8'ha9,8'hb1,8'hb9: begin
+                        // CPI, CPD, CPIR, CPDR
+                        MCycles_d = 3'd4;
+                        case (MCycle)
+                            3'd1: begin
+                                Set_Addr_To = aXY;
+                                IncDec_16   = 4'b1100;
+                                // BC
+                            end
+                            3'd2: begin
+                                Set_BusB_To      = 4'b0110;
+                                Set_BusA_To[2:0] = 3'd7;
+                                ALU_Op           = 4'b0111;
+                                Save_ALU         = 1;
+                                PreserveC        = 1;
+                                if (IR[3] == 1'b0) begin
+                                    IncDec_16 = 4'b0110;
+                                end
+                                else begin
+                                    IncDec_16 = 4'b1110;
+                                end
+                                No_PC = 1;
+                            end
+                            3'd3: begin
+                                NoRead_i = 1;
+                                I_BC     = 1;
+                                TStates  = 3'd5;
+                                No_PC    = 1;
+                            end
+                            3'd4: begin
+                                NoRead_i = 1;
+                                TStates  = 3'd5;
+                            end
+                            default: begin end
+                        endcase
+                    end
+
+                    8'h44,8'h4c,8'h54,8'h5c,8'h64,8'h6c,8'h74,8'h7c: begin
+                        // NEG
+                        ALU_Op      = 4'b0010;
+                        Set_BusB_To = 4'b0111;
+                        Set_BusA_To = 4'b1010;
+                        Read_To_Acc = 1;
+                        Save_ALU    = 1;
+                    end
+
+                    8'h46,8'h4e,8'h66,8'h6e: begin
+                        // IM 0
+                        IMode = 2'b00;
+                    end
+
+                    8'h56,8'h76: begin
+                        // IM 1
+                        IMode = 2'b01;
+                    end
+
+                    8'h5e,8'h7e: begin
+                        // IM 2
+                        IMode = 2'b10;
+                        // 16 bit arithmetic
+                    end
+
+                    8'h4a,8'h5a,8'h6a,8'h7a: begin
+                        // ADC HL,ss
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                            3'd1: begin
+                                No_PC = 1;
+                            end
+                            3'd2: begin
+                                NoRead_i         = 1;
+                                ALU_Op           = 4'b0001;
+                                Read_To_Reg      = 1;
+                                Save_ALU         = 1;
+                                Set_BusA_To[2:0] = 3'd5;
+                                case (IR[5:4])
+                                    2'b00,2'b01,2'b10: begin
+                                        Set_BusB_To[2:1] = IR[5:4];
+                                        Set_BusB_To[0]   = 1;
+                                    end
+                                    default: begin
+                                        Set_BusB_To = 4'b1000;
+                                    end
+                                endcase
+                                TStates = 3'd4;
+                                SetWZ   = 2'b11;
+                                No_PC   = 1;
+                            end
+                            3'd3: begin
+                                NoRead_i         = 1;
+                                Read_To_Reg      = 1;
+                                Save_ALU         = 1;
+                                ALU_Op           = 4'b0001;
+                                Set_BusA_To[2:0] = 3'd4;
+                                case (IR[5:4])
+                                    2'b00,2'b01,2'b10: begin
+                                        Set_BusB_To[2:1] = IR[5:4];
+                                        Set_BusB_To[0]   = 0;
+                                    end
+                                    default: begin
+                                        Set_BusB_To = 4'b1001;
+                                    end
+                                endcase
+                            end
+                            default: begin end
+                        endcase
+                    end
+
+                    8'h42,8'h52,8'h62,8'h72: begin
+                        // SBC HL,ss
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                            3'd1: begin
+                                No_PC = 1;
+                            end
+                            3'd2: begin
+                                NoRead_i         = 1;
+                                ALU_Op           = 4'b0011;
+                                Read_To_Reg      = 1;
+                                Save_ALU         = 1;
+                                Set_BusA_To[2:0] = 3'd5;
+                                case (IR[5:4])
+                                    2'b00,2'b01,2'b10: begin
+                                        Set_BusB_To[2:1] = IR[5:4];
+                                        Set_BusB_To[0]   = 1;
+                                    end
+                                    default: begin
+                                        Set_BusB_To = 4'b1000;
+                                    end
+                                endcase
+                                TStates = 3'd4;
+                                SetWZ   = 2'b11;
+                                No_PC   = 1;
+                            end
+                            3'd3: begin
+                                NoRead_i         = 1;
+                                ALU_Op           = 4'b0011;
+                                Read_To_Reg      = 1;
+                                Save_ALU         = 1;
+                                Set_BusA_To[2:0] = 3'd4;
+                                case (IR[5:4])
+                                    2'b00,2'b01,2'b10: begin
+                                        Set_BusB_To[2:1] = IR[5:4];
+                                    end
+                                    default: begin
+                                        Set_BusB_To = 4'b1001;
+                                    end
+                                endcase
+                            end
+                            default: begin end
+                        endcase
+                    end
+
+                    8'h6f: begin
+                        // RLD -- Read in M2, not M3! fixed by Sorgelig
+                        MCycles_d = 3'd4;
+                        case (MCycle)
+                            3'd1: begin
+                                Set_Addr_To = aXY;
+                            end
+                            3'd2: begin
+                                Read_To_Reg      = 1;
+                                Set_BusB_To[2:0] = 3'd6;
+                                Set_BusA_To[2:0] = 3'd7;
+                                ALU_Op           = 4'b1101;
+                                Save_ALU         = 1;
+                                No_PC            = 1;
+                            end
+                            3'd3: begin
+                                TStates     = 3'd4;
+                                I_RLD       = 1;
+                                NoRead_i    = 1;
+                                Set_Addr_To = aXY;
+                            end
+                            3'd4: begin
+                                Write_i = 1;
+                            end
+                            default: begin end
+                        endcase
+                    end
+
+                    8'h67: begin
+                        // RRD -- Read in M2, not M3! fixed by Sorgelig
+                        MCycles_d = 3'd4;
+                        case (MCycle)
+                            3'd1: begin
+                                Set_Addr_To = aXY;
+                            end
+                            3'd2: begin
+                                Read_To_Reg      = 1;
+                                Set_BusB_To[2:0] = 3'd6;
+                                Set_BusA_To[2:0] = 3'd7;
+                                ALU_Op           = 4'b1110;
+                                Save_ALU         = 1;
+                                No_PC            = 1;
+                            end
+                            3'd3: begin
+                                TStates     = 3'd4;
+                                I_RRD       = 1;
+                                NoRead_i    = 1;
+                                Set_Addr_To = aXY;
+                            end
+                            3'd4: begin
+                                Write_i = 1;
+                            end
+                            default: begin end
+                        endcase
+                    end
+
+                    8'h45,8'h4d,8'h55,8'h5d,8'h65,8'h6d,8'h75,8'h7d: begin
+                        // RETI/RETN
+                        MCycles_d = 3'd3;
+                        case (MCycle)
+                            3'd1: begin
+                                Set_Addr_To = aSP;
+                            end
+                            3'd2: begin
+                                IncDec_16   = 4'b0111;
+                                Set_Addr_To = aSP;
+                                LDZ         = 1;
+                            end
+                            3'd3: begin
+                                Jump      = 1;
+                                IncDec_16 = 4'b0111;
+                                LDW       = 1;
+                                I_RETN    = 1;
+                            end
+                            default: begin end
+                        endcase
+                    end
+
+                    8'h40,8'h48,8'h50,8'h58,8'h60,8'h68,8'h70,8'h78: begin
+                        // IN r,(C)
+                        MCycles_d = 3'd2;
+                        case (MCycle)
+                            3'd1: begin
+                                Set_Addr_To = aBC;
+                                SetWZ       = 2'b01;
+                            end
+                            3'd2: begin
+                                IORQ_i = 1;
+                                if (IR[5:3] != 3'd6) begin
+                                    Read_To_Reg      = 1;
+                                    Set_BusA_To[2:0] = IR[5:3];
+                                end
+                                I_INRC = 1;
+                            end
+                            default: begin end
+                        endcase
+                    end
+
+                    8'h41,8'h49,8'h51,8'h59,8'h61,8'h69,8'h71,8'h79: begin
+                        // OUT (C),r
+                        // OUT (C),0
+                        MCycles_d = 3'd2;
+
+                        case (MCycle)
+                            3'd1: begin
+                                Set_Addr_To      = aBC;
+                                SetWZ            = 2'b01;
+                                Set_BusB_To[2:0] = IR[5:3];
+                                if (IR[5:3] == 3'd6) begin
+                                    Set_BusB_To[3] = 1;
+                                end
+                            end
+                            3'd2: begin
+                                Write_i = 1;
+                                IORQ_i  = 1;
+                            end
+                            default: begin end
+                        endcase
+                    end
+
+                    8'ha2,8'haa,8'hb2,8'hba: begin
+                        // INI, IND, INIR, INDR
+                        MCycles_d = 3'd4;
+                        case (MCycle)
+                            3'd1: begin
+                                TStates      = 3'd5;
+                                Set_Addr_To  = aBC;
+                                Set_BusB_To  = 4'b1010;
+                                Set_BusA_To  = 4'b0000;
+                                Read_To_Reg  = 1;
+                                Save_ALU     = 1;
+                                ALU_Op       = 4'b0010;
+                                SetWZ        = 2'b11;
+                                IncDec_16[3] = IR[3];
+                            end
+                            3'd2: begin
+                                IORQ_i      = 1;
+                                Set_BusB_To = 4'b0110;
+                                Set_Addr_To = aXY;
+                            end
+                            3'd3: begin
+                                if (IR[3] == 1'b0) begin
+                                    IncDec_16 = 4'b0110;
+                                end
+                                else begin
+                                    IncDec_16 = 4'b1110;
+                                end
+                                Write_i = 1;
+                                I_BTR   = 1;
+                            end
+                            3'd4: begin
+                                NoRead_i = 1;
+                                TStates  = 3'd5;
+                            end
+                            default: begin end
+                        endcase
+                    end
+
+                    8'ha3,8'hab,8'hb3,8'hbb: begin
+                        // OUTI, OUTD, OTIR, OTDR
+                        MCycles_d = 3'd4;
+                        case (MCycle)
+                            3'd1: begin
+                                TStates     = 3'd5;
+                                Set_Addr_To = aXY;
+                                Set_BusB_To = 4'b1010;
+                                Set_BusA_To = 4'b0000;
+                                Read_To_Reg = 1;
+                                Save_ALU    = 1;
+                                ALU_Op      = 4'b0010;
+                            end
+                            3'd2: begin
+                                Set_BusB_To  = 4'b0110;
+                                Set_Addr_To  = aBC;
+                                SetWZ        = 2'b11;
+                                IncDec_16[3] = IR[3];
+                            end
+                            3'd3: begin
+                                if (IR[3] == 1'b0) begin
+                                    IncDec_16 = 4'b0110;
+                                end
+                                else begin
+                                    IncDec_16 = 4'b1110;
+                                end
+                                IORQ_i  = 1;
+                                Write_i = 1;
+                                I_BTR   = 1;
+                            end
+                            3'd4: begin
+                                NoRead_i = 1;
+                                TStates  = 3'd5;
+                            end
+                            default: begin end
+                        endcase
+                    end
+
+                    8'hc1,8'hc9,8'hd1,8'hd9: begin end
+                    8'hc3,8'hf3: begin end
+                    default: begin end
+                endcase
             end
-            endcase
-        end
         endcase
+
         if (Mode == 1) begin
             if (MCycle == 3'd1) begin
                 //  TStates = "100";
-            end
-            else begin
+            end else begin
                 TStates = 3'd3;
             end
         end
+
         if (MCycle == 3'd6) begin
             Inc_PC = 1;
             if (Mode == 1) begin
-                Set_Addr_To = aXY;
-                TStates = 3'd4;
+                Set_Addr_To      = aXY;
+                TStates          = 3'd4;
                 Set_BusB_To[2:0] = SSS;
-                Set_BusB_To[3] = 0;
+                Set_BusB_To[3]   = 0;
             end
             if (IR == 8'h36 || IR == 8'hcb) begin
                 Set_Addr_To = aNone;
@@ -2041,6 +2044,7 @@ module t80(
                 No_PC = 1;
             end
         end
+
         if (MCycle == 3'd7) begin
             if (Mode == 0) begin
                 TStates = 3'd5;
@@ -2049,12 +2053,11 @@ module t80(
                 Set_Addr_To = aXY;
             end
             Set_BusB_To[2:0] = SSS;
-            Set_BusB_To[3] = 0;
+            Set_BusB_To[3]   = 0;
             if (IR == 8'h36 || ISet == 2'b01) begin
                 // LD (HL),n
                 Inc_PC = 1;
-            end
-            else begin
+            end else begin
                 NoRead_i = 1;
             end
         end
