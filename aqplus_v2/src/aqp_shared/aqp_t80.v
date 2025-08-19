@@ -49,10 +49,10 @@ module aqp_t80(
     wire         t80_m1_n;
     wire         t80_rfsh_n;
     wire         t80_halt_n;
+    wire         t80_busak_n;
     wire         t80_inte;
     wire         t80_stop;
     wire [211:0] t80_reg;
-    wire         t80_busak_n;
 
     wire   mreq_rw = q_mreq   && (Req_Inhibit || MReq_Inhibit);  // added MREQ timing control
     wire   iorq_rw = t80_iorq && !(IORQ_t1 || IORQ_t2);          // added IORQ generation timing control
@@ -72,15 +72,9 @@ module aqp_t80(
         .CEN(phi_rising),
         .WAIT_n(!bus_wait),
         .INT_n(!irq),
-        .NMI_n(1'b1),
-        .BUSRQ_n(1'b1),
-        .M1_n(t80_m1_n),
         .IORQ(t80_iorq),
         .NoRead(t80_noread),
         .Write(t80_write),
-        .RFSH_n(t80_rfsh_n),
-        .HALT_n(t80_halt_n),
-        .BUSAK_n(t80_busak_n),
         .A(bus_addr),
         .DInst(bus_rddata),
         .DI(q_t80_di),
@@ -88,11 +82,18 @@ module aqp_t80(
         .MC(t80_mc),
         .TS(t80_ts),
         .IntCycle_n(t80_int_cycle_n),
+
+        .M1_n(t80_m1_n),
+        .RFSH_n(t80_rfsh_n),
+        .HALT_n(t80_halt_n),
+        .BUSAK_n(t80_busak_n),
         .IntE(t80_inte),
         .Stop(t80_stop),
+        .REG(t80_reg),
+        .NMI_n(1'b1),
+        .BUSRQ_n(1'b1),
         .R800_mode(1'b0),
         .out0(1'b0),
-        .REG(t80_reg),
         .DIRSet(1'b0),
         .DIR(212'b0)
     );
