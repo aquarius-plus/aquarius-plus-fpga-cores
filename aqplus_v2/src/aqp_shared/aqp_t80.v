@@ -37,8 +37,9 @@ module aqp_t80(
     t80 #(
         .Mode(0)
     ) t80(
-        .RESET_n(!reset),
-        .CLK_n(clk),
+        .clk(clk),
+        .reset(reset),
+
         .CEN(phi_rising),
         .WAIT_n(!bus_wait),
         .INT_n(!irq),
