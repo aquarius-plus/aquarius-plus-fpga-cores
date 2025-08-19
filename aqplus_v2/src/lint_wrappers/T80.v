@@ -27,11 +27,7 @@ module T80 #(
     output wire         IntCycle_n,
     output wire         IntE,
     output wire         Stop,
-    input  wire         R800_mode,
-    input  wire         out0,
-    output wire [211:0] REG,
-    input  wire         DIRSet,
-    input  wire [211:0] DIR
+    input  wire         out0
 );
 
 endmodule

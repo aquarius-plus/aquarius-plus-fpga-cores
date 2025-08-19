@@ -48,11 +48,7 @@ package T80_Pack is
         IntCycle_n      : out std_logic;
         IntE            : out std_logic;
         Stop            : out std_logic;
-        R800_mode       : in  std_logic := '0';
-        out0            : in  std_logic := '0';  -- 0 => OUT(C),0, 1 => OUT(C),255
-        REG             : out std_logic_vector(211 downto 0); -- IFF2, IFF1, IM, IY, HL', DE', BC', IX, HL, DE, BC, PC, SP, R, I, F', A', F, A
-        DIRSet          : in  std_logic := '0';
-        DIR             : in  std_logic_vector(211 downto 0) := (others => '0') -- IFF2, IFF1, IM, IY, HL', DE', BC', IX, HL, DE, BC, PC, SP, R, I, F', A', F, A
+        out0            : in  std_logic := '0'  -- 0 => OUT(C),0, 1 => OUT(C),255
     );
     end component;
 
@@ -72,10 +68,7 @@ package T80_Pack is
         DOBH            : out std_logic_vector(7 downto 0);
         DOBL            : out std_logic_vector(7 downto 0);
         DOCH            : out std_logic_vector(7 downto 0);
-        DOCL            : out std_logic_vector(7 downto 0);
-        DOR             : out std_logic_vector(127 downto 0);
-        DIRSet          : in  std_logic;
-        DIR             : in  std_logic_vector(127 downto 0)
+        DOCL            : out std_logic_vector(7 downto 0)
     );
     end component;
 
@@ -145,7 +138,6 @@ package T80_Pack is
         Halt                    : out std_logic;
         NoRead                  : out std_logic;
         Write                   : out std_logic;
-        R800_mode               : in  std_logic;
         No_PC                   : out std_logic;
         XYbit_undoc             : out std_logic
     );

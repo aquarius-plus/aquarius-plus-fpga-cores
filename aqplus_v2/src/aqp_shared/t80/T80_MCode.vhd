@@ -69,7 +69,6 @@ entity T80_MCode is
       Halt        : out std_logic;
       NoRead      : out std_logic;
       Write       : out std_logic;
-      R800_mode   : in  std_logic;
       No_PC       : out std_logic;
       XYbit_undoc : out std_logic
    );
@@ -96,7 +95,7 @@ architecture rtl of T80_MCode is
 
 begin
 
-    process (IR, ISet, MCycle, F, NMICycle, IntCycle, XY_State, R800_mode)
+    process (IR, ISet, MCycle, F, NMICycle, IntCycle, XY_State)
         variable DDD   : std_logic_vector(2 downto 0);
         variable SSS   : std_logic_vector(2 downto 0);
         variable DPair : std_logic_vector(1 downto 0);
@@ -1662,46 +1661,8 @@ begin
                     TStates <= "101";
                 when others => null;
                 end case;
-            when "11000001"|"11001001"|"11010001"|"11011001" =>
-                 --R800 MULUB
-                if R800_mode = '1' then
-                    MCycles <= "010";
-                    case to_integer(unsigned(MCycle)) is
-                    when 1 =>
-                        NoRead <= '1';
-                        I_MULUB <= '1';
-                        Set_BusB_To(2 downto 0) <= IR(5 downto 3);
-                        Set_BusB_To(3) <= '0';
-                    when 2 =>
-                        NoRead <= '1';
-                        I_MULU <= '1';
-                        Set_BusA_To(2 downto 0) <= "100";
-                    when others => null;
-                    end case;
-                end if;
-            when "11000011"|"11110011" =>
-                --R800 MULUW
-                if R800_mode = '1' then
-                    MCycles <= "010";
-                    case to_integer(unsigned(MCycle)) is
-                    when 1 =>
-                    NoRead <= '1';
-                        if DPAIR = "11" then
-                            Set_BusB_To(3 downto 0) <= "1000";
-                        else
-                            Set_BusB_To(2 downto 1) <= DPAIR;
-                            Set_BusB_To(0) <= '0';
-                            Set_BusB_To(3) <= '0';
-                        end if;
-                        Set_BusA_To(2 downto 0) <= "100";
-                    when 2 =>
-                        TStates <= "101";
-                        NoRead <= '1';
-                        I_MULU <= '1';
-                        Set_BusA_To(2 downto 0) <= "100";
-                    when others => null;
-                    end case;
-                end if;
+            when "11000001"|"11001001"|"11010001"|"11011001" => null;
+            when "11000011"|"11110011" => null;
             end case;
 
         end case;

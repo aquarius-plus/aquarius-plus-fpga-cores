@@ -52,7 +52,6 @@ module aqp_t80(
     wire         t80_busak_n;
     wire         t80_inte;
     wire         t80_stop;
-    wire [211:0] t80_reg;
 
     wire   mreq_rw = q_mreq   && (Req_Inhibit || MReq_Inhibit);
     wire   iorq_rw = t80_iorq && !(IORQ_t1 || IORQ_t2);
@@ -88,13 +87,9 @@ module aqp_t80(
         .BUSAK_n(t80_busak_n),
         .IntE(t80_inte),
         .Stop(t80_stop),
-        .REG(t80_reg),
         .NMI_n(1'b1),
         .BUSRQ_n(1'b1),
-        .R800_mode(1'b0),
-        .out0(1'b0),
-        .DIRSet(1'b0),
-        .DIR(212'b0)
+        .out0(1'b0)
     );
 
     always @(posedge clk) if (phi_falling && t80_ts == 3'd3) q_t80_di <= bus_rddata;
