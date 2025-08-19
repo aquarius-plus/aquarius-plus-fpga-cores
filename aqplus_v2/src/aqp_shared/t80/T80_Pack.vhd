@@ -45,7 +45,7 @@ package T80_Pack is
     );
     end component;
 
-    component T80_Reg
+    component t80_reg
     port(
         Clk             : in std_logic;
         CEN             : in std_logic;
@@ -65,7 +65,7 @@ package T80_Pack is
     );
     end component;
 
-    component T80_MCode
+    component t80_mcode
     generic(
         Mode   : integer := 0
     );
@@ -133,7 +133,7 @@ package T80_Pack is
     );
     end component;
 
-    component T80_ALU
+    component t80_alu
     port(
         Arith16         : in  std_logic;
         Z16             : in  std_logic;

@@ -159,7 +159,7 @@ architecture rtl of T80 is
 
 begin
 
-    mcode : T80_MCode
+    mcode : t80_mcode
         generic map(
             Mode   => Mode)
         port map(
@@ -223,7 +223,7 @@ begin
             No_PC       => No_PC,
             XYbit_undoc => XYbit_undoc);
 
-    alu : T80_ALU
+    alu : t80_alu
         port map(
             Arith16 => Arith16_r,
             Z16     => Z16_r,
@@ -829,7 +829,7 @@ begin
         end if;
     end process;
 
-    Regs : T80_Reg
+    Regs : t80_reg
         port map(
             Clk => CLK_n,
             CEN => ClkEn,
