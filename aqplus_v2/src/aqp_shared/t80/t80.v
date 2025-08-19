@@ -201,7 +201,7 @@ module t80(
         Save_ALU    = 0;
         PreserveC   = 0;
         Arith16     = 0;
-        IORQ_i        = 0;
+        IORQ_i      = 0;
         Set_Addr_To = aNone;
         Jump        = 0;
         JumpE       = 0;
@@ -241,24 +241,19 @@ module t80(
         SetWZ       = 2'b00;
 
         case (ISet)
+            //----------------------------------------------------------------
+            // Unprefixed instructions
+            //----------------------------------------------------------------
             2'b00: begin
-                //----------------------------------------------------------------------------
-                //
-                // Unprefixed instructions
-                //
-                //----------------------------------------------------------------------------
                 case (IR)
                     // 8 BIT LOAD GROUP
-                    8'h40,8'h41,8'h42,8'h43,8'h44,8'h45,
-                    8'h47,8'h48,8'h49,8'h4a,8'h4b,8'h4c,
-                    8'h4d,8'h4f,8'h50,8'h51,8'h52,8'h53,
-                    8'h54,8'h55,8'h57,8'h58,8'h59,8'h5a,
-                    8'h5b,8'h5c,8'h5d,8'h5f,8'h60,8'h61,
-                    8'h62,8'h63,8'h64,8'h65,8'h67,8'h68,
-                    8'h69,8'h6a,8'h6b,8'h6c,8'h6d,8'h6f,
-                    8'h78,8'h79,8'h7a,8'h7b,8'h7c,8'h7d,
-                    8'h7f: begin
-
+                    8'h40,8'h41,8'h42,8'h43,8'h44,8'h45,8'h47,
+                    8'h48,8'h49,8'h4a,8'h4b,8'h4c,8'h4d,8'h4f,
+                    8'h50,8'h51,8'h52,8'h53,8'h54,8'h55,8'h57,
+                    8'h58,8'h59,8'h5a,8'h5b,8'h5c,8'h5d,8'h5f,
+                    8'h60,8'h61,8'h62,8'h63,8'h64,8'h65,8'h67,
+                    8'h68,8'h69,8'h6a,8'h6b,8'h6c,8'h6d,8'h6f,
+                    8'h78,8'h79,8'h7a,8'h7b,8'h7c,8'h7d,8'h7f: begin
                         // LD r,r'
                         Set_BusB_To[2:0] = SSS;
                         ExchangeRp       = 1;
@@ -271,9 +266,9 @@ module t80(
                         MCycles_d = 3'd2;
                         case (MCycle)
                             3'd2: begin
-                                Inc_PC = 1'b1;
+                                Inc_PC           = 1;
                                 Set_BusA_To[2:0] = DDD;
-                                Read_To_Reg = 1'b1;
+                                Read_To_Reg      = 1;
                             end
                             default: begin end
                         endcase
@@ -288,7 +283,7 @@ module t80(
                         end
                         3'd2: begin
                             Set_BusA_To[2:0] = DDD;
-                            Read_To_Reg = 1'b1;
+                            Read_To_Reg = 1;
                         end
                         default: begin
                         end
@@ -301,10 +296,10 @@ module t80(
                     3'd1: begin
                         Set_Addr_To = aXY;
                         Set_BusB_To[2:0] = SSS;
-                        Set_BusB_To[3] = 1'b0;
+                        Set_BusB_To[3] = 0;
                     end
                     3'd2: begin
-                        Write_i = 1'b1;
+                        Write_i = 1;
                     end
                     default: begin
                     end
@@ -315,13 +310,13 @@ module t80(
                     MCycles_d = 3'd3;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
+                        Inc_PC = 1;
                         Set_Addr_To = aXY;
                         Set_BusB_To[2:0] = SSS;
-                        Set_BusB_To[3] = 1'b0;
+                        Set_BusB_To[3] = 0;
                     end
                     3'd3: begin
-                        Write_i = 1'b1;
+                        Write_i = 1;
                     end
                     default: begin
                     end
@@ -335,7 +330,7 @@ module t80(
                         Set_Addr_To = aBC;
                     end
                     3'd2: begin
-                        Read_To_Acc = 1'b1;
+                        Read_To_Acc = 1;
                     end
                     default: begin
                     end
@@ -349,7 +344,7 @@ module t80(
                         Set_Addr_To = aDE;
                     end
                     3'd2: begin
-                        Read_To_Acc = 1'b1;
+                        Read_To_Acc = 1;
                     end
                     default: begin
                     end
@@ -360,15 +355,15 @@ module t80(
                     MCycles_d = 3'd4;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
-                        LDZ = 1'b1;
+                        Inc_PC = 1;
+                        LDZ = 1;
                     end
                     3'd3: begin
                         Set_Addr_To = aZI;
-                        Inc_PC = 1'b1;
+                        Inc_PC = 1;
                     end
                     3'd4: begin
-                        Read_To_Acc = 1'b1;
+                        Read_To_Acc = 1;
                     end
                     default: begin
                     end
@@ -384,7 +379,7 @@ module t80(
                         SetWZ = 2'b10;
                     end
                     3'd2: begin
-                        Write_i = 1'b1;
+                        Write_i = 1;
                     end
                     default: begin
                     end
@@ -400,7 +395,7 @@ module t80(
                         SetWZ = 2'b10;
                     end
                     3'd2: begin
-                        Write_i = 1'b1;
+                        Write_i = 1;
                     end
                     default: begin
                     end
@@ -411,17 +406,17 @@ module t80(
                     MCycles_d = 3'd4;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
-                        LDZ = 1'b1;
+                        Inc_PC = 1;
+                        LDZ = 1;
                     end
                     3'd3: begin
                         Set_Addr_To = aZI;
                         SetWZ = 2'b10;
-                        Inc_PC = 1'b1;
+                        Inc_PC = 1;
                         Set_BusB_To = 4'b0111;
                     end
                     3'd4: begin
-                        Write_i = 1'b1;
+                        Write_i = 1;
                     end
                     default: begin
                     end
@@ -433,25 +428,25 @@ module t80(
                     MCycles_d = 3'd3;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
-                        Read_To_Reg = 1'b1;
+                        Inc_PC = 1;
+                        Read_To_Reg = 1;
                         if (DPair == 2'b11) begin
                             Set_BusA_To[3:0] = 4'b1000;
                         end
                         else begin
                             Set_BusA_To[2:1] = DPair;
-                            Set_BusA_To[0] = 1'b1;
+                            Set_BusA_To[0] = 1;
                         end
                     end
                     3'd3: begin
-                        Inc_PC = 1'b1;
-                        Read_To_Reg = 1'b1;
+                        Inc_PC = 1;
+                        Read_To_Reg = 1;
                         if (DPair == 2'b11) begin
                             Set_BusA_To[3:0] = 4'b1001;
                         end
                         else begin
                             Set_BusA_To[2:1] = DPair;
-                            Set_BusA_To[0] = 1'b0;
+                            Set_BusA_To[0] = 0;
                         end
                     end
                     default: begin
@@ -463,25 +458,25 @@ module t80(
                     MCycles_d = 3'd5;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
-                        LDZ = 1'b1;
+                        Inc_PC = 1;
+                        LDZ = 1;
                     end
                     3'd3: begin
                         Set_Addr_To = aZI;
-                        Inc_PC = 1'b1;
-                        LDW = 1'b1;
+                        Inc_PC = 1;
+                        LDW = 1;
                     end
                     3'd4: begin
                         Set_BusA_To[2:0] = 3'd5;
                         // L
-                        Read_To_Reg = 1'b1;
-                        Inc_WZ = 1'b1;
+                        Read_To_Reg = 1;
+                        Inc_WZ = 1;
                         Set_Addr_To = aZI;
                     end
                     3'd5: begin
                         Set_BusA_To[2:0] = 3'd4;
                         // H
-                        Read_To_Reg = 1'b1;
+                        Read_To_Reg = 1;
                     end
                     default: begin
                     end
@@ -492,25 +487,25 @@ module t80(
                     MCycles_d = 3'd5;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
-                        LDZ = 1'b1;
+                        Inc_PC = 1;
+                        LDZ = 1;
                     end
                     3'd3: begin
                         Set_Addr_To = aZI;
-                        Inc_PC = 1'b1;
-                        LDW = 1'b1;
+                        Inc_PC = 1;
+                        LDW = 1;
                         Set_BusB_To = 4'b0101;
                         // L
                     end
                     3'd4: begin
-                        Inc_WZ = 1'b1;
+                        Inc_WZ = 1;
                         Set_Addr_To = aZI;
-                        Write_i = 1'b1;
+                        Write_i = 1;
                         Set_BusB_To = 4'b0100;
                         // H
                     end
                     3'd5: begin
-                        Write_i = 1'b1;
+                        Write_i = 1;
                     end
                     default: begin
                     end
@@ -519,7 +514,7 @@ module t80(
                 8'hf9: begin
                     // LD SP,HL
                     TStates = 3'd6;
-                    LDSPHL = 1'b1;
+                    LDSPHL = 1;
                 end
                 8'hc5,8'hd5,8'he5,8'hf5: begin
                     // PUSH qq
@@ -534,8 +529,8 @@ module t80(
                         end
                         else begin
                             Set_BusB_To[2:1] = DPair;
-                            Set_BusB_To[0] = 1'b0;
-                            Set_BusB_To[3] = 1'b0;
+                            Set_BusB_To[0] = 0;
+                            Set_BusB_To[3] = 0;
                         end
                     end
                     3'd2: begin
@@ -546,13 +541,13 @@ module t80(
                         end
                         else begin
                             Set_BusB_To[2:1] = DPair;
-                            Set_BusB_To[0] = 1'b1;
-                            Set_BusB_To[3] = 1'b0;
+                            Set_BusB_To[0] = 1;
+                            Set_BusB_To[3] = 0;
                         end
-                        Write_i = 1'b1;
+                        Write_i = 1;
                     end
                     3'd3: begin
-                        Write_i = 1'b1;
+                        Write_i = 1;
                     end
                     default: begin
                     end
@@ -568,24 +563,24 @@ module t80(
                     3'd2: begin
                         IncDec_16 = 4'b0111;
                         Set_Addr_To = aSP;
-                        Read_To_Reg = 1'b1;
+                        Read_To_Reg = 1;
                         if (DPair == 2'b11) begin
                             Set_BusA_To[3:0] = 4'b1011;
                         end
                         else begin
                             Set_BusA_To[2:1] = DPair;
-                            Set_BusA_To[0] = 1'b1;
+                            Set_BusA_To[0] = 1;
                         end
                     end
                     3'd3: begin
                         IncDec_16 = 4'b0111;
-                        Read_To_Reg = 1'b1;
+                        Read_To_Reg = 1;
                         if (DPair == 2'b11) begin
                             Set_BusA_To[3:0] = 4'b0111;
                         end
                         else begin
                             Set_BusA_To[2:1] = DPair;
-                            Set_BusA_To[0] = 1'b0;
+                            Set_BusA_To[0] = 0;
                         end
                     end
                     default: begin
@@ -595,15 +590,15 @@ module t80(
                 end
                 8'heb: begin
                     // EX DE,HL
-                    ExchangeDH = 1'b1;
+                    ExchangeDH = 1;
                 end
                 8'h08: begin
                     // EX AF,AF'
-                    ExchangeAF = 1'b1;
+                    ExchangeAF = 1;
                 end
                 8'hd9: begin
                     // EXX
-                    ExchangeRS = 1'b1;
+                    ExchangeRS = 1;
                 end
                 8'he3: begin
                     // EX (SP),HL
@@ -614,7 +609,7 @@ module t80(
                     end
                     3'd2: begin
                         Set_Addr_To = aSP;
-                        LDZ = 1'b1;
+                        LDZ = 1;
                         IncDec_16 = 4'b0111;
                         // SP = SP+1
                     end
@@ -622,20 +617,20 @@ module t80(
                         TStates = 3'd4;
                         Set_BusB_To = 4'b0100;
                         Set_Addr_To = aSP;
-                        LDW = 1'b1;
+                        LDW = 1;
                     end
                     3'd4: begin
                         Set_BusB_To = 4'b0101;
-                        Write_i = 1'b1;
+                        Write_i = 1;
                         IncDec_16 = 4'b1111;
                         // SP = SP-1
                         Set_Addr_To = aSP;
                     end
                     3'd5: begin
-                        ExchangeWH = 1'b1;
+                        ExchangeWH = 1;
                         // save WZ to HL
                         TStates = 3'd5;
-                        Write_i = 1'b1;
+                        Write_i = 1;
                     end
                     default: begin
                     end
@@ -653,8 +648,8 @@ module t80(
                     // CP A,r
                     Set_BusB_To[2:0] = SSS;
                     Set_BusA_To[2:0] = 3'd7;
-                    Read_To_Reg = 1'b1;
-                    Save_ALU = 1'b1;
+                    Read_To_Reg = 1;
+                    Save_ALU = 1;
                 end
                 8'h86,8'h8e,8'h96,8'h9e,8'ha6,8'hae,8'hb6,8'hbe: begin
                     // ADD A,(HL)
@@ -671,8 +666,8 @@ module t80(
                         Set_Addr_To = aXY;
                     end
                     3'd2: begin
-                        Read_To_Reg = 1'b1;
-                        Save_ALU = 1'b1;
+                        Read_To_Reg = 1;
+                        Save_ALU = 1;
                         Set_BusB_To[2:0] = SSS;
                         Set_BusA_To[2:0] = 3'd7;
                     end
@@ -691,9 +686,9 @@ module t80(
                     // CP A,n
                     MCycles_d = 3'd2;
                     if (MCycle == 3'd2) begin
-                        Inc_PC = 1'b1;
-                        Read_To_Reg = 1'b1;
-                        Save_ALU = 1'b1;
+                        Inc_PC = 1;
+                        Read_To_Reg = 1;
+                        Save_ALU = 1;
                         Set_BusB_To[2:0] = SSS;
                         Set_BusA_To[2:0] = 3'd7;
                     end
@@ -702,9 +697,9 @@ module t80(
                     // INC r
                     Set_BusB_To = 4'b1010;
                     Set_BusA_To[2:0] = DDD;
-                    Read_To_Reg = 1'b1;
-                    Save_ALU = 1'b1;
-                    PreserveC = 1'b1;
+                    Read_To_Reg = 1;
+                    Save_ALU = 1;
+                    PreserveC = 1;
                     ALU_Op = 4'b0000;
                 end
                 8'h34: begin
@@ -717,15 +712,15 @@ module t80(
                     3'd2: begin
                         TStates = 3'd4;
                         Set_Addr_To = aXY;
-                        Read_To_Reg = 1'b1;
-                        Save_ALU = 1'b1;
-                        PreserveC = 1'b1;
+                        Read_To_Reg = 1;
+                        Save_ALU = 1;
+                        PreserveC = 1;
                         ALU_Op = 4'b0000;
                         Set_BusB_To = 4'b1010;
                         Set_BusA_To[2:0] = DDD;
                     end
                     3'd3: begin
-                        Write_i = 1'b1;
+                        Write_i = 1;
                     end
                     default: begin
                     end
@@ -735,9 +730,9 @@ module t80(
                     // DEC r
                     Set_BusB_To = 4'b1010;
                     Set_BusA_To[2:0] = DDD;
-                    Read_To_Reg = 1'b1;
-                    Save_ALU = 1'b1;
-                    PreserveC = 1'b1;
+                    Read_To_Reg = 1;
+                    Save_ALU = 1;
+                    PreserveC = 1;
                     ALU_Op = 4'b0010;
                 end
                 8'h35: begin
@@ -751,14 +746,14 @@ module t80(
                         TStates = 3'd4;
                         Set_Addr_To = aXY;
                         ALU_Op = 4'b0010;
-                        Read_To_Reg = 1'b1;
-                        Save_ALU = 1'b1;
-                        PreserveC = 1'b1;
+                        Read_To_Reg = 1;
+                        Save_ALU = 1;
+                        PreserveC = 1;
                         Set_BusB_To = 4'b1010;
                         Set_BusA_To[2:0] = DDD;
                     end
                     3'd3: begin
-                        Write_i = 1'b1;
+                        Write_i = 1;
                     end
                     default: begin
                     end
@@ -768,21 +763,21 @@ module t80(
                 8'h27: begin
                     // DAA
                     Set_BusA_To[2:0] = 3'd7;
-                    Read_To_Reg = 1'b1;
+                    Read_To_Reg = 1;
                     ALU_Op = 4'b1100;
-                    Save_ALU = 1'b1;
+                    Save_ALU = 1;
                 end
                 8'h2f: begin
                     // CPL
-                    I_CPL = 1'b1;
+                    I_CPL = 1;
                 end
                 8'h3f: begin
                     // CCF
-                    I_CCF = 1'b1;
+                    I_CCF = 1;
                 end
                 8'h37: begin
                     // SCF
-                    I_SCF = 1'b1;
+                    I_SCF = 1;
                 end
                 8'h00: begin
                     if (NMICycle == 1'b1) begin
@@ -796,13 +791,13 @@ module t80(
                             Set_BusB_To = 4'b1101;
                         end
                         3'd2: begin
-                            Write_i = 1'b1;
+                            Write_i = 1;
                             IncDec_16 = 4'b1111;
                             Set_Addr_To = aSP;
                             Set_BusB_To = 4'b1100;
                         end
                         3'd3: begin
-                            Write_i = 1'b1;
+                            Write_i = 1;
                         end
                         default: begin
                         end
@@ -820,21 +815,21 @@ module t80(
                         end
                         3'd2: begin
                             //TStates = "100";
-                            Write_i = 1'b1;
+                            Write_i = 1;
                             IncDec_16 = 4'b1111;
                             Set_Addr_To = aSP;
                             Set_BusB_To = 4'b1100;
                         end
                         3'd3: begin
                             //TStates = "100";
-                            Write_i = 1'b1;
+                            Write_i = 1;
                         end
                         3'd4: begin
-                            Inc_PC = 1'b1;
-                            LDZ = 1'b1;
+                            Inc_PC = 1;
+                            LDZ = 1;
                         end
                         3'd5: begin
-                            Jump = 1'b1;
+                            Jump = 1;
                         end
                         default: begin
                         end
@@ -846,15 +841,15 @@ module t80(
                 end
                 8'h76: begin
                     // HALT
-                    Halt = 1'b1;
+                    Halt = 1;
                 end
                 8'hf3: begin
                     // DI
-                    SetDI = 1'b1;
+                    SetDI = 1;
                 end
                 8'hfb: begin
                     // EI
-                    SetEI = 1'b1;
+                    SetEI = 1;
                     // 16 BIT ARITHMETIC GROUP
                 end
                 8'h09,8'h19,8'h29,8'h39: begin
@@ -862,32 +857,32 @@ module t80(
                     MCycles_d = 3'd3;
                     case (MCycle)
                     3'd1: begin
-                        No_PC = 1'b1;
+                        No_PC = 1;
                     end
                     3'd2: begin
-                        NoRead_i = 1'b1;
+                        NoRead_i = 1;
                         ALU_Op = 4'b0000;
-                        Read_To_Reg = 1'b1;
-                        Save_ALU = 1'b1;
+                        Read_To_Reg = 1;
+                        Save_ALU = 1;
                         Set_BusA_To[2:0] = 3'd5;
                         case (IR[5:4])
                         2'b00,2'b01,2'b10: begin
                             Set_BusB_To[2:1] = IR[5:4];
-                            Set_BusB_To[0] = 1'b1;
+                            Set_BusB_To[0] = 1;
                         end
                         default: begin
                             Set_BusB_To = 4'b1000;
                         end
                         endcase
                         TStates = 3'd4;
-                        Arith16 = 1'b1;
+                        Arith16 = 1;
                         SetWZ = 2'b11;
-                        No_PC = 1'b1;
+                        No_PC = 1;
                     end
                     3'd3: begin
-                        NoRead_i = 1'b1;
-                        Read_To_Reg = 1'b1;
-                        Save_ALU = 1'b1;
+                        NoRead_i = 1;
+                        Read_To_Reg = 1;
+                        Save_ALU = 1;
                         ALU_Op = 4'b0001;
                         Set_BusA_To[2:0] = 3'd4;
                         case (IR[5:4])
@@ -898,7 +893,7 @@ module t80(
                             Set_BusB_To = 4'b1001;
                         end
                         endcase
-                        Arith16 = 1'b1;
+                        Arith16 = 1;
                     end
                     default: begin
                     end
@@ -921,8 +916,8 @@ module t80(
                 8'h07,8'h17,8'h0f,8'h1f: begin
                     Set_BusA_To[2:0] = 3'd7;
                     ALU_Op = 4'b1000;
-                    Read_To_Reg = 1'b1;
-                    Save_ALU = 1'b1;
+                    Read_To_Reg = 1;
+                    Save_ALU = 1;
                     // JUMP GROUP
                 end
                 8'hc3: begin
@@ -930,13 +925,13 @@ module t80(
                     MCycles_d = 3'd3;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
-                        LDZ = 1'b1;
+                        Inc_PC = 1;
+                        LDZ = 1;
                     end
                     3'd3: begin
-                        Inc_PC = 1'b1;
-                        Jump = 1'b1;
-                        LDW = 1'b1;
+                        Inc_PC = 1;
+                        Jump = 1;
+                        LDW = 1;
                     end
                     default: begin
                     end
@@ -947,14 +942,14 @@ module t80(
                     MCycles_d = 3'd3;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
-                        LDZ = 1'b1;
+                        Inc_PC = 1;
+                        LDZ = 1;
                     end
                     3'd3: begin
-                        LDW = 1'b1;
-                        Inc_PC = 1'b1;
+                        LDW = 1;
+                        Inc_PC = 1;
                         if (cc_is_true == 1'b1) begin
-                            Jump = 1'b1;
+                            Jump = 1;
                         end
                     end
                     default: begin
@@ -966,12 +961,12 @@ module t80(
                     MCycles_d = 3'd3;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
-                        No_PC = 1'b1;
+                        Inc_PC = 1;
+                        No_PC = 1;
                     end
                     3'd3: begin
-                        NoRead_i = 1'b1;
-                        JumpE = 1'b1;
+                        NoRead_i = 1;
+                        JumpE = 1;
                         TStates = 3'd5;
                     end
                     default: begin
@@ -983,17 +978,17 @@ module t80(
                     MCycles_d = 3'd3;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
+                        Inc_PC = 1;
                         if (F[Flag_C] == 1'b0) begin
                             MCycles_d = 3'd2;
                         end
                         else begin
-                            No_PC = 1'b1;
+                            No_PC = 1;
                         end
                     end
                     3'd3: begin
-                        NoRead_i = 1'b1;
-                        JumpE = 1'b1;
+                        NoRead_i = 1;
+                        JumpE = 1;
                         TStates = 3'd5;
                     end
                     default: begin
@@ -1005,17 +1000,17 @@ module t80(
                     MCycles_d = 3'd3;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
+                        Inc_PC = 1;
                         if (F[Flag_C] == 1'b1) begin
                             MCycles_d = 3'd2;
                         end
                         else begin
-                            No_PC = 1'b1;
+                            No_PC = 1;
                         end
                     end
                     3'd3: begin
-                        NoRead_i = 1'b1;
-                        JumpE = 1'b1;
+                        NoRead_i = 1;
+                        JumpE = 1;
                         TStates = 3'd5;
                     end
                     default: begin
@@ -1027,17 +1022,17 @@ module t80(
                     MCycles_d = 3'd3;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
+                        Inc_PC = 1;
                         if (F[Flag_Z] == 1'b0) begin
                             MCycles_d = 3'd2;
                         end
                         else begin
-                            No_PC = 1'b1;
+                            No_PC = 1;
                         end
                     end
                     3'd3: begin
-                        NoRead_i = 1'b1;
-                        JumpE = 1'b1;
+                        NoRead_i = 1;
+                        JumpE = 1;
                         TStates = 3'd5;
                     end
                     default: begin
@@ -1049,17 +1044,17 @@ module t80(
                     MCycles_d = 3'd3;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
+                        Inc_PC = 1;
                         if (F[Flag_Z] == 1'b1) begin
                             MCycles_d = 3'd2;
                         end
                         else begin
-                            No_PC = 1'b1;
+                            No_PC = 1;
                         end
                     end
                     3'd3: begin
-                        NoRead_i = 1'b1;
-                        JumpE = 1'b1;
+                        NoRead_i = 1;
+                        JumpE = 1;
                         TStates = 3'd5;
                     end
                     default: begin
@@ -1068,7 +1063,7 @@ module t80(
                 end
                 8'he9: begin
                     // JP (HL)
-                    JumpXY = 1'b1;
+                    JumpXY = 1;
                 end
                 8'h10: begin
                     // DJNZ,e
@@ -1076,21 +1071,21 @@ module t80(
                     case (MCycle)
                     3'd1: begin
                         TStates = 3'd5;
-                        I_DJNZ = 1'b1;
+                        I_DJNZ = 1;
                         Set_BusB_To = 4'b1010;
                         Set_BusA_To[2:0] = 3'd0;
-                        Read_To_Reg = 1'b1;
-                        Save_ALU = 1'b1;
+                        Read_To_Reg = 1;
+                        Save_ALU = 1;
                         ALU_Op = 4'b0010;
                     end
                     3'd2: begin
-                        I_DJNZ = 1'b1;
-                        Inc_PC = 1'b1;
-                        No_PC = 1'b1;
+                        I_DJNZ = 1;
+                        Inc_PC = 1;
+                        No_PC = 1;
                     end
                     3'd3: begin
-                        NoRead_i = 1'b1;
-                        JumpE = 1'b1;
+                        NoRead_i = 1;
+                        JumpE = 1;
                         TStates = 3'd5;
                     end
                     default: begin
@@ -1103,26 +1098,26 @@ module t80(
                     MCycles_d = 3'd5;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
-                        LDZ = 1'b1;
+                        Inc_PC = 1;
+                        LDZ = 1;
                     end
                     3'd3: begin
                         IncDec_16 = 4'b1111;
-                        Inc_PC = 1'b1;
+                        Inc_PC = 1;
                         TStates = 3'd4;
                         Set_Addr_To = aSP;
-                        LDW = 1'b1;
+                        LDW = 1;
                         Set_BusB_To = 4'b1101;
                     end
                     3'd4: begin
-                        Write_i = 1'b1;
+                        Write_i = 1;
                         IncDec_16 = 4'b1111;
                         Set_Addr_To = aSP;
                         Set_BusB_To = 4'b1100;
                     end
                     3'd5: begin
-                        Write_i = 1'b1;
-                        Call = 1'b1;
+                        Write_i = 1;
+                        Call = 1;
                     end
                     default: begin
                     end
@@ -1133,12 +1128,12 @@ module t80(
                     MCycles_d = 3'd5;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
-                        LDZ = 1'b1;
+                        Inc_PC = 1;
+                        LDZ = 1;
                     end
                     3'd3: begin
-                        Inc_PC = 1'b1;
-                        LDW = 1'b1;
+                        Inc_PC = 1;
+                        LDW = 1;
                         if (cc_is_true == 1'b1) begin
                             IncDec_16 = 4'b1111;
                             Set_Addr_To = aSP;
@@ -1150,14 +1145,14 @@ module t80(
                         end
                     end
                     3'd4: begin
-                        Write_i = 1'b1;
+                        Write_i = 1;
                         IncDec_16 = 4'b1111;
                         Set_Addr_To = aSP;
                         Set_BusB_To = 4'b1100;
                     end
                     3'd5: begin
-                        Write_i = 1'b1;
-                        Call = 1'b1;
+                        Write_i = 1;
+                        Call = 1;
                     end
                     default: begin
                     end
@@ -1174,10 +1169,10 @@ module t80(
                     3'd2: begin
                         IncDec_16 = 4'b0111;
                         Set_Addr_To = aSP;
-                        LDZ = 1'b1;
+                        LDZ = 1;
                     end
                     3'd3: begin
-                        Jump = 1'b1;
+                        Jump = 1;
                         IncDec_16 = 4'b0111;
                     end
                     default: begin
@@ -1200,10 +1195,10 @@ module t80(
                     3'd2: begin
                         IncDec_16 = 4'b0111;
                         Set_Addr_To = aSP;
-                        LDZ = 1'b1;
+                        LDZ = 1;
                     end
                     3'd3: begin
-                        Jump = 1'b1;
+                        Jump = 1;
                         IncDec_16 = 4'b0111;
                     end
                     default: begin
@@ -1221,14 +1216,14 @@ module t80(
                         Set_BusB_To = 4'b1101;
                     end
                     3'd2: begin
-                        Write_i = 1'b1;
+                        Write_i = 1;
                         IncDec_16 = 4'b1111;
                         Set_Addr_To = aSP;
                         Set_BusB_To = 4'b1100;
                     end
                     3'd3: begin
-                        Write_i = 1'b1;
-                        RstP = 1'b1;
+                        Write_i = 1;
+                        RstP = 1;
                     end
                     default: begin
                     end
@@ -1240,12 +1235,12 @@ module t80(
                     MCycles_d = 3'd3;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
+                        Inc_PC = 1;
                         Set_Addr_To = aIOA;
                     end
                     3'd3: begin
-                        Read_To_Acc = 1'b1;
-                        IORQ_i = 1'b1;
+                        Read_To_Acc = 1;
+                        IORQ_i = 1;
                     end
                     default: begin
                     end
@@ -1256,13 +1251,13 @@ module t80(
                     MCycles_d = 3'd3;
                     case (MCycle)
                     3'd2: begin
-                        Inc_PC = 1'b1;
+                        Inc_PC = 1;
                         Set_Addr_To = aIOA;
                         Set_BusB_To = 4'b0111;
                     end
                     3'd3: begin
-                        Write_i = 1'b1;
-                        IORQ_i = 1'b1;
+                        Write_i = 1;
+                        IORQ_i = 1;
                     end
                     default: begin
                     end
@@ -1307,27 +1302,27 @@ module t80(
                 if (XY_State == 2'b00) begin
                     if (MCycle == 3'd1) begin
                         ALU_Op = 4'b1000;
-                        Read_To_Reg = 1'b1;
-                        Save_ALU = 1'b1;
+                        Read_To_Reg = 1;
+                        Save_ALU = 1;
                     end
                 end
                 else begin
                     // R/S (IX+d),Reg, undocumented
                     MCycles_d = 3'd3;
-                    XYbit_undoc = 1'b1;
+                    XYbit_undoc = 1;
                     case (MCycle)
                     3'd1,3'd7: begin
                         Set_Addr_To = aXY;
                     end
                     3'd2: begin
                         ALU_Op = 4'b1000;
-                        Read_To_Reg = 1'b1;
-                        Save_ALU = 1'b1;
+                        Read_To_Reg = 1;
+                        Save_ALU = 1;
                         Set_Addr_To = aXY;
                         TStates = 3'd4;
                     end
                     3'd3: begin
-                        Write_i = 1'b1;
+                        Write_i = 1;
                     end
                     default: begin
                     end
@@ -1350,13 +1345,13 @@ module t80(
                 end
                 3'd2: begin
                     ALU_Op = 4'b1000;
-                    Read_To_Reg = 1'b1;
-                    Save_ALU = 1'b1;
+                    Read_To_Reg = 1;
+                    Save_ALU = 1;
                     Set_Addr_To = aXY;
                     TStates = 3'd4;
                 end
                 3'd3: begin
-                    Write_i = 1'b1;
+                    Write_i = 1;
                 end
                 default: begin
                 end
@@ -1373,7 +1368,7 @@ module t80(
                 else begin
                     // BIT b,(IX+d), undocumented
                     MCycles_d = 3'd2;
-                    XYbit_undoc = 1'b1;
+                    XYbit_undoc = 1;
                     case (MCycle)
                     3'd1,3'd7: begin
                         Set_Addr_To = aXY;
@@ -1407,27 +1402,27 @@ module t80(
                 if (XY_State == 2'b00) begin
                     if (MCycle == 3'd1) begin
                         ALU_Op = 4'b1010;
-                        Read_To_Reg = 1'b1;
-                        Save_ALU = 1'b1;
+                        Read_To_Reg = 1;
+                        Save_ALU = 1;
                     end
                 end
                 else begin
                     // SET b,(IX+d),Reg, undocumented
                     MCycles_d = 3'd3;
-                    XYbit_undoc = 1'b1;
+                    XYbit_undoc = 1;
                     case (MCycle)
                     3'd1,3'd7: begin
                         Set_Addr_To = aXY;
                     end
                     3'd2: begin
                         ALU_Op = 4'b1010;
-                        Read_To_Reg = 1'b1;
-                        Save_ALU = 1'b1;
+                        Read_To_Reg = 1;
+                        Save_ALU = 1;
                         Set_Addr_To = aXY;
                         TStates = 3'd4;
                     end
                     3'd3: begin
-                        Write_i = 1'b1;
+                        Write_i = 1;
                     end
                     default: begin
                     end
@@ -1443,13 +1438,13 @@ module t80(
                 end
                 3'd2: begin
                     ALU_Op = 4'b1010;
-                    Read_To_Reg = 1'b1;
-                    Save_ALU = 1'b1;
+                    Read_To_Reg = 1;
+                    Save_ALU = 1;
                     Set_Addr_To = aXY;
                     TStates = 3'd4;
                 end
                 3'd3: begin
-                    Write_i = 1'b1;
+                    Write_i = 1;
                 end
                 default: begin
                 end
@@ -1460,27 +1455,27 @@ module t80(
                 if (XY_State == 2'b00) begin
                     if (MCycle == 3'd1) begin
                         ALU_Op = 4'b1011;
-                        Read_To_Reg = 1'b1;
-                        Save_ALU = 1'b1;
+                        Read_To_Reg = 1;
+                        Save_ALU = 1;
                     end
                 end
                 else begin
                     // RES b,(IX+d),Reg, undocumented
                     MCycles_d = 3'd3;
-                    XYbit_undoc = 1'b1;
+                    XYbit_undoc = 1;
                     case (MCycle)
                     3'd1,3'd7: begin
                         Set_Addr_To = aXY;
                     end
                     3'd2: begin
                         ALU_Op = 4'b1011;
-                        Read_To_Reg = 1'b1;
-                        Save_ALU = 1'b1;
+                        Read_To_Reg = 1;
+                        Save_ALU = 1;
                         Set_Addr_To = aXY;
                         TStates = 3'd4;
                     end
                     3'd3: begin
-                        Write_i = 1'b1;
+                        Write_i = 1;
                     end
                     default: begin
                     end
@@ -1496,13 +1491,13 @@ module t80(
                 end
                 3'd2: begin
                     ALU_Op = 4'b1011;
-                    Read_To_Reg = 1'b1;
-                    Save_ALU = 1'b1;
+                    Read_To_Reg = 1;
+                    Save_ALU = 1;
                     Set_Addr_To = aXY;
                     TStates = 3'd4;
                 end
                 3'd3: begin
-                    Write_i = 1'b1;
+                    Write_i = 1;
                 end
                 default: begin
                 end
@@ -1552,34 +1547,34 @@ module t80(
                 MCycles_d = 3'd5;
                 case (MCycle)
                 3'd2: begin
-                    Inc_PC = 1'b1;
-                    LDZ = 1'b1;
+                    Inc_PC = 1;
+                    LDZ = 1;
                 end
                 3'd3: begin
                     Set_Addr_To = aZI;
-                    Inc_PC = 1'b1;
-                    LDW = 1'b1;
+                    Inc_PC = 1;
+                    LDW = 1;
                 end
                 3'd4: begin
-                    Read_To_Reg = 1'b1;
+                    Read_To_Reg = 1;
                     if (IR[5:4] == 2'b11) begin
                         Set_BusA_To = 4'b1000;
                     end
                     else begin
                         Set_BusA_To[2:1] = IR[5:4];
-                        Set_BusA_To[0] = 1'b1;
+                        Set_BusA_To[0] = 1;
                     end
-                    Inc_WZ = 1'b1;
+                    Inc_WZ = 1;
                     Set_Addr_To = aZI;
                 end
                 3'd5: begin
-                    Read_To_Reg = 1'b1;
+                    Read_To_Reg = 1;
                     if (IR[5:4] == 2'b11) begin
                         Set_BusA_To = 4'b1001;
                     end
                     else begin
                         Set_BusA_To[2:1] = IR[5:4];
-                        Set_BusA_To[0] = 1'b0;
+                        Set_BusA_To[0] = 0;
                     end
                 end
                 default: begin
@@ -1591,37 +1586,37 @@ module t80(
                 MCycles_d = 3'd5;
                 case (MCycle)
                 3'd2: begin
-                    Inc_PC = 1'b1;
-                    LDZ = 1'b1;
+                    Inc_PC = 1;
+                    LDZ = 1;
                 end
                 3'd3: begin
                     Set_Addr_To = aZI;
-                    Inc_PC = 1'b1;
-                    LDW = 1'b1;
+                    Inc_PC = 1;
+                    LDW = 1;
                     if (IR[5:4] == 2'b11) begin
                         Set_BusB_To = 4'b1000;
                     end
                     else begin
                         Set_BusB_To[2:1] = IR[5:4];
-                        Set_BusB_To[0] = 1'b1;
-                        Set_BusB_To[3] = 1'b0;
+                        Set_BusB_To[0] = 1;
+                        Set_BusB_To[3] = 0;
                     end
                 end
                 3'd4: begin
-                    Inc_WZ = 1'b1;
+                    Inc_WZ = 1;
                     Set_Addr_To = aZI;
-                    Write_i = 1'b1;
+                    Write_i = 1;
                     if (IR[5:4] == 2'b11) begin
                         Set_BusB_To = 4'b1001;
                     end
                     else begin
                         Set_BusB_To[2:1] = IR[5:4];
-                        Set_BusB_To[0] = 1'b0;
-                        Set_BusB_To[3] = 1'b0;
+                        Set_BusB_To[0] = 0;
+                        Set_BusB_To[3] = 0;
                     end
                 end
                 3'd5: begin
-                    Write_i = 1'b1;
+                    Write_i = 1;
                 end
                 default: begin
                 end
@@ -1650,9 +1645,9 @@ module t80(
                     end
                 end
                 3'd3: begin
-                    I_BT = 1'b1;
+                    I_BT = 1;
                     TStates = 3'd5;
-                    Write_i = 1'b1;
+                    Write_i = 1;
                     if (IR[3] == 1'b0) begin
                         IncDec_16 = 4'b0101;
                         // DE
@@ -1660,10 +1655,10 @@ module t80(
                     else begin
                         IncDec_16 = 4'b1101;
                     end
-                    No_PC = 1'b1;
+                    No_PC = 1;
                 end
                 3'd4: begin
-                    NoRead_i = 1'b1;
+                    NoRead_i = 1;
                     TStates = 3'd5;
                 end
                 default: begin
@@ -1683,24 +1678,24 @@ module t80(
                     Set_BusB_To = 4'b0110;
                     Set_BusA_To[2:0] = 3'd7;
                     ALU_Op = 4'b0111;
-                    Save_ALU = 1'b1;
-                    PreserveC = 1'b1;
+                    Save_ALU = 1;
+                    PreserveC = 1;
                     if (IR[3] == 1'b0) begin
                         IncDec_16 = 4'b0110;
                     end
                     else begin
                         IncDec_16 = 4'b1110;
                     end
-                    No_PC = 1'b1;
+                    No_PC = 1;
                 end
                 3'd3: begin
-                    NoRead_i = 1'b1;
-                    I_BC = 1'b1;
+                    NoRead_i = 1;
+                    I_BC = 1;
                     TStates = 3'd5;
-                    No_PC = 1'b1;
+                    No_PC = 1;
                 end
                 3'd4: begin
-                    NoRead_i = 1'b1;
+                    NoRead_i = 1;
                     TStates = 3'd5;
                 end
                 default: begin
@@ -1712,8 +1707,8 @@ module t80(
                 ALU_Op = 4'b0010;
                 Set_BusB_To = 4'b0111;
                 Set_BusA_To = 4'b1010;
-                Read_To_Acc = 1'b1;
-                Save_ALU = 1'b1;
+                Read_To_Acc = 1;
+                Save_ALU = 1;
             end
             8'h46,8'h4e,8'h66,8'h6e: begin
                 // IM 0
@@ -1733,18 +1728,18 @@ module t80(
                 MCycles_d = 3'd3;
                 case (MCycle)
                 3'd1: begin
-                    No_PC = 1'b1;
+                    No_PC = 1;
                 end
                 3'd2: begin
-                    NoRead_i = 1'b1;
+                    NoRead_i = 1;
                     ALU_Op = 4'b0001;
-                    Read_To_Reg = 1'b1;
-                    Save_ALU = 1'b1;
+                    Read_To_Reg = 1;
+                    Save_ALU = 1;
                     Set_BusA_To[2:0] = 3'd5;
                     case (IR[5:4])
                     2'b00,2'b01,2'b10: begin
                         Set_BusB_To[2:1] = IR[5:4];
-                        Set_BusB_To[0] = 1'b1;
+                        Set_BusB_To[0] = 1;
                     end
                     default: begin
                         Set_BusB_To = 4'b1000;
@@ -1752,18 +1747,18 @@ module t80(
                     endcase
                     TStates = 3'd4;
                     SetWZ = 2'b11;
-                    No_PC = 1'b1;
+                    No_PC = 1;
                 end
                 3'd3: begin
-                    NoRead_i = 1'b1;
-                    Read_To_Reg = 1'b1;
-                    Save_ALU = 1'b1;
+                    NoRead_i = 1;
+                    Read_To_Reg = 1;
+                    Save_ALU = 1;
                     ALU_Op = 4'b0001;
                     Set_BusA_To[2:0] = 3'd4;
                     case (IR[5:4])
                     2'b00,2'b01,2'b10: begin
                         Set_BusB_To[2:1] = IR[5:4];
-                        Set_BusB_To[0] = 1'b0;
+                        Set_BusB_To[0] = 0;
                     end
                     default: begin
                         Set_BusB_To = 4'b1001;
@@ -1779,18 +1774,18 @@ module t80(
                 MCycles_d = 3'd3;
                 case (MCycle)
                 3'd1: begin
-                    No_PC = 1'b1;
+                    No_PC = 1;
                 end
                 3'd2: begin
-                    NoRead_i = 1'b1;
+                    NoRead_i = 1;
                     ALU_Op = 4'b0011;
-                    Read_To_Reg = 1'b1;
-                    Save_ALU = 1'b1;
+                    Read_To_Reg = 1;
+                    Save_ALU = 1;
                     Set_BusA_To[2:0] = 3'd5;
                     case (IR[5:4])
                     2'b00,2'b01,2'b10: begin
                         Set_BusB_To[2:1] = IR[5:4];
-                        Set_BusB_To[0] = 1'b1;
+                        Set_BusB_To[0] = 1;
                     end
                     default: begin
                         Set_BusB_To = 4'b1000;
@@ -1798,13 +1793,13 @@ module t80(
                     endcase
                     TStates = 3'd4;
                     SetWZ = 2'b11;
-                    No_PC = 1'b1;
+                    No_PC = 1;
                 end
                 3'd3: begin
-                    NoRead_i = 1'b1;
+                    NoRead_i = 1;
                     ALU_Op = 4'b0011;
-                    Read_To_Reg = 1'b1;
-                    Save_ALU = 1'b1;
+                    Read_To_Reg = 1;
+                    Save_ALU = 1;
                     Set_BusA_To[2:0] = 3'd4;
                     case (IR[5:4])
                     2'b00,2'b01,2'b10: begin
@@ -1827,21 +1822,21 @@ module t80(
                     Set_Addr_To = aXY;
                 end
                 3'd2: begin
-                    Read_To_Reg = 1'b1;
+                    Read_To_Reg = 1;
                     Set_BusB_To[2:0] = 3'd6;
                     Set_BusA_To[2:0] = 3'd7;
                     ALU_Op = 4'b1101;
-                    Save_ALU = 1'b1;
-                    No_PC = 1'b1;
+                    Save_ALU = 1;
+                    No_PC = 1;
                 end
                 3'd3: begin
                     TStates = 3'd4;
-                    I_RLD = 1'b1;
-                    NoRead_i = 1'b1;
+                    I_RLD = 1;
+                    NoRead_i = 1;
                     Set_Addr_To = aXY;
                 end
                 3'd4: begin
-                    Write_i = 1'b1;
+                    Write_i = 1;
                 end
                 default: begin
                 end
@@ -1855,21 +1850,21 @@ module t80(
                     Set_Addr_To = aXY;
                 end
                 3'd2: begin
-                    Read_To_Reg = 1'b1;
+                    Read_To_Reg = 1;
                     Set_BusB_To[2:0] = 3'd6;
                     Set_BusA_To[2:0] = 3'd7;
                     ALU_Op = 4'b1110;
-                    Save_ALU = 1'b1;
-                    No_PC = 1'b1;
+                    Save_ALU = 1;
+                    No_PC = 1;
                 end
                 3'd3: begin
                     TStates = 3'd4;
-                    I_RRD = 1'b1;
-                    NoRead_i = 1'b1;
+                    I_RRD = 1;
+                    NoRead_i = 1;
                     Set_Addr_To = aXY;
                 end
                 3'd4: begin
-                    Write_i = 1'b1;
+                    Write_i = 1;
                 end
                 default: begin
                 end
@@ -1885,13 +1880,13 @@ module t80(
                 3'd2: begin
                     IncDec_16 = 4'b0111;
                     Set_Addr_To = aSP;
-                    LDZ = 1'b1;
+                    LDZ = 1;
                 end
                 3'd3: begin
-                    Jump = 1'b1;
+                    Jump = 1;
                     IncDec_16 = 4'b0111;
-                    LDW = 1'b1;
-                    I_RETN = 1'b1;
+                    LDW = 1;
+                    I_RETN = 1;
                 end
                 default: begin
                 end
@@ -1906,12 +1901,12 @@ module t80(
                     SetWZ = 2'b01;
                 end
                 3'd2: begin
-                    IORQ_i = 1'b1;
+                    IORQ_i = 1;
                     if (IR[5:3] != 3'd6) begin
-                        Read_To_Reg = 1'b1;
+                        Read_To_Reg = 1;
                         Set_BusA_To[2:0] = IR[5:3];
                     end
-                    I_INRC = 1'b1;
+                    I_INRC = 1;
                 end
                 default: begin
                 end
@@ -1927,12 +1922,12 @@ module t80(
                     SetWZ = 2'b01;
                     Set_BusB_To[2:0] = IR[5:3];
                     if (IR[5:3] == 3'd6) begin
-                        Set_BusB_To[3] = 1'b1;
+                        Set_BusB_To[3] = 1;
                     end
                 end
                 3'd2: begin
-                    Write_i = 1'b1;
-                    IORQ_i = 1'b1;
+                    Write_i = 1;
+                    IORQ_i = 1;
                 end
                 default: begin
                 end
@@ -1947,14 +1942,14 @@ module t80(
                     Set_Addr_To = aBC;
                     Set_BusB_To = 4'b1010;
                     Set_BusA_To = 4'b0000;
-                    Read_To_Reg = 1'b1;
-                    Save_ALU = 1'b1;
+                    Read_To_Reg = 1;
+                    Save_ALU = 1;
                     ALU_Op = 4'b0010;
                     SetWZ = 2'b11;
                     IncDec_16[3] = IR[3];
                 end
                 3'd2: begin
-                    IORQ_i = 1'b1;
+                    IORQ_i = 1;
                     Set_BusB_To = 4'b0110;
                     Set_Addr_To = aXY;
                 end
@@ -1965,11 +1960,11 @@ module t80(
                     else begin
                         IncDec_16 = 4'b1110;
                     end
-                    Write_i = 1'b1;
-                    I_BTR = 1'b1;
+                    Write_i = 1;
+                    I_BTR = 1;
                 end
                 3'd4: begin
-                    NoRead_i = 1'b1;
+                    NoRead_i = 1;
                     TStates = 3'd5;
                 end
                 default: begin
@@ -1985,8 +1980,8 @@ module t80(
                     Set_Addr_To = aXY;
                     Set_BusB_To = 4'b1010;
                     Set_BusA_To = 4'b0000;
-                    Read_To_Reg = 1'b1;
-                    Save_ALU = 1'b1;
+                    Read_To_Reg = 1;
+                    Save_ALU = 1;
                     ALU_Op = 4'b0010;
                 end
                 3'd2: begin
@@ -2002,12 +1997,12 @@ module t80(
                     else begin
                         IncDec_16 = 4'b1110;
                     end
-                    IORQ_i = 1'b1;
-                    Write_i = 1'b1;
-                    I_BTR = 1'b1;
+                    IORQ_i = 1;
+                    Write_i = 1;
+                    I_BTR = 1;
                 end
                 3'd4: begin
-                    NoRead_i = 1'b1;
+                    NoRead_i = 1;
                     TStates = 3'd5;
                 end
                 default: begin
@@ -2032,18 +2027,18 @@ module t80(
             end
         end
         if (MCycle == 3'd6) begin
-            Inc_PC = 1'b1;
+            Inc_PC = 1;
             if (Mode == 1) begin
                 Set_Addr_To = aXY;
                 TStates = 3'd4;
                 Set_BusB_To[2:0] = SSS;
-                Set_BusB_To[3] = 1'b0;
+                Set_BusB_To[3] = 0;
             end
             if (IR == 8'h36 || IR == 8'hcb) begin
                 Set_Addr_To = aNone;
             end
             if (!(IR == 8'h36 || ISet == 2'b01)) begin
-                No_PC = 1'b1;
+                No_PC = 1;
             end
         end
         if (MCycle == 3'd7) begin
@@ -2054,13 +2049,13 @@ module t80(
                 Set_Addr_To = aXY;
             end
             Set_BusB_To[2:0] = SSS;
-            Set_BusB_To[3] = 1'b0;
+            Set_BusB_To[3] = 0;
             if (IR == 8'h36 || ISet == 2'b01) begin
                 // LD (HL),n
-                Inc_PC = 1'b1;
+                Inc_PC = 1;
             end
             else begin
-                NoRead_i = 1'b1;
+                NoRead_i = 1;
             end
         end
     end
@@ -2309,16 +2304,16 @@ module t80(
                 if (LDHLSP == 1'b1 && MCycle == 3'd3 && TState == 1) begin
                     temp_c = ({1'b0,SP[7:0]}) + ({1'b0,Save_Mux});
                     temp_h = ({1'b0,SP[3:0]}) + ({1'b0,Save_Mux[3:0]});
-                    F[Flag_Z] <= 1'b0;
-                    F[Flag_N] <= 1'b0;
+                    F[Flag_Z] <= 0;
+                    F[Flag_N] <= 0;
                     F[Flag_H] <= temp_h[4];
                     F[Flag_C] <= temp_c[8];
                 end
                 if (ADDSPdd == 1'b1 && TState == 1) begin
                     temp_c = ({1'b0,SP[7:0]}) + ({1'b0,Save_Mux});
                     temp_h = ({1'b0,SP[3:0]}) + ({1'b0,Save_Mux[3:0]});
-                    F[Flag_Z] <= 1'b0;
-                    F[Flag_N] <= 1'b0;
+                    F[Flag_Z] <= 0;
+                    F[Flag_N] <= 0;
                     F[Flag_H] <= temp_h[4];
                     F[Flag_C] <= temp_c[8];
                 end
@@ -2328,10 +2323,10 @@ module t80(
                 Arith16_r <= Arith16;
                 PreserveC_r <= PreserveC;
                 if (ISet == 2'b10 && ALU_Op[2] == 1'b0 && ALU_Op[0] == 1'b1 && MCycle == 3'd3) begin
-                    Z16_r <= 1'b1;
+                    Z16_r <= 1;
                 end
                 else begin
-                    Z16_r <= 1'b0;
+                    Z16_r <= 0;
                 end
                 if (MCycle == 3'd1 && TState[2] == 1'b0) begin
                     // MCycle = 1 and TState = 1, 2, or 3
@@ -2368,21 +2363,21 @@ module t80(
                             else begin
                                 if (Prefix == 2'b10) begin
                                     XY_State <= 2'b00;
-                                    XY_Ind <= 1'b0;
+                                    XY_Ind <= 0;
                                 end
                                 ISet <= Prefix;
                             end
                         end
                         else begin
                             XY_State <= 2'b00;
-                            XY_Ind <= 1'b0;
+                            XY_Ind <= 0;
                         end
                     end
                 end
                 else begin
                     // either (MCycle > 1) OR (MCycle = 1 AND TState > 3)
                     if (MCycle == 3'd6) begin
-                        XY_Ind <= 1'b1;
+                        XY_Ind <= 1;
                         if (Prefix == 2'b01) begin
                             ISet <= 2'b01;
                         end
@@ -2486,9 +2481,9 @@ module t80(
                             // CPL
                             ACC <= ~ACC;
                             F[Flag_Y] <= ~ACC[5];
-                            F[Flag_H] <= 1'b1;
+                            F[Flag_H] <= 1;
                             F[Flag_X] <= ~ACC[3];
-                            F[Flag_N] <= 1'b1;
+                            F[Flag_N] <= 1;
                         end
                         if (I_CCF == 1'b1) begin
                             // CCF
@@ -2496,15 +2491,15 @@ module t80(
                             F[Flag_Y] <= ACC[5];
                             F[Flag_H] <= F[Flag_C];
                             F[Flag_X] <= ACC[3];
-                            F[Flag_N] <= 1'b0;
+                            F[Flag_N] <= 0;
                         end
                         if (I_SCF == 1'b1) begin
                             // SCF
-                            F[Flag_C] <= 1'b1;
+                            F[Flag_C] <= 1;
                             F[Flag_Y] <= ACC[5];
-                            F[Flag_H] <= 1'b0;
+                            F[Flag_H] <= 0;
                             F[Flag_X] <= ACC[3];
-                            F[Flag_N] <= 1'b0;
+                            F[Flag_N] <= 0;
                         end
                     end
                     if ((TState == 2 && Really_Wait == 1'b0 && I_BTR == 1'b1 && IR[0] == 1'b1) || (TState == 1 && I_BTR == 1'b1 && IR[0] == 1'b0)) begin
@@ -2583,30 +2578,30 @@ module t80(
                             F[Flag_P] <= IntE_FF2;
                             F[Flag_S] <= I[7];
                             if (I == 8'h00) begin
-                                F[Flag_Z] <= 1'b1;
+                                F[Flag_Z] <= 1;
                             end
                             else begin
-                                F[Flag_Z] <= 1'b0;
+                                F[Flag_Z] <= 0;
                             end
                             F[Flag_Y] <= I[5];
-                            F[Flag_H] <= 1'b0;
+                            F[Flag_H] <= 0;
                             F[Flag_X] <= I[3];
-                            F[Flag_N] <= 1'b0;
+                            F[Flag_N] <= 0;
                         end
                         2'b01 : begin
                             ACC <= R;
                             F[Flag_P] <= IntE_FF2;
                             F[Flag_S] <= R[7];
                             if (R == 8'h00) begin
-                                F[Flag_Z] <= 1'b1;
+                                F[Flag_Z] <= 1;
                             end
                             else begin
-                                F[Flag_Z] <= 1'b0;
+                                F[Flag_Z] <= 0;
                             end
                             F[Flag_Y] <= R[5];
-                            F[Flag_H] <= 1'b0;
+                            F[Flag_H] <= 0;
                             F[Flag_X] <= R[3];
-                            F[Flag_N] <= 1'b0;
+                            F[Flag_N] <= 0;
                         end
                         2'b10 : begin
                             I <= ACC;
@@ -2624,15 +2619,15 @@ module t80(
                     end
                 end
                 if (T_Res == 1'b1 && I_INRC == 1'b1) begin
-                    F[Flag_H] <= 1'b0;
-                    F[Flag_N] <= 1'b0;
+                    F[Flag_H] <= 0;
+                    F[Flag_N] <= 0;
                     F[Flag_X] <= DI_Reg[3];
                     F[Flag_Y] <= DI_Reg[5];
                     if (DI_Reg[7:0] == 8'h00) begin
-                        F[Flag_Z] <= 1'b1;
+                        F[Flag_Z] <= 1;
                     end
                     else begin
-                        F[Flag_Z] <= 1'b0;
+                        F[Flag_Z] <= 0;
                     end
                     F[Flag_S] <= DI_Reg[7];
                     F[Flag_P] <= ~(DI_Reg[0] ^ DI_Reg[1] ^ DI_Reg[2] ^ DI_Reg[3] ^ DI_Reg[4] ^ DI_Reg[5] ^ DI_Reg[6] ^ DI_Reg[7]);
@@ -2657,14 +2652,14 @@ module t80(
                     Read_To_Reg_r[4] <= Read_To_Reg;
                     if (Read_To_Acc == 1'b1) begin
                         Read_To_Reg_r[3:0] <= 4'b0111;
-                        Read_To_Reg_r[4] <= 1'b1;
+                        Read_To_Reg_r[4] <= 1;
                     end
                 end
                 if (TState == 1 && I_BT == 1'b1) begin
                     F[Flag_X] <= ALU_Q[3];
                     F[Flag_Y] <= ALU_Q[1];
-                    F[Flag_H] <= 1'b0;
-                    F[Flag_N] <= 1'b0;
+                    F[Flag_H] <= 0;
+                    F[Flag_N] <= 0;
                 end
                 if (TState == 1 && I_BC == 1'b1) begin
                     n = ALU_Q - ({7'b0000000,F_Out[Flag_H]});
@@ -2733,10 +2728,10 @@ module t80(
             end
             if ((TState == 2 || (TState == 3 && MCycle == 3'd1)) && IncDec_16[2:0] == 3'd4) begin
                 if (ID16 == 0) begin
-                    IncDecZ <= 1'b0;
+                    IncDecZ <= 0;
                 end
                 else begin
-                    IncDecZ <= 1'b1;
+                    IncDecZ <= 1;
                 end
             end
             RegBusA_r <= RegBusA;
@@ -2747,8 +2742,8 @@ module t80(
     assign RegAddrB = ExchangeDH == 1'b1 && TState == 3 ? {Alternate,2'b01} : RegAddrB_r;
     assign ID16 = IncDec_16[3] == 1'b1 ? (RegBusA) - 1 : (RegBusA) + 1;
     always @* begin
-        RegWEH = 1'b0;
-        RegWEL = 1'b0;
+        RegWEH = 0;
+        RegWEL = 0;
         if ((TState == 1 && Save_ALU_r == 1'b0 && Auto_Wait_t1 == 1'b0) || (Save_ALU_r == 1'b1 && ALU_Op_r != 4'b0111)) begin
             case (Read_To_Reg_r)
             5'b10000,5'b10001,5'b10010,5'b10011,5'b10100,5'b10101 : begin
@@ -2760,18 +2755,18 @@ module t80(
             endcase
         end
         if (ExchangeDH == 1'b1 && (TState == 3 || TState == 4)) begin
-            RegWEH = 1'b1;
-            RegWEL = 1'b1;
+            RegWEH = 1;
+            RegWEL = 1;
         end
         if (((LDHLSP == 1'b1 && MCycle == 3'd2) || ExchangeWH == 1'b1) && TState == 4) begin
-            RegWEH = 1'b1;
-            RegWEL = 1'b1;
+            RegWEH = 1;
+            RegWEL = 1;
         end
         if (IncDec_16[2] == 1'b1 && ((TState == 2 && Really_Wait == 1'b0 && MCycle != 3'd1) || (TState == 3 && MCycle == 3'd1))) begin
             case (IncDec_16[1:0])
             2'b00,2'b01,2'b10 : begin
-                RegWEH = 1'b1;
-                RegWEL = 1'b1;
+                RegWEH = 1;
+                RegWEL = 1;
             end
             default : begin
             end
@@ -2902,14 +2897,14 @@ module t80(
 
         end else begin
             if (NMI_n == 1'b0 && OldNMI_n == 1'b1) begin
-                NMI_s <= 1'b1;
+                NMI_s <= 1;
             end
             OldNMI_n = NMI_n;
             if (CEN == 1'b1) begin
                 Auto_Wait_t2 <= Auto_Wait_t1;
                 if (T_Res == 1'b1) begin
-                    Auto_Wait_t1 <= 1'b0;
-                    Auto_Wait_t2 <= 1'b0;
+                    Auto_Wait_t1 <= 0;
+                    Auto_Wait_t2 <= 0;
                 end
                 else begin
                     Auto_Wait_t1 <= Auto_Wait | IORQ_i;
@@ -2917,8 +2912,8 @@ module t80(
                 No_BTR <= (I_BT & ( ~IR[4] | ~F[Flag_P])) | (I_BC & ( ~IR[4] | F[Flag_Z] | ~F[Flag_P])) | (I_BTR & ( ~IR[4] | F[Flag_Z]));
                 if (TState == 2) begin
                     if (SetEI == 1'b1) begin
-                        IntE_FF1 <= 1'b1;
-                        IntE_FF2 <= 1'b1;
+                        IntE_FF1 <= 1;
+                        IntE_FF2 <= 1;
                     end
                     if (I_RETN == 1'b1) begin
                         IntE_FF1 <= IntE_FF2;
@@ -2926,18 +2921,18 @@ module t80(
                 end
                 if (TState == 3) begin
                     if (SetDI == 1'b1) begin
-                        IntE_FF1 <= 1'b0;
-                        IntE_FF2 <= 1'b0;
+                        IntE_FF1 <= 0;
+                        IntE_FF2 <= 0;
                     end
                 end
                 if (IntCycle_i == 1'b1 || NMICycle == 1'b1) begin
-                    Halt_FF <= 1'b0;
+                    Halt_FF <= 0;
                 end
                 if (TState == 2 && Really_Wait == 1'b1) begin
                 end
                 else if (T_Res == 1'b1) begin
                     if (Halt == 1'b1) begin
-                        Halt_FF <= 1'b1;
+                        Halt_FF <= 1;
                     end
                     TState <= 3'd1;
                     if (NextIs_XY_Fetch == 1'b1) begin
@@ -2952,17 +2947,17 @@ module t80(
                     end
                     else if ((MCycle == MCycles) || No_BTR == 1'b1 || (MCycle == 3'd2 && I_DJNZ == 1'b1 && IncDecZ == 1'b1)) begin
                         MCycle <= 3'd1;
-                        IntCycle_i <= 1'b0;
-                        NMICycle <= 1'b0;
+                        IntCycle_i <= 0;
+                        NMICycle <= 0;
                         if (NMI_s == 1'b1 && Prefix == 2'b00) begin
-                            NMI_s <= 1'b0;
-                            NMICycle <= 1'b1;
-                            IntE_FF1 <= 1'b0;
+                            NMI_s <= 0;
+                            NMICycle <= 1;
+                            IntE_FF1 <= 0;
                         end
                         else if (IntE_FF1 == 1'b1 && INT_n == 1'b0 && Prefix == 2'b00 && SetEI == 1'b0) begin
-                            IntCycle_i <= 1'b1;
-                            IntE_FF1 <= 1'b0;
-                            IntE_FF2 <= 1'b0;
+                            IntCycle_i <= 1;
+                            IntE_FF1 <= 0;
+                            IntE_FF2 <= 0;
                         end
                     end
                     else begin
