@@ -2,11 +2,6 @@
 -- ****
 -- T80(c) core. Attempt to finish all undocumented features and provide
 --              accurate timings.
---
--- Version 351.
--- Merged Gameboy fixes from Bruno Duarte Gouveia (brNX)
--- Passes Blargg's test ROMs
---
 -- Version 350.
 -- Copyright (c) 2018 Sorgelig
 --  Test passed: ZEXDOC, ZEXALL, Z80Full(*), Z80memptr
@@ -17,9 +12,7 @@
 -- T80(b) core. In an effort to merge and maintain bug fixes ....
 --
 -- Ver 303 add undocumented DDCB and FDCB opcodes by TobiFlex 20.04.2010
--- Ver 301 parity flag is just parity for 8080, also overflow for Z80, by Sean Riddle
--- Ver 300 started tidyup.
---
+-- Ver 300 started tidyup
 -- MikeJ March 2005
 -- Latest version from www.fpgaarcade.com (original www.opencores.org)
 --
@@ -55,4 +48,26 @@
 -- CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 -- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 -- POSSIBILITY OF SUCH DAMAGE.
+--
+-- Please report bugs to the author, but before you do so, please
+-- make sure that this is not a derivative work and that
+-- you have the latest version of this file.
+--
+-- The latest version of this file can be found at:
+--      http://www.opencores.org/cvsweb.shtml/t80/
+--
+-- Limitations :
+--
+-- File history :
+--
+--      0208 : First complete release
+--      0211 : Fixed IM 1
+--      0214 : Fixed mostly flags, only the block instructions now fail the zex regression test
+--      0235 : Added IM 2 fix by Mike Johnson
+--      0238 : Added NoRead signal
+--      0238b: Fixed instruction timing for POP and DJNZ
+--      0240 : Added (IX/IY+d) states, removed op-codes from mode 2 and added all remaining mode 3 op-codes
+--      0240mj1 fix for HL inc/dec for INI, IND, INIR, INDR, OUTI, OUTD, OTIR, OTDR
+--      0242 : Fixed I/O instruction timing, cleanup
+--      0250 : Added R800 Multiplier by TobiFlex 2017.10.15
 --

@@ -65,7 +65,7 @@ module aqp_t80(
 
     T80 #(
         .Mode(0),
-        .IOWait(1)
+        .IOWait(0)
     ) t80(
         .RESET_n(!reset),
         .CLK_n(clk),
