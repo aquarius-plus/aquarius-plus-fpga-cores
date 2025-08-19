@@ -114,7 +114,6 @@ architecture rtl of T80 is
     signal Set_BusA_To          : std_logic_vector(3 downto 0);
     signal ALU_Op               : std_logic_vector(3 downto 0);
     signal Save_ALU             : std_logic;
-    signal Rot_Akku             : std_logic;
     signal PreserveC            : std_logic;
     signal Arith16              : std_logic;
     signal Set_Addr_To          : std_logic_vector(2 downto 0);
@@ -183,7 +182,6 @@ begin
             Set_BusA_To => Set_BusA_To,
             ALU_Op      => ALU_Op,
             Save_ALU    => Save_ALU,
-            Rot_Akku    => Rot_Akku,
             PreserveC   => PreserveC,
             Arith16     => Arith16,
             Set_Addr_To => Set_Addr_To,
@@ -232,7 +230,6 @@ begin
             WZ      => WZ,
             XY_State=> XY_State,
             ALU_Op  => ALU_Op_r,
-            Rot_Akku    => Rot_Akku,
             IR      => IR(5 downto 0),
             ISet    => ISet,
             BusA    => BusA,
