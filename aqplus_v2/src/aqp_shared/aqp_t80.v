@@ -64,8 +64,7 @@ module aqp_t80(
     assign dq_oe     = t80_write;
 
     T80 #(
-        .Mode(0),
-        .IOWait(0)
+        .Mode(0)
     ) t80(
         .RESET_n(!reset),
         .CLK_n(clk),

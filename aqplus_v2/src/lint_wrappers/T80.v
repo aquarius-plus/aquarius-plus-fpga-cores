@@ -2,8 +2,7 @@
 `timescale 1 ns / 1 ps
 
 module T80 #(
-    parameter Mode   = 0,
-    parameter IOWait = 0
+    parameter Mode   = 0
 ) (
     input  wire         RESET_n,
     input  wire         CLK_n,

@@ -14,7 +14,6 @@ package T80_Pack is
     component T80
     generic(
         Mode : integer := 0;    -- 0 => Z80, 1 => Fast Z80, 2 => 8080, 3 => GB
-        IOWait : integer := 0;  -- 1 => Single cycle I/O, 1 => Std I/O cycle
         Flag_C : integer := 0;
         Flag_N : integer := 1;
         Flag_P : integer := 2;
