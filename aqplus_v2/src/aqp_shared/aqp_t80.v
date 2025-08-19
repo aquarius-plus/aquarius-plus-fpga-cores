@@ -34,7 +34,7 @@ module aqp_t80(
     reg  [7:0] q_t80_di;
     wire       t80_int_cycle;
 
-    T80 #(
+    t80 #(
         .Mode(0)
     ) t80(
         .RESET_n(!reset),

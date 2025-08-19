@@ -21,8 +21,8 @@ module t80_reg(
     reg [7:0] RegsH [7:0] /* synthesis syn_ramstyle = "distributed_ram" */;
     reg [7:0] RegsL [7:0] /* synthesis syn_ramstyle = "distributed_ram" */;
 
-    always @(posedge Clk) if (CEN && WEH) RegsH[AddrA] = DIH; 
-    always @(posedge Clk) if (CEN && WEL) RegsL[AddrA] = DIL; 
+    always @(posedge Clk) if (CEN && WEH) RegsH[AddrA] <= DIH; 
+    always @(posedge Clk) if (CEN && WEL) RegsL[AddrA] <= DIL; 
 
     assign DOAH = RegsH[AddrA];
     assign DOAL = RegsL[AddrA];

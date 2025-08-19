@@ -3,6 +3,7 @@
         "lint_wrappers",
         ".",
         "aqp_shared",
+        "aqp_shared/t80",
         "wrappers",
         "video"
     ],
