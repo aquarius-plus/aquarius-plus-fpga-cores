@@ -69,5 +69,4 @@
 --      0240 : Added (IX/IY+d) states, removed op-codes from mode 2 and added all remaining mode 3 op-codes
 --      0240mj1 fix for HL inc/dec for INI, IND, INIR, INDR, OUTI, OUTD, OTIR, OTDR
 --      0242 : Fixed I/O instruction timing, cleanup
---      0250 : Added R800 Multiplier by TobiFlex 2017.10.15
 --

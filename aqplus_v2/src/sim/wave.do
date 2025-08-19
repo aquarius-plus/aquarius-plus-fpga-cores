@@ -20,7 +20,7 @@ add wave -noupdate -expand -group aqp_t80 -expand -group t80 /tb/top_inst/aqp_t8
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 /tb/top_inst/aqp_t80/t80/DO
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 /tb/top_inst/aqp_t80/t80/MC
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 /tb/top_inst/aqp_t80/t80/TS
-add wave -noupdate -expand -group aqp_t80 -expand -group t80 /tb/top_inst/aqp_t80/t80/IntCycle_n
+add wave -noupdate -expand -group aqp_t80 -expand -group t80 /tb/top_inst/aqp_t80/t80/IntCycle
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/clk
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/reset
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/bus_addr
@@ -51,13 +51,11 @@ add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_write
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_mc
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_ts
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/q_t80_di
-add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_int_cycle_n
+add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_int_cycle
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_m1_n
-add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_rfsh_n
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_halt_n
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_inte
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_stop
-add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_busak_n
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/mreq_rw
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/iorq_rw
 TreeUpdate [SetDefaultTree]

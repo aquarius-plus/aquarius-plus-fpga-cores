@@ -31,23 +31,16 @@ package T80_Pack is
         WAIT_n          : in std_logic;
         INT_n           : in std_logic;
         NMI_n           : in std_logic;
-        BUSRQ_n         : in std_logic;
-        M1_n            : out std_logic;
         IORQ            : out std_logic;
         NoRead          : out std_logic;
         Write           : out std_logic;
-        RFSH_n          : out std_logic;
-        HALT_n          : out std_logic;
-        BUSAK_n         : out std_logic;
         A               : out std_logic_vector(15 downto 0);
         DInst           : in std_logic_vector(7 downto 0);
         DI              : in std_logic_vector(7 downto 0);
         DO              : out std_logic_vector(7 downto 0);
         MC              : out std_logic_vector(2 downto 0);
         TS              : out std_logic_vector(2 downto 0);
-        IntCycle_n      : out std_logic;
-        IntE            : out std_logic;
-        Stop            : out std_logic;
+        IntCycle        : out std_logic;
         out0            : in  std_logic := '0'  -- 0 => OUT(C),0, 1 => OUT(C),255
     );
     end component;
@@ -129,8 +122,6 @@ package T80_Pack is
         I_RLD                   : out std_logic;
         I_RRD                   : out std_logic;
         I_INRC                  : out std_logic;
-        I_MULUB                 : out std_logic;
-        I_MULU                  : out std_logic;
         SetWZ                   : out std_logic_vector(1 downto 0);
         SetDI                   : out std_logic;
         SetEI                   : out std_logic;

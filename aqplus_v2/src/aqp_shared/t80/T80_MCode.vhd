@@ -60,8 +60,6 @@ entity T80_MCode is
       I_RLD       : out std_logic;
       I_RRD       : out std_logic;
       I_INRC      : out std_logic;
-      I_MULUB     : out std_logic;
-      I_MULU      : out std_logic;
       SetWZ       : out std_logic_vector(1 downto 0);
       SetDI       : out std_logic;
       SetEI       : out std_logic;
@@ -154,8 +152,6 @@ begin
         I_RLD <= '0';
         I_RRD <= '0';
         I_INRC <= '0';
-        I_MULUB <= '0';
-        I_MULU <= '0';
         SetDI <= '0';
         SetEI <= '0';
         IMode <= "11";
