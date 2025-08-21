@@ -29,10 +29,10 @@ module aqp_t80(
     wire       t80_iorq;
     wire       t80_noread;
     wire       t80_write;
-    wire [2:0] t80_mc;
-    wire [2:0] t80_ts;
+    wire [2:0] t80_mcycle;
+    wire [2:0] t80_tstate;
     reg  [7:0] q_t80_di;
-    wire       t80_int_cycle;
+    wire       t80_irq_cycle;
 
     t80 #(
         .Mode(0)
@@ -51,12 +51,12 @@ module aqp_t80(
         .DInst(bus_rddata),
         .DI(q_t80_di),
         .bus_wrdata(bus_wrdata),
-        .MC(t80_mc),
-        .TS(t80_ts),
-        .IntCycle(t80_int_cycle)
+        .mcycle(t80_mcycle),
+        .tstate(t80_tstate),
+        .irq_cycle(t80_irq_cycle)
     );
 
-    always @(posedge clk) if (phi_falling && t80_ts == 3'd3) q_t80_di <= bus_rddata;
+    always @(posedge clk) if (phi_falling && t80_tstate == 3'd3) q_t80_di <= bus_rddata;
 
     reg q_wr_t2;
     always @(posedge clk or posedge reset)
@@ -64,19 +64,19 @@ module aqp_t80(
             q_wr_t2 <= 1'b0;
 
         end else if (phi_falling) begin
-            if (t80_ts == 3'd2 && t80_mc != 3'd1) q_wr_t2 <= t80_write;
-            if (t80_ts == 3'd3)                   q_wr_t2 <= 1'b0;
+            if (t80_tstate == 3'd2 && t80_mcycle != 3'd1) q_wr_t2 <= t80_write;
+            if (t80_tstate == 3'd3)                       q_wr_t2 <= 1'b0;
         end
 
     reg q_req_inhibit;
     always @(posedge clk or posedge reset)
         if (reset)           q_req_inhibit <= 1;
-        else if (phi_rising) q_req_inhibit <= !(t80_mc == 3'd1 && t80_ts == 3'd2);
+        else if (phi_rising) q_req_inhibit <= !(t80_mcycle == 3'd1 && t80_tstate == 3'd2);
 
     reg q_mreq_inhibit;
     always @(posedge clk or posedge reset)
         if (reset)            q_mreq_inhibit <= 1;
-        else if (phi_falling) q_mreq_inhibit <= !(t80_mc == 3'd1 && t80_ts == 3'd2);
+        else if (phi_falling) q_mreq_inhibit <= !(t80_mcycle == 3'd1 && t80_tstate == 3'd2);
 
     reg q_read;
     reg q_mreq;
@@ -85,25 +85,25 @@ module aqp_t80(
             q_read <= 1'b0;
             q_mreq <= 1'b0;
         end else if (phi_falling) begin
-            if (t80_mc == 3'd1) begin
-                if (t80_ts == 3'd1) begin
-                    q_read <= !t80_int_cycle;
-                    q_mreq <= !t80_int_cycle;
+            if (t80_mcycle == 3'd1) begin
+                if (t80_tstate == 3'd1) begin
+                    q_read <= !t80_irq_cycle;
+                    q_mreq <= !t80_irq_cycle;
                 end
-                if (t80_ts == 3'd3) begin
+                if (t80_tstate == 3'd3) begin
                     q_read <= 1'b0;
                     q_mreq <= 1'b1;
                 end
-                if (t80_ts == 3'd4) begin
+                if (t80_tstate == 3'd4) begin
                     q_mreq <= 1'b0;
                 end
 
             end else begin
-                if (t80_ts == 3'd1 && !t80_noread) begin
+                if (t80_tstate == 3'd1 && !t80_noread) begin
                     q_read <= !t80_write;
                     q_mreq <= !t80_iorq;
                 end
-                if (t80_ts == 3'd3) begin
+                if (t80_tstate == 3'd3) begin
                     q_read <= 1'b0;
                     q_mreq <= 1'b0;
                 end
@@ -116,9 +116,9 @@ module aqp_t80(
             q_iorq_int <= 0;
 
         end else if (phi_rising) begin
-            if (t80_mc == 3'd1) begin
-                if (t80_ts == 3'd1) q_iorq_int <= t80_int_cycle;
-                if (t80_ts == 3'd2) q_iorq_int <= 0;
+            if (t80_mcycle == 3'd1) begin
+                if (t80_tstate == 3'd1) q_iorq_int <= t80_irq_cycle;
+                if (t80_tstate == 3'd2) q_iorq_int <= 0;
             end
         end
 
@@ -126,9 +126,9 @@ module aqp_t80(
     always @(posedge clk or posedge reset)
         if (reset) begin
             q_iorq_int_inhibit <= 3'd7;
-        end else if (phi_falling && t80_int_cycle) begin
-            if (t80_mc == 3'd1) q_iorq_int_inhibit <= {q_iorq_int_inhibit[1:0], 1'b0};
-            if (t80_mc == 3'd2) q_iorq_int_inhibit <= 3'd7;
+        end else if (phi_falling && t80_irq_cycle) begin
+            if (t80_mcycle == 3'd1) q_iorq_int_inhibit <= {q_iorq_int_inhibit[1:0], 1'b0};
+            if (t80_mcycle == 3'd2) q_iorq_int_inhibit <= 3'd7;
         end
 
     reg q_iorq_t1;
@@ -136,8 +136,8 @@ module aqp_t80(
         if (reset) begin
             q_iorq_t1 <= 1;
         end else if (phi_falling) begin
-            if (t80_ts == 3'd1) q_iorq_t1 <= t80_int_cycle;
-            if (t80_ts == 3'd3) q_iorq_t1 <= 1;
+            if (t80_tstate == 3'd1) q_iorq_t1 <= t80_irq_cycle;
+            if (t80_tstate == 3'd3) q_iorq_t1 <= 1;
         end
 
     reg q_iorq_t2;
