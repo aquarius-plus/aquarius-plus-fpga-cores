@@ -59,15 +59,12 @@ module t80(
     wire [15:0] RegBusB;
     wire [15:0] RegBusC;
     reg   [2:0] RegAddrA_r;
-    wire  [2:0] RegAddrA;
     reg   [2:0] RegAddrB_r;
-    wire  [2:0] RegAddrB;
     reg   [2:0] RegAddrC;
     reg         RegWEH;
     reg         RegWEL;
     reg         Alternate;  // Help Registers
     reg  [15:0] WZ;  // MEMPTR register
-    wire [15:0] TmpAddr2;  // Temporary address register
     reg   [7:0] IR;  // Instruction register
     reg   [1:0] ISet;  // Instruction set selector
     reg  [15:0] RegBusA_r;
@@ -2259,8 +2256,8 @@ module t80(
 
     assign Really_Wait     = ~WAIT_n & (Write_i | ~NoRead_i);
     assign ClkEn           = CEN;
-    assign T_Res           = TState == (TStates) ? 1'b1 : 1'b0;
-    assign NextIs_XY_Fetch = XY_State != 2'b00 && !XY_Ind && ((Set_Addr_To == aXY) || (MCycle == 3'd1 && IR == 8'hcb) || (MCycle == 3'd1 && IR == 8'h36)) ? 1'b1 : 1'b0;
+    assign T_Res           = TState == TStates;
+    assign NextIs_XY_Fetch = XY_State != 2'b00 && !XY_Ind && (Set_Addr_To == aXY || (MCycle == 3'd1 && IR == 8'hcb) || (MCycle == 3'd1 && IR == 8'h36));
     assign Save_Mux        = ExchangeRp ? BusB : !Save_ALU_r ? DI_Reg : ALU_Q;
 
     always @(posedge clk or posedge reset) begin : p1
@@ -2405,7 +2402,7 @@ module t80(
                         end
                         else begin
                             case (Set_Addr_To)
-                            aXY : begin
+                            aXY: begin
                                 if (XY_State == 2'b00) begin
                                     A <= RegBusC;
                                 end
@@ -2418,15 +2415,15 @@ module t80(
                                     end
                                 end
                             end
-                            aIOA : begin
+                            aIOA: begin
                                 A[15:8] <= ACC;
                                 A[7:0] <= DI_Reg;
                                 WZ <= ({ACC,DI_Reg}) + 1'b1;
                             end
-                            aSP : begin
+                            aSP: begin
                                 A <= SP;
                             end
-                            aBC : begin
+                            aBC: begin
                                 A <= RegBusC;
                                 if (SetWZ == 2'b01) begin
                                     WZ <= RegBusC + 1'b1;
@@ -2436,14 +2433,14 @@ module t80(
                                     WZ[15:8] <= ACC;
                                 end
                             end
-                            aDE : begin
+                            aDE: begin
                                 A <= RegBusC;
                                 if (SetWZ == 2'b10) begin
                                     WZ[7:0] <= RegBusC[7:0] + 1'b1;
                                     WZ[15:8] <= ACC;
                                 end
                             end
-                            aZI : begin
+                            aZI: begin
                                 if (Inc_WZ) begin
                                     A <= (WZ) + 1;
                                 end
@@ -2456,7 +2453,7 @@ module t80(
                                     end
                                 end
                             end
-                            default : begin
+                            default: begin
                                 if (ISet == 2'b10 && IR[7:4] == 4'hB && IR[2:1] == 2'b01 && MCycle == 3 && !No_BTR) begin
                                     // INIR, INDR, OTIR, OTDR
                                     A <= RegBusA_r;
@@ -2568,7 +2565,7 @@ module t80(
                     end
                     if (Special_LD[2]) begin
                         case (Special_LD[1:0])
-                        2'b00 : begin
+                        2'b00: begin
                             ACC <= I;
                             F[Flag_P] <= IntE_FF2;
                             F[Flag_S] <= I[7];
@@ -2583,7 +2580,7 @@ module t80(
                             F[Flag_X] <= I[3];
                             F[Flag_N] <= 0;
                         end
-                        2'b01 : begin
+                        2'b01: begin
                             ACC <= R;
                             F[Flag_P] <= IntE_FF2;
                             F[Flag_S] <= R[7];
@@ -2598,10 +2595,10 @@ module t80(
                             F[Flag_X] <= R[3];
                             F[Flag_N] <= 0;
                         end
-                        2'b10 : begin
+                        2'b10: begin
                             I <= ACC;
                         end
-                        default : begin
+                        default: begin
                             R <= ACC;
                         end
                         endcase
@@ -2618,12 +2615,7 @@ module t80(
                     F[Flag_N] <= 0;
                     F[Flag_X] <= DI_Reg[3];
                     F[Flag_Y] <= DI_Reg[5];
-                    if (DI_Reg[7:0] == 8'h00) begin
-                        F[Flag_Z] <= 1;
-                    end
-                    else begin
-                        F[Flag_Z] <= 0;
-                    end
+                    F[Flag_Z] <= (DI_Reg[7:0] == 8'h00);
                     F[Flag_S] <= DI_Reg[7];
                     F[Flag_P] <= ~(DI_Reg[0] ^ DI_Reg[1] ^ DI_Reg[2] ^ DI_Reg[3] ^ DI_Reg[4] ^ DI_Reg[5] ^ DI_Reg[6] ^ DI_Reg[7]);
                 end
@@ -2644,10 +2636,10 @@ module t80(
                 end
                 if (T_Res) begin
                     Read_To_Reg_r[3:0] <= Set_BusA_To;
-                    Read_To_Reg_r[4] <= Read_To_Reg;
+                    Read_To_Reg_r[4]   <= Read_To_Reg;
                     if (Read_To_Acc) begin
                         Read_To_Reg_r[3:0] <= 4'b0111;
-                        Read_To_Reg_r[4] <= 1;
+                        Read_To_Reg_r[4]   <= 1;
                     end
                 end
                 if (TState == 1 && I_BT) begin
@@ -2657,7 +2649,7 @@ module t80(
                     F[Flag_N] <= 0;
                 end
                 if (TState == 1 && I_BC) begin
-                    n = ALU_Q - ({7'b0000000,F_Out[Flag_H]});
+                    n = ALU_Q - ({7'b0, F_Out[Flag_H]});
                     F[Flag_X] <= n[3];
                     F[Flag_Y] <= n[1];
                 end
@@ -2666,23 +2658,12 @@ module t80(
                 end
                 if ((TState == 1 && !Save_ALU_r && !Auto_Wait_t1) || (Save_ALU_r && ALU_Op_r != 4'b0111)) begin
                     case (Read_To_Reg_r)
-                    5'b10111 : begin
-                        ACC <= Save_Mux;
-                    end
-                    5'b10110 : begin
-                        DO <= Save_Mux;
-                    end
-                    5'b11000 : begin
-                        SP[7:0] <= Save_Mux;
-                    end
-                    5'b11001 : begin
-                        SP[15:8] <= Save_Mux;
-                    end
-                    5'b11011 : begin
-                        F <= Save_Mux;
-                    end
-                    default : begin
-                    end
+                        5'b10111: ACC      <= Save_Mux;
+                        5'b10110: DO       <= Save_Mux;
+                        5'b11000: SP[7:0]  <= Save_Mux;
+                        5'b11001: SP[15:8] <= Save_Mux;
+                        5'b11011: F        <= Save_Mux;
+                        default: begin end
                     endcase
                     if (XYbit_undoc) begin
                         DO <= ALU_Q;
@@ -2702,21 +2683,21 @@ module t80(
             // Bus A / Write
             RegAddrA_r <= {Alternate,Set_BusA_To[2:1]};
             if (!XY_Ind && XY_State != 2'b00 && Set_BusA_To[2:1] == 2'b10) begin
-                RegAddrA_r <= {XY_State[1],2'b11};
+                RegAddrA_r <= {XY_State[1], 2'b11};
             end
             // Bus B
             RegAddrB_r <= {Alternate,Set_BusB_To[2:1]};
             if (!XY_Ind && XY_State != 2'b00 && Set_BusB_To[2:1] == 2'b10) begin
-                RegAddrB_r <= {XY_State[1],2'b11};
+                RegAddrB_r <= {XY_State[1], 2'b11};
             end
             // Address from register
             RegAddrC <= {Alternate,Set_Addr_To[1:0]};
             // Jump (HL), LD SP,HL
-            if ((JumpXY || LDSPHL)) begin
+            if (JumpXY || LDSPHL) begin
                 RegAddrC <= {Alternate,2'b10};
             end
-            if (((JumpXY || LDSPHL) && XY_State != 2'b00) || (MCycle == 3'd6)) begin
-                RegAddrC <= {XY_State[1],2'b11};
+            if (((JumpXY || LDSPHL) && XY_State != 2'b00) || MCycle == 3'd6) begin
+                RegAddrC <= {XY_State[1], 2'b11};
             end
             if (I_DJNZ && Save_ALU_r) begin
                 IncDecZ <= F_Out[Flag_Z];
@@ -2733,20 +2714,20 @@ module t80(
         end
     end
 
-    assign RegAddrA = (TState == 2 || (TState == 3 && MCycle == 3'd1 && IncDec_16[2])) && XY_State == 2'b00 ? {Alternate,IncDec_16[1:0]} : (TState == 2 || (TState == 3 && MCycle == 3'd1 && IncDec_16[2])) && IncDec_16[1:0] == 2'b10 ? {XY_State[1],2'b11} : ExchangeDH && TState == 3 ? {Alternate,2'b10} : ExchangeDH && TState == 4 ? {Alternate,2'b01} : ExchangeWH && XY_State == 2'b00 && TState == 4 ? {Alternate,2'b10} : ExchangeWH && TState == 4 ? {XY_State[1],2'b11} : LDHLSP && TState == 4 ? 3'd2 : RegAddrA_r;
-    assign RegAddrB = ExchangeDH && TState == 3 ? {Alternate,2'b01} : RegAddrB_r;
+    wire [2:0] RegAddrA = (TState == 2 || (TState == 3 && MCycle == 3'd1 && IncDec_16[2])) && XY_State == 2'b00 ? {Alternate,IncDec_16[1:0]} : (TState == 2 || (TState == 3 && MCycle == 3'd1 && IncDec_16[2])) && IncDec_16[1:0] == 2'b10 ? {XY_State[1],2'b11} : ExchangeDH && TState == 3 ? {Alternate,2'b10} : ExchangeDH && TState == 4 ? {Alternate,2'b01} : ExchangeWH && XY_State == 2'b00 && TState == 4 ? {Alternate,2'b10} : ExchangeWH && TState == 4 ? {XY_State[1],2'b11} : LDHLSP && TState == 4 ? 3'd2 : RegAddrA_r;
+    wire [2:0] RegAddrB = ExchangeDH && TState == 3 ? {Alternate,2'b01} : RegAddrB_r;
     assign ID16 = IncDec_16[3] ? (RegBusA) - 1 : (RegBusA) + 1;
+
     always @* begin
         RegWEH = 0;
         RegWEL = 0;
         if ((TState == 1 && !Save_ALU_r && !Auto_Wait_t1) || (Save_ALU_r && ALU_Op_r != 4'b0111)) begin
             case (Read_To_Reg_r)
-            5'b10000,5'b10001,5'b10010,5'b10011,5'b10100,5'b10101 : begin
-                RegWEH = ~Read_To_Reg_r[0];
-                RegWEL = Read_To_Reg_r[0];
-            end
-            default : begin
-            end
+                5'b10000,5'b10001,5'b10010,5'b10011,5'b10100,5'b10101: begin
+                    RegWEH = ~Read_To_Reg_r[0];
+                    RegWEL =  Read_To_Reg_r[0];
+                end
+                default: begin end
             endcase
         end
         if (ExchangeDH && (TState == 3 || TState == 4)) begin
@@ -2759,17 +2740,16 @@ module t80(
         end
         if (IncDec_16[2] && ((TState == 2 && !Really_Wait && MCycle != 3'd1) || (TState == 3 && MCycle == 3'd1))) begin
             case (IncDec_16[1:0])
-            2'b00,2'b01,2'b10 : begin
-                RegWEH = 1;
-                RegWEL = 1;
-            end
-            default : begin
-            end
+                2'b00,2'b01,2'b10: begin
+                    RegWEH = 1;
+                    RegWEL = 1;
+                end
+                default: begin end
             endcase
         end
     end
 
-    assign TmpAddr2 = (SP) + {{8{Save_Mux[7]}}, Save_Mux};
+    wire [15:0] TmpAddr2 = SP + {{8{Save_Mux[7]}}, Save_Mux};
     always @* begin
         RegDIH = Save_Mux;
         RegDIL = Save_Mux;
@@ -2873,9 +2853,9 @@ module t80(
     //------------------------------------------------------------------------
     // Main state machine
     //------------------------------------------------------------------------
-    always @(posedge clk or posedge reset) begin : p2
-        reg OldNMI_n;
+    reg OldNMI_n;
 
+    always @(posedge clk or posedge reset) begin
         if (reset) begin
             MCycle       <= 3'd1;
             TState       <= 3'd0;
@@ -2889,58 +2869,69 @@ module t80(
             Auto_Wait_t1 <= 0;
             Auto_Wait_t2 <= 0;
             NMI_s        <= 0;
+            OldNMI_n     <= 0;
 
         end else begin
             if (!NMI_n && OldNMI_n) begin
                 NMI_s <= 1;
             end
-            OldNMI_n = NMI_n;
+            OldNMI_n <= NMI_n;
+
             if (CEN) begin
                 Auto_Wait_t2 <= Auto_Wait_t1;
+
                 if (T_Res) begin
                     Auto_Wait_t1 <= 0;
                     Auto_Wait_t2 <= 0;
-                end
-                else begin
+                end else begin
                     Auto_Wait_t1 <= Auto_Wait | IORQ_i;
                 end
-                No_BTR <= (I_BT & ( ~IR[4] | ~F[Flag_P])) | (I_BC & ( ~IR[4] | F[Flag_Z] | ~F[Flag_P])) | (I_BTR & ( ~IR[4] | F[Flag_Z]));
+
+                No_BTR <=
+                    (I_BT  & (~IR[4] |              ~F[Flag_P])) |
+                    (I_BC  & (~IR[4] |  F[Flag_Z] | ~F[Flag_P])) |
+                    (I_BTR & (~IR[4] |  F[Flag_Z]));
+
                 if (TState == 2) begin
                     if (SetEI) begin
                         IntE_FF1 <= 1;
                         IntE_FF2 <= 1;
                     end
+
                     if (I_RETN) begin
                         IntE_FF1 <= IntE_FF2;
                     end
                 end
-                if (TState == 3) begin
-                    if (SetDI) begin
-                        IntE_FF1 <= 0;
-                        IntE_FF2 <= 0;
-                    end
+
+                if (TState == 3 && SetDI) begin
+                    IntE_FF1 <= 0;
+                    IntE_FF2 <= 0;
                 end
+
                 if (IntCycle_i || NMICycle) begin
                     Halt_FF <= 0;
                 end
+
                 if (TState == 2 && Really_Wait) begin
-                end
-                else if (T_Res) begin
+                    // Wait
+
+                end else if (T_Res) begin
                     if (Halt) begin
                         Halt_FF <= 1;
                     end
                     TState <= 3'd1;
+
                     if (NextIs_XY_Fetch) begin
-                        MCycle <= 3'd6;
+                        MCycle     <= 3'd6;
                         Pre_XY_F_M <= MCycle;
                         if (IR == 8'h36 && Mode == 0) begin
                             Pre_XY_F_M <= 3'd2;
                         end
-                    end
-                    else if ((MCycle == 3'd7) || (MCycle == 3'd6 && Mode == 1 && ISet != 2'b01)) begin
+
+                    end else if (MCycle == 3'd7 || (MCycle == 3'd6 && Mode == 1 && ISet != 2'b01)) begin
                         MCycle <= (Pre_XY_F_M) + 1;
-                    end
-                    else if ((MCycle == MCycles) || No_BTR || (MCycle == 3'd2 && I_DJNZ && IncDecZ)) begin
+
+                    end else if (MCycle == MCycles || No_BTR || (MCycle == 3'd2 && I_DJNZ && IncDecZ)) begin
                         MCycle <= 3'd1;
                         IntCycle_i <= 0;
                         NMICycle <= 0;
@@ -2948,18 +2939,18 @@ module t80(
                             NMI_s <= 0;
                             NMICycle <= 1;
                             IntE_FF1 <= 0;
-                        end
-                        else if (IntE_FF1 && !INT_n && Prefix == 2'b00 && !SetEI) begin
+
+                        end else if (IntE_FF1 && !INT_n && Prefix == 2'b00 && !SetEI) begin
                             IntCycle_i <= 1;
                             IntE_FF1 <= 0;
                             IntE_FF2 <= 0;
                         end
+
+                    end else begin
+                        MCycle <= MCycle + 1;
                     end
-                    else begin
-                        MCycle <= (MCycle) + 1;
-                    end
-                end
-                else begin
+
+                end else begin
                     if (!(Auto_Wait && !Auto_Wait_t2)) begin
                         TState <= TState + 1;
                     end
@@ -2968,6 +2959,6 @@ module t80(
         end
     end
 
-    assign Auto_Wait = IntCycle_i && MCycle == 3'd1 ? 1'b1 : 1'b0;
+    assign Auto_Wait = IntCycle_i && MCycle == 3'd1;
 
 endmodule
