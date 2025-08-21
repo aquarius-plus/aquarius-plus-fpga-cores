@@ -40,22 +40,20 @@ module aqp_t80(
         .clk(clk),
         .reset(reset),
 
-        .CEN(phi_rising),
-        .WAIT_n(!bus_wait),
-        .INT_n(!irq),
+        .clk_en(phi_rising),
+        .bus_wait(bus_wait),
+        .irq(irq),
+        .nmi(1'b0),
         .IORQ(t80_iorq),
         .NoRead(t80_noread),
         .Write(t80_write),
-        .A(bus_addr),
+        .bus_addr(bus_addr),
         .DInst(bus_rddata),
         .DI(q_t80_di),
-        .DO(bus_wrdata),
+        .bus_wrdata(bus_wrdata),
         .MC(t80_mc),
         .TS(t80_ts),
-        .IntCycle(t80_int_cycle),
-
-        .NMI_n(1'b1),
-        .out0(1'b0)
+        .IntCycle(t80_int_cycle)
     );
 
     always @(posedge clk) if (phi_falling && t80_ts == 3'd3) q_t80_di <= bus_rddata;
