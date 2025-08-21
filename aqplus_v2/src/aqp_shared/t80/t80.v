@@ -9,9 +9,9 @@ module t80(
     input  wire        bus_wait,
     input  wire        irq,
     input  wire        nmi,
-    output wire        IORQ,
-    output wire        NoRead,
-    output wire        Write,
+    output wire        bus_iorq,
+    output wire        bus_no_read,
+    output wire        bus_write,
     output wire [15:0] bus_addr,
     input  wire  [7:0] DInst,
     input  wire  [7:0] DI,
@@ -21,12 +21,6 @@ module t80(
     output wire        irq_cycle);
 
     parameter [31:0] Mode = 0;  // 0 => Z80, 1 => Fast Z80
-
-    reg  [15:0] q_bus_addr;
-    reg   [7:0] q_bus_wrdata;
-    assign bus_addr   = q_bus_addr;
-    assign bus_wrdata = q_bus_wrdata;
-
 
     localparam
         Flag_C = 0,
@@ -62,97 +56,53 @@ module t80(
     reg   [7:0] q_reg_i;        // I   interrupt vector register
     reg   [7:0] q_reg_r;        // R   refresh register
     reg  [15:0] q_reg_sp;       // SP  stack pointer
+    reg  [15:0] q_bus_addr;
+    reg   [7:0] q_bus_wrdata;
 
     wire [15:0] reg_bus_a;
     wire [15:0] reg_bus_b;
     wire [15:0] reg_bus_c;
-    reg   [2:0] q_reg_idx_a;
-    reg   [2:0] q_reg_idx_b;
-    reg   [2:0] q_reg_idx_c;
     reg         reg_wren_h;
     reg         reg_wren_l;
-    reg         q_regs_alt;  // Use alternate registers
+
+    reg   [7:0] bus_b;
+    reg   [7:0] bus_a;
+
+    wire        d_auto_wait;
+
+    reg   [3:0] q_alu_op;
+    reg         q_regs_alt;     // Use alternate registers
     reg  [15:0] q_memptr;
-    reg   [7:0] q_instruction;
-    reg   [1:0] q_prefix;
+    reg   [7:0] q_instruction;  // Current instruction
+    reg   [1:0] q_prefix;       // Current prefix
     reg  [15:0] q_reg_bus_a;
-    wire [15:0] incdec16_result;
-    wire  [7:0] Save_Mux;
     reg   [2:0] q_tstate;
     reg   [2:0] q_mcycle;
     reg         q_int_en1;
     reg         q_int_en2;
     reg         q_halt;
-    reg   [1:0] q_im;       // Interrupt mode
-    wire  [7:0] DI_Reg;
-    wire        T_Res;
     reg   [1:0] q_xy_state;
-    wire        NextIs_XY_Fetch;
-    reg         XY_Ind;
+    reg   [1:0] q_im;           // Interrupt mode
     reg         q_no_btr;
     reg         q_btr;
-    wire        d_auto_wait;
     reg         q_auto_wait;
     reg         q_inc_dec_is_zero;
-    reg   [7:0] bus_b;
-    reg   [7:0] bus_a;
-    wire  [7:0] ALU_Q;
-    reg   [7:0] F_Out;
-    reg   [4:0] q_read_to_reg;
     reg         q_arith16;
     reg         q_z16;
-    reg   [3:0] q_alu_op;
     reg         q_save_alu;
     reg         q_preserve_c;
     reg   [2:0] q_mcycles;
-    reg   [2:0] d_mcycles;
-    reg   [2:0] tstates;
     reg         q_irq_cycle;
     reg         q_nmi_cycle;
-    reg         Inc_PC;
-    reg         Inc_WZ;
-    reg   [3:0] IncDec_16;
-    reg   [1:0] d_prefix;
-    reg         Read_To_Acc;
-    reg         Read_To_Reg;
-    reg   [3:0] Set_BusB_To;
-    reg   [3:0] Set_BusA_To;
-    reg   [3:0] d_alu_op;
-    reg         Save_ALU;
-    reg         d_preserve_c;
-    reg         d_arith16;
-    reg   [2:0] Set_Addr_To;
-    reg         Jump;
-    reg         JumpE;
-    reg         Call;
-    reg         RstP;
-    reg         LDZ;
-    reg         LDW;
-    reg         LDSPHL;
-    reg         LDHLSP;
-    reg         ADDSPdd;
-    reg         IORQ_i;
-    reg         Write_i;
-    reg         NoRead_i;
-    reg   [2:0] Special_LD;
-    reg         ExchangeRp;
-    reg         ExchangeWH;
+    reg   [4:0] q_read_to_reg;
+    reg         q_xy_ind;
 
-    reg         is_instr_bc;
-    reg         is_instr_bt;
-    reg         is_instr_btr;
-
-
-    reg   [1:0] SetWZ;
-    reg   [1:0] d_im;
-    reg         XYbit_undoc;
-    reg         No_PC;
-    wire        Really_Wait;
+    wire  [7:0] DI_Reg;
+    wire [15:0] incdec16_result;
 
     //------------------------------------------------------------------------
-    // Microcode
+    // Instruction decoder and sequencer
     //------------------------------------------------------------------------
-
     reg cc_is_true;
     always @* begin
         case (q_instruction[5:3])
@@ -171,78 +121,108 @@ module t80(
     wire [2:0] ir_sss   = q_instruction[2:0];
     wire [1:0] ir_dpair = q_instruction[5:4];
 
-    reg         is_instr_ccf;
-    reg         is_instr_cpl;
-    reg         is_instr_di;
-    reg         is_instr_djnz;
-    reg         is_instr_ei;
-    reg         is_instr_ex_af;
-    reg         is_instr_ex_de_hl;
-    reg         is_instr_exx;
-    reg         is_instr_halt;
-    reg         is_instr_inrc;
-    reg         is_instr_jp_ind_hl;
-    reg         is_instr_retn;
-    reg         is_instr_rld;
-    reg         is_instr_rrd;
-    reg         is_instr_scf;
+    reg       dec_arith16;
+    reg       dec_call;
+    reg       dec_exchange_rp;
+    reg       dec_exchange_wh;
+    reg       dec_inc_memptr;
+    reg       dec_inc_pc;
+    reg       dec_iorq;
+    reg       dec_is_bc;
+    reg       dec_is_bt;
+    reg       dec_is_btr;
+    reg       dec_is_ccf;
+    reg       dec_is_cpl;
+    reg       dec_is_di;
+    reg       dec_is_djnz;
+    reg       dec_is_ei;
+    reg       dec_is_ex_af;
+    reg       dec_is_ex_de_hl;
+    reg       dec_is_exx;
+    reg       dec_is_halt;
+    reg       dec_is_inrc;
+    reg       dec_is_jp_ind_hl;
+    reg       dec_is_ldsphl;
+    reg       dec_is_retn;
+    reg       dec_is_rld;
+    reg       dec_is_rrd;
+    reg       dec_is_scf;
+    reg       dec_jump_e;
+    reg       dec_jump;
+    reg       dec_ldw;
+    reg       dec_ldz;
+    reg       dec_no_pc;
+    reg       dec_no_read;
+    reg       dec_preserve_c;
+    reg       dec_read_to_acc;
+    reg       dec_read_to_reg;
+    reg       dec_rst_p;
+    reg       dec_save_alu;
+    reg       dec_write;
+    reg       dec_xybit_undoc;
+    reg [1:0] dec_im;
+    reg [1:0] dec_prefix;
+    reg [1:0] dec_set_sw;
+    reg [2:0] dec_mcycles;
+    reg [2:0] dec_set_addr_to;
+    reg [2:0] dec_special_ld;
+    reg [2:0] dec_tstates;
+    reg [3:0] dec_alu_op;
+    reg [3:0] dec_incdec16;
+    reg [3:0] dec_set_bus_a_to;
+    reg [3:0] dec_set_bus_b_to;
 
     always @* begin
-        d_mcycles          = 3'd1;
-        tstates            = (q_mcycle == 3'd1) ? 3'd4 : 3'd3;
-        d_prefix           = PrefixNone;
-        Inc_PC             = 0;
-        Inc_WZ             = 0;
-        IncDec_16          = 4'b0000;
-        Read_To_Acc        = 0;
-        Read_To_Reg        = 0;
-        Set_BusB_To        = 4'b0000;
-        Set_BusA_To        = 4'b0000;
-        d_alu_op           = {1'b0, q_instruction[5:3]};
-        Save_ALU           = 0;
-        d_preserve_c       = 0;
-        d_arith16          = 0;
-        IORQ_i             = 0;
-        Set_Addr_To        = aNone;
-        Jump               = 0;
-        JumpE              = 0;
-        Call               = 0;
-        RstP               = 0;
-        LDZ                = 0;
-        LDW                = 0;
-        LDSPHL             = 0;
-        LDHLSP             = 0;
-        ADDSPdd            = 0;
-        Special_LD         = 3'd0;
-        ExchangeRp         = 0;
-        ExchangeWH         = 0;
-
-        is_instr_bc        = 0;
-        is_instr_bt        = 0;
-        is_instr_btr       = 0;
-
-        is_instr_ccf       = 0;
-        is_instr_cpl       = 0;
-        is_instr_di        = 0;
-        is_instr_djnz      = 0;
-        is_instr_ei        = 0;
-        is_instr_ex_af     = 0;
-        is_instr_ex_de_hl  = 0;
-        is_instr_exx       = 0;
-        is_instr_halt      = 0;
-        is_instr_inrc      = 0;
-        is_instr_jp_ind_hl = 0;
-        is_instr_retn      = 0;
-        is_instr_rld       = 0;
-        is_instr_rrd       = 0;
-        is_instr_scf       = 0;
-
-        d_im               = q_im;
-        NoRead_i           = 0;
-        Write_i            = 0;
-        No_PC              = 0;
-        XYbit_undoc        = 0;
-        SetWZ              = 2'b00;
+        dec_alu_op       = {1'b0, q_instruction[5:3]};
+        dec_arith16      = 0;
+        dec_call         = 0;
+        dec_exchange_rp  = 0;
+        dec_exchange_wh  = 0;
+        dec_im           = q_im;
+        dec_inc_memptr   = 0;
+        dec_inc_pc       = 0;
+        dec_incdec16     = 4'b0000;
+        dec_iorq         = 0;
+        dec_is_bc        = 0;
+        dec_is_bt        = 0;
+        dec_is_btr       = 0;
+        dec_is_ccf       = 0;
+        dec_is_cpl       = 0;
+        dec_is_di        = 0;
+        dec_is_djnz      = 0;
+        dec_is_ei        = 0;
+        dec_is_ex_af     = 0;
+        dec_is_ex_de_hl  = 0;
+        dec_is_exx       = 0;
+        dec_is_halt      = 0;
+        dec_is_inrc      = 0;
+        dec_is_jp_ind_hl = 0;
+        dec_is_ldsphl    = 0;
+        dec_is_retn      = 0;
+        dec_is_rld       = 0;
+        dec_is_rrd       = 0;
+        dec_is_scf       = 0;
+        dec_jump         = 0;
+        dec_jump_e       = 0;
+        dec_ldw          = 0;
+        dec_ldz          = 0;
+        dec_mcycles      = 3'd1;
+        dec_no_pc        = 0;
+        dec_no_read      = 0;
+        dec_prefix       = PrefixNone;
+        dec_preserve_c   = 0;
+        dec_read_to_acc  = 0;
+        dec_read_to_reg  = 0;
+        dec_rst_p        = 0;
+        dec_save_alu     = 0;
+        dec_set_addr_to  = aNone;
+        dec_set_bus_a_to = 4'b0000;
+        dec_set_bus_b_to = 4'b0000;
+        dec_set_sw       = 2'b00;
+        dec_special_ld   = 3'd0;
+        dec_tstates      = (q_mcycle == 3'd1) ? 3'd4 : 3'd3;
+        dec_write        = 0;
+        dec_xybit_undoc  = 0;
 
         case (q_prefix)
             //----------------------------------------------------------------
@@ -258,143 +238,143 @@ module t80(
                     8'h60,8'h61,8'h62,8'h63,8'h64,8'h65,8'h67,
                     8'h68,8'h69,8'h6a,8'h6b,8'h6c,8'h6d,8'h6f,
                     8'h78,8'h79,8'h7a,8'h7b,8'h7c,8'h7d,8'h7f: begin    // LD r,r'
-                        Set_BusB_To[2:0] = ir_sss;
-                        ExchangeRp       = 1;
-                        Set_BusA_To[2:0] = ir_ddd;
-                        Read_To_Reg      = 1;
+                        dec_set_bus_b_to[2:0] = ir_sss;
+                        dec_exchange_rp       = 1;
+                        dec_set_bus_a_to[2:0] = ir_ddd;
+                        dec_read_to_reg      = 1;
                     end
 
                     8'h06,8'h0e,8'h16,8'h1e,8'h26,8'h2e,8'h3e: begin    // LD r,n
-                        d_mcycles = 3'd2;
+                        dec_mcycles = 3'd2;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC           = 1;
-                                Set_BusA_To[2:0] = ir_ddd;
-                                Read_To_Reg      = 1;
+                                dec_inc_pc           = 1;
+                                dec_set_bus_a_to[2:0] = ir_ddd;
+                                dec_read_to_reg      = 1;
                             end
                             default: begin end
                         endcase
                     end
 
                     8'h46,8'h4e,8'h56,8'h5e,8'h66,8'h6e,8'h7e: begin    // LD r,(HL)
-                        d_mcycles = 3'd2;
+                        dec_mcycles = 3'd2;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To = aXY;
+                                dec_set_addr_to = aXY;
                             end
                             3'd2: begin
-                                Set_BusA_To[2:0] = ir_ddd;
-                                Read_To_Reg      = 1;
+                                dec_set_bus_a_to[2:0] = ir_ddd;
+                                dec_read_to_reg      = 1;
                             end
                             default: begin end
                         endcase
                     end
 
                     8'h70,8'h71,8'h72,8'h73,8'h74,8'h75,8'h77: begin    // LD (HL),r
-                        d_mcycles = 3'd2;
+                        dec_mcycles = 3'd2;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To = aXY;
-                                Set_BusB_To[2:0] = ir_sss;
-                                Set_BusB_To[3] = 0;
+                                dec_set_addr_to = aXY;
+                                dec_set_bus_b_to[2:0] = ir_sss;
+                                dec_set_bus_b_to[3] = 0;
                             end
                             3'd2: begin
-                                Write_i = 1;
+                                dec_write = 1;
                             end
                             default: begin end
                         endcase
                     end
                     8'h36: begin    // LD (HL),n
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC = 1;
-                                Set_Addr_To = aXY;
-                                Set_BusB_To[2:0] = ir_sss;
-                                Set_BusB_To[3] = 0;
+                                dec_inc_pc = 1;
+                                dec_set_addr_to = aXY;
+                                dec_set_bus_b_to[2:0] = ir_sss;
+                                dec_set_bus_b_to[3] = 0;
                             end
                             3'd3: begin
-                                Write_i = 1;
+                                dec_write = 1;
                             end
                             default: begin end
                         endcase
                     end
                     8'h0a: begin    // LD A,(BC)
-                        d_mcycles = 3'd2;
+                        dec_mcycles = 3'd2;
                         case (q_mcycle)
-                            3'd1: Set_Addr_To = aBC;
-                            3'd2: Read_To_Acc = 1;
+                            3'd1: dec_set_addr_to = aBC;
+                            3'd2: dec_read_to_acc = 1;
                             default: begin end
                         endcase
                     end
                     8'h1a: begin    // LD A,(DE)
-                        d_mcycles = 3'd2;
+                        dec_mcycles = 3'd2;
                         case (q_mcycle)
-                            3'd1: Set_Addr_To = aDE;
-                            3'd2: Read_To_Acc = 1;
+                            3'd1: dec_set_addr_to = aDE;
+                            3'd2: dec_read_to_acc = 1;
                             default: begin end
                         endcase
                     end
                     8'h3a: begin    // LD A,(nn)
-                        d_mcycles = 3'd4;
+                        dec_mcycles = 3'd4;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC = 1;
-                                LDZ    = 1;
+                                dec_inc_pc = 1;
+                                dec_ldz    = 1;
                             end
                             3'd3: begin
-                                Set_Addr_To = aZI;
-                                Inc_PC      = 1;
+                                dec_set_addr_to = aZI;
+                                dec_inc_pc      = 1;
                             end
                             3'd4: begin
-                                Read_To_Acc = 1;
+                                dec_read_to_acc = 1;
                             end
                             default: begin end
                         endcase
                     end
                     8'h02: begin    // LD (BC),A
-                        d_mcycles = 3'd2;
+                        dec_mcycles = 3'd2;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To = aBC;
-                                Set_BusB_To = 4'b0111;
-                                SetWZ       = 2'b10;
+                                dec_set_addr_to = aBC;
+                                dec_set_bus_b_to = 4'b0111;
+                                dec_set_sw       = 2'b10;
                             end
                             3'd2: begin
-                                Write_i = 1;
+                                dec_write = 1;
                             end
                             default: begin end
                         endcase
                     end
                     8'h12: begin    // LD (DE),A
-                        d_mcycles = 3'd2;
+                        dec_mcycles = 3'd2;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To = aDE;
-                                Set_BusB_To = 4'b0111;
-                                SetWZ       = 2'b10;
+                                dec_set_addr_to = aDE;
+                                dec_set_bus_b_to = 4'b0111;
+                                dec_set_sw       = 2'b10;
                             end
                             3'd2: begin
-                                Write_i = 1;
+                                dec_write = 1;
                             end
                             default: begin end
                         endcase
                     end
                     8'h32: begin    // LD (nn),A
-                        d_mcycles = 3'd4;
+                        dec_mcycles = 3'd4;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC = 1;
-                                LDZ    = 1;
+                                dec_inc_pc = 1;
+                                dec_ldz    = 1;
                             end
                             3'd3: begin
-                                Set_Addr_To = aZI;
-                                SetWZ       = 2'b10;
-                                Inc_PC      = 1;
-                                Set_BusB_To = 4'b0111;
+                                dec_set_addr_to = aZI;
+                                dec_set_sw       = 2'b10;
+                                dec_inc_pc      = 1;
+                                dec_set_bus_b_to = 4'b0111;
                             end
                             3'd4: begin
-                                Write_i = 1;
+                                dec_write = 1;
                             end
                             default: begin end
                         endcase
@@ -402,28 +382,28 @@ module t80(
 
                     // 16 BIT LOAD GROUP
                     8'h01,8'h11,8'h21,8'h31: begin  // LD dd,nn
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC = 1;
-                                Read_To_Reg = 1;
+                                dec_inc_pc = 1;
+                                dec_read_to_reg = 1;
                                 if (ir_dpair == 2'b11) begin
-                                    Set_BusA_To[3:0] = 4'b1000;
+                                    dec_set_bus_a_to[3:0] = 4'b1000;
                                 end
                                 else begin
-                                    Set_BusA_To[2:1] = ir_dpair;
-                                    Set_BusA_To[0] = 1;
+                                    dec_set_bus_a_to[2:1] = ir_dpair;
+                                    dec_set_bus_a_to[0] = 1;
                                 end
                             end
                             3'd3: begin
-                                Inc_PC = 1;
-                                Read_To_Reg = 1;
+                                dec_inc_pc = 1;
+                                dec_read_to_reg = 1;
                                 if (ir_dpair == 2'b11) begin
-                                    Set_BusA_To[3:0] = 4'b1001;
+                                    dec_set_bus_a_to[3:0] = 4'b1001;
                                 end
                                 else begin
-                                    Set_BusA_To[2:1] = ir_dpair;
-                                    Set_BusA_To[0] = 0;
+                                    dec_set_bus_a_to[2:1] = ir_dpair;
+                                    dec_set_bus_a_to[0] = 0;
                                 end
                             end
                             default: begin end
@@ -431,124 +411,124 @@ module t80(
                     end
                     8'h2a: begin
                         // LD HL,(nn)
-                        d_mcycles = 3'd5;
+                        dec_mcycles = 3'd5;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC = 1;
-                                LDZ    = 1;
+                                dec_inc_pc = 1;
+                                dec_ldz    = 1;
                             end
                             3'd3: begin
-                                Set_Addr_To = aZI;
-                                Inc_PC      = 1;
-                                LDW         = 1;
+                                dec_set_addr_to = aZI;
+                                dec_inc_pc      = 1;
+                                dec_ldw         = 1;
                             end
                             3'd4: begin
-                                Set_BusA_To[2:0] = 3'd5;    // L
-                                Read_To_Reg      = 1;
-                                Inc_WZ           = 1;
-                                Set_Addr_To      = aZI;
+                                dec_set_bus_a_to[2:0] = 3'd5;    // L
+                                dec_read_to_reg      = 1;
+                                dec_inc_memptr           = 1;
+                                dec_set_addr_to      = aZI;
                             end
                             3'd5: begin
-                                Set_BusA_To[2:0] = 3'd4;    // H
-                                Read_To_Reg      = 1;
+                                dec_set_bus_a_to[2:0] = 3'd4;    // H
+                                dec_read_to_reg      = 1;
                             end
                             default: begin end
                         endcase
                     end
                     8'h22: begin
                         // LD (nn),HL
-                        d_mcycles = 3'd5;
+                        dec_mcycles = 3'd5;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC = 1;
-                                LDZ    = 1;
+                                dec_inc_pc = 1;
+                                dec_ldz    = 1;
                             end
                             3'd3: begin
-                                Set_Addr_To = aZI;
-                                Inc_PC      = 1;
-                                LDW         = 1;
-                                Set_BusB_To = 4'b0101;  // L
+                                dec_set_addr_to = aZI;
+                                dec_inc_pc      = 1;
+                                dec_ldw         = 1;
+                                dec_set_bus_b_to = 4'b0101;  // L
                             end
                             3'd4: begin
-                                Inc_WZ      = 1;
-                                Set_Addr_To = aZI;
-                                Write_i     = 1;
-                                Set_BusB_To = 4'b0100;  // H
+                                dec_inc_memptr      = 1;
+                                dec_set_addr_to = aZI;
+                                dec_write     = 1;
+                                dec_set_bus_b_to = 4'b0100;  // H
                             end
                             3'd5: begin
-                                Write_i = 1;
+                                dec_write = 1;
                             end
                             default: begin end
                         endcase
                     end
                     8'hf9: begin    // LD q_reg_sp,HL
-                        tstates = 3'd6;
-                        LDSPHL = 1;
+                        dec_tstates = 3'd6;
+                        dec_is_ldsphl = 1;
                     end
                     8'hc5,8'hd5,8'he5,8'hf5: begin  // PUSH qq
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd1: begin
-                                tstates     = 3'd5;
-                                IncDec_16   = 4'b1111;
-                                Set_Addr_To = aSP;
+                                dec_tstates     = 3'd5;
+                                dec_incdec16   = 4'b1111;
+                                dec_set_addr_to = aSP;
 
                                 if (ir_dpair == 2'b11) begin
-                                    Set_BusB_To = 4'b0111;
+                                    dec_set_bus_b_to = 4'b0111;
                                 end else begin
-                                    Set_BusB_To[2:1] = ir_dpair;
-                                    Set_BusB_To[0]   = 0;
-                                    Set_BusB_To[3]   = 0;
+                                    dec_set_bus_b_to[2:1] = ir_dpair;
+                                    dec_set_bus_b_to[0]   = 0;
+                                    dec_set_bus_b_to[3]   = 0;
                                 end
                             end
                             3'd2: begin
-                                IncDec_16   = 4'b1111;
-                                Set_Addr_To = aSP;
+                                dec_incdec16   = 4'b1111;
+                                dec_set_addr_to = aSP;
 
                                 if (ir_dpair == 2'b11) begin
-                                    Set_BusB_To = 4'b1011;
+                                    dec_set_bus_b_to = 4'b1011;
                                 end else begin
-                                    Set_BusB_To[2:1] = ir_dpair;
-                                    Set_BusB_To[0]   = 1;
-                                    Set_BusB_To[3]   = 0;
+                                    dec_set_bus_b_to[2:1] = ir_dpair;
+                                    dec_set_bus_b_to[0]   = 1;
+                                    dec_set_bus_b_to[3]   = 0;
                                 end
 
-                                Write_i = 1;
+                                dec_write = 1;
                             end
 
                             3'd3: begin
-                                Write_i = 1;
+                                dec_write = 1;
                             end
  
                             default: begin end
                         endcase
                     end
                     8'hc1,8'hd1,8'he1,8'hf1: begin  // POP qq
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To = aSP;
+                                dec_set_addr_to = aSP;
                             end
                             3'd2: begin
-                                IncDec_16   = 4'b0111;
-                                Set_Addr_To = aSP;
-                                Read_To_Reg = 1;
+                                dec_incdec16   = 4'b0111;
+                                dec_set_addr_to = aSP;
+                                dec_read_to_reg = 1;
 
                                 if (ir_dpair == 2'b11) begin
-                                    Set_BusA_To[3:0] = 4'b1011;
+                                    dec_set_bus_a_to[3:0] = 4'b1011;
                                 end else begin
-                                    Set_BusA_To[2:1] = ir_dpair;
-                                    Set_BusA_To[0] = 1;
+                                    dec_set_bus_a_to[2:1] = ir_dpair;
+                                    dec_set_bus_a_to[0] = 1;
                                 end
                             end
                             3'd3: begin
-                                IncDec_16 = 4'b0111;
-                                Read_To_Reg = 1;
+                                dec_incdec16 = 4'b0111;
+                                dec_read_to_reg = 1;
                                 if (ir_dpair == 2'b11) begin
-                                    Set_BusA_To[3:0] = 4'b0111;
+                                    dec_set_bus_a_to[3:0] = 4'b0111;
                                 end else begin
-                                    Set_BusA_To[2:1] = ir_dpair;
-                                    Set_BusA_To[0] = 0;
+                                    dec_set_bus_a_to[2:1] = ir_dpair;
+                                    dec_set_bus_a_to[0] = 0;
                                 end
                             end
                             default: begin end
@@ -556,39 +536,39 @@ module t80(
                     end
 
                     // EXCHANGE, BLOCK TRANSFER AND SEARCH GROUP
-                    8'heb: is_instr_ex_de_hl = 1; // EX DE,HL
-                    8'h08: is_instr_ex_af    = 1; // EX AF,AF'
-                    8'hd9: is_instr_exx      = 1; // EXX
+                    8'heb: dec_is_ex_de_hl = 1; // EX DE,HL
+                    8'h08: dec_is_ex_af    = 1; // EX AF,AF'
+                    8'hd9: dec_is_exx      = 1; // EXX
                         
                     8'he3: begin
                         // EX (SP),HL
-                        d_mcycles = 3'd5;
+                        dec_mcycles = 3'd5;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To = aSP;
+                                dec_set_addr_to = aSP;
                             end
                             3'd2: begin
-                                Set_Addr_To = aSP;
-                                LDZ = 1;
-                                IncDec_16 = 4'b0111;    // SP = SP+1
+                                dec_set_addr_to = aSP;
+                                dec_ldz = 1;
+                                dec_incdec16 = 4'b0111;    // SP = SP+1
                             end
                             3'd3: begin
-                                tstates = 3'd4;
-                                Set_BusB_To = 4'b0100;
-                                Set_Addr_To = aSP;
-                                LDW = 1;
+                                dec_tstates = 3'd4;
+                                dec_set_bus_b_to = 4'b0100;
+                                dec_set_addr_to = aSP;
+                                dec_ldw = 1;
                             end
                             3'd4: begin
-                                Set_BusB_To = 4'b0101;
-                                Write_i = 1;
-                                IncDec_16 = 4'b1111;    // SP = SP-1
-                                Set_Addr_To = aSP;
+                                dec_set_bus_b_to = 4'b0101;
+                                dec_write = 1;
+                                dec_incdec16 = 4'b1111;    // SP = SP-1
+                                dec_set_addr_to = aSP;
                             end
                             3'd5: begin
-                                ExchangeWH = 1;
+                                dec_exchange_wh = 1;
                                 // save MEMPTR to HL
-                                tstates = 3'd5;
-                                Write_i = 1;
+                                dec_tstates = 3'd5;
+                                dec_write = 1;
                             end
                             default: begin end
                         endcase
@@ -604,10 +584,10 @@ module t80(
                         // OR A,r
                         // XOR A,r
                         // CP A,r
-                        Set_BusB_To[2:0] = ir_sss;
-                        Set_BusA_To[2:0] = 3'd7;
-                        Read_To_Reg      = 1;
-                        Save_ALU         = 1;
+                        dec_set_bus_b_to[2:0] = ir_sss;
+                        dec_set_bus_a_to[2:0] = 3'd7;
+                        dec_read_to_reg      = 1;
+                        dec_save_alu         = 1;
                     end
                     8'h86,8'h8e,8'h96,8'h9e,8'ha6,8'hae,8'hb6,8'hbe: begin
                         // ADD A,(HL)
@@ -618,16 +598,16 @@ module t80(
                         // OR A,(HL)
                         // XOR A,(HL)
                         // CP A,(HL)
-                        d_mcycles = 3'd2;
+                        dec_mcycles = 3'd2;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To = aXY;
+                                dec_set_addr_to = aXY;
                             end
                             3'd2: begin
-                                Read_To_Reg      = 1;
-                                Save_ALU         = 1;
-                                Set_BusB_To[2:0] = ir_sss;
-                                Set_BusA_To[2:0] = 3'd7;
+                                dec_read_to_reg      = 1;
+                                dec_save_alu         = 1;
+                                dec_set_bus_b_to[2:0] = ir_sss;
+                                dec_set_bus_a_to[2:0] = 3'd7;
                             end
                             default: begin end
                         endcase
@@ -641,71 +621,71 @@ module t80(
                         // OR A,n
                         // XOR A,n
                         // CP A,n
-                        d_mcycles = 3'd2;
+                        dec_mcycles = 3'd2;
                         if (q_mcycle == 3'd2) begin
-                            Inc_PC           = 1;
-                            Read_To_Reg      = 1;
-                            Save_ALU         = 1;
-                            Set_BusB_To[2:0] = ir_sss;
-                            Set_BusA_To[2:0] = 3'd7;
+                            dec_inc_pc           = 1;
+                            dec_read_to_reg      = 1;
+                            dec_save_alu         = 1;
+                            dec_set_bus_b_to[2:0] = ir_sss;
+                            dec_set_bus_a_to[2:0] = 3'd7;
                         end
                     end
                     8'h04,8'h0c,8'h14,8'h1c,8'h24,8'h2c,8'h3c: begin    // INC r
-                        Set_BusB_To      = 4'b1010;
-                        Set_BusA_To[2:0] = ir_ddd;
-                        Read_To_Reg      = 1;
-                        Save_ALU         = 1;
-                        d_preserve_c     = 1;
-                        d_alu_op         = 4'b0000;
+                        dec_set_bus_b_to      = 4'b1010;
+                        dec_set_bus_a_to[2:0] = ir_ddd;
+                        dec_read_to_reg      = 1;
+                        dec_save_alu         = 1;
+                        dec_preserve_c     = 1;
+                        dec_alu_op         = 4'b0000;
                     end
                     8'h34: begin    // INC (HL)
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To = aXY;
+                                dec_set_addr_to = aXY;
                             end
                             3'd2: begin
-                                tstates          = 3'd4;
-                                Set_Addr_To      = aXY;
-                                Read_To_Reg      = 1;
-                                Save_ALU         = 1;
-                                d_preserve_c     = 1;
-                                d_alu_op         = 4'b0000;
-                                Set_BusB_To      = 4'b1010;
-                                Set_BusA_To[2:0] = ir_ddd;
+                                dec_tstates          = 3'd4;
+                                dec_set_addr_to      = aXY;
+                                dec_read_to_reg      = 1;
+                                dec_save_alu         = 1;
+                                dec_preserve_c     = 1;
+                                dec_alu_op         = 4'b0000;
+                                dec_set_bus_b_to      = 4'b1010;
+                                dec_set_bus_a_to[2:0] = ir_ddd;
                             end
                             3'd3: begin
-                                Write_i = 1;
+                                dec_write = 1;
                             end
                             default: begin end
                         endcase
                     end
                     8'h05,8'h0d,8'h15,8'h1d,8'h25,8'h2d,8'h3d: begin    // DEC r
-                        Set_BusB_To      = 4'b1010;
-                        Set_BusA_To[2:0] = ir_ddd;
-                        Read_To_Reg      = 1;
-                        Save_ALU         = 1;
-                        d_preserve_c     = 1;
-                        d_alu_op         = 4'b0010;
+                        dec_set_bus_b_to      = 4'b1010;
+                        dec_set_bus_a_to[2:0] = ir_ddd;
+                        dec_read_to_reg      = 1;
+                        dec_save_alu         = 1;
+                        dec_preserve_c     = 1;
+                        dec_alu_op         = 4'b0010;
                     end
                     8'h35: begin    // DEC (HL)
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To = aXY;
+                                dec_set_addr_to = aXY;
                             end
                             3'd2: begin
-                                tstates          = 3'd4;
-                                Set_Addr_To      = aXY;
-                                d_alu_op         = 4'b0010;
-                                Read_To_Reg      = 1;
-                                Save_ALU         = 1;
-                                d_preserve_c     = 1;
-                                Set_BusB_To      = 4'b1010;
-                                Set_BusA_To[2:0] = ir_ddd;
+                                dec_tstates          = 3'd4;
+                                dec_set_addr_to      = aXY;
+                                dec_alu_op         = 4'b0010;
+                                dec_read_to_reg      = 1;
+                                dec_save_alu         = 1;
+                                dec_preserve_c     = 1;
+                                dec_set_bus_b_to      = 4'b1010;
+                                dec_set_bus_a_to[2:0] = ir_ddd;
                             end
                             3'd3: begin
-                                Write_i = 1;
+                                dec_write = 1;
                             end
                             default: begin end
                         endcase
@@ -714,64 +694,64 @@ module t80(
                     // GENERAL PURPOSE ARITHMETIC AND CPU CONTROL GROUPS
                     8'h27: begin
                         // DAA
-                        Set_BusA_To[2:0] = 3'd7;
-                        Read_To_Reg      = 1;
-                        d_alu_op         = 4'b1100;
-                        Save_ALU         = 1;
+                        dec_set_bus_a_to[2:0] = 3'd7;
+                        dec_read_to_reg      = 1;
+                        dec_alu_op         = 4'b1100;
+                        dec_save_alu         = 1;
                     end
 
-                    8'h2f: is_instr_cpl = 1;    // CPL
-                    8'h3f: is_instr_ccf = 1;    // CCF
-                    8'h37: is_instr_scf = 1;    // SCF
+                    8'h2f: dec_is_cpl = 1;    // CPL
+                    8'h3f: dec_is_ccf = 1;    // CCF
+                    8'h37: dec_is_scf = 1;    // SCF
 
                     8'h00: begin
                         if (q_nmi_cycle) begin
                             // NMI
-                            d_mcycles = 3'd3;
+                            dec_mcycles = 3'd3;
                             case (q_mcycle)
                                 3'd1: begin
-                                    tstates     = 3'd5;
-                                    IncDec_16   = 4'b1111;
-                                    Set_Addr_To = aSP;
-                                    Set_BusB_To = 4'b1101;
+                                    dec_tstates     = 3'd5;
+                                    dec_incdec16   = 4'b1111;
+                                    dec_set_addr_to = aSP;
+                                    dec_set_bus_b_to = 4'b1101;
                                 end
                                 3'd2: begin
-                                    Write_i     = 1;
-                                    IncDec_16   = 4'b1111;
-                                    Set_Addr_To = aSP;
-                                    Set_BusB_To = 4'b1100;
+                                    dec_write     = 1;
+                                    dec_incdec16   = 4'b1111;
+                                    dec_set_addr_to = aSP;
+                                    dec_set_bus_b_to = 4'b1100;
                                 end
                                 3'd3: begin
-                                    Write_i = 1;
+                                    dec_write = 1;
                                 end
                                 default: begin end
                             endcase
 
                         end else if (q_irq_cycle) begin
                             // INT (IM 2)
-                            d_mcycles = 3'd5;
+                            dec_mcycles = 3'd5;
                             case (q_mcycle)
                                 3'd1: begin
-                                    tstates     = 3'd5;
-                                    IncDec_16   = 4'b1111;
-                                    Set_Addr_To = aSP;
-                                    Set_BusB_To = 4'b1101;
+                                    dec_tstates     = 3'd5;
+                                    dec_incdec16   = 4'b1111;
+                                    dec_set_addr_to = aSP;
+                                    dec_set_bus_b_to = 4'b1101;
                                 end
                                 3'd2: begin
-                                    Write_i     = 1;
-                                    IncDec_16   = 4'b1111;
-                                    Set_Addr_To = aSP;
-                                    Set_BusB_To = 4'b1100;
+                                    dec_write     = 1;
+                                    dec_incdec16   = 4'b1111;
+                                    dec_set_addr_to = aSP;
+                                    dec_set_bus_b_to = 4'b1100;
                                 end
                                 3'd3: begin
-                                    Write_i = 1;
+                                    dec_write = 1;
                                 end
                                 3'd4: begin
-                                    Inc_PC = 1;
-                                    LDZ    = 1;
+                                    dec_inc_pc = 1;
+                                    dec_ldz    = 1;
                                 end
                                 3'd5: begin
-                                    Jump = 1;
+                                    dec_jump = 1;
                                 end
                                 default: begin end
                             endcase
@@ -781,215 +761,215 @@ module t80(
                         end
                     end
 
-                    8'h76: is_instr_halt = 1;   // HALT
-                    8'hf3: is_instr_di = 1;     // DI
-                    8'hfb: is_instr_ei = 1;     // EI
+                    8'h76: dec_is_halt = 1;   // HALT
+                    8'hf3: dec_is_di = 1;     // DI
+                    8'hfb: dec_is_ei = 1;     // EI
 
                     // 16 BIT ARITHMETIC GROUP
                     8'h09,8'h19,8'h29,8'h39: begin
                         // ADD HL,ss
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd1: begin
-                                No_PC = 1;
+                                dec_no_pc = 1;
                             end
                             3'd2: begin
-                                NoRead_i         = 1;
-                                d_alu_op         = 4'b0000;
-                                Read_To_Reg      = 1;
-                                Save_ALU         = 1;
-                                Set_BusA_To[2:0] = 3'd5;
+                                dec_no_read         = 1;
+                                dec_alu_op         = 4'b0000;
+                                dec_read_to_reg      = 1;
+                                dec_save_alu         = 1;
+                                dec_set_bus_a_to[2:0] = 3'd5;
                                 if (q_instruction[5:4] == 2'b11) begin
-                                    Set_BusB_To = 4'b1000;
+                                    dec_set_bus_b_to = 4'b1000;
                                 end else begin
-                                    Set_BusB_To[2:1] = q_instruction[5:4];
-                                    Set_BusB_To[0] = 1;
+                                    dec_set_bus_b_to[2:1] = q_instruction[5:4];
+                                    dec_set_bus_b_to[0] = 1;
                                 end
-                                tstates   = 3'd4;
-                                d_arith16 = 1;
-                                SetWZ     = 2'b11;
-                                No_PC     = 1;
+                                dec_tstates   = 3'd4;
+                                dec_arith16 = 1;
+                                dec_set_sw     = 2'b11;
+                                dec_no_pc     = 1;
                             end
                             3'd3: begin
-                                NoRead_i         = 1;
-                                Read_To_Reg      = 1;
-                                Save_ALU         = 1;
-                                d_alu_op         = 4'b0001;
-                                Set_BusA_To[2:0] = 3'd4;
+                                dec_no_read         = 1;
+                                dec_read_to_reg      = 1;
+                                dec_save_alu         = 1;
+                                dec_alu_op         = 4'b0001;
+                                dec_set_bus_a_to[2:0] = 3'd4;
                                 if (q_instruction[5:4] == 2'b11) begin
-                                    Set_BusB_To = 4'b1001;
+                                    dec_set_bus_b_to = 4'b1001;
                                 end else begin
-                                    Set_BusB_To[2:1] = q_instruction[5:4];
+                                    dec_set_bus_b_to[2:1] = q_instruction[5:4];
                                 end
-                                d_arith16 = 1;
+                                dec_arith16 = 1;
                             end
                             default: begin end
                         endcase
                     end
                     8'h03,8'h13,8'h23,8'h33: begin
                         // INC ss
-                        tstates        = 3'd6;
-                        IncDec_16[3:2] = 2'b01;
-                        IncDec_16[1:0] = ir_dpair;
+                        dec_tstates        = 3'd6;
+                        dec_incdec16[3:2] = 2'b01;
+                        dec_incdec16[1:0] = ir_dpair;
                     end
                     8'h0b,8'h1b,8'h2b,8'h3b: begin
                         // DEC ss
-                        tstates        = 3'd6;
-                        IncDec_16[3:2] = 2'b11;
-                        IncDec_16[1:0] = ir_dpair;
+                        dec_tstates        = 3'd6;
+                        dec_incdec16[3:2] = 2'b11;
+                        dec_incdec16[1:0] = ir_dpair;
                     end
 
                     // ROTATE AND SHIFT GROUP
                     8'h07,8'h17,8'h0f,8'h1f: begin  // RLCA|RLA|RRCA|RRA
-                        Set_BusA_To[2:0] = 3'd7;
-                        d_alu_op         = 4'b1000;
-                        Read_To_Reg      = 1;
-                        Save_ALU         = 1;
+                        dec_set_bus_a_to[2:0] = 3'd7;
+                        dec_alu_op         = 4'b1000;
+                        dec_read_to_reg      = 1;
+                        dec_save_alu         = 1;
                     end
 
                     // JUMP GROUP
                     8'hc3: begin    // JP nn
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC = 1;
-                                LDZ    = 1;
+                                dec_inc_pc = 1;
+                                dec_ldz    = 1;
                             end
                             3'd3: begin
-                                Inc_PC = 1;
-                                Jump   = 1;
-                                LDW    = 1;
+                                dec_inc_pc = 1;
+                                dec_jump   = 1;
+                                dec_ldw    = 1;
                             end
                             default: begin end
                         endcase
                     end
                     8'hc2,8'hca,8'hd2,8'hda,8'he2,8'hea,8'hf2,8'hfa: begin  // JP cc,nn
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC = 1;
-                                LDZ    = 1;
+                                dec_inc_pc = 1;
+                                dec_ldz    = 1;
                             end
                             3'd3: begin
-                                LDW    = 1;
-                                Inc_PC = 1;
+                                dec_ldw    = 1;
+                                dec_inc_pc = 1;
                                 if (cc_is_true)
-                                    Jump = 1;
+                                    dec_jump = 1;
                             end
                             default: begin end
                         endcase
                     end
                     8'h18: begin    // JR e
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC = 1;
-                                No_PC  = 1;
+                                dec_inc_pc = 1;
+                                dec_no_pc  = 1;
                             end
                             3'd3: begin
-                                NoRead_i = 1;
-                                JumpE    = 1;
-                                tstates  = 3'd5;
+                                dec_no_read = 1;
+                                dec_jump_e    = 1;
+                                dec_tstates  = 3'd5;
                             end
                             default: begin end
                         endcase
                     end
                     8'h38: begin    // JR C,e
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC = 1;
+                                dec_inc_pc = 1;
                                 if (!q_reg_f[Flag_C])
-                                    d_mcycles = 3'd2;
+                                    dec_mcycles = 3'd2;
                                 else
-                                    No_PC = 1;
+                                    dec_no_pc = 1;
                             end
                             3'd3: begin
-                                NoRead_i = 1;
-                                JumpE    = 1;
-                                tstates  = 3'd5;
+                                dec_no_read = 1;
+                                dec_jump_e    = 1;
+                                dec_tstates  = 3'd5;
                             end
                             default: begin end
                         endcase
                     end
                     8'h30: begin    // JR NC,e
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC = 1;
+                                dec_inc_pc = 1;
                                 if (q_reg_f[Flag_C])
-                                    d_mcycles = 3'd2;
+                                    dec_mcycles = 3'd2;
                                 else
-                                    No_PC = 1;
+                                    dec_no_pc = 1;
                             end
                             3'd3: begin
-                                NoRead_i = 1;
-                                JumpE    = 1;
-                                tstates  = 3'd5;
+                                dec_no_read = 1;
+                                dec_jump_e    = 1;
+                                dec_tstates  = 3'd5;
                             end
                             default: begin end
                         endcase
                     end
                     8'h28: begin    // JR Z,e
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC = 1;
+                                dec_inc_pc = 1;
                                 if (!q_reg_f[Flag_Z])
-                                    d_mcycles = 3'd2;
+                                    dec_mcycles = 3'd2;
                                 else
-                                    No_PC = 1;
+                                    dec_no_pc = 1;
                             end
                             3'd3: begin
-                                NoRead_i = 1;
-                                JumpE    = 1;
-                                tstates  = 3'd5;
+                                dec_no_read = 1;
+                                dec_jump_e    = 1;
+                                dec_tstates  = 3'd5;
                             end
                             default: begin end
                         endcase
                     end
                     8'h20: begin    // JR NZ,e
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC = 1;
+                                dec_inc_pc = 1;
                                 if (q_reg_f[Flag_Z])
-                                    d_mcycles = 3'd2;
+                                    dec_mcycles = 3'd2;
                                 else
-                                    No_PC = 1;
+                                    dec_no_pc = 1;
                             end
                             3'd3: begin
-                                NoRead_i = 1;
-                                JumpE    = 1;
-                                tstates  = 3'd5;
+                                dec_no_read = 1;
+                                dec_jump_e    = 1;
+                                dec_tstates  = 3'd5;
                             end
                             default: begin end
                         endcase
                     end
 
-                    8'he9: is_instr_jp_ind_hl = 1;  // JP (HL)
+                    8'he9: dec_is_jp_ind_hl = 1;  // JP (HL)
 
                     8'h10: begin    // DJNZ,e
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd1: begin
-                                tstates          = 3'd5;
-                                is_instr_djnz    = 1;
-                                Set_BusB_To      = 4'b1010;
-                                Set_BusA_To[2:0] = 3'd0;
-                                Read_To_Reg      = 1;
-                                Save_ALU         = 1;
-                                d_alu_op         = 4'b0010;
+                                dec_tstates          = 3'd5;
+                                dec_is_djnz    = 1;
+                                dec_set_bus_b_to      = 4'b1010;
+                                dec_set_bus_a_to[2:0] = 3'd0;
+                                dec_read_to_reg      = 1;
+                                dec_save_alu         = 1;
+                                dec_alu_op         = 4'b0010;
                             end
                             3'd2: begin
-                                is_instr_djnz = 1;
-                                Inc_PC        = 1;
-                                No_PC         = 1;
+                                dec_is_djnz = 1;
+                                dec_inc_pc        = 1;
+                                dec_no_pc         = 1;
                             end
                             3'd3: begin
-                                NoRead_i = 1;
-                                JumpE    = 1;
-                                tstates  = 3'd5;
+                                dec_no_read = 1;
+                                dec_jump_e    = 1;
+                                dec_tstates  = 3'd5;
                             end
                             default: begin end
                         endcase
@@ -997,128 +977,128 @@ module t80(
 
                     // CALL AND RETURN GROUP
                     8'hcd: begin    // CALL nn
-                        d_mcycles = 3'd5;
+                        dec_mcycles = 3'd5;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC      = 1;
-                                LDZ         = 1;
+                                dec_inc_pc      = 1;
+                                dec_ldz         = 1;
                             end
                             3'd3: begin
-                                IncDec_16   = 4'b1111;
-                                Inc_PC      = 1;
-                                tstates     = 3'd4;
-                                Set_Addr_To = aSP;
-                                LDW         = 1;
-                                Set_BusB_To = 4'b1101;
+                                dec_incdec16   = 4'b1111;
+                                dec_inc_pc      = 1;
+                                dec_tstates     = 3'd4;
+                                dec_set_addr_to = aSP;
+                                dec_ldw         = 1;
+                                dec_set_bus_b_to = 4'b1101;
                             end
                             3'd4: begin
-                                Write_i     = 1;
-                                IncDec_16   = 4'b1111;
-                                Set_Addr_To = aSP;
-                                Set_BusB_To = 4'b1100;
+                                dec_write     = 1;
+                                dec_incdec16   = 4'b1111;
+                                dec_set_addr_to = aSP;
+                                dec_set_bus_b_to = 4'b1100;
                             end
                             3'd5: begin
-                                Write_i     = 1;
-                                Call        = 1;
+                                dec_write     = 1;
+                                dec_call        = 1;
                             end
                             default: begin end
                         endcase
                     end
 
                     8'hc4,8'hcc,8'hd4,8'hdc,8'he4,8'hec,8'hf4,8'hfc: begin  // CALL cc,nn
-                        d_mcycles = 3'd5;
+                        dec_mcycles = 3'd5;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC = 1;
-                                LDZ    = 1;
+                                dec_inc_pc = 1;
+                                dec_ldz    = 1;
                             end
                             3'd3: begin
-                                Inc_PC = 1;
-                                LDW    = 1;
+                                dec_inc_pc = 1;
+                                dec_ldw    = 1;
                                 if (cc_is_true) begin
-                                    IncDec_16   = 4'b1111;
-                                    Set_Addr_To = aSP;
-                                    tstates     = 3'd4;
-                                    Set_BusB_To = 4'b1101;
+                                    dec_incdec16   = 4'b1111;
+                                    dec_set_addr_to = aSP;
+                                    dec_tstates     = 3'd4;
+                                    dec_set_bus_b_to = 4'b1101;
                                 end else begin
-                                    d_mcycles = 3'd3;
+                                    dec_mcycles = 3'd3;
                                 end
                             end
                             3'd4: begin
-                                Write_i     = 1;
-                                IncDec_16   = 4'b1111;
-                                Set_Addr_To = aSP;
-                                Set_BusB_To = 4'b1100;
+                                dec_write     = 1;
+                                dec_incdec16   = 4'b1111;
+                                dec_set_addr_to = aSP;
+                                dec_set_bus_b_to = 4'b1100;
                             end
                             3'd5: begin
-                                Write_i = 1;
-                                Call    = 1;
+                                dec_write = 1;
+                                dec_call    = 1;
                             end
                             default: begin end
                         endcase
                     end
 
                     8'hc9: begin    // RET
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To = aSP;
+                                dec_set_addr_to = aSP;
                             end
                             3'd2: begin
-                                IncDec_16   = 4'b0111;
-                                Set_Addr_To = aSP;
-                                LDZ         = 1;
+                                dec_incdec16   = 4'b0111;
+                                dec_set_addr_to = aSP;
+                                dec_ldz         = 1;
                             end
                             3'd3: begin
-                                Jump      = 1;
-                                IncDec_16 = 4'b0111;
+                                dec_jump      = 1;
+                                dec_incdec16 = 4'b0111;
                             end
                             default: begin end
                         endcase
                     end
 
                     8'hc0,8'hc8,8'hd0,8'hd8,8'he0,8'he8,8'hf0,8'hf8: begin  // RET cc
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd1: begin
                                 if (cc_is_true)
-                                    Set_Addr_To = aSP;
+                                    dec_set_addr_to = aSP;
                                 else
-                                    d_mcycles = 3'd1;
+                                    dec_mcycles = 3'd1;
 
-                                tstates = 3'd5;
+                                dec_tstates = 3'd5;
                             end
                             3'd2: begin
-                                IncDec_16   = 4'b0111;
-                                Set_Addr_To = aSP;
-                                LDZ         = 1;
+                                dec_incdec16   = 4'b0111;
+                                dec_set_addr_to = aSP;
+                                dec_ldz         = 1;
                             end
                             3'd3: begin
-                                Jump      = 1;
-                                IncDec_16 = 4'b0111;
+                                dec_jump      = 1;
+                                dec_incdec16 = 4'b0111;
                             end
                             default: begin end
                         endcase
                     end
 
                     8'hc7,8'hcf,8'hd7,8'hdf,8'he7,8'hef,8'hf7,8'hff: begin  // RST p
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd1: begin
-                                tstates     = 3'd5;
-                                IncDec_16   = 4'b1111;
-                                Set_Addr_To = aSP;
-                                Set_BusB_To = 4'b1101;
+                                dec_tstates     = 3'd5;
+                                dec_incdec16   = 4'b1111;
+                                dec_set_addr_to = aSP;
+                                dec_set_bus_b_to = 4'b1101;
                             end
                             3'd2: begin
-                                Write_i     = 1;
-                                IncDec_16   = 4'b1111;
-                                Set_Addr_To = aSP;
-                                Set_BusB_To = 4'b1100;
+                                dec_write     = 1;
+                                dec_incdec16   = 4'b1111;
+                                dec_set_addr_to = aSP;
+                                dec_set_bus_b_to = 4'b1100;
                             end
                             3'd3: begin
-                                Write_i     = 1;
-                                RstP        = 1;
+                                dec_write     = 1;
+                                dec_rst_p        = 1;
                             end
                             default: begin end
                         endcase
@@ -1126,31 +1106,31 @@ module t80(
 
                     // INPUT AND OUTPUT GROUP
                     8'hdb: begin    // IN A,(n)
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC      = 1;
-                                Set_Addr_To = aIOA;
+                                dec_inc_pc      = 1;
+                                dec_set_addr_to = aIOA;
                             end
                             3'd3: begin
-                                Read_To_Acc = 1;
-                                IORQ_i      = 1;
+                                dec_read_to_acc = 1;
+                                dec_iorq      = 1;
                             end
                             default: begin end
                         endcase
                     end
 
                     8'hd3: begin    // OUT (n),A
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC      = 1;
-                                Set_Addr_To = aIOA;
-                                Set_BusB_To = 4'b0111;
+                                dec_inc_pc      = 1;
+                                dec_set_addr_to = aIOA;
+                                dec_set_bus_b_to = 4'b0111;
                             end
                             3'd3: begin
-                                Write_i = 1;
-                                IORQ_i  = 1;
+                                dec_write = 1;
+                                dec_iorq  = 1;
                             end
                             default: begin end
                         endcase
@@ -1159,9 +1139,9 @@ module t80(
                     //--------------------------------------------------------
                     // MULTIBYTE INSTRUCTIONS
                     //--------------------------------------------------------
-                    8'hcb:       d_prefix = PrefixCB;
-                    8'hed:       d_prefix = PrefixED;
-                    8'hdd,8'hfd: d_prefix = PrefixDD_FD;
+                    8'hcb:       dec_prefix = PrefixCB;
+                    8'hed:       dec_prefix = PrefixED;
+                    8'hdd,8'hfd: dec_prefix = PrefixDD_FD;
 
                     default: begin end
                 endcase
@@ -1171,8 +1151,8 @@ module t80(
             // CB prefixed instructions
             //----------------------------------------------------------------
             2'b01: begin
-                Set_BusA_To[2:0] = q_instruction[2:0];
-                Set_BusB_To[2:0] = q_instruction[2:0];
+                dec_set_bus_a_to[2:0] = q_instruction[2:0];
+                dec_set_bus_b_to[2:0] = q_instruction[2:0];
 
                 case (q_instruction)
                     8'h00,8'h01,8'h02,8'h03,8'h04,8'h05,8'h07,          // RLC r
@@ -1185,28 +1165,28 @@ module t80(
                     8'h38,8'h39,8'h3a,8'h3b,8'h3c,8'h3d,8'h3f: begin    // SRL r
                         if (q_xy_state == 2'b00) begin
                             if (q_mcycle == 3'd1) begin
-                                d_alu_op      = 4'b1000;
-                                Read_To_Reg = 1;
-                                Save_ALU    = 1;
+                                dec_alu_op      = 4'b1000;
+                                dec_read_to_reg = 1;
+                                dec_save_alu    = 1;
                             end
 
                         end else begin
                             // R/S (IX+d),Reg, undocumented
-                            d_mcycles   = 3'd3;
-                            XYbit_undoc = 1;
+                            dec_mcycles   = 3'd3;
+                            dec_xybit_undoc = 1;
                             case (q_mcycle)
                                 3'd1,3'd7: begin
-                                    Set_Addr_To = aXY;
+                                    dec_set_addr_to = aXY;
                                 end
                                 3'd2: begin
-                                    d_alu_op    = 4'b1000;
-                                    Read_To_Reg = 1;
-                                    Save_ALU    = 1;
-                                    Set_Addr_To = aXY;
-                                    tstates     = 3'd4;
+                                    dec_alu_op    = 4'b1000;
+                                    dec_read_to_reg = 1;
+                                    dec_save_alu    = 1;
+                                    dec_set_addr_to = aXY;
+                                    dec_tstates     = 3'd4;
                                 end
                                 3'd3: begin
-                                    Write_i = 1;
+                                    dec_write = 1;
                                 end
                                 default: begin end
                             endcase
@@ -1217,20 +1197,20 @@ module t80(
                     8'h16,8'h1e,        // RL (HL)      RR (HL)
                     8'h26,8'h2e,        // SLA (HL)     SRA (HL)
                     8'h36,8'h3e: begin  // SLL (HL)     SRL (HL)
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd1,3'd7: begin
-                                Set_Addr_To = aXY;
+                                dec_set_addr_to = aXY;
                             end
                             3'd2: begin
-                                d_alu_op      = 4'b1000;
-                                Read_To_Reg = 1;
-                                Save_ALU    = 1;
-                                Set_Addr_To = aXY;
-                                tstates     = 3'd4;
+                                dec_alu_op      = 4'b1000;
+                                dec_read_to_reg = 1;
+                                dec_save_alu    = 1;
+                                dec_set_addr_to = aXY;
+                                dec_tstates     = 3'd4;
                             end
                             3'd3: begin
-                                Write_i = 1;
+                                dec_write = 1;
                             end
                             default: begin end
                         endcase
@@ -1247,21 +1227,21 @@ module t80(
                         if (q_xy_state == 2'b00) begin
                             // BIT b,r
                             if (q_mcycle == 3'd1) begin
-                                Set_BusB_To[2:0] = q_instruction[2:0];
-                                d_alu_op           = 4'b1001;
+                                dec_set_bus_b_to[2:0] = q_instruction[2:0];
+                                dec_alu_op           = 4'b1001;
                             end
 
                         end else begin
                             // BIT b,(IX+d), undocumented
-                            d_mcycles   = 3'd2;
-                            XYbit_undoc = 1;
+                            dec_mcycles   = 3'd2;
+                            dec_xybit_undoc = 1;
                             case (q_mcycle)
                                 3'd1,3'd7: begin
-                                    Set_Addr_To = aXY;
+                                    dec_set_addr_to = aXY;
                                 end
                                 3'd2: begin
-                                    d_alu_op  = 4'b1001;
-                                    tstates = 3'd4;
+                                    dec_alu_op  = 4'b1001;
+                                    dec_tstates = 3'd4;
                                 end
                                 default: begin end
                             endcase
@@ -1269,14 +1249,14 @@ module t80(
                     end
 
                     8'h46,8'h4e,8'h56,8'h5e,8'h66,8'h6e,8'h76,8'h7e: begin  // BIT b,(HL)
-                        d_mcycles = 3'd2;
+                        dec_mcycles = 3'd2;
                         case (q_mcycle)
                             3'd1,3'd7: begin
-                                Set_Addr_To = aXY;
+                                dec_set_addr_to = aXY;
                             end
                             3'd2: begin
-                                d_alu_op  = 4'b1001;
-                                tstates = 3'd4;
+                                dec_alu_op  = 4'b1001;
+                                dec_tstates = 3'd4;
                             end
                             default: begin end
                         endcase
@@ -1292,28 +1272,28 @@ module t80(
                     8'hf8,8'hf9,8'hfa,8'hfb,8'hfc,8'hfd,8'hff: begin    // SET b,r
                         if (q_xy_state == 2'b00) begin
                             if (q_mcycle == 3'd1) begin
-                                d_alu_op      = 4'b1010;
-                                Read_To_Reg = 1;
-                                Save_ALU    = 1;
+                                dec_alu_op      = 4'b1010;
+                                dec_read_to_reg = 1;
+                                dec_save_alu    = 1;
                             end
 
                         end else begin
                             // SET b,(IX+d),Reg, undocumented
-                            d_mcycles = 3'd3;
-                            XYbit_undoc = 1;
+                            dec_mcycles = 3'd3;
+                            dec_xybit_undoc = 1;
                             case (q_mcycle)
                                 3'd1,3'd7: begin
-                                    Set_Addr_To = aXY;
+                                    dec_set_addr_to = aXY;
                                 end
                                 3'd2: begin
-                                    d_alu_op      = 4'b1010;
-                                    Read_To_Reg = 1;
-                                    Save_ALU    = 1;
-                                    Set_Addr_To = aXY;
-                                    tstates     = 3'd4;
+                                    dec_alu_op      = 4'b1010;
+                                    dec_read_to_reg = 1;
+                                    dec_save_alu    = 1;
+                                    dec_set_addr_to = aXY;
+                                    dec_tstates     = 3'd4;
                                 end
                                 3'd3: begin
-                                    Write_i = 1;
+                                    dec_write = 1;
                                 end
                                 default: begin end
                             endcase
@@ -1321,20 +1301,20 @@ module t80(
                     end
 
                     8'hc6,8'hce,8'hd6,8'hde,8'he6,8'hee,8'hf6,8'hfe: begin  // SET b,(HL)
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd1,3'd7: begin
-                                Set_Addr_To = aXY;
+                                dec_set_addr_to = aXY;
                             end
                             3'd2: begin
-                                d_alu_op      = 4'b1010;
-                                Read_To_Reg = 1;
-                                Save_ALU    = 1;
-                                Set_Addr_To = aXY;
-                                tstates     = 3'd4;
+                                dec_alu_op      = 4'b1010;
+                                dec_read_to_reg = 1;
+                                dec_save_alu    = 1;
+                                dec_set_addr_to = aXY;
+                                dec_tstates     = 3'd4;
                             end
                             3'd3: begin
-                                Write_i = 1;
+                                dec_write = 1;
                             end
                             default: begin end
                         endcase
@@ -1350,27 +1330,27 @@ module t80(
                     8'hb8,8'hb9,8'hba,8'hbb,8'hbc,8'hbd,8'hbf: begin    // RES b,r
                         if (q_xy_state == 2'b00) begin
                             if (q_mcycle == 3'd1) begin
-                                d_alu_op      = 4'b1011;
-                                Read_To_Reg = 1;
-                                Save_ALU    = 1;
+                                dec_alu_op      = 4'b1011;
+                                dec_read_to_reg = 1;
+                                dec_save_alu    = 1;
                             end
                         end else begin
                             // RES b,(IX+d),Reg, undocumented
-                            d_mcycles   = 3'd3;
-                            XYbit_undoc = 1;
+                            dec_mcycles   = 3'd3;
+                            dec_xybit_undoc = 1;
                             case (q_mcycle)
                                 3'd1,3'd7: begin
-                                    Set_Addr_To = aXY;
+                                    dec_set_addr_to = aXY;
                                 end
                                 3'd2: begin
-                                    d_alu_op      = 4'b1011;
-                                    Read_To_Reg = 1;
-                                    Save_ALU    = 1;
-                                    Set_Addr_To = aXY;
-                                    tstates     = 3'd4;
+                                    dec_alu_op      = 4'b1011;
+                                    dec_read_to_reg = 1;
+                                    dec_save_alu    = 1;
+                                    dec_set_addr_to = aXY;
+                                    dec_tstates     = 3'd4;
                                 end
                                 3'd3: begin
-                                    Write_i = 1;
+                                    dec_write = 1;
                                 end
                                 default: begin end
                             endcase
@@ -1378,20 +1358,20 @@ module t80(
                     end
 
                     8'h86,8'h8e,8'h96,8'h9e,8'ha6,8'hae,8'hb6,8'hbe: begin  // RES b,(HL)
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd1,3'd7: begin
-                                Set_Addr_To = aXY;
+                                dec_set_addr_to = aXY;
                             end
                             3'd2: begin
-                                d_alu_op    = 4'b1011;
-                                Read_To_Reg = 1;
-                                Save_ALU    = 1;
-                                Set_Addr_To = aXY;
-                                tstates     = 3'd4;
+                                dec_alu_op    = 4'b1011;
+                                dec_read_to_reg = 1;
+                                dec_save_alu    = 1;
+                                dec_set_addr_to = aXY;
+                                dec_tstates     = 3'd4;
                             end
                             3'd3: begin
-                                Write_i = 1;
+                                dec_write = 1;
                             end
                             default: begin end
                         endcase
@@ -1437,56 +1417,56 @@ module t80(
 
                     // 8 BIT LOAD GROUP
                     8'h57: begin    // LD A,I
-                        Special_LD = 3'd4;
-                        tstates    = 3'd5;
+                        dec_special_ld = 3'd4;
+                        dec_tstates    = 3'd5;
                     end
 
                     8'h5f: begin    // LD A,R
-                        Special_LD = 3'd5;
-                        tstates    = 3'd5;
+                        dec_special_ld = 3'd5;
+                        dec_tstates    = 3'd5;
                     end
 
                     8'h47: begin    // LD I,A
-                        Special_LD = 3'd6;
-                        tstates    = 3'd5;
+                        dec_special_ld = 3'd6;
+                        dec_tstates    = 3'd5;
                     end
 
                     8'h4f: begin    // LD R,A
-                        Special_LD = 3'd7;
-                        tstates = 3'd5;
+                        dec_special_ld = 3'd7;
+                        dec_tstates = 3'd5;
                     end
 
                     // 16 BIT LOAD GROUP
                     8'h4b,8'h5b,8'h6b,8'h7b: begin  // LD dd,(nn)
-                        d_mcycles = 3'd5;
+                        dec_mcycles = 3'd5;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC = 1;
-                                LDZ    = 1;
+                                dec_inc_pc = 1;
+                                dec_ldz    = 1;
                             end
                             3'd3: begin
-                                Set_Addr_To = aZI;
-                                Inc_PC      = 1;
-                                LDW         = 1;
+                                dec_set_addr_to = aZI;
+                                dec_inc_pc      = 1;
+                                dec_ldw         = 1;
                             end
                             3'd4: begin
-                                Read_To_Reg = 1;
+                                dec_read_to_reg = 1;
                                 if (q_instruction[5:4] == 2'b11) begin
-                                    Set_BusA_To = 4'b1000;
+                                    dec_set_bus_a_to = 4'b1000;
                                 end else begin
-                                    Set_BusA_To[2:1] = q_instruction[5:4];
-                                    Set_BusA_To[0]   = 1;
+                                    dec_set_bus_a_to[2:1] = q_instruction[5:4];
+                                    dec_set_bus_a_to[0]   = 1;
                                 end
-                                Inc_WZ      = 1;
-                                Set_Addr_To = aZI;
+                                dec_inc_memptr      = 1;
+                                dec_set_addr_to = aZI;
                             end
                             3'd5: begin
-                                Read_To_Reg = 1;
+                                dec_read_to_reg = 1;
                                 if (q_instruction[5:4] == 2'b11) begin
-                                    Set_BusA_To = 4'b1001;
+                                    dec_set_bus_a_to = 4'b1001;
                                 end else begin
-                                    Set_BusA_To[2:1] = q_instruction[5:4];
-                                    Set_BusA_To[0] = 0;
+                                    dec_set_bus_a_to[2:1] = q_instruction[5:4];
+                                    dec_set_bus_a_to[0] = 0;
                                 end
                             end
                             default: begin end
@@ -1494,163 +1474,159 @@ module t80(
                     end
 
                     8'h43,8'h53,8'h63,8'h73: begin  // LD (nn),dd
-                        d_mcycles = 3'd5;
+                        dec_mcycles = 3'd5;
                         case (q_mcycle)
                             3'd2: begin
-                                Inc_PC = 1;
-                                LDZ    = 1;
+                                dec_inc_pc = 1;
+                                dec_ldz    = 1;
                             end
                             3'd3: begin
-                                Set_Addr_To = aZI;
-                                Inc_PC      = 1;
-                                LDW         = 1;
+                                dec_set_addr_to = aZI;
+                                dec_inc_pc      = 1;
+                                dec_ldw         = 1;
                                 if (q_instruction[5:4] == 2'b11) begin
-                                    Set_BusB_To = 4'b1000;
+                                    dec_set_bus_b_to = 4'b1000;
                                 end else begin
-                                    Set_BusB_To[2:1] = q_instruction[5:4];
-                                    Set_BusB_To[0]   = 1;
-                                    Set_BusB_To[3]   = 0;
+                                    dec_set_bus_b_to[2:1] = q_instruction[5:4];
+                                    dec_set_bus_b_to[0]   = 1;
+                                    dec_set_bus_b_to[3]   = 0;
                                 end
                             end
                             3'd4: begin
-                                Inc_WZ      = 1;
-                                Set_Addr_To = aZI;
-                                Write_i     = 1;
+                                dec_inc_memptr      = 1;
+                                dec_set_addr_to = aZI;
+                                dec_write     = 1;
                                 if (q_instruction[5:4] == 2'b11) begin
-                                    Set_BusB_To = 4'b1001;
+                                    dec_set_bus_b_to = 4'b1001;
                                 end else begin
-                                    Set_BusB_To[2:1] = q_instruction[5:4];
-                                    Set_BusB_To[0]   = 0;
-                                    Set_BusB_To[3]   = 0;
+                                    dec_set_bus_b_to[2:1] = q_instruction[5:4];
+                                    dec_set_bus_b_to[0]   = 0;
+                                    dec_set_bus_b_to[3]   = 0;
                                 end
                             end
                             3'd5: begin
-                                Write_i = 1;
+                                dec_write = 1;
                             end
                             default: begin end
                         endcase
                     end
 
                     8'ha0,8'ha8,8'hb0,8'hb8: begin  // LDI, LDD, LDIR, LDDR
-                        d_mcycles = 3'd4;
+                        dec_mcycles = 3'd4;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To = aXY;
-                                IncDec_16   = 4'b1100;      // BC
+                                dec_set_addr_to = aXY;
+                                dec_incdec16   = 4'b1100;      // BC
                             end
                             3'd2: begin
-                                Set_BusB_To      = 4'b0110;
-                                Set_BusA_To[2:0] = 3'd7;
-                                d_alu_op         = 4'b0000;
-                                Set_Addr_To      = aDE;
+                                dec_set_bus_b_to      = 4'b0110;
+                                dec_set_bus_a_to[2:0] = 3'd7;
+                                dec_alu_op         = 4'b0000;
+                                dec_set_addr_to      = aDE;
                                 if (!q_instruction[3]) begin
-                                    IncDec_16 = 4'b0110;    // IX
+                                    dec_incdec16 = 4'b0110;    // IX
                                 end else begin
-                                    IncDec_16 = 4'b1110;
+                                    dec_incdec16 = 4'b1110;
                                 end
                             end
                             3'd3: begin
-                                is_instr_bt = 1;
-                                tstates     = 3'd5;
-                                Write_i     = 1;
+                                dec_is_bt = 1;
+                                dec_tstates   = 3'd5;
+                                dec_write     = 1;
                                 if (!q_instruction[3]) begin
-                                    IncDec_16 = 4'b0101;    // DE
+                                    dec_incdec16 = 4'b0101;    // DE
                                 end else begin
-                                    IncDec_16 = 4'b1101;
+                                    dec_incdec16 = 4'b1101;
                                 end
-                                No_PC = 1;
+                                dec_no_pc = 1;
                             end
                             3'd4: begin
-                                NoRead_i = 1;
-                                tstates  = 3'd5;
+                                dec_no_read = 1;
+                                dec_tstates = 3'd5;
                             end
                             default: begin end
                         endcase
                     end
 
                     8'ha1,8'ha9,8'hb1,8'hb9: begin  // CPI, CPD, CPIR, CPDR
-                        d_mcycles = 3'd4;
+                        dec_mcycles = 3'd4;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To = aXY;
-                                IncDec_16   = 4'b1100;  // BC
+                                dec_set_addr_to = aXY;
+                                dec_incdec16   = 4'b1100;  // BC
                             end
                             3'd2: begin
-                                Set_BusB_To      = 4'b0110;
-                                Set_BusA_To[2:0] = 3'd7;
-                                d_alu_op         = 4'b0111;
-                                Save_ALU         = 1;
-                                d_preserve_c     = 1;
-                                if (!q_instruction[3]) begin
-                                    IncDec_16 = 4'b0110;
-                                end else begin
-                                    IncDec_16 = 4'b1110;
-                                end
-                                No_PC = 1;
+                                dec_set_bus_b_to      = 4'b0110;
+                                dec_set_bus_a_to[2:0] = 3'd7;
+                                dec_alu_op            = 4'b0111;
+                                dec_save_alu          = 1;
+                                dec_preserve_c        = 1;
+                                dec_incdec16          = q_instruction[3] ? 4'b1110 : 4'b0110;
+                                dec_no_pc             = 1;
                             end
                             3'd3: begin
-                                NoRead_i    = 1;
-                                is_instr_bc = 1;
-                                tstates     = 3'd5;
-                                No_PC       = 1;
+                                dec_no_read = 1;
+                                dec_is_bc   = 1;
+                                dec_tstates = 3'd5;
+                                dec_no_pc   = 1;
                             end
                             3'd4: begin
-                                NoRead_i = 1;
-                                tstates  = 3'd5;
+                                dec_no_read = 1;
+                                dec_tstates = 3'd5;
                             end
                             default: begin end
                         endcase
                     end
 
                     8'h44,8'h4c,8'h54,8'h5c,8'h64,8'h6c,8'h74,8'h7c: begin  // NEG
-                        d_alu_op    = 4'b0010;
-                        Set_BusB_To = 4'b0111;
-                        Set_BusA_To = 4'b1010;
-                        Read_To_Acc = 1;
-                        Save_ALU    = 1;
+                        dec_alu_op       = 4'b0010;
+                        dec_set_bus_b_to = 4'b0111;
+                        dec_set_bus_a_to = 4'b1010;
+                        dec_read_to_acc  = 1;
+                        dec_save_alu     = 1;
                     end
 
-                    8'h46,8'h4e,8'h66,8'h6e: d_im = 2'd0;  // IM 0
-                    8'h56,8'h76:             d_im = 2'd1;  // IM 1
-                    8'h5e,8'h7e:             d_im = 2'd2;  // IM 2
+                    8'h46,8'h4e,8'h66,8'h6e: dec_im = 2'd0;  // IM 0
+                    8'h56,8'h76:             dec_im = 2'd1;  // IM 1
+                    8'h5e,8'h7e:             dec_im = 2'd2;  // IM 2
 
                     // 16 bit arithmetic
                     8'h4a,8'h5a,8'h6a,8'h7a: begin  // ADC HL,ss
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd1: begin
-                                No_PC = 1;
+                                dec_no_pc = 1;
                             end
                             3'd2: begin
-                                NoRead_i         = 1;
-                                d_alu_op         = 4'b0001;
-                                Read_To_Reg      = 1;
-                                Save_ALU         = 1;
-                                Set_BusA_To[2:0] = 3'd5;
+                                dec_no_read           = 1;
+                                dec_alu_op            = 4'b0001;
+                                dec_read_to_reg       = 1;
+                                dec_save_alu          = 1;
+                                dec_set_bus_a_to[2:0] = 3'd5;
 
                                 if (q_instruction[5:4] == 2'b11) begin
-                                    Set_BusB_To = 4'b1000;
+                                    dec_set_bus_b_to = 4'b1000;
                                 end else begin
-                                    Set_BusB_To[2:1] = q_instruction[5:4];
-                                    Set_BusB_To[0]   = 1;
+                                    dec_set_bus_b_to[2:1] = q_instruction[5:4];
+                                    dec_set_bus_b_to[0]   = 1;
                                 end
 
-                                tstates = 3'd4;
-                                SetWZ   = 2'b11;
-                                No_PC   = 1;
+                                dec_tstates = 3'd4;
+                                dec_set_sw  = 2'b11;
+                                dec_no_pc   = 1;
                             end
                             3'd3: begin
-                                NoRead_i         = 1;
-                                Read_To_Reg      = 1;
-                                Save_ALU         = 1;
-                                d_alu_op         = 4'b0001;
-                                Set_BusA_To[2:0] = 3'd4;
+                                dec_no_read           = 1;
+                                dec_read_to_reg       = 1;
+                                dec_save_alu          = 1;
+                                dec_alu_op            = 4'b0001;
+                                dec_set_bus_a_to[2:0] = 3'd4;
 
                                 if (q_instruction[5:4] == 2'b11) begin
-                                    Set_BusB_To = 4'b1001;
+                                    dec_set_bus_b_to = 4'b1001;
                                 end else begin
-                                    Set_BusB_To[2:1] = q_instruction[5:4];
-                                    Set_BusB_To[0]   = 0;
+                                    dec_set_bus_b_to[2:1] = q_instruction[5:4];
+                                    dec_set_bus_b_to[0]   = 0;
                                 end
                             end
                             default: begin end
@@ -1659,40 +1635,40 @@ module t80(
 
                     8'h42,8'h52,8'h62,8'h72: begin
                         // SBC HL,ss
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd1: begin
-                                No_PC = 1;
+                                dec_no_pc = 1;
                             end
                             3'd2: begin
-                                NoRead_i         = 1;
-                                d_alu_op         = 4'b0011;
-                                Read_To_Reg      = 1;
-                                Save_ALU         = 1;
-                                Set_BusA_To[2:0] = 3'd5;
+                                dec_no_read           = 1;
+                                dec_alu_op            = 4'b0011;
+                                dec_read_to_reg       = 1;
+                                dec_save_alu          = 1;
+                                dec_set_bus_a_to[2:0] = 3'd5;
 
                                 if (q_instruction[5:4] == 2'b11) begin
-                                    Set_BusB_To = 4'b1000;
+                                    dec_set_bus_b_to = 4'b1000;
                                 end else begin
-                                    Set_BusB_To[2:1] = q_instruction[5:4];
-                                    Set_BusB_To[0]   = 1;
+                                    dec_set_bus_b_to[2:1] = q_instruction[5:4];
+                                    dec_set_bus_b_to[0]   = 1;
                                 end
 
-                                tstates = 3'd4;
-                                SetWZ   = 2'b11;
-                                No_PC   = 1;
+                                dec_tstates = 3'd4;
+                                dec_set_sw  = 2'b11;
+                                dec_no_pc   = 1;
                             end
                             3'd3: begin
-                                NoRead_i         = 1;
-                                d_alu_op         = 4'b0011;
-                                Read_To_Reg      = 1;
-                                Save_ALU         = 1;
-                                Set_BusA_To[2:0] = 3'd4;
+                                dec_no_read           = 1;
+                                dec_alu_op            = 4'b0011;
+                                dec_read_to_reg       = 1;
+                                dec_save_alu          = 1;
+                                dec_set_bus_a_to[2:0] = 3'd4;
 
                                 if (q_instruction[5:4] == 2'b11) begin
-                                    Set_BusB_To = 4'b1001;
+                                    dec_set_bus_b_to = 4'b1001;
                                 end else begin
-                                    Set_BusB_To[2:1] = q_instruction[5:4];
+                                    dec_set_bus_b_to[2:1] = q_instruction[5:4];
                                 end
                             end
                             default: begin end
@@ -1700,75 +1676,75 @@ module t80(
                     end
 
                     8'h6f: begin    // RLD -- Read in M2, not M3! fixed by Sorgelig
-                        d_mcycles = 3'd4;
+                        dec_mcycles = 3'd4;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To = aXY;
+                                dec_set_addr_to = aXY;
                             end
                             3'd2: begin
-                                Read_To_Reg      = 1;
-                                Set_BusB_To[2:0] = 3'd6;
-                                Set_BusA_To[2:0] = 3'd7;
-                                d_alu_op         = 4'b1101;
-                                Save_ALU         = 1;
-                                No_PC            = 1;
+                                dec_read_to_reg       = 1;
+                                dec_set_bus_b_to[2:0] = 3'd6;
+                                dec_set_bus_a_to[2:0] = 3'd7;
+                                dec_alu_op            = 4'b1101;
+                                dec_save_alu          = 1;
+                                dec_no_pc             = 1;
                             end
                             3'd3: begin
-                                tstates      = 3'd4;
-                                is_instr_rld = 1;
-                                NoRead_i     = 1;
-                                Set_Addr_To  = aXY;
+                                dec_tstates     = 3'd4;
+                                dec_is_rld      = 1;
+                                dec_no_read     = 1;
+                                dec_set_addr_to = aXY;
                             end
                             3'd4: begin
-                                Write_i = 1;
+                                dec_write = 1;
                             end
                             default: begin end
                         endcase
                     end
 
                     8'h67: begin    // RRD -- Read in M2, not M3! fixed by Sorgelig
-                        d_mcycles = 3'd4;
+                        dec_mcycles = 3'd4;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To = aXY;
+                                dec_set_addr_to = aXY;
                             end
                             3'd2: begin
-                                Read_To_Reg      = 1;
-                                Set_BusB_To[2:0] = 3'd6;
-                                Set_BusA_To[2:0] = 3'd7;
-                                d_alu_op         = 4'b1110;
-                                Save_ALU         = 1;
-                                No_PC            = 1;
+                                dec_read_to_reg       = 1;
+                                dec_set_bus_b_to[2:0] = 3'd6;
+                                dec_set_bus_a_to[2:0] = 3'd7;
+                                dec_alu_op            = 4'b1110;
+                                dec_save_alu          = 1;
+                                dec_no_pc             = 1;
                             end
                             3'd3: begin
-                                tstates      = 3'd4;
-                                is_instr_rrd = 1;
-                                NoRead_i     = 1;
-                                Set_Addr_To  = aXY;
+                                dec_tstates     = 3'd4;
+                                dec_is_rrd      = 1;
+                                dec_no_read     = 1;
+                                dec_set_addr_to = aXY;
                             end
                             3'd4: begin
-                                Write_i = 1;
+                                dec_write = 1;
                             end
                             default: begin end
                         endcase
                     end
 
                     8'h45,8'h4d,8'h55,8'h5d,8'h65,8'h6d,8'h75,8'h7d: begin  // RETI/RETN
-                        d_mcycles = 3'd3;
+                        dec_mcycles = 3'd3;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To = aSP;
+                                dec_set_addr_to = aSP;
                             end
                             3'd2: begin
-                                IncDec_16   = 4'b0111;
-                                Set_Addr_To = aSP;
-                                LDZ         = 1;
+                                dec_incdec16    = 4'b0111;
+                                dec_set_addr_to = aSP;
+                                dec_ldz         = 1;
                             end
                             3'd3: begin
-                                Jump          = 1;
-                                IncDec_16     = 4'b0111;
-                                LDW           = 1;
-                                is_instr_retn = 1;
+                                dec_jump     = 1;
+                                dec_incdec16 = 4'b0111;
+                                dec_ldw      = 1;
+                                dec_is_retn  = 1;
                             end
                             default: begin end
                         endcase
@@ -1776,110 +1752,105 @@ module t80(
 
                     8'h40,8'h48,8'h50,8'h58,8'h60,8'h68,8'h70,8'h78: begin
                         // IN r,(C)
-                        d_mcycles = 3'd2;
+                        dec_mcycles = 3'd2;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To = aBC;
-                                SetWZ       = 2'b01;
+                                dec_set_addr_to = aBC;
+                                dec_set_sw      = 2'b01;
                             end
                             3'd2: begin
-                                IORQ_i = 1;
+                                dec_iorq = 1;
                                 if (q_instruction[5:3] != 3'd6) begin
-                                    Read_To_Reg      = 1;
-                                    Set_BusA_To[2:0] = q_instruction[5:3];
+                                    dec_read_to_reg       = 1;
+                                    dec_set_bus_a_to[2:0] = q_instruction[5:3];
                                 end
-                                is_instr_inrc = 1;
+                                dec_is_inrc = 1;
                             end
                             default: begin end
                         endcase
                     end
 
                     8'h41,8'h49,8'h51,8'h59,8'h61,8'h69,8'h71,8'h79: begin  // OUT (C),r   OUT (C),0
-                        d_mcycles = 3'd2;
+                        dec_mcycles = 3'd2;
                         case (q_mcycle)
                             3'd1: begin
-                                Set_Addr_To      = aBC;
-                                SetWZ            = 2'b01;
-                                Set_BusB_To[2:0] = q_instruction[5:3];
+                                dec_set_addr_to       = aBC;
+                                dec_set_sw            = 2'b01;
+                                dec_set_bus_b_to[2:0] = q_instruction[5:3];
                                 if (q_instruction[5:3] == 3'd6)
-                                    Set_BusB_To[3] = 1;
+                                    dec_set_bus_b_to[3] = 1;
                             end
                             3'd2: begin
-                                Write_i = 1;
-                                IORQ_i  = 1;
+                                dec_write = 1;
+                                dec_iorq  = 1;
                             end
                             default: begin end
                         endcase
                     end
 
                     8'ha2,8'haa,8'hb2,8'hba: begin  // INI, IND, INIR, INDR
-                        d_mcycles = 3'd4;
+                        dec_mcycles = 3'd4;
                         case (q_mcycle)
                             3'd1: begin
-                                tstates      = 3'd5;
-                                Set_Addr_To  = aBC;
-                                Set_BusB_To  = 4'b1010;
-                                Set_BusA_To  = 4'b0000;
-                                Read_To_Reg  = 1;
-                                Save_ALU     = 1;
-                                d_alu_op     = 4'b0010;
-                                SetWZ        = 2'b11;
-                                IncDec_16[3] = q_instruction[3];
+                                dec_tstates      = 3'd5;
+                                dec_set_addr_to  = aBC;
+                                dec_set_bus_b_to = 4'b1010;
+                                dec_set_bus_a_to = 4'b0000;
+                                dec_read_to_reg  = 1;
+                                dec_save_alu     = 1;
+                                dec_alu_op       = 4'b0010;
+                                dec_set_sw       = 2'b11;
+                                dec_incdec16[3]  = q_instruction[3];
                             end
                             3'd2: begin
-                                IORQ_i      = 1;
-                                Set_BusB_To = 4'b0110;
-                                Set_Addr_To = aXY;
+                                dec_iorq         = 1;
+                                dec_set_bus_b_to = 4'b0110;
+                                dec_set_addr_to  = aXY;
                             end
                             3'd3: begin
                                 if (!q_instruction[3])
-                                    IncDec_16 = 4'b0110;
+                                    dec_incdec16 = 4'b0110;
                                 else
-                                    IncDec_16 = 4'b1110;
+                                    dec_incdec16 = 4'b1110;
 
-                                Write_i      = 1;
-                                is_instr_btr = 1;
+                                dec_write  = 1;
+                                dec_is_btr = 1;
                             end
                             3'd4: begin
-                                NoRead_i = 1;
-                                tstates  = 3'd5;
+                                dec_no_read = 1;
+                                dec_tstates = 3'd5;
                             end
                             default: begin end
                         endcase
                     end
 
-                    8'ha3,8'hab,8'hb3,8'hbb: begin
-                        // OUTI, OUTD, OTIR, OTDR
-                        d_mcycles = 3'd4;
+                    8'ha3,8'hab,8'hb3,8'hbb: begin  // OUTI, OUTD, OTIR, OTDR
+                        dec_mcycles = 3'd4;
                         case (q_mcycle)
                             3'd1: begin
-                                tstates     = 3'd5;
-                                Set_Addr_To = aXY;
-                                Set_BusB_To = 4'b1010;
-                                Set_BusA_To = 4'b0000;
-                                Read_To_Reg = 1;
-                                Save_ALU    = 1;
-                                d_alu_op    = 4'b0010;
+                                dec_tstates      = 3'd5;
+                                dec_set_addr_to  = aXY;
+                                dec_set_bus_b_to = 4'b1010;
+                                dec_set_bus_a_to = 4'b0000;
+                                dec_read_to_reg  = 1;
+                                dec_save_alu     = 1;
+                                dec_alu_op       = 4'b0010;
                             end
                             3'd2: begin
-                                Set_BusB_To  = 4'b0110;
-                                Set_Addr_To  = aBC;
-                                SetWZ        = 2'b11;
-                                IncDec_16[3] = q_instruction[3];
+                                dec_set_bus_b_to = 4'b0110;
+                                dec_set_addr_to  = aBC;
+                                dec_set_sw       = 2'b11;
+                                dec_incdec16[3]  = q_instruction[3];
                             end
                             3'd3: begin
-                                if (!q_instruction[3])
-                                    IncDec_16 = 4'b0110;
-                                else
-                                    IncDec_16 = 4'b1110;
-
-                                IORQ_i       = 1;
-                                Write_i      = 1;
-                                is_instr_btr = 1;
+                                dec_incdec16 = q_instruction[3] ? 4'b1110 : 4'b0110;
+                                dec_iorq     = 1;
+                                dec_write    = 1;
+                                dec_is_btr   = 1;
                             end
                             3'd4: begin
-                                NoRead_i = 1;
-                                tstates  = 3'd5;
+                                dec_no_read = 1;
+                                dec_tstates = 3'd5;
                             end
                             default: begin end
                         endcase
@@ -1892,46 +1863,41 @@ module t80(
             end
         endcase
 
-        if (Mode == 1) begin
-            if (q_mcycle == 3'd1) begin
-            end else begin
-                tstates = 3'd3;
-            end
+        if (Mode == 1 && q_mcycle != 3'd1) begin
+            dec_tstates = 3'd3;
         end
 
         if (q_mcycle == 3'd6) begin
-            Inc_PC = 1;
+            dec_inc_pc = 1;
             if (Mode == 1) begin
-                Set_Addr_To      = aXY;
-                tstates          = 3'd4;
-                Set_BusB_To[2:0] = ir_sss;
-                Set_BusB_To[3]   = 0;
+                dec_set_addr_to       = aXY;
+                dec_tstates           = 3'd4;
+                dec_set_bus_b_to[2:0] = ir_sss;
+                dec_set_bus_b_to[3]   = 0;
             end
 
             if (q_instruction == 8'h36 || q_instruction == 8'hcb)
-                Set_Addr_To = aNone;
+                dec_set_addr_to = aNone;
 
             if (!(q_instruction == 8'h36 || q_prefix == PrefixCB))
-                No_PC = 1;
+                dec_no_pc = 1;
         end
 
         if (q_mcycle == 3'd7) begin
-            if (Mode == 0) begin
-                tstates = 3'd5;
-            end
+            if (Mode == 0)
+                dec_tstates = 3'd5;
 
-            if (q_prefix != PrefixCB) begin
-                Set_Addr_To = aXY;
-            end
+            if (q_prefix != PrefixCB)
+                dec_set_addr_to = aXY;
 
-            Set_BusB_To[2:0] = ir_sss;
-            Set_BusB_To[3]   = 0;
+            dec_set_bus_b_to[2:0] = ir_sss;
+            dec_set_bus_b_to[3]   = 0;
 
             if (q_instruction == 8'h36 || q_prefix == PrefixCB) begin
                 // LD (HL),n
-                Inc_PC = 1;
+                dec_inc_pc = 1;
             end else begin
-                NoRead_i = 1;
+                dec_no_read = 1;
             end
         end
     end
@@ -1941,13 +1907,13 @@ module t80(
     //------------------------------------------------------------------------
     reg [7:0] alu_bitmask;
     always @* case (q_instruction[5:3])
-        3'd0:  alu_bitmask = 8'h01;
-        3'd1:  alu_bitmask = 8'h02;
-        3'd2:  alu_bitmask = 8'h04;
-        3'd3:  alu_bitmask = 8'h08;
-        3'd4:  alu_bitmask = 8'h10;
-        3'd5:  alu_bitmask = 8'h20;
-        3'd6:  alu_bitmask = 8'h40;
+        3'd0:    alu_bitmask = 8'h01;
+        3'd1:    alu_bitmask = 8'h02;
+        3'd2:    alu_bitmask = 8'h04;
+        3'd3:    alu_bitmask = 8'h08;
+        3'd4:    alu_bitmask = 8'h10;
+        3'd5:    alu_bitmask = 8'h20;
+        3'd6:    alu_bitmask = 8'h40;
         default: alu_bitmask = 8'h80;
     endcase
 
@@ -1963,75 +1929,76 @@ module t80(
     wire       alu_overflow      = alu_carry ^ alu_carry7;
     reg  [7:0] alu_result;
     reg  [8:0] alu_daa_tmp;
+    reg  [7:0] d_reg_f;
 
     always @* begin
         alu_result  = 0;
-        F_Out       = q_reg_f;
+        d_reg_f       = q_reg_f;
         alu_daa_tmp = 0;
 
         case (q_alu_op)
             4'b0000, 4'b0001, 4'b0010, 4'b0011, 4'b0100, 4'b0101, 4'b0110, 4'b0111: begin
-                F_Out[Flag_N] = 0;
-                F_Out[Flag_C] = 0;
+                d_reg_f[Flag_N] = 0;
+                d_reg_f[Flag_C] = 0;
 
                 case (q_alu_op[2:0])
                     3'd0, 3'd1: begin           // ADD, ADC
-                        alu_result    = alu_addsub_result;
-                        F_Out[Flag_C] = alu_carry;
-                        F_Out[Flag_H] = alu_half_carry;
-                        F_Out[Flag_P] = alu_overflow;
+                        alu_result      = alu_addsub_result;
+                        d_reg_f[Flag_C] = alu_carry;
+                        d_reg_f[Flag_H] = alu_half_carry;
+                        d_reg_f[Flag_P] = alu_overflow;
                     end
 
                     3'd2, 3'd3, 3'd7: begin     // SUB, SBC, CP
-                        alu_result    = alu_addsub_result;
-                        F_Out[Flag_N] = 1;
-                        F_Out[Flag_C] = !alu_carry;
-                        F_Out[Flag_H] = !alu_half_carry;
-                        F_Out[Flag_P] = alu_overflow;
+                        alu_result      = alu_addsub_result;
+                        d_reg_f[Flag_N] = 1;
+                        d_reg_f[Flag_C] = !alu_carry;
+                        d_reg_f[Flag_H] = !alu_half_carry;
+                        d_reg_f[Flag_P] = alu_overflow;
                     end
 
-                    3'd4:    begin alu_result = bus_a & bus_b; F_Out[Flag_H] = 1; end // AND
-                    3'd5:    begin alu_result = bus_a ^ bus_b; F_Out[Flag_H] = 0; end // XOR
-                    default: begin alu_result = bus_a | bus_b; F_Out[Flag_H] = 0; end // OR (110)
+                    3'd4:    begin alu_result = bus_a & bus_b; d_reg_f[Flag_H] = 1; end // AND
+                    3'd5:    begin alu_result = bus_a ^ bus_b; d_reg_f[Flag_H] = 0; end // XOR
+                    default: begin alu_result = bus_a | bus_b; d_reg_f[Flag_H] = 0; end // OR (110)
                 endcase
 
                 if (q_alu_op[2:0] == 3'd7) begin    // CP
-                    F_Out[Flag_X] = bus_b[3];
-                    F_Out[Flag_Y] = bus_b[5];
+                    d_reg_f[Flag_X] = bus_b[3];
+                    d_reg_f[Flag_Y] = bus_b[5];
                 end else begin
-                    F_Out[Flag_X] = alu_result[3];
-                    F_Out[Flag_Y] = alu_result[5];
+                    d_reg_f[Flag_X] = alu_result[3];
+                    d_reg_f[Flag_Y] = alu_result[5];
                 end
 
-                F_Out[Flag_Z] = q_z16 ? q_reg_f[Flag_Z] : (alu_result == 8'b0);
-                F_Out[Flag_S] = alu_result[7];
+                d_reg_f[Flag_Z] = q_z16 ? q_reg_f[Flag_Z] : (alu_result == 8'b0);
+                d_reg_f[Flag_S] = alu_result[7];
 
                 case (q_alu_op[2:0])
                     3'd0, 3'd1, 3'd2, 3'd3, 3'd7: begin   // ADD, ADC, SUB, SBC, CP
                     end
                     default: begin
-                        F_Out[Flag_P] = !(alu_result[0] ^ alu_result[1] ^ alu_result[2] ^ alu_result[3] ^ alu_result[4] ^ alu_result[5] ^ alu_result[6] ^ alu_result[7]);
+                        d_reg_f[Flag_P] = !(alu_result[0] ^ alu_result[1] ^ alu_result[2] ^ alu_result[3] ^ alu_result[4] ^ alu_result[5] ^ alu_result[6] ^ alu_result[7]);
                     end
                 endcase
 
                 if (q_arith16) begin
-                    F_Out[Flag_S] = q_reg_f[Flag_S];
-                    F_Out[Flag_Z] = q_reg_f[Flag_Z];
-                    F_Out[Flag_P] = q_reg_f[Flag_P];
+                    d_reg_f[Flag_S] = q_reg_f[Flag_S];
+                    d_reg_f[Flag_Z] = q_reg_f[Flag_Z];
+                    d_reg_f[Flag_P] = q_reg_f[Flag_P];
                 end
             end
 
             4'b1100: begin  // DAA
-                F_Out[Flag_H] = q_reg_f[Flag_H];
-                F_Out[Flag_C] = q_reg_f[Flag_C];
-                alu_daa_tmp   = {1'b0, bus_a};
+                d_reg_f[Flag_H] = q_reg_f[Flag_H];
+                d_reg_f[Flag_C] = q_reg_f[Flag_C];
+                alu_daa_tmp     = {1'b0, bus_a};
 
                 if (!q_reg_f[Flag_N]) begin
                     // After addition
                     // A_low > 9 or H = 1
                     if (alu_daa_tmp[3:0] > 4'd9 || q_reg_f[Flag_H]) begin
-                        F_Out[Flag_H] = (alu_daa_tmp[3:0] > 4'd9);
-                        alu_daa_tmp   = alu_daa_tmp + 9'd6;
+                        d_reg_f[Flag_H] = (alu_daa_tmp[3:0] > 4'd9);
+                        alu_daa_tmp     = alu_daa_tmp + 9'd6;
                     end
 
                     // new A_high > 9 or C = 1
@@ -2042,7 +2009,7 @@ module t80(
                     // After subtraction
                     if (alu_daa_tmp[3:0] > 4'd9 || q_reg_f[Flag_H]) begin
                         if (alu_daa_tmp[3:0] > 4'd5)
-                            F_Out[Flag_H] = 0;
+                            d_reg_f[Flag_H] = 0;
 
                         alu_daa_tmp[7:0] = alu_daa_tmp[7:0] - 8'd6;
                     end
@@ -2051,39 +2018,39 @@ module t80(
                         alu_daa_tmp = alu_daa_tmp - 9'h160;
                 end
 
-                alu_result    = alu_daa_tmp[7:0];
-                F_Out[Flag_X] = alu_daa_tmp[3];
-                F_Out[Flag_Y] = alu_daa_tmp[5];
-                F_Out[Flag_C] = q_reg_f[Flag_C] | alu_daa_tmp[8];
-                F_Out[Flag_Z] = (alu_daa_tmp[7:0] == 8'b0);
-                F_Out[Flag_S] = alu_daa_tmp[7];
-                F_Out[Flag_P] = !(alu_daa_tmp[0] ^ alu_daa_tmp[1] ^ alu_daa_tmp[2] ^ alu_daa_tmp[3] ^ alu_daa_tmp[4] ^ alu_daa_tmp[5] ^ alu_daa_tmp[6] ^ alu_daa_tmp[7]);
+                alu_result      = alu_daa_tmp[7:0];
+                d_reg_f[Flag_X] = alu_daa_tmp[3];
+                d_reg_f[Flag_Y] = alu_daa_tmp[5];
+                d_reg_f[Flag_C] = q_reg_f[Flag_C] | alu_daa_tmp[8];
+                d_reg_f[Flag_Z] = (alu_daa_tmp[7:0] == 8'b0);
+                d_reg_f[Flag_S] = alu_daa_tmp[7];
+                d_reg_f[Flag_P] = !(alu_daa_tmp[0] ^ alu_daa_tmp[1] ^ alu_daa_tmp[2] ^ alu_daa_tmp[3] ^ alu_daa_tmp[4] ^ alu_daa_tmp[5] ^ alu_daa_tmp[6] ^ alu_daa_tmp[7]);
             end
 
             4'b1101, 4'b1110: begin     // RLD, RRD
-                alu_result    = {bus_a[7:4], q_alu_op[0] ? bus_b[7:4] : bus_b[3:0]};
-                F_Out[Flag_H] = 0;
-                F_Out[Flag_N] = 0;
-                F_Out[Flag_X] = alu_result[3];
-                F_Out[Flag_Y] = alu_result[5];
-                F_Out[Flag_Z] = (alu_result == 8'b0);
-                F_Out[Flag_S] = alu_result[7];
-                F_Out[Flag_P] = !(alu_result[0] ^ alu_result[1] ^ alu_result[2] ^ alu_result[3] ^ alu_result[4] ^ alu_result[5] ^ alu_result[6] ^ alu_result[7]);
+                alu_result      = {bus_a[7:4], q_alu_op[0] ? bus_b[7:4] : bus_b[3:0]};
+                d_reg_f[Flag_H] = 0;
+                d_reg_f[Flag_N] = 0;
+                d_reg_f[Flag_X] = alu_result[3];
+                d_reg_f[Flag_Y] = alu_result[5];
+                d_reg_f[Flag_Z] = (alu_result == 8'b0);
+                d_reg_f[Flag_S] = alu_result[7];
+                d_reg_f[Flag_P] = !(alu_result[0] ^ alu_result[1] ^ alu_result[2] ^ alu_result[3] ^ alu_result[4] ^ alu_result[5] ^ alu_result[6] ^ alu_result[7]);
             end
 
             4'b1001: begin      // BIT
-                alu_result    = bus_b & alu_bitmask;
-                F_Out[Flag_S] = alu_result[7];
-                F_Out[Flag_Z] = (alu_result == 8'b0);
-                F_Out[Flag_P] = (alu_result == 8'b0);
-                F_Out[Flag_H] = 1;
-                F_Out[Flag_N] = 0;
+                alu_result      = bus_b & alu_bitmask;
+                d_reg_f[Flag_S] = alu_result[7];
+                d_reg_f[Flag_Z] = (alu_result == 8'b0);
+                d_reg_f[Flag_P] = (alu_result == 8'b0);
+                d_reg_f[Flag_H] = 1;
+                d_reg_f[Flag_N] = 0;
                 if (q_instruction[2:0] == 3'd6 || q_xy_state != 2'b00) begin
-                    F_Out[Flag_X] = q_memptr[11];
-                    F_Out[Flag_Y] = q_memptr[13];
+                    d_reg_f[Flag_X] = q_memptr[11];
+                    d_reg_f[Flag_Y] = q_memptr[13];
                 end else begin
-                    F_Out[Flag_X] = bus_b[3];
-                    F_Out[Flag_Y] = bus_b[5];
+                    d_reg_f[Flag_X] = bus_b[3];
+                    d_reg_f[Flag_Y] = bus_b[5];
                 end
             end
 
@@ -2097,28 +2064,28 @@ module t80(
 
             4'b1000: begin      // ROT
                 case (q_instruction[5:3])
-                    3'd0:    begin alu_result = {bus_a[6:0],      bus_a[7]};        F_Out[Flag_C] = bus_a[7]; end // RLC
-                    3'd2:    begin alu_result = {bus_a[6:0],      q_reg_f[Flag_C]}; F_Out[Flag_C] = bus_a[7]; end // RL
-                    3'd1:    begin alu_result = {bus_a[0],        bus_a[7:1]};      F_Out[Flag_C] = bus_a[0]; end // RRC
-                    3'd3:    begin alu_result = {q_reg_f[Flag_C], bus_a[7:1]};      F_Out[Flag_C] = bus_a[0]; end // RR
-                    3'd4:    begin alu_result = {bus_a[6:0],      1'b0};            F_Out[Flag_C] = bus_a[7]; end // SLA
-                    3'd6:    begin alu_result = {bus_a[6:0],      1'b1};            F_Out[Flag_C] = bus_a[7]; end // SLL (Undocumented) / SWAP
-                    3'd5:    begin alu_result = {bus_a[7],        bus_a[7:1]};      F_Out[Flag_C] = bus_a[0]; end // SRA
-                    default: begin alu_result = {1'b0,            bus_a[7:1]};      F_Out[Flag_C] = bus_a[0]; end // SRL
+                    3'd0:    begin alu_result = {bus_a[6:0],      bus_a[7]};        d_reg_f[Flag_C] = bus_a[7]; end // RLC
+                    3'd2:    begin alu_result = {bus_a[6:0],      q_reg_f[Flag_C]}; d_reg_f[Flag_C] = bus_a[7]; end // RL
+                    3'd1:    begin alu_result = {bus_a[0],        bus_a[7:1]};      d_reg_f[Flag_C] = bus_a[0]; end // RRC
+                    3'd3:    begin alu_result = {q_reg_f[Flag_C], bus_a[7:1]};      d_reg_f[Flag_C] = bus_a[0]; end // RR
+                    3'd4:    begin alu_result = {bus_a[6:0],      1'b0};            d_reg_f[Flag_C] = bus_a[7]; end // SLA
+                    3'd6:    begin alu_result = {bus_a[6:0],      1'b1};            d_reg_f[Flag_C] = bus_a[7]; end // SLL (Undocumented) / SWAP
+                    3'd5:    begin alu_result = {bus_a[7],        bus_a[7:1]};      d_reg_f[Flag_C] = bus_a[0]; end // SRA
+                    default: begin alu_result = {1'b0,            bus_a[7:1]};      d_reg_f[Flag_C] = bus_a[0]; end // SRL
                 endcase
 
-                F_Out[Flag_H] = 0;
-                F_Out[Flag_N] = 0;
-                F_Out[Flag_X] = alu_result[3];
-                F_Out[Flag_Y] = alu_result[5];
-                F_Out[Flag_S] = alu_result[7];
-                F_Out[Flag_Z] = (alu_result == 8'b0);
-                F_Out[Flag_P] = !(alu_result[0] ^ alu_result[1] ^ alu_result[2] ^ alu_result[3] ^ alu_result[4] ^ alu_result[5] ^ alu_result[6] ^ alu_result[7]);
+                d_reg_f[Flag_H] = 0;
+                d_reg_f[Flag_N] = 0;
+                d_reg_f[Flag_X] = alu_result[3];
+                d_reg_f[Flag_Y] = alu_result[5];
+                d_reg_f[Flag_S] = alu_result[7];
+                d_reg_f[Flag_Z] = (alu_result == 8'b0);
+                d_reg_f[Flag_P] = !(alu_result[0] ^ alu_result[1] ^ alu_result[2] ^ alu_result[3] ^ alu_result[4] ^ alu_result[5] ^ alu_result[6] ^ alu_result[7]);
 
                 if (q_prefix == PrefixNone) begin
-                    F_Out[Flag_P] = q_reg_f[Flag_P];
-                    F_Out[Flag_S] = q_reg_f[Flag_S];
-                    F_Out[Flag_Z] = q_reg_f[Flag_Z];
+                    d_reg_f[Flag_P] = q_reg_f[Flag_P];
+                    d_reg_f[Flag_S] = q_reg_f[Flag_S];
+                    d_reg_f[Flag_Z] = q_reg_f[Flag_Z];
                 end
             end
 
@@ -2126,22 +2093,20 @@ module t80(
         endcase
     end
 
-    assign ALU_Q = alu_result;
-
     //------------------------------------------------------------------------
 
-    assign Really_Wait     = bus_wait & (Write_i | ~NoRead_i);
-    assign T_Res           = q_tstate == tstates;
-    assign NextIs_XY_Fetch = q_xy_state != 2'b00 && !XY_Ind && (Set_Addr_To == aXY || (q_mcycle == 3'd1 && q_instruction == 8'hcb) || (q_mcycle == 3'd1 && q_instruction == 8'h36));
-    assign Save_Mux        = ExchangeRp ? bus_b : !q_save_alu ? DI_Reg : ALU_Q;
+    wire       really_wait      = bus_wait & (dec_write | ~dec_no_read);
+    wire       t_reset          = q_tstate == dec_tstates;
+    wire       next_is_xy_fetch = q_xy_state != 2'b00 && !q_xy_ind && (dec_set_addr_to == aXY || (q_mcycle == 3'd1 && q_instruction == 8'hcb) || (q_mcycle == 3'd1 && q_instruction == 8'h36));
+    wire [7:0] save_mux         = dec_exchange_rp ? bus_b : !q_save_alu ? DI_Reg : alu_result;
 
-    reg         q_is_instr_rld_rrd;
+    reg        q_is_rld_rrd;
 
-    wire [8:0] temp_c = {1'b0, q_reg_sp[7:0]} + {1'b0, Save_Mux};
-    wire [4:0] temp_h = {1'b0, q_reg_sp[3:0]} + {1'b0, Save_Mux[3:0]};
+    wire [8:0] temp_c = {1'b0, q_reg_sp[7:0]} + {1'b0, save_mux};
+    wire [4:0] temp_h = {1'b0, q_reg_sp[3:0]} + {1'b0, save_mux[3:0]};
     wire [8:0] ioq1   = {1'b0, DI_Reg} + {1'b0, incdec16_result[7:0]};
     wire [8:0] ioq2   = (ioq1 & 9'b000000111) ^ {1'b0, bus_a};
-    wire [7:0] temp_n = ALU_Q - {7'b0, F_Out[Flag_H]};
+    wire [7:0] temp_n = alu_result - {7'b0, d_reg_f[Flag_H]};
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
@@ -2172,40 +2137,25 @@ module t80(
             q_alu_op           <= 0;
             q_save_alu         <= 0;
             q_preserve_c       <= 0;
-            XY_Ind             <= 0;
-            q_is_instr_rld_rrd <= 0;
+            q_xy_ind             <= 0;
+            q_is_rld_rrd <= 0;
 
         end else begin
             if (clk_en) begin
                 q_alu_op      <= 4'b0000;
                 q_save_alu    <= 0;
                 q_read_to_reg <= 5'b00000;
-                q_mcycles     <= d_mcycles;
-                q_im          <= d_im;
-                q_arith16     <= d_arith16;
-                q_preserve_c  <= d_preserve_c;
-                q_z16         <= (q_prefix == PrefixED && !d_alu_op[2] && d_alu_op[0] && q_mcycle == 3'd3);
-
-                if (LDHLSP && q_mcycle == 3'd3 && q_tstate == 1) begin
-                    q_reg_f[Flag_Z] <= 0;
-                    q_reg_f[Flag_N] <= 0;
-                    q_reg_f[Flag_H] <= temp_h[4];
-                    q_reg_f[Flag_C] <= temp_c[8];
-                end
-
-                if (ADDSPdd && q_tstate == 1) begin
-                    q_reg_f[Flag_Z] <= 0;
-                    q_reg_f[Flag_N] <= 0;
-                    q_reg_f[Flag_H] <= temp_h[4];
-                    q_reg_f[Flag_C] <= temp_c[8];
-                end
-
+                q_mcycles     <= dec_mcycles;
+                q_im          <= dec_im;
+                q_arith16     <= dec_arith16;
+                q_preserve_c  <= dec_preserve_c;
+                q_z16         <= (q_prefix == PrefixED && !dec_alu_op[2] && dec_alu_op[0] && q_mcycle == 3'd3);
 
                 if (q_mcycle == 3'd1 && !q_tstate[2]) begin
                     if (q_tstate == 2 && !bus_wait) begin
                         q_bus_addr <= {q_reg_i, q_reg_r};
                         q_reg_r[6:0]  <= q_reg_r[6:0] + 7'd1;
-                        if (!Jump && !Call && !q_nmi_cycle && !q_irq_cycle && !(q_halt || is_instr_halt)) begin
+                        if (!dec_jump && !dec_call && !q_nmi_cycle && !q_irq_cycle && !(q_halt || dec_is_halt)) begin
                             q_reg_pc <= q_reg_pc + 1;
                         end
                         if (q_irq_cycle && q_im == 2'b01) begin
@@ -2221,44 +2171,44 @@ module t80(
                         end
 
                         q_prefix <= PrefixNone;
-                        if (d_prefix != PrefixNone) begin
-                            if (d_prefix == PrefixDD_FD) begin
+                        if (dec_prefix != PrefixNone) begin
+                            if (dec_prefix == PrefixDD_FD) begin
                                 if (q_instruction[5]) begin
                                     q_xy_state <= 2'b10;
                                 end else begin
                                     q_xy_state <= 2'b01;
                                 end
                             end else begin
-                                if (d_prefix == PrefixED) begin
+                                if (dec_prefix == PrefixED) begin
                                     q_xy_state <= 2'b00;
-                                    XY_Ind   <= 0;
+                                    q_xy_ind   <= 0;
                                 end
-                                q_prefix <= d_prefix;
+                                q_prefix <= dec_prefix;
                             end
                         end else begin
                             q_xy_state <= 2'b00;
-                            XY_Ind   <= 0;
+                            q_xy_ind   <= 0;
                         end
                     end
                 end
                 else begin
                     if (q_mcycle == 3'd6) begin
-                        XY_Ind <= 1;
-                        if (d_prefix == PrefixCB) begin
-                            q_prefix <= d_prefix;
+                        q_xy_ind <= 1;
+                        if (dec_prefix == PrefixCB) begin
+                            q_prefix <= dec_prefix;
                         end
                     end
-                    if (T_Res) begin
-                        q_btr <= (is_instr_bt | is_instr_bc | is_instr_btr) & ~q_no_btr;
-                        if (Jump) begin
+                    if (t_reset) begin
+                        q_btr <= (dec_is_bt | dec_is_bc | dec_is_btr) & ~q_no_btr;
+                        if (dec_jump) begin
                             q_bus_addr <= {DI_Reg, q_memptr[7:0]};
-                            q_reg_pc <= {DI_Reg, q_memptr[7:0]};
+                            q_reg_pc   <= {DI_Reg, q_memptr[7:0]};
                         end
-                        else if (is_instr_jp_ind_hl) begin
+                        else if (dec_is_jp_ind_hl) begin
                             q_bus_addr <= reg_bus_c;
                             q_reg_pc <= reg_bus_c;
                         end
-                        else if (Call || RstP) begin
+                        else if (dec_call || dec_rst_p) begin
                             q_bus_addr <= q_memptr;
                             q_reg_pc <= q_memptr;
                         end
@@ -2271,12 +2221,12 @@ module t80(
                             q_reg_pc <= {q_reg_i, q_memptr[7:0]};
                         end
                         else begin
-                            case (Set_Addr_To)
+                            case (dec_set_addr_to)
                             aXY: begin
                                 if (q_xy_state == 2'b00)
                                     q_bus_addr <= reg_bus_c;
                                 else
-                                    q_bus_addr <= NextIs_XY_Fetch ? q_reg_pc : q_memptr;
+                                    q_bus_addr <= next_is_xy_fetch ? q_reg_pc : q_memptr;
                             end
                             aIOA: begin
                                 q_bus_addr <= {q_reg_a, DI_Reg};
@@ -2287,27 +2237,27 @@ module t80(
                             end
                             aBC: begin
                                 q_bus_addr <= reg_bus_c;
-                                if (SetWZ == 2'b01) begin
+                                if (dec_set_sw == 2'b01) begin
                                     q_memptr <= reg_bus_c + 1'b1;
                                 end
-                                if (SetWZ == 2'b10) begin
+                                if (dec_set_sw == 2'b10) begin
                                     q_memptr[15:8] <= q_reg_a;
                                     q_memptr[7:0]  <= reg_bus_c[7:0] + 1'b1;
                                 end
                             end
                             aDE: begin
                                 q_bus_addr <= reg_bus_c;
-                                if (SetWZ == 2'b10) begin
+                                if (dec_set_sw == 2'b10) begin
                                     q_memptr[15:8] <= q_reg_a;
                                     q_memptr[7:0]  <= reg_bus_c[7:0] + 1'b1;
                                 end
                             end
                             aZI: begin
-                                if (Inc_WZ) begin
+                                if (dec_inc_memptr) begin
                                     q_bus_addr <= q_memptr + 16'd1;
                                 end else begin
                                     q_bus_addr <= {DI_Reg, q_memptr[7:0]};
-                                    if (SetWZ == 2'b10) begin
+                                    if (dec_set_sw == 2'b10) begin
                                         q_memptr[15:8] <= q_reg_a;
                                         q_memptr[7:0]  <= q_memptr[7:0] + 1'b1;
                                     end
@@ -2318,20 +2268,20 @@ module t80(
                                     // INIR, INDR, OTIR, OTDR
                                     q_bus_addr <= q_reg_bus_a;
                                 end
-                                else if (!No_PC || q_no_btr || (is_instr_djnz && q_inc_dec_is_zero)) begin
+                                else if (!dec_no_pc || q_no_btr || (dec_is_djnz && q_inc_dec_is_zero)) begin
                                     q_bus_addr <= q_reg_pc;
                                 end
                             end
                             endcase
                         end
-                        if (SetWZ == 2'b11) begin
+                        if (dec_set_sw == 2'b11) begin
                             q_memptr <= incdec16_result;
                         end
 
-                        q_save_alu <= Save_ALU;
-                        q_alu_op   <= d_alu_op;
+                        q_save_alu <= dec_save_alu;
+                        q_alu_op   <= dec_alu_op;
 
-                        if (is_instr_cpl) begin     // CPL
+                        if (dec_is_cpl) begin     // CPL
                             q_reg_a         <= ~q_reg_a;
                             q_reg_f[Flag_Y] <= ~q_reg_a[5];
                             q_reg_f[Flag_H] <= 1;
@@ -2339,7 +2289,7 @@ module t80(
                             q_reg_f[Flag_N] <= 1;
                         end
 
-                        if (is_instr_ccf) begin     // CCF
+                        if (dec_is_ccf) begin     // CCF
                             q_reg_f[Flag_C] <= ~q_reg_f[Flag_C];
                             q_reg_f[Flag_Y] <= q_reg_a[5];
                             q_reg_f[Flag_H] <= q_reg_f[Flag_C];
@@ -2347,7 +2297,7 @@ module t80(
                             q_reg_f[Flag_N] <= 0;
                         end
 
-                        if (is_instr_scf) begin     // SCF
+                        if (dec_is_scf) begin     // SCF
                             q_reg_f[Flag_C] <= 1;
                             q_reg_f[Flag_Y] <= q_reg_a[5];
                             q_reg_f[Flag_H] <= 0;
@@ -2356,28 +2306,28 @@ module t80(
                         end
                     end
 
-                    if ((q_tstate == 2 && !Really_Wait && is_instr_btr && q_instruction[0]) || (q_tstate == 1 && is_instr_btr && !q_instruction[0])) begin
+                    if ((q_tstate == 2 && !really_wait && dec_is_btr && q_instruction[0]) || (q_tstate == 1 && dec_is_btr && !q_instruction[0])) begin
                         q_reg_f[Flag_N] <= DI_Reg[7];
                         q_reg_f[Flag_C] <= ioq1[8];
                         q_reg_f[Flag_H] <= ioq1[8];
                         q_reg_f[Flag_P] <= ~(ioq2[0] ^ ioq2[1] ^ ioq2[2] ^ ioq2[3] ^ ioq2[4] ^ ioq2[5] ^ ioq2[6] ^ ioq2[7]);
                     end
 
-                    if (q_tstate == 2 && !Really_Wait) begin
+                    if (q_tstate == 2 && !really_wait) begin
                         if (q_prefix == PrefixCB && q_mcycle == 3'd7)
                             q_instruction <= DInst;
 
-                        if (JumpE) begin
+                        if (dec_jump_e) begin
                             q_reg_pc <= q_reg_pc + {{8{DI_Reg[7]}}, DI_Reg};
                             q_memptr <= q_reg_pc + {{8{DI_Reg[7]}}, DI_Reg};
-                        end else if (Inc_PC) begin
+                        end else if (dec_inc_pc) begin
                             q_reg_pc <= q_reg_pc + 16'd1;
                         end
 
                         if (q_btr)
                             q_reg_pc <= q_reg_pc - 16'd2;
 
-                        if (RstP) begin
+                        if (dec_rst_p) begin
                             q_memptr <= {16{1'b0}};
                             q_memptr[5:3] <= q_instruction[5:3];
                         end
@@ -2386,37 +2336,32 @@ module t80(
                     if (q_tstate == 3 && q_mcycle == 3'd6)
                         q_memptr <= reg_bus_c + {{8{DI_Reg[7]}}, DI_Reg};
 
-                    if ((is_instr_bt || is_instr_bc) && q_mcycle == 3'd3 && q_tstate == 4 && !q_no_btr)
+                    if ((dec_is_bt || dec_is_bc) && q_mcycle == 3'd3 && q_tstate == 4 && !q_no_btr)
                         q_memptr <= q_reg_pc - 16'd1;
 
-                    if (IncDec_16[2:0] == 3'd7 && ((q_tstate == 2 && !Really_Wait) || (q_tstate == 4 && q_mcycle == 3'd1)))
-                        q_reg_sp <= IncDec_16[3] ? (q_reg_sp - 16'd1) : (q_reg_sp + 16'd1);
+                    if (dec_incdec16[2:0] == 3'd7 && ((q_tstate == 2 && !really_wait) || (q_tstate == 4 && q_mcycle == 3'd1)))
+                        q_reg_sp <= dec_incdec16[3] ? (q_reg_sp - 16'd1) : (q_reg_sp + 16'd1);
 
-                    if (ADDSPdd && q_tstate == 2) begin
-                        q_memptr <= q_reg_sp;
-                        q_reg_sp <= q_reg_sp + {{8{Save_Mux[7]}}, Save_Mux};
-                    end
-
-                    if (LDSPHL)
+                    if (dec_is_ldsphl)
                         q_reg_sp <= reg_bus_c;
 
-                    if (is_instr_ex_af) begin
+                    if (dec_is_ex_af) begin
                         q_reg_a_alt <= q_reg_a;
                         q_reg_a     <= q_reg_a_alt;
                         q_reg_f_alt <= q_reg_f;
                         q_reg_f     <= q_reg_f_alt;
                     end
 
-                    if (is_instr_exx)
+                    if (dec_is_exx)
                         q_regs_alt <= !q_regs_alt;
                 end
 
                 if (q_tstate == 3) begin
-                    if (LDZ) q_memptr[7:0]  <= DI_Reg;
-                    if (LDW) q_memptr[15:8] <= DI_Reg;
+                    if (dec_ldz) q_memptr[7:0]  <= DI_Reg;
+                    if (dec_ldw) q_memptr[15:8] <= DI_Reg;
 
-                    if (Special_LD[2]) begin
-                        case (Special_LD[1:0])
+                    if (dec_special_ld[2]) begin
+                        case (dec_special_ld[1:0])
                             2'b00: begin
                                 q_reg_a         <= q_reg_i;
                                 q_reg_f[Flag_P] <= q_int_en2;
@@ -2445,14 +2390,14 @@ module t80(
                     end
                 end
 
-                if ((!is_instr_djnz && q_save_alu) || q_alu_op == 4'b1001) begin
-                    q_reg_f[7:1] <= F_Out[7:1];
+                if ((!dec_is_djnz && q_save_alu) || q_alu_op == 4'b1001) begin
+                    q_reg_f[7:1] <= d_reg_f[7:1];
 
                     if (!q_preserve_c)
-                        q_reg_f[Flag_C] <= F_Out[0];
+                        q_reg_f[Flag_C] <= d_reg_f[0];
                 end
 
-                if (T_Res && is_instr_inrc) begin
+                if (t_reset && dec_is_inrc) begin
                     q_reg_f[Flag_H] <= 0;
                     q_reg_f[Flag_N] <= 0;
                     q_reg_f[Flag_X] <= DI_Reg[3];
@@ -2464,49 +2409,49 @@ module t80(
 
                 if (q_tstate == 1 && !q_auto_wait) begin
                     // Keep D0 from M3 for RLD/RRD (Sorgelig)
-                    q_is_instr_rld_rrd <= is_instr_rld | is_instr_rrd;
+                    q_is_rld_rrd <= dec_is_rld | dec_is_rrd;
 
-                    if (!q_is_instr_rld_rrd) q_bus_wrdata <= bus_b;
-                    if (is_instr_rld)        q_bus_wrdata <= {bus_b[3:0], bus_a[3:0]};
-                    if (is_instr_rrd)        q_bus_wrdata <= {bus_a[3:0], bus_b[7:4]};
+                    if (!q_is_rld_rrd) q_bus_wrdata <= bus_b;
+                    if (dec_is_rld)        q_bus_wrdata <= {bus_b[3:0], bus_a[3:0]};
+                    if (dec_is_rrd)        q_bus_wrdata <= {bus_a[3:0], bus_b[7:4]};
                 end
 
-                if (T_Res) begin
-                    q_read_to_reg[3:0] <= Set_BusA_To;
-                    q_read_to_reg[4]   <= Read_To_Reg;
-                    if (Read_To_Acc) begin
+                if (t_reset) begin
+                    q_read_to_reg[3:0] <= dec_set_bus_a_to;
+                    q_read_to_reg[4]   <= dec_read_to_reg;
+                    if (dec_read_to_acc) begin
                         q_read_to_reg[3:0] <= 4'b0111;
                         q_read_to_reg[4]   <= 1;
                     end
                 end
 
-                if (q_tstate == 1 && is_instr_bt) begin
-                    q_reg_f[Flag_X] <= ALU_Q[3];
-                    q_reg_f[Flag_Y] <= ALU_Q[1];
+                if (q_tstate == 1 && dec_is_bt) begin
+                    q_reg_f[Flag_X] <= alu_result[3];
+                    q_reg_f[Flag_Y] <= alu_result[1];
                     q_reg_f[Flag_H] <= 0;
                     q_reg_f[Flag_N] <= 0;
                 end
 
-                if (q_tstate == 1 && is_instr_bc) begin
+                if (q_tstate == 1 && dec_is_bc) begin
                     q_reg_f[Flag_X] <= temp_n[3];
                     q_reg_f[Flag_Y] <= temp_n[1];
                 end
 
-                if (is_instr_bc || is_instr_bt)
+                if (dec_is_bc || dec_is_bt)
                     q_reg_f[Flag_P] <= q_inc_dec_is_zero;
 
                 if ((q_tstate == 1 && !q_save_alu && !q_auto_wait) || (q_save_alu && q_alu_op != 4'b0111)) begin
                     case (q_read_to_reg)
-                        5'b10111: q_reg_a        <= Save_Mux;
-                        5'b10110: q_bus_wrdata   <= Save_Mux;
-                        5'b11000: q_reg_sp[7:0]  <= Save_Mux;
-                        5'b11001: q_reg_sp[15:8] <= Save_Mux;
-                        5'b11011: q_reg_f        <= Save_Mux;
+                        5'b10111: q_reg_a        <= save_mux;
+                        5'b10110: q_bus_wrdata   <= save_mux;
+                        5'b11000: q_reg_sp[7:0]  <= save_mux;
+                        5'b11001: q_reg_sp[15:8] <= save_mux;
+                        5'b11011: q_reg_f        <= save_mux;
                         default: begin end
                     endcase
 
-                    if (XYbit_undoc)
-                        q_bus_wrdata <= ALU_Q;
+                    if (dec_xybit_undoc)
+                        q_bus_wrdata <= alu_result;
                 end
             end
         end
@@ -2515,30 +2460,34 @@ module t80(
     //-------------------------------------------------------------------------
     // BC('), DE('), HL('), IX and IY
     //-------------------------------------------------------------------------
+    reg   [2:0] q_reg_idx_a;
+    reg   [2:0] q_reg_idx_b;
+    reg   [2:0] q_reg_idx_c;
+
     always @(posedge clk) begin
         if (clk_en) begin
             // Bus A / Write
-            q_reg_idx_a <= {q_regs_alt,Set_BusA_To[2:1]};
-            if (!XY_Ind && q_xy_state != 2'b00 && Set_BusA_To[2:1] == 2'b10)
+            q_reg_idx_a <= {q_regs_alt,dec_set_bus_a_to[2:1]};
+            if (!q_xy_ind && q_xy_state != 2'b00 && dec_set_bus_a_to[2:1] == 2'b10)
                 q_reg_idx_a <= {q_xy_state[1], 2'b11};
 
             // Bus B
-            q_reg_idx_b <= {q_regs_alt,Set_BusB_To[2:1]};
-            if (!XY_Ind && q_xy_state != 2'b00 && Set_BusB_To[2:1] == 2'b10)
+            q_reg_idx_b <= {q_regs_alt,dec_set_bus_b_to[2:1]};
+            if (!q_xy_ind && q_xy_state != 2'b00 && dec_set_bus_b_to[2:1] == 2'b10)
                 q_reg_idx_b <= {q_xy_state[1], 2'b11};
 
             // Address from register
-            q_reg_idx_c <= {q_regs_alt,Set_Addr_To[1:0]};
+            q_reg_idx_c <= {q_regs_alt,dec_set_addr_to[1:0]};
 
-            // Jump (HL), LD SP,HL
-            if (is_instr_jp_ind_hl || LDSPHL)
+            // dec_jump (HL), LD SP,HL
+            if (dec_is_jp_ind_hl || dec_is_ldsphl)
                 q_reg_idx_c <= {q_regs_alt,2'b10};
-            if (((is_instr_jp_ind_hl || LDSPHL) && q_xy_state != 2'b00) || q_mcycle == 3'd6)
+            if (((dec_is_jp_ind_hl || dec_is_ldsphl) && q_xy_state != 2'b00) || q_mcycle == 3'd6)
                 q_reg_idx_c <= {q_xy_state[1], 2'b11};
 
-            if (is_instr_djnz && q_save_alu)
-                q_inc_dec_is_zero <= F_Out[Flag_Z];
-            if ((q_tstate == 2 || (q_tstate == 3 && q_mcycle == 3'd1)) && IncDec_16[2:0] == 3'd4)
+            if (dec_is_djnz && q_save_alu)
+                q_inc_dec_is_zero <= d_reg_f[Flag_Z];
+            if ((q_tstate == 2 || (q_tstate == 3 && q_mcycle == 3'd1)) && dec_incdec16[2:0] == 3'd4)
                 q_inc_dec_is_zero <= (incdec16_result != 16'b0);
 
             q_reg_bus_a <= reg_bus_a;
@@ -2547,24 +2496,22 @@ module t80(
 
     reg [2:0] reg_idx_a;
     always @* begin
-        if      ((q_tstate == 2 || (q_tstate == 3 && q_mcycle == 3'd1 && IncDec_16[2])) && q_xy_state == 2'b00)
-            reg_idx_a = {q_regs_alt,IncDec_16[1:0]};
-        else if ((q_tstate == 2 || (q_tstate == 3 && q_mcycle == 3'd1 && IncDec_16[2])) && IncDec_16[1:0] == 2'b10)
+        if      ((q_tstate == 2 || (q_tstate == 3 && q_mcycle == 3'd1 && dec_incdec16[2])) && q_xy_state == 2'b00)
+            reg_idx_a = {q_regs_alt,dec_incdec16[1:0]};
+        else if ((q_tstate == 2 || (q_tstate == 3 && q_mcycle == 3'd1 && dec_incdec16[2])) && dec_incdec16[1:0] == 2'b10)
             reg_idx_a = {q_xy_state[1],2'b11};
-        else if (q_tstate == 3 && is_instr_ex_de_hl)
+        else if (q_tstate == 3 && dec_is_ex_de_hl)
             reg_idx_a = {q_regs_alt,2'b10};
-        else if (q_tstate == 4 && is_instr_ex_de_hl)
+        else if (q_tstate == 4 && dec_is_ex_de_hl)
             reg_idx_a = {q_regs_alt,2'b01};
-        else if (q_tstate == 4 && ExchangeWH)
+        else if (q_tstate == 4 && dec_exchange_wh)
             reg_idx_a = (q_xy_state == 2'b00) ? {q_regs_alt,2'b10} : {q_xy_state[1],2'b11};
-        else if (q_tstate == 4 && LDHLSP)
-            reg_idx_a = 3'd2;
         else
             reg_idx_a = q_reg_idx_a;
     end
 
-    wire [2:0] reg_idx_b = is_instr_ex_de_hl && q_tstate == 3 ? {q_regs_alt,2'b01} : q_reg_idx_b;
-    assign incdec16_result = IncDec_16[3] ? (reg_bus_a - 16'd1) : (reg_bus_a + 16'd1);
+    wire [2:0] reg_idx_b = dec_is_ex_de_hl && q_tstate == 3 ? {q_regs_alt,2'b01} : q_reg_idx_b;
+    assign incdec16_result = dec_incdec16[3] ? (reg_bus_a - 16'd1) : (reg_bus_a + 16'd1);
 
     always @* begin
         reg_wren_h = 0;
@@ -2578,16 +2525,16 @@ module t80(
                 default: begin end
             endcase
         end
-        if (is_instr_ex_de_hl && (q_tstate == 3 || q_tstate == 4)) begin
+        if (dec_is_ex_de_hl && (q_tstate == 3 || q_tstate == 4)) begin
             reg_wren_h = 1;
             reg_wren_l = 1;
         end
-        if (((LDHLSP && q_mcycle == 3'd2) || ExchangeWH) && q_tstate == 4) begin
+        if (dec_exchange_wh && q_tstate == 4) begin
             reg_wren_h = 1;
             reg_wren_l = 1;
         end
-        if (IncDec_16[2] && IncDec_16[1:0] != 2'b11 &&
-            ((q_tstate == 2 && q_mcycle != 3'd1 && !Really_Wait) ||
+        if (dec_incdec16[2] && dec_incdec16[1:0] != 2'b11 &&
+            ((q_tstate == 2 && q_mcycle != 3'd1 && !really_wait) ||
              (q_tstate == 3 && q_mcycle == 3'd1))) begin
 
             reg_wren_h = 1;
@@ -2597,14 +2544,13 @@ module t80(
 
     reg [15:0] reg_wrdata;
     always @* begin
-        reg_wrdata = {Save_Mux, Save_Mux};
-        if (LDHLSP       && q_tstate == 4 && q_mcycle == 3'd2) reg_wrdata = q_reg_sp + {{8{Save_Mux[7]}}, Save_Mux};
-        if (is_instr_ex_de_hl   && q_tstate == 3)                     reg_wrdata = reg_bus_b;
-        if (is_instr_ex_de_hl   && q_tstate == 4)                     reg_wrdata = q_reg_bus_a;
-        if (ExchangeWH   && q_tstate == 4)                     reg_wrdata = q_memptr;
-        if (IncDec_16[2] &&
+        reg_wrdata = {save_mux, save_mux};
+        if (dec_is_ex_de_hl && q_tstate == 3)      reg_wrdata = reg_bus_b;
+        if (dec_is_ex_de_hl && q_tstate == 4)      reg_wrdata = q_reg_bus_a;
+        if (dec_exchange_wh && q_tstate == 4)      reg_wrdata = q_memptr;
+        if (dec_incdec16[2] &&
             ((q_tstate == 2 && q_mcycle != 3'd1) ||
-             (q_tstate == 3 && q_mcycle == 3'd1)))             reg_wrdata = incdec16_result;
+             (q_tstate == 3 && q_mcycle == 3'd1))) reg_wrdata = incdec16_result;
     end
 
     //------------------------------------------------------------------------
@@ -2630,14 +2576,14 @@ module t80(
     //------------------------------------------------------------------------
     always @(posedge clk) begin
         if (clk_en) begin
-            case (Set_BusB_To)
+            case (dec_set_bus_b_to)
                 4'b0111: bus_b <= q_reg_a;
                 4'b0000,
                 4'b0001,
                 4'b0010,
                 4'b0011,
                 4'b0100,
-                4'b0101: bus_b <= Set_BusB_To[0] ? reg_bus_b[7:0] : reg_bus_b[15:8];
+                4'b0101: bus_b <= dec_set_bus_b_to[0] ? reg_bus_b[7:0] : reg_bus_b[15:8];
                 4'b0110: bus_b <= DI_Reg;
                 4'b1000: bus_b <= q_reg_sp[7:0];
                 4'b1001: bus_b <= q_reg_sp[15:8];
@@ -2649,14 +2595,14 @@ module t80(
                 default: bus_b <= 8'h00;
             endcase
 
-            case (Set_BusA_To)
+            case (dec_set_bus_a_to)
                 4'b0111: bus_a <= q_reg_a;
                 4'b0000,
                 4'b0001,
                 4'b0010,
                 4'b0011,
                 4'b0100,
-                4'b0101: bus_a <= Set_BusA_To[0] ? reg_bus_a[7:0] : reg_bus_a[15:8];
+                4'b0101: bus_a <= dec_set_bus_a_to[0] ? reg_bus_a[7:0] : reg_bus_a[15:8];
                 4'b0110: bus_a <= DI_Reg;
                 4'b1000: bus_a <= q_reg_sp[7:0];
                 4'b1001: bus_a <= q_reg_sp[15:8];
@@ -2664,7 +2610,7 @@ module t80(
                 default: bus_a <= 8'h00;
             endcase
 
-            if (XYbit_undoc) begin
+            if (dec_xybit_undoc) begin
                 bus_a <= DI_Reg;
                 bus_b <= DI_Reg;
             end
@@ -2674,13 +2620,16 @@ module t80(
     //------------------------------------------------------------------------
     // Generate external control signals
     //------------------------------------------------------------------------
-    assign mcycle    = q_mcycle;
-    assign tstate    = q_tstate;
-    assign DI_Reg    = DI;
-    assign irq_cycle = q_irq_cycle;
-    assign IORQ      = IORQ_i;
-    assign NoRead    = NoRead_i;
-    assign Write     = Write_i;
+    assign bus_addr    = q_bus_addr;
+    assign bus_wrdata  = q_bus_wrdata;
+    assign mcycle      = q_mcycle;
+    assign tstate      = q_tstate;
+    assign irq_cycle   = q_irq_cycle;
+    assign bus_iorq    = dec_iorq;
+    assign bus_no_read = dec_no_read;
+    assign bus_write   = dec_write;
+
+    assign DI_Reg     = DI;
 
     //------------------------------------------------------------------------
     // Main state machine
@@ -2715,29 +2664,29 @@ module t80(
             if (clk_en) begin
                 q2_auto_wait <= q_auto_wait;
 
-                if (T_Res) begin
+                if (t_reset) begin
                     q_auto_wait  <= 0;
                     q2_auto_wait <= 0;
                 end else begin
-                    q_auto_wait  <= d_auto_wait | IORQ_i;
+                    q_auto_wait  <= d_auto_wait | dec_iorq;
                 end
 
                 q_no_btr <=
-                    (is_instr_bt  & (~q_instruction[4] |                    ~q_reg_f[Flag_P])) |
-                    (is_instr_bc  & (~q_instruction[4] |  q_reg_f[Flag_Z] | ~q_reg_f[Flag_P])) |
-                    (is_instr_btr & (~q_instruction[4] |  q_reg_f[Flag_Z]));
+                    (dec_is_bt  & (~q_instruction[4] |                    ~q_reg_f[Flag_P])) |
+                    (dec_is_bc  & (~q_instruction[4] |  q_reg_f[Flag_Z] | ~q_reg_f[Flag_P])) |
+                    (dec_is_btr & (~q_instruction[4] |  q_reg_f[Flag_Z]));
 
                 if (q_tstate == 2) begin
-                    if (is_instr_ei) begin
+                    if (dec_is_ei) begin
                         q_int_en1 <= 1;
                         q_int_en2 <= 1;
                     end
 
-                    if (is_instr_retn)
+                    if (dec_is_retn)
                         q_int_en1 <= q_int_en2;
                 end
 
-                if (q_tstate == 3 && is_instr_di) begin
+                if (q_tstate == 3 && dec_is_di) begin
                     q_int_en1 <= 0;
                     q_int_en2 <= 0;
                 end
@@ -2745,33 +2694,33 @@ module t80(
                 if (q_irq_cycle || q_nmi_cycle)
                     q_halt <= 0;
 
-                if (q_tstate == 2 && Really_Wait) begin
+                if (q_tstate == 2 && really_wait) begin
                     // Wait
 
-                end else if (T_Res) begin
-                    if (is_instr_halt) begin
+                end else if (t_reset) begin
+                    if (dec_is_halt) begin
                         q_halt <= 1;
                     end
                     q_tstate <= 3'd1;
 
-                    if (NextIs_XY_Fetch) begin
+                    if (next_is_xy_fetch) begin
                         q_mcycle     <= 3'd6;
                         q_pre_xy_f_m <= (q_instruction == 8'h36 && Mode == 0) ? 3'd2 : q_mcycle;
 
                     end else if (q_mcycle == 3'd7 || (q_mcycle == 3'd6 && Mode == 1 && q_prefix != PrefixCB)) begin
                         q_mcycle <= q_pre_xy_f_m + 3'd1;
 
-                    end else if (q_mcycle == q_mcycles || q_no_btr || (q_mcycle == 3'd2 && is_instr_djnz && q_inc_dec_is_zero)) begin
+                    end else if (q_mcycle == q_mcycles || q_no_btr || (q_mcycle == 3'd2 && dec_is_djnz && q_inc_dec_is_zero)) begin
                         q_mcycle    <= 3'd1;
                         q_irq_cycle <= 0;
                         q_nmi_cycle <= 0;
 
-                        if (q_nmi_pending && d_prefix == PrefixNone) begin
+                        if (q_nmi_pending && dec_prefix == PrefixNone) begin
                             q_nmi_pending <= 0;
                             q_nmi_cycle   <= 1;
                             q_int_en1     <= 0;
 
-                        end else if (q_int_en1 && irq && d_prefix == PrefixNone && !is_instr_ei) begin
+                        end else if (q_int_en1 && irq && dec_prefix == PrefixNone && !dec_is_ei) begin
                             q_irq_cycle <= 1;
                             q_int_en1   <= 0;
                             q_int_en2   <= 0;
