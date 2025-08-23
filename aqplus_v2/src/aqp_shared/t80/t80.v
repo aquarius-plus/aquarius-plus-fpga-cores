@@ -308,7 +308,7 @@ module t80(
                             3'd2: begin
                                 dec_inc_pc       = 1;
                                 dec_set_addr_to  = aXY;
-                                dec_set_bus_b_to = {1'b0, ir_sss};;
+                                dec_set_bus_b_to = {1'b0, ir_sss};
                             end
                             3'd3: begin
                                 dec_write = 1;
@@ -2027,8 +2027,6 @@ module t80(
 
     reg        q_is_rld_rrd;
 
-    wire [8:0] temp_c = {1'b0, q_reg_sp[7:0]} + {1'b0, save_mux};
-    wire [4:0] temp_h = {1'b0, q_reg_sp[3:0]} + {1'b0, save_mux[3:0]};
     wire [8:0] ioq1   = {1'b0, DI_Reg} + {1'b0, incdec16_result[7:0]};
     wire [8:0] ioq2   = (ioq1 & 9'b000000111) ^ {1'b0, bus_a};
     wire [7:0] temp_n = alu_result - {7'b0, d_reg_f[Flag_H]};
@@ -2337,8 +2335,8 @@ module t80(
                     q_is_rld_rrd <= dec_is_rld | dec_is_rrd;
 
                     if (!q_is_rld_rrd) q_bus_wrdata <= bus_b;
-                    if (dec_is_rld)        q_bus_wrdata <= {bus_b[3:0], bus_a[3:0]};
-                    if (dec_is_rrd)        q_bus_wrdata <= {bus_a[3:0], bus_b[7:4]};
+                    if (dec_is_rld)    q_bus_wrdata <= {bus_b[3:0], bus_a[3:0]};
+                    if (dec_is_rrd)    q_bus_wrdata <= {bus_a[3:0], bus_b[7:4]};
                 end
 
                 if (t_reset) begin

@@ -63,35 +63,23 @@ module aqp_top(
     assign exp            = 9'b0;
     assign cassette_out   = 1'b0;
     assign printer_out    = 1'b0;
+    assign ebus_cart_ce_n = 1;
+    assign ebus_reset_n   = 1'bZ;
+    assign ebus_wr_n      = 1;
+    assign ebus_a[15:14]  = 2'bZ;
+    assign ebus_mreq_n    = 1;
+    assign ebus_iorq_n    = 1;
+    assign ebus_int_n     = 1'bZ;
+    assign ebus_busreq_n  = 0;
 
     wire        clk;
     wire [15:0] cpu_addr;
     wire  [7:0] cpu_wrdata;
     reg   [7:0] cpu_rddata;
     wire        cpu_iorq;
-    wire        cpu_memrq;
-    wire        cpu_rd;
-    wire        cpu_wr;
-    wire        t80_dq_oe;
+    wire        cpu_wren;
+    wire        cpu_strobe;
     wire [19:0] bus_addr;
-
-    reg q_cpu_rd;
-    reg q_cpu_wr;
-    always @(posedge clk) q_cpu_rd <= cpu_rd;
-    always @(posedge clk) q_cpu_wr <= cpu_wr;
-
-    wire cpu_read  = cpu_rd & !q_cpu_rd;
-    wire cpu_write = cpu_wr & !q_cpu_wr;
-
-    assign ebus_a[15:14]  = 2'bZ;
-    assign ebus_d         = t80_dq_oe ? cpu_wrdata : 8'bZ;
-    assign ebus_cart_ce_n = 1;
-    assign ebus_reset_n   = 1'bZ;
-    assign ebus_wr_n      = 1;
-    assign ebus_mreq_n    = 1;
-    assign ebus_iorq_n    = 1;
-    assign ebus_int_n     = 1'bZ;
-    assign ebus_busreq_n  = 0;
 
     //////////////////////////////////////////////////////////////////////////
     // Clock synthesizer
@@ -112,33 +100,6 @@ module aqp_top(
 
         .ebus_phi(ebus_phi),
         .reset(reset));
-
-    //////////////////////////////////////////////////////////////////////////
-    // ESP32 UART
-    //////////////////////////////////////////////////////////////////////////
-    wire [8:0] esp_tx_data;
-    wire       esp_tx_wr;
-    wire       esp_tx_fifo_full;
-    wire [8:0] esp_rx_data;
-    wire       esp_rx_rd;
-    wire       esp_rx_empty;
-
-    aqp_esp_uart esp_uart(
-        .clk(clk),
-        .reset(reset),
-
-        .txfifo_data(esp_tx_data),
-        .txfifo_wr(esp_tx_wr),
-        .txfifo_full(esp_tx_fifo_full),
-
-        .rxfifo_data(esp_rx_data),
-        .rxfifo_rd(esp_rx_rd),
-        .rxfifo_empty(esp_rx_empty),
-
-        .esp_rx(esp_rx),
-        .esp_tx(esp_tx),
-        .esp_cts(esp_cts),
-        .esp_rts(esp_rts));
 
     //////////////////////////////////////////////////////////////////////////
     // Hand controller interface
@@ -309,11 +270,11 @@ module aqp_top(
     assign bus_addr = {reg_bank_page, cpu_addr[13:0]};
 
     // Memory space decoding
-    wire sel_mem_tram    = cpu_memrq && reg_bank_overlay && bus_addr[13:11] == 3'b110;   // $3000-$37FF
-    wire sel_mem_sysram  = cpu_memrq && reg_bank_overlay && bus_addr[13:11] == 3'b111;   // $3800-$3FFF
-    wire sel_mem_vram    = cpu_memrq && reg_bank_page == 6'd20;                          // Page 20
-    wire sel_mem_chram   = cpu_memrq && reg_bank_page == 6'd21;                          // Page 21
-    wire sel_mem_rom     = cpu_memrq && reg_bank_page <= 6'd3;                           // Page 0-3
+    wire sel_mem_tram    = !cpu_iorq && reg_bank_overlay && bus_addr[13:11] == 3'b110;   // $3000-$37FF
+    wire sel_mem_sysram  = !cpu_iorq && reg_bank_overlay && bus_addr[13:11] == 3'b111;   // $3800-$3FFF
+    wire sel_mem_vram    = !cpu_iorq && reg_bank_page == 6'd20;                          // Page 20
+    wire sel_mem_chram   = !cpu_iorq && reg_bank_page == 6'd21;                          // Page 21
+    wire sel_mem_rom     = !cpu_iorq && reg_bank_page <= 6'd3;                           // Page 0-3
 
     // IO space decoding
     wire sel_io_video     = cpu_iorq &&  bus_addr[7:4] == 4'hE;
@@ -341,10 +302,10 @@ module aqp_top(
 
     reg sel_mem_ram;
     always @* begin
-        sel_mem_ram = cpu_memrq && !sel_internal && reg_bank_page[5];  // Page 32-63
+        sel_mem_ram = !cpu_iorq && !sel_internal && reg_bank_page[5];  // Page 32-63
 
         // Disallow writes to memory if bank is read only        
-        if (cpu_wr && reg_bank_ro && !sel_mem_sysram)
+        if (cpu_wren && reg_bank_ro && !sel_mem_sysram)
             sel_mem_ram = 0;
     end
 
@@ -384,15 +345,17 @@ module aqp_top(
             q_beep      <= 0;
 
         end else begin
-            if (sel_io_audio_dac && cpu_write) q_audio_dac <= cpu_wrdata;
-            if (sel_io_bank0     && cpu_write) q_reg_bank0 <= cpu_wrdata;
-            if (sel_io_bank1     && cpu_write) q_reg_bank1 <= cpu_wrdata;
-            if (sel_io_bank2     && cpu_write) q_reg_bank2 <= cpu_wrdata;
-            if (sel_io_bank3     && cpu_write) q_reg_bank3 <= cpu_wrdata;
-            if (sel_io_cassette  && cpu_write) q_beep      <= cpu_wrdata[0];
+            if (cpu_strobe && cpu_wren) begin
+                if (sel_io_audio_dac)  q_audio_dac <= cpu_wrdata;
+                if (sel_io_bank0)      q_reg_bank0 <= cpu_wrdata;
+                if (sel_io_bank1)      q_reg_bank1 <= cpu_wrdata;
+                if (sel_io_bank2)      q_reg_bank2 <= cpu_wrdata;
+                if (sel_io_bank3)      q_reg_bank3 <= cpu_wrdata;
+                if (sel_io_cassette)   q_beep      <= cpu_wrdata[0];
+            end
         end
 
-    always @(posedge clk) q_sysctrl_reset_req <= (sel_io_sysctrl && cpu_write && cpu_wrdata[7]);
+    always @(posedge clk) q_sysctrl_reset_req <= (sel_io_sysctrl && cpu_strobe && cpu_wren && cpu_wrdata[7]);
 
     //////////////////////////////////////////////////////////////////////////
     // Boot ROM
@@ -410,7 +373,7 @@ module aqp_top(
     assign ebus_a[13:0] = ebus_sram_a[13:0];
     assign ebus_ba      = ebus_sram_a[18:14];
 
-    wire sram_strobe = sel_mem_ram && (cpu_read || cpu_write);
+    wire sram_strobe = sel_mem_ram && cpu_strobe;
     wire sram_wait;
 
     sram_ctrl sram_ctrl(
@@ -420,7 +383,7 @@ module aqp_top(
         // Command interface
         .bus_addr(bus_addr[18:0]),
         .bus_wrdata(cpu_wrdata),
-        .bus_wren(cpu_write),
+        .bus_wren(cpu_wren),
         .bus_strobe(sram_strobe),
         .bus_wait(sram_wait),
         .bus_rddata(rddata_sram),
@@ -435,9 +398,29 @@ module aqp_top(
     //////////////////////////////////////////////////////////////////////////
     // ESP32 UART
     //////////////////////////////////////////////////////////////////////////
-    assign esp_tx_data = sel_io_espctrl ? 9'b100000000 : {1'b0, cpu_wrdata};
-    assign esp_tx_wr   = cpu_write && (sel_io_espdata || (sel_io_espctrl && cpu_wrdata[7]));
-    assign esp_rx_rd   = cpu_read  &&  sel_io_espdata;
+    wire [8:0] esp_tx_data = sel_io_espctrl ? 9'b100000000 : {1'b0, cpu_wrdata};
+    wire       esp_tx_wr   = cpu_strobe &&  cpu_wren && (sel_io_espdata || (sel_io_espctrl && cpu_wrdata[7]));
+    wire       esp_rx_rd   = cpu_strobe && !cpu_wren &&  sel_io_espdata;
+    wire       esp_tx_fifo_full;
+    wire [8:0] esp_rx_data;
+    wire       esp_rx_empty;
+
+    aqp_esp_uart esp_uart(
+        .clk(clk),
+        .reset(reset),
+
+        .txfifo_data(esp_tx_data),
+        .txfifo_wr(esp_tx_wr),
+        .txfifo_full(esp_tx_fifo_full),
+
+        .rxfifo_data(esp_rx_data),
+        .rxfifo_rd(esp_rx_rd),
+        .rxfifo_empty(esp_rx_empty),
+
+        .esp_rx(esp_rx),
+        .esp_tx(esp_tx),
+        .esp_cts(esp_cts),
+        .esp_rts(esp_rts));
 
     assign rddata_espctrl = {5'b0, esp_rx_data[8], esp_tx_fifo_full, !esp_rx_empty};
     assign rddata_espdata = esp_rx_data[7:0];
@@ -445,10 +428,10 @@ module aqp_top(
     //////////////////////////////////////////////////////////////////////////
     // Video
     //////////////////////////////////////////////////////////////////////////
-    wire tram_wren     = sel_mem_tram  && cpu_write;
-    wire vram_wren     = sel_mem_vram  && cpu_write;
-    wire chram_wren    = sel_mem_chram && cpu_write;
-    wire io_video_wren = sel_io_video  && cpu_write;
+    wire tram_wren     = sel_mem_tram  && cpu_strobe && cpu_wren;
+    wire vram_wren     = sel_mem_vram  && cpu_strobe && cpu_wren;
+    wire chram_wren    = sel_mem_chram && cpu_strobe && cpu_wren;
+    wire io_video_wren = sel_io_video  && cpu_strobe && cpu_wren;
 
     wire video_irq;
 
@@ -555,8 +538,8 @@ module aqp_top(
     // Keyboard buffer
     //////////////////////////////////////////////////////////////////////////
     wire [7:0] kbbuf_rddata;
-    wire       kbbuf_rden = (sel_io_kbbuf && cpu_read);
-    wire       kbbuf_rst  = (sel_io_kbbuf && cpu_write) || reset;
+    wire       kbbuf_rst  = (sel_io_kbbuf && cpu_strobe &&  cpu_wren) || reset;
+    wire       kbbuf_rden = (sel_io_kbbuf && cpu_strobe && !cpu_wren);
 
     kbbuf kbbuf(
         .clk(clk),
@@ -572,8 +555,8 @@ module aqp_top(
     //////////////////////////////////////////////////////////////////////////
     // AY-3-8910
     //////////////////////////////////////////////////////////////////////////
-    wire       ay8910_wren   = sel_io_ay8910   && cpu_write;
-    wire       ay8910_2_wren = sel_io_ay8910_2 && cpu_write;
+    wire       ay8910_wren   = sel_io_ay8910   && cpu_strobe && cpu_wren;
+    wire       ay8910_2_wren = sel_io_ay8910_2 && cpu_strobe && cpu_wren;
     wire [9:0] ay8910_ch_a,   ay8910_ch_b,   ay8910_ch_c;
     wire [9:0] ay8910_2_ch_a, ay8910_2_ch_b, ay8910_2_ch_c;
 
@@ -691,14 +674,11 @@ module aqp_top(
 
         .bus_addr(cpu_addr),
         .bus_wrdata(cpu_wrdata),
-        .bus_rddata(cpu_rddata),
-        .dq_oe(t80_dq_oe),
-
-        .bus_memrq(cpu_memrq),
+        .bus_wren(cpu_wren),
         .bus_iorq(cpu_iorq),
-        .bus_rd(cpu_rd),
-        .bus_wr(cpu_wr),
+        .bus_strobe(cpu_strobe),
         .bus_wait(cpu_wait),
+        .bus_rddata(cpu_rddata),
 
         .irq(cpu_irq)
     );

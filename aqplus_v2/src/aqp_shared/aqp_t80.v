@@ -7,17 +7,24 @@ module aqp_t80(
 
     output wire [15:0] bus_addr,
     output wire  [7:0] bus_wrdata,
-    input  wire  [7:0] bus_rddata,
-    output wire        dq_oe,
-
-    output wire        bus_memrq,
+    output wire        bus_wren,
     output wire        bus_iorq,
-    output wire        bus_rd,
-    output wire        bus_wr,
+    output wire        bus_strobe,
     input  wire        bus_wait,
+    input  wire  [7:0] bus_rddata,
 
     input  wire        irq
 );
+
+    wire bus_rd;
+    wire bus_wr;
+
+    reg q_bus_rd;
+    reg q_bus_wr;
+    always @(posedge clk) q_bus_rd <= bus_rd;
+    always @(posedge clk) q_bus_wr <= bus_wr;
+
+    assign bus_strobe = (bus_rd & !q_bus_rd) || (bus_wr & !q_bus_wr);
 
     reg q_phi;
     always @(posedge clk or posedge reset)
@@ -132,10 +139,9 @@ module aqp_t80(
     wire   mreq_rw = q_mreq   && (q_req_inhibit || q_mreq_inhibit);
     wire   iorq_rw = t80_iorq && !(q_iorq_t1 || q_iorq_t2);
 
-    assign bus_memrq = mreq_rw;
     assign bus_iorq  = (q_iorq_int && !q_iorq_int_inhibit[2]) || iorq_rw;
     assign bus_rd    = q_read && (mreq_rw || iorq_rw);
     assign bus_wr    = t80_write && ((q_wr_t2 && mreq_rw) || iorq_rw);
-    assign dq_oe     = t80_write;
+    assign bus_wren  = t80_write;
 
 endmodule
