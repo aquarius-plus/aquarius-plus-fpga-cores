@@ -83,12 +83,8 @@ module aqp_top(
     wire cpu_read  = cpu_rd & !q_cpu_rd;
     wire cpu_write = cpu_wr & !q_cpu_wr;
 
-    assign ebus_ba        = bus_addr[18:14];
     assign ebus_a[15:14]  = 2'bZ;
-    assign ebus_a[13:0]   = bus_addr[13:0];
-    assign ebus_rd_n      = !cpu_rd;
     assign ebus_d         = t80_dq_oe ? cpu_wrdata : 8'bZ;
-    assign ebus_ram_ce_n  = 0;
     assign ebus_cart_ce_n = 1;
     assign ebus_reset_n   = 1'bZ;
     assign ebus_wr_n      = 1;
@@ -266,6 +262,7 @@ module aqp_top(
     wire [7:0] rddata_chram;
     wire [7:0] rddata_vram;
     wire [7:0] rddata_rom;
+    wire [7:0] rddata_sram;
 
     wire [7:0] rddata_io_video;     // IO $E0-$EF
     wire [7:0] rddata_espctrl;      // IO $F4
@@ -342,9 +339,14 @@ module aqp_top(
         sel_io_espctrl | sel_io_espdata | sel_io_ay8910 | sel_io_ay8910_2 | sel_io_kbbuf | sel_io_sysctrl |
         sel_io_cassette | sel_io_vsync | sel_io_keyb;
 
-    wire sel_mem_ram = cpu_memrq && !sel_internal && reg_bank_page[5];  // Page 32-63
+    reg sel_mem_ram;
+    always @* begin
+        sel_mem_ram = cpu_memrq && !sel_internal && reg_bank_page[5];  // Page 32-63
 
-    assign ebus_ram_we_n = !(sel_mem_ram && cpu_wr && (!reg_bank_ro || sel_mem_sysram));
+        // Disallow writes to memory if bank is read only        
+        if (cpu_wr && reg_bank_ro && !sel_mem_sysram)
+            sel_mem_ram = 0;
+    end
 
     always @* begin
         cpu_rddata = 8'hFF;
@@ -353,7 +355,7 @@ module aqp_top(
         if (sel_mem_tram)    cpu_rddata = rddata_tram;                 // TRAM $3000-$37FF
         if (sel_mem_vram)    cpu_rddata = rddata_vram;
         if (sel_mem_chram)   cpu_rddata = rddata_chram;
-        if (sel_mem_ram)     cpu_rddata = ebus_d;
+        if (sel_mem_ram)     cpu_rddata = rddata_sram;
 
         if (sel_io_video)    cpu_rddata = rddata_io_video;             // IO $E0-$EF
         if (sel_io_bank0)    cpu_rddata = q_reg_bank0;                 // IO $F0
@@ -400,6 +402,35 @@ module aqp_top(
         .addr(bus_addr[7:0]),
         .rddata(rddata_rom)
     );
+
+    //////////////////////////////////////////////////////////////////////////
+    // External RAM
+    //////////////////////////////////////////////////////////////////////////
+    wire [18:0] ebus_sram_a;
+    assign ebus_a[13:0] = ebus_sram_a[13:0];
+    assign ebus_ba      = ebus_sram_a[18:14];
+
+    wire sram_strobe = sel_mem_ram && (cpu_read || cpu_write);
+    wire sram_wait;
+
+    sram_ctrl sram_ctrl(
+        .clk(clk),
+        .reset(reset),
+
+        // Command interface
+        .bus_addr(bus_addr[18:0]),
+        .bus_wrdata(cpu_wrdata),
+        .bus_wren(cpu_write),
+        .bus_strobe(sram_strobe),
+        .bus_wait(sram_wait),
+        .bus_rddata(rddata_sram),
+
+        // SRAM interface
+        .sram_a(ebus_sram_a),
+        .sram_ce_n(ebus_ram_ce_n),
+        .sram_oe_n(ebus_rd_n),
+        .sram_we_n(ebus_ram_we_n),
+        .sram_dq(ebus_d));
 
     //////////////////////////////////////////////////////////////////////////
     // ESP32 UART

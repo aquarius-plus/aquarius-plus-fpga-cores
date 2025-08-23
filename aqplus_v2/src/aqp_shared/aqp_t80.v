@@ -34,13 +34,15 @@ module aqp_t80(
     reg  [7:0] q_t80_di;
     wire       t80_irq_cycle;
 
+    wire   clk_en = phi_rising;
+
     t80 #(
         .Mode(0)
     ) t80(
         .clk(clk),
         .reset(reset),
 
-        .clk_en(phi_rising),
+        .clk_en(clk_en),
         .bus_wait(bus_wait),
         .irq(irq),
         .nmi(1'b0),
@@ -56,102 +58,84 @@ module aqp_t80(
         .irq_cycle(t80_irq_cycle)
     );
 
-    always @(posedge clk) if (phi_falling && t80_tstate == 3'd3) q_t80_di <= bus_rddata;
+    always @(posedge clk) if (clk_en && t80_tstate == 3'd2) q_t80_di <= bus_rddata;
 
-    reg q_wr_t2;
-    always @(posedge clk or posedge reset)
-        if (reset) begin
-            q_wr_t2 <= 1'b0;
-
-        end else if (phi_falling) begin
-            if (t80_tstate == 3'd2 && t80_mcycle != 3'd1) q_wr_t2 <= t80_write;
-            if (t80_tstate == 3'd3)                       q_wr_t2 <= 1'b0;
-        end
-
-    reg q_req_inhibit;
-    always @(posedge clk or posedge reset)
-        if (reset)           q_req_inhibit <= 1;
-        else if (phi_rising) q_req_inhibit <= !(t80_mcycle == 3'd1 && t80_tstate == 3'd2);
-
-    reg q_mreq_inhibit;
-    always @(posedge clk or posedge reset)
-        if (reset)            q_mreq_inhibit <= 1;
-        else if (phi_falling) q_mreq_inhibit <= !(t80_mcycle == 3'd1 && t80_tstate == 3'd2);
-
-    reg q_read;
-    reg q_mreq;
-    always @(posedge clk or posedge reset)
-        if (reset) begin
-            q_read <= 1'b0;
-            q_mreq <= 1'b0;
-        end else if (phi_falling) begin
-            if (t80_mcycle == 3'd1) begin
-                if (t80_tstate == 3'd1) begin
-                    q_read <= !t80_irq_cycle;
-                    q_mreq <= !t80_irq_cycle;
-                end
-                if (t80_tstate == 3'd3) begin
-                    q_read <= 1'b0;
-                    q_mreq <= 1'b1;
-                end
-                if (t80_tstate == 3'd4) begin
-                    q_mreq <= 1'b0;
-                end
-
-            end else begin
-                if (t80_tstate == 3'd1 && !t80_noread) begin
-                    q_read <= !t80_write;
-                    q_mreq <= !t80_iorq;
-                end
-                if (t80_tstate == 3'd3) begin
-                    q_read <= 1'b0;
-                    q_mreq <= 1'b0;
-                end
-            end
-        end
-
-    reg q_iorq_int;
-    always @(posedge clk or posedge reset)
-        if (reset) begin
-            q_iorq_int <= 0;
-
-        end else if (phi_rising) begin
-            if (t80_mcycle == 3'd1) begin
-                if (t80_tstate == 3'd1) q_iorq_int <= t80_irq_cycle;
-                if (t80_tstate == 3'd2) q_iorq_int <= 0;
-            end
-        end
-
+    reg       q_wr_t2;
+    reg       q_req_inhibit;
+    reg       q_mreq_inhibit;
+    reg       q_read;
+    reg       q_mreq;
+    reg       q_iorq_int;
     reg [2:0] q_iorq_int_inhibit;
+    reg       q_iorq_t1;
+    reg       q_iorq_t2;
+
     always @(posedge clk or posedge reset)
         if (reset) begin
-            q_iorq_int_inhibit <= 3'd7;
-        end else if (phi_falling && t80_irq_cycle) begin
-            if (t80_mcycle == 3'd1) q_iorq_int_inhibit <= {q_iorq_int_inhibit[1:0], 1'b0};
-            if (t80_mcycle == 3'd2) q_iorq_int_inhibit <= 3'd7;
-        end
+            q_wr_t2            <= 0;
+            q_req_inhibit      <= 1;
+            q_mreq_inhibit     <= 1;
+            q_read             <= 0;
+            q_mreq             <= 0;
+            q_iorq_int         <= 0;
+            q_iorq_int_inhibit <= 3'b111;
+            q_iorq_t1          <= 1;
+            q_iorq_t2          <= 1;
 
-    reg q_iorq_t1;
-    always @(posedge clk or posedge reset)
-        if (reset) begin
-            q_iorq_t1 <= 1;
-        end else if (phi_falling) begin
-            if (t80_tstate == 3'd1) q_iorq_t1 <= t80_irq_cycle;
-            if (t80_tstate == 3'd3) q_iorq_t1 <= 1;
-        end
+        end else begin
+            if (phi_falling) begin
+                if (t80_tstate == 3'd2 && t80_mcycle != 3'd1) q_wr_t2 <= t80_write;
+                if (t80_tstate == 3'd3)                       q_wr_t2 <= 1'b0;
 
-    reg q_iorq_t2;
-    always @(posedge clk or posedge reset)
-        if (reset)           q_iorq_t2 <= 1;
-        else if (phi_rising) q_iorq_t2 <= q_iorq_t1;
+                q_mreq_inhibit <= !(t80_mcycle == 3'd1 && t80_tstate == 3'd2);
+
+                if (t80_mcycle == 3'd1) begin
+                    if (t80_tstate == 3'd1) q_read <= !t80_irq_cycle;
+                    if (t80_tstate == 3'd1) q_mreq <= !t80_irq_cycle;
+
+                    if (t80_tstate == 3'd3) q_read <= 0;
+                    if (t80_tstate == 3'd3) q_mreq <= 1;
+
+                    if (t80_tstate == 3'd4) q_mreq <= 0;
+
+                end else begin
+                    if (t80_tstate == 3'd1 && !t80_noread) begin
+                        q_read <= !t80_write;
+                        q_mreq <= !t80_iorq;
+                    end
+
+                    if (t80_tstate == 3'd3) q_read <= 0;
+                    if (t80_tstate == 3'd3) q_mreq <= 0;
+                end
+
+                if (t80_irq_cycle) begin
+                    if (t80_mcycle == 3'd1) q_iorq_int_inhibit <= {q_iorq_int_inhibit[1:0], 1'b0};
+                    if (t80_mcycle == 3'd2) q_iorq_int_inhibit <= 3'b111;
+                end
+
+                if (t80_tstate == 3'd1) q_iorq_t1 <= t80_irq_cycle;
+                if (t80_tstate == 3'd3) q_iorq_t1 <= 1;
+            end
+
+            if (clk_en) begin
+                q_req_inhibit <= !(t80_mcycle == 3'd1 && t80_tstate == 3'd2);
+
+                if (t80_mcycle == 3'd1) begin
+                    if (t80_tstate == 3'd1) q_iorq_int <= t80_irq_cycle;
+                    if (t80_tstate == 3'd2) q_iorq_int <= 0;
+                end
+
+                q_iorq_t2 <= q_iorq_t1;
+            end
+        end
 
     wire   mreq_rw = q_mreq   && (q_req_inhibit || q_mreq_inhibit);
     wire   iorq_rw = t80_iorq && !(q_iorq_t1 || q_iorq_t2);
 
     assign bus_memrq = mreq_rw;
-    assign bus_iorq  = ((q_iorq_int && !q_iorq_int_inhibit[2]) || iorq_rw);
-    assign bus_rd    = (q_read && (mreq_rw || iorq_rw));
-    assign bus_wr    = (t80_write && ((q_wr_t2 && mreq_rw) || iorq_rw));
+    assign bus_iorq  = (q_iorq_int && !q_iorq_int_inhibit[2]) || iorq_rw;
+    assign bus_rd    = q_read && (mreq_rw || iorq_rw);
+    assign bus_wr    = t80_write && ((q_wr_t2 && mreq_rw) || iorq_rw);
     assign dq_oe     = t80_write;
 
 endmodule
