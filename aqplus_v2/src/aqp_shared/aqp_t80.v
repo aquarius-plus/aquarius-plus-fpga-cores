@@ -48,9 +48,10 @@ module aqp_t80(
         .bus_wait(bus_wait),
 
         .irq(irq),
+        .irq_vector(8'h00),
         .nmi(nmi),
-
         .bus_no_read(t80_noread),
+
         .DInst(bus_rddata),
         .DI(q_t80_di),
         .mcycle(t80_mcycle),
@@ -69,6 +70,17 @@ module aqp_t80(
     reg [2:0] q_iorq_int_inhibit;
     reg       q_iorq_t1;
     reg       q_iorq_t2;
+
+    reg  my_strobe;
+    always @* begin
+        my_strobe = 0;
+
+        if (!bus_wren && !t80_noread && t80_tstate == 3'd1)
+            my_strobe = 1;
+
+        if (bus_wren && t80_tstate == 3'd2)
+            my_strobe = 1;
+    end
 
     always @(posedge clk or posedge reset)
         if (reset) begin
@@ -99,10 +111,8 @@ module aqp_t80(
                     if (t80_tstate == 3'd4) q_mreq <= 0;
 
                 end else begin
-                    if (t80_tstate == 3'd1 && !t80_noread) begin
-                        q_read <= !bus_wren;
-                        q_mreq <= !bus_iorq;
-                    end
+                    if (t80_tstate == 3'd1) q_read <= !bus_wren && !t80_noread;
+                    if (t80_tstate == 3'd1) q_mreq <= !bus_iorq && !t80_noread;
 
                     if (t80_tstate == 3'd3) q_read <= 0;
                     if (t80_tstate == 3'd3) q_mreq <= 0;

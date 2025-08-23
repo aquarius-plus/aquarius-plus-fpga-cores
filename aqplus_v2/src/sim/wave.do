@@ -2,6 +2,7 @@ onerror {resume}
 quietly WaveActivateNextPane {} 0
 add wave -noupdate /tb/top_inst/cpu_wrdata
 add wave -noupdate /tb/top_inst/cpu_rddata
+add wave -noupdate /tb/top_inst/aqp_t80/my_strobe
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/clk
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/reset
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/clk_en
@@ -10,7 +11,6 @@ add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/t
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/nmi
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/bus_iorq
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/bus_no_read
-add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/bus_write
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/bus_addr
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/DInst
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/DI
@@ -168,9 +168,7 @@ add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/q_bus_wr
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/q_phi
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/phi_rising
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/phi_falling
-add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_iorq
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_noread
-add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_write
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_mcycle
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_tstate
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/q_t80_di
@@ -233,5 +231,5 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {0 ps} {13125 ns}
+WaveRestoreZoom {87531250 ps} {100614517 ps}
 bookmark add wave bookmark0 {{0 ps} {212100032 ps}} 0

@@ -14,8 +14,10 @@ module t80(
 
     input  wire        bus_wait,
     input  wire        irq,
+    input  wire  [7:0] irq_vector,
     input  wire        nmi,
     output wire        bus_no_read,
+
     input  wire  [7:0] DInst,
     input  wire  [7:0] DI,
     output wire  [2:0] mcycle,
@@ -2048,7 +2050,7 @@ module t80(
             q_bus_wrdata       <= 0;
 
             q_memptr           <= 0;
-            q_instruction      <= 0;
+            q_instruction      <= 8'h00;
             q_prefix           <= 0;
             q_xy_state         <= 0;
 
@@ -2083,26 +2085,21 @@ module t80(
                         if (!dec_jump && !dec_call && !q_nmi_cycle && !q_irq_cycle && !(q_halt || dec_is_halt)) begin
                             q_reg_pc <= q_reg_pc + 1;
                         end
-                        if (q_irq_cycle && q_im == 2'b01) begin
+
+                        if (q_irq_cycle && q_im == 2'b01)
                             q_instruction <= 8'hFF;
-                        end else if (q_halt || (q_irq_cycle && q_im == 2'b10) || q_nmi_cycle) begin
+                        else if (q_halt || (q_irq_cycle && q_im == 2'b10) || q_nmi_cycle)
                             q_instruction <= 8'h00;
-                        end else begin
+                        else
                             q_instruction <= DInst;
-                        end
-                        if (q_irq_cycle && q_im == 2'b10) begin
-                            // IM2 vector address low byte from bus
-                            q_memptr[7:0] <= DInst;
-                        end
+                        
+                        if (q_irq_cycle && q_im == 2'b10)   // IM2 vector address low byte from bus
+                            q_memptr[7:0] <= irq_vector;
 
                         q_prefix <= PrefixNone;
                         if (dec_prefix != PrefixNone) begin
                             if (dec_prefix == PrefixDD_FD) begin
-                                if (q_instruction[5]) begin
-                                    q_xy_state <= 2'b10;
-                                end else begin
-                                    q_xy_state <= 2'b01;
-                                end
+                                q_xy_state <= q_instruction[5] ? 2'b10 : 2'b01;
                             end else begin
                                 if (dec_prefix == PrefixED) begin
                                     q_xy_state <= 2'b00;
@@ -2115,88 +2112,88 @@ module t80(
                             q_xy_ind   <= 0;
                         end
                     end
-                end
-                else begin
+
+                end else begin
                     if (q_mcycle == 3'd6) begin
                         q_xy_ind <= 1;
-                        if (dec_prefix == PrefixCB) begin
+                        if (dec_prefix == PrefixCB)
                             q_prefix <= dec_prefix;
-                        end
                     end
+
                     if (t_reset) begin
                         q_btr <= (dec_is_bt | dec_is_bc | dec_is_btr) & ~q_no_btr;
                         if (dec_jump) begin
                             q_bus_addr <= {DI_Reg, q_memptr[7:0]};
                             q_reg_pc   <= {DI_Reg, q_memptr[7:0]};
-                        end
-                        else if (dec_is_jp_ind_hl) begin
+
+                        end else if (dec_is_jp_ind_hl) begin
                             q_bus_addr <= reg_bus_c;
-                            q_reg_pc <= reg_bus_c;
-                        end
-                        else if (dec_call || dec_rst_p) begin
+                            q_reg_pc   <= reg_bus_c;
+
+                        end else if (dec_call || dec_rst_p) begin
                             q_bus_addr <= q_memptr;
-                            q_reg_pc <= q_memptr;
-                        end
-                        else if (q_mcycle == q_mcycles && q_nmi_cycle) begin
+                            q_reg_pc   <= q_memptr;
+
+                        end else if (q_mcycle == q_mcycles && q_nmi_cycle) begin
                             q_bus_addr <= 16'h0066;
-                            q_reg_pc <= 16'h0066;
-                        end
-                        else if (q_mcycle == 3'd3 && q_irq_cycle && q_im == 2'b10) begin
+                            q_reg_pc   <= 16'h0066;
+
+                        end else if (q_mcycle == 3'd3 && q_irq_cycle && q_im == 2'b10) begin
                             q_bus_addr <= {q_reg_i, q_memptr[7:0]};
-                            q_reg_pc <= {q_reg_i, q_memptr[7:0]};
-                        end
-                        else begin
+                            q_reg_pc   <= {q_reg_i, q_memptr[7:0]};
+
+                        end else begin
                             case (dec_set_addr_to)
-                            aXY: begin
-                                if (q_xy_state == 2'b00)
+                                aXY: begin
+                                    if (q_xy_state == 2'b00)
+                                        q_bus_addr <= reg_bus_c;
+                                    else
+                                        q_bus_addr <= next_is_xy_fetch ? q_reg_pc : q_memptr;
+                                end
+                                aIOA: begin
+                                    q_bus_addr <= {q_reg_a, DI_Reg};
+                                    q_memptr   <= {q_reg_a, DI_Reg} + 16'd1;
+                                end
+                                aSP: begin
+                                    q_bus_addr <= q_reg_sp;
+                                end
+                                aBC: begin
                                     q_bus_addr <= reg_bus_c;
-                                else
-                                    q_bus_addr <= next_is_xy_fetch ? q_reg_pc : q_memptr;
-                            end
-                            aIOA: begin
-                                q_bus_addr <= {q_reg_a, DI_Reg};
-                                q_memptr <= {q_reg_a, DI_Reg} + 16'd1;
-                            end
-                            aSP: begin
-                                q_bus_addr <= q_reg_sp;
-                            end
-                            aBC: begin
-                                q_bus_addr <= reg_bus_c;
-                                if (dec_set_sw == 2'b01) begin
-                                    q_memptr <= reg_bus_c + 1'b1;
-                                end
-                                if (dec_set_sw == 2'b10) begin
-                                    q_memptr[15:8] <= q_reg_a;
-                                    q_memptr[7:0]  <= reg_bus_c[7:0] + 1'b1;
-                                end
-                            end
-                            aDE: begin
-                                q_bus_addr <= reg_bus_c;
-                                if (dec_set_sw == 2'b10) begin
-                                    q_memptr[15:8] <= q_reg_a;
-                                    q_memptr[7:0]  <= reg_bus_c[7:0] + 1'b1;
-                                end
-                            end
-                            aZI: begin
-                                if (dec_inc_memptr) begin
-                                    q_bus_addr <= q_memptr + 16'd1;
-                                end else begin
-                                    q_bus_addr <= {DI_Reg, q_memptr[7:0]};
+                                    if (dec_set_sw == 2'b01) begin
+                                        q_memptr <= reg_bus_c + 1'b1;
+                                    end
                                     if (dec_set_sw == 2'b10) begin
                                         q_memptr[15:8] <= q_reg_a;
-                                        q_memptr[7:0]  <= q_memptr[7:0] + 1'b1;
+                                        q_memptr[7:0]  <= reg_bus_c[7:0] + 1'b1;
                                     end
                                 end
-                            end
-                            default: begin
-                                if (q_prefix == PrefixED && q_instruction[7:4] == 4'hB && q_instruction[2:1] == 2'b01 && q_mcycle == 3 && !q_no_btr) begin
-                                    // INIR, INDR, OTIR, OTDR
-                                    q_bus_addr <= q_reg_bus_a;
+                                aDE: begin
+                                    q_bus_addr <= reg_bus_c;
+                                    if (dec_set_sw == 2'b10) begin
+                                        q_memptr[15:8] <= q_reg_a;
+                                        q_memptr[7:0]  <= reg_bus_c[7:0] + 1'b1;
+                                    end
                                 end
-                                else if (!dec_no_pc || q_no_btr || (dec_is_djnz && q_inc_dec_is_zero)) begin
-                                    q_bus_addr <= q_reg_pc;
+                                aZI: begin
+                                    if (dec_inc_memptr) begin
+                                        q_bus_addr <= q_memptr + 16'd1;
+                                    end else begin
+                                        q_bus_addr <= {DI_Reg, q_memptr[7:0]};
+                                        if (dec_set_sw == 2'b10) begin
+                                            q_memptr[15:8] <= q_reg_a;
+                                            q_memptr[7:0]  <= q_memptr[7:0] + 1'b1;
+                                        end
+                                    end
                                 end
-                            end
+                                default: begin
+                                    if (q_prefix == PrefixED && q_instruction[7:4] == 4'hB && q_instruction[2:1] == 2'b01 && q_mcycle == 3 && !q_no_btr) begin
+                                        // INIR, INDR, OTIR, OTDR
+                                        q_bus_addr <= q_reg_bus_a;
+                                    end
+                                    else if (!dec_no_pc || q_no_btr || (dec_is_djnz && q_inc_dec_is_zero)) begin
+                                        q_bus_addr <= q_reg_pc;
+                                    end
+                                end
                             endcase
                         end
                         if (dec_set_sw == 2'b11) begin
@@ -2252,10 +2249,8 @@ module t80(
                         if (q_btr)
                             q_reg_pc <= q_reg_pc - 16'd2;
 
-                        if (dec_rst_p) begin
-                            q_memptr <= {16{1'b0}};
-                            q_memptr[5:3] <= q_instruction[5:3];
-                        end
+                        if (dec_rst_p)
+                            q_memptr <= {10'b0, q_instruction[5:3], 3'b0};
                     end
 
                     if (q_tstate == 3 && q_mcycle == 3'd6)
