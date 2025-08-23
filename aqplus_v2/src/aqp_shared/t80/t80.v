@@ -6,16 +6,18 @@ module t80(
     input  wire        reset,
 
     input  wire        clk_en,
+
+    output wire [15:0] bus_addr,
+    output wire  [7:0] bus_wrdata,
+    output wire        bus_wren,
+    output wire        bus_iorq,
+
     input  wire        bus_wait,
     input  wire        irq,
     input  wire        nmi,
-    output wire        bus_iorq,
     output wire        bus_no_read,
-    output wire        bus_write,
-    output wire [15:0] bus_addr,
     input  wire  [7:0] DInst,
     input  wire  [7:0] DI,
-    output wire  [7:0] bus_wrdata,
     output wire  [2:0] mcycle,
     output wire  [2:0] tstate,
     output wire        irq_cycle);
@@ -2542,12 +2544,12 @@ module t80(
     //------------------------------------------------------------------------
     assign bus_addr    = q_bus_addr;
     assign bus_wrdata  = q_bus_wrdata;
+    assign bus_wren    = dec_write;
+    assign bus_iorq    = dec_iorq;
+    assign bus_no_read = dec_no_read;
     assign mcycle      = q_mcycle;
     assign tstate      = q_tstate;
     assign irq_cycle   = q_irq_cycle;
-    assign bus_iorq    = dec_iorq;
-    assign bus_no_read = dec_no_read;
-    assign bus_write   = dec_write;
 
     assign DI_Reg     = DI;
 

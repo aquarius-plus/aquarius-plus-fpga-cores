@@ -13,18 +13,9 @@ module aqp_t80(
     input  wire        bus_wait,
     input  wire  [7:0] bus_rddata,
 
-    input  wire        irq
+    input  wire        irq,
+    input  wire        nmi
 );
-
-    wire bus_rd;
-    wire bus_wr;
-
-    reg q_bus_rd;
-    reg q_bus_wr;
-    always @(posedge clk) q_bus_rd <= bus_rd;
-    always @(posedge clk) q_bus_wr <= bus_wr;
-
-    assign bus_strobe = (bus_rd & !q_bus_rd) || (bus_wr & !q_bus_wr);
 
     reg q_phi;
     always @(posedge clk or posedge reset)
@@ -33,9 +24,7 @@ module aqp_t80(
 
     wire       phi_rising  = !q_phi;
     wire       phi_falling =  q_phi;
-    wire       t80_iorq;
     wire       t80_noread;
-    wire       t80_write;
     wire [2:0] t80_mcycle;
     wire [2:0] t80_tstate;
     reg  [7:0] q_t80_di;
@@ -50,16 +39,20 @@ module aqp_t80(
         .reset(reset),
 
         .clk_en(clk_en),
-        .bus_wait(bus_wait),
-        .irq(irq),
-        .nmi(1'b0),
-        .bus_iorq(t80_iorq),
-        .bus_no_read(t80_noread),
-        .bus_write(t80_write),
+
         .bus_addr(bus_addr),
+        .bus_wrdata(bus_wrdata),
+        .bus_wren(bus_wren),
+        .bus_iorq(bus_iorq),
+
+        .bus_wait(bus_wait),
+
+        .irq(irq),
+        .nmi(nmi),
+
+        .bus_no_read(t80_noread),
         .DInst(bus_rddata),
         .DI(q_t80_di),
-        .bus_wrdata(bus_wrdata),
         .mcycle(t80_mcycle),
         .tstate(t80_tstate),
         .irq_cycle(t80_irq_cycle)
@@ -91,7 +84,7 @@ module aqp_t80(
 
         end else begin
             if (phi_falling) begin
-                if (t80_tstate == 3'd2 && t80_mcycle != 3'd1) q_wr_t2 <= t80_write;
+                if (t80_tstate == 3'd2 && t80_mcycle != 3'd1) q_wr_t2 <= bus_wren;
                 if (t80_tstate == 3'd3)                       q_wr_t2 <= 1'b0;
 
                 q_mreq_inhibit <= !(t80_mcycle == 3'd1 && t80_tstate == 3'd2);
@@ -107,8 +100,8 @@ module aqp_t80(
 
                 end else begin
                     if (t80_tstate == 3'd1 && !t80_noread) begin
-                        q_read <= !t80_write;
-                        q_mreq <= !t80_iorq;
+                        q_read <= !bus_wren;
+                        q_mreq <= !bus_iorq;
                     end
 
                     if (t80_tstate == 3'd3) q_read <= 0;
@@ -136,12 +129,17 @@ module aqp_t80(
             end
         end
 
-    wire   mreq_rw = q_mreq   && (q_req_inhibit || q_mreq_inhibit);
-    wire   iorq_rw = t80_iorq && !(q_iorq_t1 || q_iorq_t2);
+    wire mreq_rw = q_mreq   && (q_req_inhibit || q_mreq_inhibit);
+    wire iorq_rw = bus_iorq && !(q_iorq_t1 || q_iorq_t2);
 
-    assign bus_iorq  = (q_iorq_int && !q_iorq_int_inhibit[2]) || iorq_rw;
-    assign bus_rd    = q_read && (mreq_rw || iorq_rw);
-    assign bus_wr    = t80_write && ((q_wr_t2 && mreq_rw) || iorq_rw);
-    assign bus_wren  = t80_write;
+    wire bus_rd = q_read && (mreq_rw || iorq_rw);
+    wire bus_wr = bus_wren && ((q_wr_t2 && mreq_rw) || iorq_rw);
+
+    reg q_bus_rd;
+    reg q_bus_wr;
+    always @(posedge clk) q_bus_rd <= bus_rd;
+    always @(posedge clk) q_bus_wr <= bus_wr;
+
+    assign bus_strobe = (bus_rd & !q_bus_rd) || (bus_wr & !q_bus_wr);
 
 endmodule

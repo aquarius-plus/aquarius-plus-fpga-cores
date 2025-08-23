@@ -680,7 +680,8 @@ module aqp_top(
         .bus_wait(cpu_wait),
         .bus_rddata(cpu_rddata),
 
-        .irq(cpu_irq)
+        .irq(cpu_irq),
+        .nmi(1'b0)
     );
 
 endmodule
