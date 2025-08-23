@@ -66,8 +66,6 @@ module aqp_t80(
     reg       q_mreq_inhibit;
     reg       q_read;
     reg       q_mreq;
-    reg       q_iorq_int;
-    reg [2:0] q_iorq_int_inhibit;
     reg       q_iorq_t1;
     reg       q_iorq_t2;
 
@@ -89,8 +87,6 @@ module aqp_t80(
             q_mreq_inhibit     <= 1;
             q_read             <= 0;
             q_mreq             <= 0;
-            q_iorq_int         <= 0;
-            q_iorq_int_inhibit <= 3'b111;
             q_iorq_t1          <= 1;
             q_iorq_t2          <= 1;
 
@@ -118,22 +114,12 @@ module aqp_t80(
                     if (t80_tstate == 3'd3) q_mreq <= 0;
                 end
 
-                if (t80_irq_cycle) begin
-                    if (t80_mcycle == 3'd1) q_iorq_int_inhibit <= {q_iorq_int_inhibit[1:0], 1'b0};
-                    if (t80_mcycle == 3'd2) q_iorq_int_inhibit <= 3'b111;
-                end
-
-                if (t80_tstate == 3'd1) q_iorq_t1 <= t80_irq_cycle;
+                if (t80_tstate == 3'd1) q_iorq_t1 <= 0; // t80_irq_cycle;
                 if (t80_tstate == 3'd3) q_iorq_t1 <= 1;
             end
 
             if (clk_en) begin
                 q_req_inhibit <= !(t80_mcycle == 3'd1 && t80_tstate == 3'd2);
-
-                if (t80_mcycle == 3'd1) begin
-                    if (t80_tstate == 3'd1) q_iorq_int <= t80_irq_cycle;
-                    if (t80_tstate == 3'd2) q_iorq_int <= 0;
-                end
 
                 q_iorq_t2 <= q_iorq_t1;
             end
