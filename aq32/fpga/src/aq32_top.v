@@ -5,7 +5,7 @@ module aq32_top(
     input  wire        sysclk,          // 14.31818MHz
 
     // Z80 bus interface
-    inout  wire        ebus_reset_n,
+    output wire        ebus_reset_n,
     output wire        ebus_phi,        // 3.579545MHz
     output wire [15:0] ebus_a,
     inout  wire  [7:0] ebus_d,
@@ -61,16 +61,16 @@ module aq32_top(
 );
 
     assign exp            = 9'b0;
-    assign cassette_out   = 1'b0;
-    assign printer_out    = 1'b0;
-    assign ebus_cart_ce_n = 1'b1;
+    assign cassette_out   = 0;
+    assign printer_out    = 0;
+    assign ebus_cart_ce_n = 1;
     assign ebus_reset_n   = 1'bZ;
-    assign ebus_wr_n      = 1'b1;
+    assign ebus_wr_n      = 1;
     assign ebus_a[15:14]  = 2'bZ;
-    assign ebus_mreq_n    = 1'b1;
-    assign ebus_iorq_n    = 1'b1;
+    assign ebus_mreq_n    = 1;
+    assign ebus_iorq_n    = 1;
     assign ebus_int_n     = 1'bZ;
-    assign ebus_busreq_n  = 1'b0;
+    assign ebus_busreq_n  = 0;
 
     wire        spi_reset_req;
     wire        reset_req_cold;
@@ -99,7 +99,6 @@ module aq32_top(
     // System controller (reset and clock generation)
     //////////////////////////////////////////////////////////////////////////
     wire reset_req = spi_reset_req;
-    wire ebus_phi_clken;
     wire reset;
 
     aqp_sysctrl sysctrl(
@@ -107,7 +106,6 @@ module aq32_top(
         .reset_req(reset_req),
 
         .ebus_phi(ebus_phi),
-        .ebus_phi_clken(ebus_phi_clken),
         .reset(reset));
 
     //////////////////////////////////////////////////////////////////////////
@@ -387,10 +385,10 @@ module aq32_top(
     //////////////////////////////////////////////////////////////////////////
     // Hand controller interface
     //////////////////////////////////////////////////////////////////////////
+    assign hc1[8]   = 0;
     assign hc1[7:0] = 8'bZ;
+    assign hc2[8]   = 0;
     assign hc2[7:0] = 8'bZ;
-    assign hc1[8]   = 1'b0;
-    assign hc2[8]   = 1'b0;
 
     wire [7:0] spi_hctrl1, spi_hctrl2;
 
