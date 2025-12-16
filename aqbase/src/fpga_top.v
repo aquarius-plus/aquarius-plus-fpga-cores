@@ -1,6 +1,9 @@
 `default_nettype none
 `timescale 1 ns / 1 ps
 
+`define ENABLE_AY8910
+`define ENABLE_MEM_32K
+
 module fpga_top(
     input  wire        sysclk,          // 14.31818MHz
 
@@ -270,6 +273,7 @@ module fpga_top(
     wire  [7:0] rddata_keyboard;         // IO $FF:R
 
     reg         q_reg_cpm_remap;         // IO $FD:W
+    reg   [7:0] q_reg_scramble;          // IO $FF:W
 
     wire        spi_reset_req;
 
@@ -303,7 +307,11 @@ module fpga_top(
     assign ebus_ba = reg_bank_page[4:0];
 
     // IO space decoding
+`ifdef ENABLE_AY8910
     wire sel_io_ay8910            = !ebus_iorq_n && (ebus_a[7:0] == 8'hF6 || ebus_a[7:0] == 8'hF7);
+`else
+    wire sel_io_ay8910            = 0;
+`endif
     wire sel_io_cassette          = !ebus_iorq_n && ebus_a[7:0] == 8'hFC;
     wire sel_io_vsync_r_cpm_w     = !ebus_iorq_n && ebus_a[7:0] == 8'hFD;
     wire sel_io_printer           = !ebus_iorq_n && ebus_a[7:0] == 8'hFE;
@@ -314,8 +322,15 @@ module fpga_top(
         sel_io_ay8910 |
         sel_io_cassette | sel_io_vsync_r_cpm_w | sel_io_printer | sel_io_keyb_r_scramble_w;
 
-    wire sel_mem_cart    = !ebus_mreq_n && ebus_a[15:14] == 2'b11 && !sel_internal;     // $C000-$FFFF
-    wire sel_mem_ram     = !ebus_mreq_n && (sel_mem_sysram || ebus_a[15:14] == 2'b01 || ebus_a[15:14] == 2'b10) && !sel_internal;   // $3800-$BFFF
+`ifdef ENABLE_MEM_32K
+    wire sel_mem_32k     = !ebus_mreq_n && (ebus_a[15:14] == 2'b01 || ebus_a[15:14] == 2'b10);   // $4000-$BFFF
+`else
+    wire sel_mem_32k     = 0;
+`endif
+    wire sel_mem_cart    = !ebus_mreq_n && ebus_a[15:14] == 2'b11;                               // $C000-$FFFF
+    wire sel_mem_ram     = sel_mem_sysram || sel_mem_32k;                                        // $3800-$BFFF
+
+    wire do_scramble = ebus_iorq_n && !sel_internal && !sel_mem_sysram;
 
     assign ebus_ram_we_n  = !(sel_mem_ram && !ebus_wr_n);
     assign ebus_ram_ce_n  = !sel_mem_ram;
@@ -341,14 +356,16 @@ module fpga_top(
 
     always @(posedge clk or posedge reset)
         if (reset) begin
-            cassette_out              <= 0;
-            q_reg_cpm_remap           <= 0;
-            printer_out               <= 0;
+            cassette_out    <= 0;
+            q_reg_cpm_remap <= 0;
+            printer_out     <= 0;
+            q_reg_scramble  <= 0;
 
         end else begin
-            if (sel_io_cassette      && bus_write2) cassette_out    <= wrdata[0];
-            if (sel_io_vsync_r_cpm_w && bus_write2) q_reg_cpm_remap <= wrdata[0];
-            if (sel_io_printer       && bus_write2) printer_out     <= wrdata[0];
+            if (sel_io_cassette          && bus_write2) cassette_out    <= wrdata[0];
+            if (sel_io_vsync_r_cpm_w     && bus_write2) q_reg_cpm_remap <= wrdata[0];
+            if (sel_io_printer           && bus_write2) printer_out     <= wrdata[0];
+            if (sel_io_keyb_r_scramble_w && bus_write2) q_reg_scramble  <= wrdata;
         end
 
     //////////////////////////////////////////////////////////////////////////
@@ -528,7 +545,7 @@ module fpga_top(
     //////////////////////////////////////////////////////////////////////////
     wire [15:0] t80_addr;        // should tristate when busak_n == 0
     wire  [7:0] t80_dq_out;
-    wire  [7:0] t80_dq_in = ebus_d;
+    wire  [7:0] t80_dq_in = ebus_d ^ (do_scramble ? q_reg_scramble : 8'h00);
     wire        t80_dq_oe;
 
     wire        t80_mreq_n;      // should tristate when busak_n == 0
@@ -578,8 +595,8 @@ module fpga_top(
 
     assign ebus_d =
         (spibm_en && spibm_wrdata_en) ? spibm_wrdata :
-        (use_t80 && t80_dq_oe         ? t80_dq_out   :
-        (ebus_d_oe                    ? ebus_d_out   :
+        (use_t80 && t80_dq_oe         ? (t80_dq_out ^ (do_scramble ? q_reg_scramble : 8'h00)) :
+        (ebus_d_oe                    ? ebus_d_out :
                                         8'bZ));
 
 endmodule
