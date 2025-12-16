@@ -54,7 +54,7 @@
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="66"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="17"/>
     </file>
-    <file xil_pn:name="src/wrappers/textram.v" xil_pn:type="FILE_VERILOG">
+    <file xil_pn:name="src/textram.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="68"/>
       <association xil_pn:name="Implementation" xil_pn:seqID="5"/>
     </file>
