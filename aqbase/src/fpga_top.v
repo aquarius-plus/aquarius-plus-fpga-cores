@@ -76,7 +76,6 @@ module fpga_top(
 
     wire        use_t80 = 1;
 
-
     //////////////////////////////////////////////////////////////////////////
     // Clock synthesizer
     //////////////////////////////////////////////////////////////////////////
@@ -289,18 +288,7 @@ module fpga_top(
     // Bus interface
     //////////////////////////////////////////////////////////////////////////
 
-    // Select banking register based on upper address bits
-    reg [7:0] reg_bank;
-    always @* case (ebus_a[15:14])
-        2'd0: reg_bank = {2'b11, 6'd0};
-        2'd1: reg_bank = {2'b00, 6'd33};
-        2'd2: reg_bank = {2'b00, 6'd34};
-        2'd3: reg_bank = {2'b00, 6'd19};
-    endcase
-
-    wire       reg_bank_ro      = reg_bank[7];
-    wire       reg_bank_overlay = reg_bank[6];
-    wire [5:0] reg_bank_page    = reg_bank[5:0];
+    wire [5:0] reg_bank_page    = {4'b0, ebus_a[15:14]};
 
     wire [7:0] wrdata = ebus_d_in;
 
@@ -308,9 +296,9 @@ module fpga_top(
     wire bus_write2 = !ebus_wr_n && ebus_stb;
 
     // Memory space decoding
-    wire sel_mem_tram    = !ebus_mreq_n && reg_bank_overlay && ebus_a[13:11] == 3'b110;   // $3000-$37FF
-    wire sel_mem_sysram  = !ebus_mreq_n && reg_bank_overlay && ebus_a[13:11] == 3'b111;   // $3800-$3FFF
-    wire sel_mem_rom     = !ebus_mreq_n && reg_bank_page <= 6'd3 && !sel_mem_sysram;      // Page 0-3
+    wire sel_mem_rom     = !ebus_mreq_n && ebus_a[15:13] == 3'b000;     // $0000-$1FFF
+    wire sel_mem_tram    = !ebus_mreq_n && ebus_a[15:11] == 5'b00110;   // $3000-$37FF
+    wire sel_mem_sysram  = !ebus_mreq_n && ebus_a[15:11] == 5'b00111;   // $3800-$3FFF
 
     assign ebus_ba = reg_bank_page[4:0];
 
@@ -326,10 +314,10 @@ module fpga_top(
         sel_io_ay8910 |
         sel_io_cassette | sel_io_vsync_r_cpm_w | sel_io_printer | sel_io_keyb_r_scramble_w;
 
-    wire sel_mem_cart    = !ebus_mreq_n && !sel_internal && reg_bank_page[5:2] == 4'b0100;          // Page 16-19
-    wire sel_mem_ram     = !ebus_mreq_n && !sel_internal && (reg_bank_page[5] || sel_mem_sysram);   // Page 32-63
+    wire sel_mem_cart    = !ebus_mreq_n && ebus_a[15:14] == 2'b11 && !sel_internal;     // $C000-$FFFF
+    wire sel_mem_ram     = !ebus_mreq_n && (sel_mem_sysram || ebus_a[15:14] == 2'b01 || ebus_a[15:14] == 2'b10) && !sel_internal;   // $3800-$BFFF
 
-    assign ebus_ram_we_n  = !(sel_mem_ram && !ebus_wr_n && (!reg_bank_ro || sel_mem_sysram));
+    assign ebus_ram_we_n  = !(sel_mem_ram && !ebus_wr_n);
     assign ebus_ram_ce_n  = !sel_mem_ram;
     assign ebus_cart_ce_n = !sel_mem_cart;
 
