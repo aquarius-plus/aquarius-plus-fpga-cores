@@ -3,6 +3,7 @@
 
 `define ENABLE_AY8910
 `define ENABLE_MEM_32K
+`define ENABLE_MICRO_EXPANDER
 
 module fpga_top(
     input  wire        sysclk,          // 14.31818MHz
@@ -269,6 +270,7 @@ module fpga_top(
 
     wire  [7:0] rddata_tram;             // MEM $3000-$37FF
     wire  [7:0] rddata_rom;
+    wire  [7:0] rddata_uexp_rom;
     wire  [7:0] rddata_ay8910;           // IO $F6/F7
     wire  [7:0] rddata_keyboard;         // IO $FF:R
 
@@ -317,11 +319,6 @@ module fpga_top(
     wire sel_io_printer           = !ebus_iorq_n && ebus_a[7:0] == 8'hFE;
     wire sel_io_keyb_r_scramble_w = !ebus_iorq_n && ebus_a[7:0] == 8'hFF;
 
-    wire sel_internal =
-        sel_mem_tram | sel_mem_rom |
-        sel_io_ay8910 |
-        sel_io_cassette | sel_io_vsync_r_cpm_w | sel_io_printer | sel_io_keyb_r_scramble_w;
-
 `ifdef ENABLE_MEM_32K
     wire sel_mem_32k     = !ebus_mreq_n && (ebus_a[15:14] == 2'b01 || ebus_a[15:14] == 2'b10);   // $4000-$BFFF
 `else
@@ -330,17 +327,33 @@ module fpga_top(
     wire sel_mem_cart    = !ebus_mreq_n && ebus_a[15:14] == 2'b11;                               // $C000-$FFFF
     wire sel_mem_ram     = sel_mem_sysram || sel_mem_32k;                                        // $3800-$BFFF
 
-    wire do_scramble = ebus_iorq_n && !sel_internal && !sel_mem_sysram;
+    wire sel_internal =
+        sel_mem_tram | sel_mem_rom |
+`ifdef ENABLE_MICRO_EXPANDER
+        sel_mem_cart |
+`endif
+        sel_io_ay8910 |
+        sel_io_cassette | sel_io_vsync_r_cpm_w | sel_io_printer | sel_io_keyb_r_scramble_w;
+
+    wire do_scramble = (ebus_iorq_n && !sel_internal && !sel_mem_sysram) || sel_mem_cart;
 
     assign ebus_ram_we_n  = !(sel_mem_ram && !ebus_wr_n);
     assign ebus_ram_ce_n  = !sel_mem_ram;
+
+`ifndef ENABLE_MICRO_EXPANDER
     assign ebus_cart_ce_n = !sel_mem_cart;
+`else
+    assign ebus_cart_ce_n = 1;
+`endif
 
     reg [7:0] rddata;
     always @* begin
         rddata = 8'hFF;
         if (sel_mem_rom)              rddata = rddata_rom;
         if (sel_mem_tram)             rddata = rddata_tram;                     // TRAM $3000-$37FF
+`ifdef ENABLE_MICRO_EXPANDER
+        if (sel_mem_cart)             rddata = rddata_uexp_rom;
+`endif
 
         if (sel_io_ay8910)            rddata = rddata_ay8910;                   // IO $F6/F7
         if (sel_io_cassette)          rddata = {7'b0, !q_cassette_in[2]};       // IO $FC
@@ -376,6 +389,17 @@ module fpga_top(
         .addr(ebus_a[12:0]),
         .rddata(rddata_rom)
     );
+
+    //////////////////////////////////////////////////////////////////////////
+    // Micro-expander ROM
+    //////////////////////////////////////////////////////////////////////////
+`ifdef ENABLE_MICRO_EXPANDER
+    uexp_rom uexp_rom(
+        .clk(clk),
+        .addr(ebus_a[13:0]),
+        .rddata(rddata_uexp_rom)
+    );
+`endif
 
     //////////////////////////////////////////////////////////////////////////
     // Video
@@ -543,6 +567,12 @@ module fpga_top(
     //////////////////////////////////////////////////////////////////////////
     // T80 core
     //////////////////////////////////////////////////////////////////////////
+    reg   [1:0] q_wait_cnt;
+
+    always @(posedge clk or posedge reset)
+        if      (reset)          q_wait_cnt <= 0;
+        else if (ebus_phi_clken) q_wait_cnt <= q_wait_cnt + 2'd1;
+
     wire [15:0] t80_addr;        // should tristate when busak_n == 0
     wire  [7:0] t80_dq_out;
     wire  [7:0] t80_dq_in = ebus_d ^ (do_scramble ? q_reg_scramble : 8'h00);
@@ -552,7 +582,7 @@ module fpga_top(
     wire        t80_iorq_n;      // should tristate when busak_n == 0
     wire        t80_rd_n;        // should tristate when busak_n == 0
     wire        t80_wr_n;        // should tristate when busak_n == 0
-    wire        t80_wait_n = 1'b1;
+    wire        t80_wait_n = !(q_wait_cnt == 2'd3);
 
     wire        t80_busrq_n = spibm_busreq_n;
     wire        t80_busak_n;
