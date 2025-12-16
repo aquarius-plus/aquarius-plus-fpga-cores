@@ -27,12 +27,6 @@ module video(
     input  wire  [7:0] chram_wrdata,
     input  wire        chram_wren,
 
-    // Video RAM interface
-    input  wire [13:0] vram_addr,
-    output wire  [7:0] vram_rddata,
-    input  wire  [7:0] vram_wrdata,
-    input  wire        vram_wren,
-
     // VGA output
     output reg   [3:0] video_r,
     output reg   [3:0] video_g,
@@ -57,17 +51,10 @@ module video(
     always @(posedge vclk) q_vblank <= vblank;
 
     wire [7:0] rddata_vpaldata;
-    wire [7:0] rddata_sprattr;
 
     reg        q_vctrl_tram_page;       // IO $E0 [7]
     reg        q_vctrl_80_columns;      // IO $E0 [6]
     reg        q_vctrl_border_remap;    // IO $E0 [5]
-    reg        q_vctrl_text_priority;   // IO $E0 [4]
-    reg        q_vctrl_sprites_enable;  // IO $E0 [3]
-    reg  [1:0] q_vctrl_gfx_mode;        // IO $E0 [2:1]
-    reg        q_vctrl_text_enable;     // IO $E0 [0]
-    reg  [8:0] q_vscrx;                 // IO $E1/2
-    reg  [7:0] q_vscry;                 // IO $E3
     reg  [6:0] q_vpalsel;               // IO $EA
     reg  [7:0] q_virqline;              // IO $ED
     reg        q_irqmask_line;          // IO $EE [0]
@@ -89,9 +76,6 @@ module video(
     // IO registers
     //////////////////////////////////////////////////////////////////////////
     wire sel_io_vctrl    = (io_addr == 4'h0);
-    wire sel_io_vscrx_l  = (io_addr == 4'h1);
-    wire sel_io_vscrx_h  = (io_addr == 4'h2);
-    wire sel_io_vscry    = (io_addr == 4'h3);
     wire sel_io_vpalsel  = (io_addr == 4'hA);
     wire sel_io_vpaldata = (io_addr == 4'hB);
     wire sel_io_vline    = (io_addr == 4'hC);
@@ -100,11 +84,8 @@ module video(
     wire sel_io_irqstat  = (io_addr == 4'hF);
 
     always @* begin
-        io_rddata = rddata_sprattr;
-        if (sel_io_vctrl)    io_rddata = {q_vctrl_tram_page, q_vctrl_80_columns, q_vctrl_border_remap, q_vctrl_text_priority, q_vctrl_sprites_enable, q_vctrl_gfx_mode, q_vctrl_text_enable};
-        if (sel_io_vscrx_l)  io_rddata = q_vscrx[7:0];                             // IO $E1
-        if (sel_io_vscrx_h)  io_rddata = {7'b0, q_vscrx[8]};                       // IO $E2
-        if (sel_io_vscry)    io_rddata = q_vscry;                                  // IO $E3
+        io_rddata = 8'h00;
+        if (sel_io_vctrl)    io_rddata = {q_vctrl_tram_page, q_vctrl_80_columns, q_vctrl_border_remap, 5'b0};
         if (sel_io_vpalsel)  io_rddata = {1'b0, q_vpalsel};                        // IO $EA
         if (sel_io_vpaldata) io_rddata = rddata_vpaldata;                          // IO $EB
         if (sel_io_vline)    io_rddata = vpos;                                     // IO $EC
@@ -115,21 +96,15 @@ module video(
 
     always @(posedge clk or posedge reset)
         if (reset) begin
-            q_vctrl_tram_page      <= 1'b0;
-            q_vctrl_80_columns     <= 1'b0;
-            q_vctrl_border_remap   <= 1'b0;
-            q_vctrl_text_priority  <= 1'b0;
-            q_vctrl_sprites_enable <= 1'b0;
-            q_vctrl_gfx_mode       <= 2'b0;
-            q_vctrl_text_enable    <= 1'b0;
-            q_vscrx                <= 9'b0;
-            q_vscry                <= 8'b0;
-            q_vpalsel              <= 7'b0;
-            q_virqline             <= 8'b0;
-            q_irqmask_line         <= 1'b0;
-            q_irqmask_vblank       <= 1'b0;
-            q_irqstat_line         <= 1'b0;
-            q_irqstat_vblank       <= 1'b0;
+            q_vctrl_tram_page      <= 0;
+            q_vctrl_80_columns     <= 0;
+            q_vctrl_border_remap   <= 0;
+            q_vpalsel              <= 0;
+            q_virqline             <= 0;
+            q_irqmask_line         <= 0;
+            q_irqmask_vblank       <= 0;
+            q_irqstat_line         <= 0;
+            q_irqstat_vblank       <= 0;
 
         end else begin
             if (io_wren) begin
@@ -137,14 +112,7 @@ module video(
                     q_vctrl_tram_page      <= io_wrdata[7];
                     q_vctrl_80_columns     <= io_wrdata[6];
                     q_vctrl_border_remap   <= io_wrdata[5];
-                    q_vctrl_text_priority  <= io_wrdata[4];
-                    q_vctrl_sprites_enable <= io_wrdata[3];
-                    q_vctrl_gfx_mode       <= io_wrdata[2:1];
-                    q_vctrl_text_enable    <= io_wrdata[0];
                 end
-                if (sel_io_vscrx_l)  q_vscrx[7:0] <= io_wrdata;
-                if (sel_io_vscrx_h)  q_vscrx[8]   <= io_wrdata[0];
-                if (sel_io_vscry)    q_vscry      <= io_wrdata;
                 if (sel_io_vpalsel)  q_vpalsel    <= io_wrdata[6:0];
                 if (sel_io_virqline) q_virqline   <= io_wrdata;
                 if (sel_io_irqmask) begin
@@ -299,132 +267,12 @@ module video(
     wire [3:0] text_colidx  = char_pixel ? q_color_data[7:4] : q_color_data[3:0];
 
     //////////////////////////////////////////////////////////////////////////
-    // Sprite attribute RAM
-    //////////////////////////////////////////////////////////////////////////
-    wire  [5:0] spr_sel;
-    wire  [8:0] spr_x;
-    wire  [7:0] spr_y;
-    wire  [8:0] spr_idx;
-    wire        spr_enable;
-    wire        spr_priority;
-    wire  [1:0] spr_palette;
-    wire        spr_h16;
-    wire        spr_vflip;
-    wire        spr_hflip;
-
-    sprattr sprattr(
-        // First port - CPU access
-        .clk(clk),
-        .reset(reset),
-        .io_addr(io_addr),
-        .io_rddata(rddata_sprattr),
-        .io_wrdata(io_wrdata),
-        .io_wren(io_wren),
-
-        // Second port - Video access
-        .spr_sel(spr_sel),
-        .spr_x(spr_x),
-        .spr_y(spr_y),
-        .spr_idx(spr_idx),
-        .spr_enable(spr_enable),
-        .spr_priority(spr_priority),
-        .spr_palette(spr_palette),
-        .spr_h16(spr_h16),
-        .spr_vflip(spr_vflip),
-        .spr_hflip(spr_hflip)
-    );
-
-    //////////////////////////////////////////////////////////////////////////
-    // VRAM
-    //////////////////////////////////////////////////////////////////////////
-    wire [12:0] vram_addr2;
-    wire [15:0] vram_rddata2;
-
-    vram vram(
-        // First port - CPU access
-        .p1_clk(clk),
-        .p1_addr(vram_addr),
-        .p1_rddata(vram_rddata),
-        .p1_wrdata(vram_wrdata),
-        .p1_wren(vram_wren),
-
-        // Second port - Video access
-        .p2_clk(vclk),
-        .p2_addr(vram_addr2),
-        .p2_rddata(vram_rddata2));
-
-    //////////////////////////////////////////////////////////////////////////
-    // Graphics
-    //////////////////////////////////////////////////////////////////////////
-    wire [5:0] linebuf_data;
-    reg  [8:0] q_linebuf_rdidx;
-
-    always @(posedge vclk) q_linebuf_rdidx <= video_mode ? hpos[9:1] : (hpos[9:1] - 9'd16);
-
-    reg q_hborder, q2_hborder;
-    always @(posedge vclk) q_hborder  <= hborder;
-    always @(posedge vclk) q2_hborder <= q_hborder;
-
-    reg q_gfx_start;
-    always @(posedge vclk) q_gfx_start <= vnext;
-
-    gfx gfx(
-        .clk(vclk),
-        .reset(vclk_reset),
-
-        // Register values
-        .gfx_mode(q_vctrl_gfx_mode),
-        .sprites_enable(q_vctrl_sprites_enable),
-        .scrx(q_vscrx),
-        .scry(q_vscry),
-
-        // Sprite attribute interface
-        .spr_sel(spr_sel),
-        .spr_x(spr_x),
-        .spr_y(spr_y),
-        .spr_idx(spr_idx),
-        .spr_enable(spr_enable),
-        .spr_priority(spr_priority),
-        .spr_palette(spr_palette),
-        .spr_h16(spr_h16),
-        .spr_vflip(spr_vflip),
-        .spr_hflip(spr_hflip),
-
-        // Video RAM interface
-        .vaddr(vram_addr2),
-        .vdata(vram_rddata2),
-
-        // Render parameters
-        .vline(vpos),
-        .start(q_gfx_start),
-
-        // Line buffer interface
-        .linebuf_rdidx(q_linebuf_rdidx),
-        .linebuf_data(linebuf_data));
-
-    //////////////////////////////////////////////////////////////////////////
     // Compositing
     //////////////////////////////////////////////////////////////////////////
-    reg  [5:0] pixel_colidx;
-    wire       active = !vborder && !q2_hborder;
+    wire [5:0] pixel_colidx = {2'b0, text_colidx};
+    wire       active = !vborder;
 
     assign reg_fd_val = !vborder;
-
-    always @* begin
-        pixel_colidx = 6'b0;
-        if (!active) begin
-            if (q_vctrl_text_enable)
-                pixel_colidx = {2'b0, text_colidx};
-
-        end else begin
-            if (q_vctrl_text_enable && !q_vctrl_text_priority)
-                pixel_colidx = {2'b0, text_colidx};
-            if (!q_vctrl_text_enable || q_vctrl_text_priority || linebuf_data[3:0] != 4'd0)
-                pixel_colidx = linebuf_data;
-            if (q_vctrl_text_enable && q_vctrl_text_priority && text_colidx != 4'd0)
-                pixel_colidx = {2'b0, text_colidx};
-        end
-    end
 
     //////////////////////////////////////////////////////////////////////////
     // Palette
