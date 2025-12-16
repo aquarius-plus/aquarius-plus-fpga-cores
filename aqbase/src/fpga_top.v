@@ -294,7 +294,7 @@ module fpga_top(
     // Bus interface
     //////////////////////////////////////////////////////////////////////////
 
-    wire [5:0] reg_bank_page    = {4'b0, ebus_a[15:14]};
+    assign ebus_ba = {3'b0, ebus_a[15:14]};
 
     wire [7:0] wrdata = ebus_d_in;
 
@@ -302,13 +302,22 @@ module fpga_top(
     wire bus_write2 = !ebus_wr_n && ebus_stb;
 
     // Memory space decoding
-    wire sel_mem_rom     = !ebus_mreq_n && ebus_a[15:13] == 3'b000;     // $0000-$1FFF
-    wire sel_mem_tram    = !ebus_mreq_n && ebus_a[15:11] == 5'b00110;   // $3000-$37FF
-    wire sel_mem_sysram  = !ebus_mreq_n && ebus_a[15:11] == 5'b00111;   // $3800-$3FFF
-
-    assign ebus_ba = reg_bank_page[4:0];
+    wire sel_mem_rom     = !ebus_mreq_n && ebus_a[15:13] == 3'b000;                             // $0000-$1FFF
+    wire sel_mem_tram    = !ebus_mreq_n && ebus_a[15:11] == 5'b00110;                           // $3000-$37FF
+    wire sel_mem_sysram  = !ebus_mreq_n && ebus_a[15:11] == 5'b00111;                           // $3800-$3FFF
+`ifdef ENABLE_MEM_32K
+    wire sel_mem_32k     = !ebus_mreq_n && (ebus_a[15:14] == 2'b01 || ebus_a[15:14] == 2'b10);  // $4000-$BFFF
+`else
+    wire sel_mem_32k     = 0;
+`endif
+    wire sel_mem_ram     = sel_mem_sysram || sel_mem_32k;                                       // $3800-$BFFF
+    wire sel_mem_cart    = !ebus_mreq_n && ebus_a[15:14] == 2'b11;                              // $C000-$FFFF
 
     // IO space decoding
+`ifdef ENABLE_MICRO_EXPANDER
+    wire sel_io_latch             = !ebus_iorq_n && ebus_a[7:6] == 2'b00;                       // IO $00-$3F
+    wire sel_io_ch376             = !ebus_iorq_n && ebus_a[7:6] == 2'b01;                       // IO $40-$7F
+`endif
 `ifdef ENABLE_AY8910
     wire sel_io_ay8910            = !ebus_iorq_n && (ebus_a[7:0] == 8'hF6 || ebus_a[7:0] == 8'hF7);
 `else
@@ -319,21 +328,17 @@ module fpga_top(
     wire sel_io_printer           = !ebus_iorq_n && ebus_a[7:0] == 8'hFE;
     wire sel_io_keyb_r_scramble_w = !ebus_iorq_n && ebus_a[7:0] == 8'hFF;
 
-`ifdef ENABLE_MEM_32K
-    wire sel_mem_32k     = !ebus_mreq_n && (ebus_a[15:14] == 2'b01 || ebus_a[15:14] == 2'b10);   // $4000-$BFFF
-`else
-    wire sel_mem_32k     = 0;
-`endif
-    wire sel_mem_cart    = !ebus_mreq_n && ebus_a[15:14] == 2'b11;                               // $C000-$FFFF
-    wire sel_mem_ram     = sel_mem_sysram || sel_mem_32k;                                        // $3800-$BFFF
-
     wire sel_internal =
-        sel_mem_tram | sel_mem_rom |
+        sel_mem_tram |
+        sel_mem_rom |
 `ifdef ENABLE_MICRO_EXPANDER
         sel_mem_cart |
 `endif
         sel_io_ay8910 |
-        sel_io_cassette | sel_io_vsync_r_cpm_w | sel_io_printer | sel_io_keyb_r_scramble_w;
+        sel_io_cassette |
+        sel_io_vsync_r_cpm_w |
+        sel_io_printer |
+        sel_io_keyb_r_scramble_w;
 
     wire do_scramble = (ebus_iorq_n && !sel_internal && !sel_mem_sysram) || sel_mem_cart;
 
