@@ -8,13 +8,6 @@ module video(
     input  wire        vclk,            // 28.63636MHz (video_mode = 0) or 25.175MHz (video_mode = 1)
     input  wire        video_mode,
 
-    // IO register interface
-    input  wire  [3:0] io_addr,
-    output reg   [7:0] io_rddata,
-    input  wire  [7:0] io_wrdata,
-    input  wire        io_wren,
-    output wire        irq,
-
     // Text RAM interface
     input  wire [10:0] tram_addr,
     output wire  [7:0] tram_rddata,
@@ -43,63 +36,6 @@ module video(
 
     reg q_vblank;
     always @(posedge vclk) q_vblank <= vblank;
-
-    reg  [7:0] q_virqline;              // IO $ED
-    reg        q_irqmask_line;          // IO $EE [0]
-    reg        q_irqmask_vblank;        // IO $EE [1]
-    reg        q_irqstat_line;          // IO $EF [0]
-    reg        q_irqstat_vblank;        // IO $EF [1]
-
-    wire irqline_match = (vpos == q_virqline);
-    reg q_irqline_match;
-    always @(posedge vclk) q_irqline_match <= irqline_match;
-
-    wire irq_line, irq_vblank;
-    pulse2pulse p2p_irq_line(  .in_clk(vclk), .in_pulse(!q_irqline_match && irqline_match), .out_clk(clk), .out_pulse(irq_line));
-    pulse2pulse p2p_irq_vblank(.in_clk(vclk), .in_pulse(!q_vblank        && vblank),        .out_clk(clk), .out_pulse(irq_vblank));
-
-    assign irq = ({q_irqstat_line, q_irqstat_vblank} & {q_irqmask_line, q_irqmask_vblank}) != 2'b00;
-
-    //////////////////////////////////////////////////////////////////////////
-    // IO registers
-    //////////////////////////////////////////////////////////////////////////
-    wire sel_io_vline    = (io_addr == 4'hC);
-    wire sel_io_virqline = (io_addr == 4'hD);
-    wire sel_io_irqmask  = (io_addr == 4'hE);
-    wire sel_io_irqstat  = (io_addr == 4'hF);
-
-    always @* begin
-        io_rddata = 8'h00;
-        if (sel_io_vline)    io_rddata = vpos;                                     // IO $EC
-        if (sel_io_virqline) io_rddata = q_virqline;                               // IO $ED
-        if (sel_io_irqmask)  io_rddata = {6'b0, q_irqmask_line, q_irqmask_vblank}; // IO $EE
-        if (sel_io_irqstat)  io_rddata = {6'b0, q_irqstat_line, q_irqstat_vblank}; // IO $EF
-    end
-
-    always @(posedge clk or posedge reset)
-        if (reset) begin
-            q_virqline             <= 0;
-            q_irqmask_line         <= 0;
-            q_irqmask_vblank       <= 0;
-            q_irqstat_line         <= 0;
-            q_irqstat_vblank       <= 0;
-
-        end else begin
-            if (io_wren) begin
-                if (sel_io_virqline) q_virqline   <= io_wrdata;
-                if (sel_io_irqmask) begin
-                    q_irqmask_line   <= io_wrdata[1];
-                    q_irqmask_vblank <= io_wrdata[0];
-                end
-                if (sel_io_irqstat) begin
-                    q_irqstat_line   <= q_irqstat_line   & !io_wrdata[1];
-                    q_irqstat_vblank <= q_irqstat_vblank & !io_wrdata[0];
-                end
-            end
-
-            if (irq_line)   q_irqstat_line   <= 1'b1;
-            if (irq_vblank) q_irqstat_vblank <= 1'b1;
-        end
 
     //////////////////////////////////////////////////////////////////////////
     // Video timing
@@ -191,12 +127,11 @@ module video(
     // Text RAM
     //////////////////////////////////////////////////////////////////////////
     wire [15:0] textram_rddata;
-    wire [11:0] tram_p1_addr = {1'b0, tram_addr[9:0], tram_addr[10]};
 
     textram textram(
         // First port - CPU access
         .p1_clk(clk),
-        .p1_addr(tram_p1_addr),
+        .p1_addr({tram_addr[9:0], tram_addr[10]}),
         .p1_rddata(tram_rddata),
         .p1_wrdata(tram_wrdata),
         .p1_wren(tram_wren),
@@ -215,25 +150,15 @@ module video(
     //////////////////////////////////////////////////////////////////////////
     // Character RAM
     //////////////////////////////////////////////////////////////////////////
-    wire [10:0] charram_addr = {text_data, vpos[2:0]};
-    wire  [7:0] charram_data;
+    wire [7:0] charrom_data;
 
-    wire  [7:0] chram_rddata;
+    charrom charrom(
+        .clk(vclk),
+        .addr({text_data, vpos[2:0]}),
+        .rddata(charrom_data));
 
-    charram charram(
-        .clk1(clk),
-        .addr1(11'b0),
-        .rddata1(chram_rddata),
-        .wrdata1(8'b0),
-        .wren1(1'b0),
-
-        .clk2(vclk),
-        .addr2(charram_addr),
-        .rddata2(charram_data));
-
-    wire [2:0] pixel_sel    = q2_hpos[3:1] ^ 3'b111;
-    wire       char_pixel   = charram_data[pixel_sel];
-    wire [3:0] text_colidx  = char_pixel ? q_color_data[7:4] : q_color_data[3:0];
+    wire       char_pixel  = charrom_data[q2_hpos[3:1] ^ 3'b111];
+    wire [3:0] text_colidx = char_pixel ? q_color_data[7:4] : q_color_data[3:0];
 
     //////////////////////////////////////////////////////////////////////////
     // Palette

@@ -15,15 +15,15 @@ print("""`default_nettype none
 
 module rom(
     input  wire        clk,
-    input  wire  [7:0] addr,
+    input  wire [12:0] addr,
     output reg   [7:0] rddata
 );
 
     always @(posedge clk) case (addr)""", file=f)
 
 for i in range(len(data)):
-    print(f"        8'h{i:02X}: rddata <= 8'h{data[i]:02X};", file=f)
-print("        default: rddata <= 8'h00;", file=f)
+    print(f"        13'h{i:04X}: rddata <= 8'h{data[i]:02X};", file=f)
+print("        default:  rddata <= 8'h00;", file=f)
 
 print("    endcase", file=f)
 print("\nendmodule", file=f)

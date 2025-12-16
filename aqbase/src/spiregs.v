@@ -12,15 +12,10 @@ module spiregs(
     output wire        spi_txdata_valid,
 
     output reg         reset_req,
-    output reg         reset_req_cold,
     output reg  [63:0] keys,
     output reg   [7:0] hctrl1,
     output reg   [7:0] hctrl2,
 
-    output reg   [7:0] kbbuf_data,
-    output reg         kbbuf_wren,
-
-    output wire        use_t80,
     input  wire        has_z80,
     output wire        video_mode);
 
@@ -34,19 +29,13 @@ module spiregs(
         CMD_RESET           = 8'h01,
         CMD_SET_KEYB_MATRIX = 8'h10,
         CMD_SET_HCTRL       = 8'h11,
-        CMD_WRITE_KBBUF     = 8'h12,
         CMD_SET_VIDMODE     = 8'h40;
 
     // 01h: Reset command
-    reg q_use_t80 = 0;
-    assign use_t80 = has_z80 ? q_use_t80 : 1'b1;
     always @(posedge clk) begin
-        reset_req      <= 1'b0;
-        reset_req_cold <= 1'b0;
+        reset_req <= 0;
         if (spi_cmd == CMD_RESET && spi_msg_end) begin
-            reset_req      <= 1'b1;
-            reset_req_cold <= spi_rxdata[57];
-            q_use_t80      <= spi_rxdata[56];
+            reset_req <= 1;
         end
     end
 
@@ -63,19 +52,6 @@ module spiregs(
             {hctrl2, hctrl1} <= 16'hFFFF;
         else if (spi_cmd == CMD_SET_HCTRL && spi_msg_end)
             {hctrl2, hctrl1} <= spi_rxdata[63:48];
-
-    // 12h: Write keyboard buffer
-    always @(posedge clk or posedge reset)
-        if (reset) begin
-            kbbuf_data <= 8'h00;
-            kbbuf_wren <= 1'b0;
-        end else begin
-            kbbuf_wren <= 1'b0;
-            if (spi_cmd == CMD_WRITE_KBBUF && spi_msg_end) begin
-                kbbuf_data <= spi_rxdata[63:56];
-                kbbuf_wren <= 1'b1;
-            end
-        end
 
     // 40h: Set video mode
     reg q_video_mode = 1'b0;

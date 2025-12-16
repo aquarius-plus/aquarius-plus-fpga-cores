@@ -60,7 +60,9 @@ module fpga_top(
     output wire        esp_notify
 );
 
-    assign exp = 9'b0;
+    assign exp      = 9'b0;
+    assign esp_tx   = 1;
+    assign esp_rts  = 0;
 
     wire [15:0] spibm_a;
     wire  [7:0] spibm_wrdata;
@@ -72,7 +74,8 @@ module fpga_top(
     wire  [7:0] ebus_d_out;
     wire        ebus_d_oe;
 
-    wire        use_t80;
+    wire        use_t80 = 1;
+
 
     //////////////////////////////////////////////////////////////////////////
     // Clock synthesizer
@@ -129,37 +132,6 @@ module fpga_top(
     wire ebus_stb  = (bus_read || bus_write);
 
     //////////////////////////////////////////////////////////////////////////
-    // ESP32 UART
-    //////////////////////////////////////////////////////////////////////////
-    wire [8:0] esp_tx_data;
-    wire       esp_tx_wr;
-    wire       esp_tx_fifo_full;
-    wire [8:0] esp_rx_data;
-    wire       esp_rx_rd;
-    wire       esp_rx_empty;
-    wire       esp_rx_fifo_overflow;
-    wire       esp_rx_framing_error;
-
-    aqp_esp_uart esp_uart(
-        .clk(clk),
-        .reset(reset),
-
-        .txfifo_data(esp_tx_data),
-        .txfifo_wr(esp_tx_wr),
-        .txfifo_full(esp_tx_fifo_full),
-
-        .rxfifo_data(esp_rx_data),
-        .rxfifo_rd(esp_rx_rd),
-        .rxfifo_empty(esp_rx_empty),
-        .rxfifo_overflow(esp_rx_fifo_overflow),
-        .rx_framing_error(esp_rx_framing_error),
-
-        .esp_rx(esp_rx),
-        .esp_tx(esp_tx),
-        .esp_cts(esp_cts),
-        .esp_rts(esp_rts));
-
-    //////////////////////////////////////////////////////////////////////////
     // Hand controller interface
     //////////////////////////////////////////////////////////////////////////
     wire  [7:0] hc1_in = hc1[7:0];
@@ -213,7 +185,7 @@ module fpga_top(
             1'b1,       // Core type 01 specific: show Aquarius+ options
             1'b1,       // Core type 01 specific: show video timing switch
             1'b0,       // Core type 01 specific: show mouse support
-            has_z80     // Z80 present
+            1'b0        // Z80 present
         }),
         .sysinfo_version_major(8'h01),
         .sysinfo_version_minor(8'h00),
@@ -282,44 +254,27 @@ module fpga_top(
     //////////////////////////////////////////////////////////////////////////
     // Core common
     //////////////////////////////////////////////////////////////////////////
-    wire [3:0] video_r;
-    wire [3:0] video_g;
-    wire [3:0] video_b;
-    wire       video_de;
-    wire       video_hsync;
-    wire       video_vsync;
-    wire       video_newframe;
-    wire       video_oddline;
+    wire  [3:0] video_r;
+    wire  [3:0] video_g;
+    wire  [3:0] video_b;
+    wire        video_de;
+    wire        video_hsync;
+    wire        video_vsync;
+    wire        video_newframe;
+    wire        video_oddline;
 
     wire        reg_fd_val;
 
     wire  [7:0] rddata_tram;             // MEM $3000-$37FF
     wire  [7:0] rddata_rom;
-
-    wire  [7:0] rddata_io_video;         // IO $E0-$EF
-    wire  [7:0] rddata_espctrl;          // IO $F4
-    wire  [7:0] rddata_espdata;          // IO $F5
     wire  [7:0] rddata_ay8910;           // IO $F6/F7
-    wire  [7:0] rddata_kbbuf;            // IO $FA
     wire  [7:0] rddata_keyboard;         // IO $FF:R
 
-    reg   [7:0] q_audio_dac;             // IO $EC
-    reg   [7:0] q_reg_bank0;             // IO $F0
-    reg   [7:0] q_reg_bank1;             // IO $F1
-    reg   [7:0] q_reg_bank2;             // IO $F2
-    reg   [7:0] q_reg_bank3;             // IO $F3
     reg         q_reg_cpm_remap;         // IO $FD:W
 
     wire        spi_reset_req;
-    wire        reset_req_cold;
-    reg         q_sysctrl_warm_boot = 0;
-    reg         q_sysctrl_reset_req = 0;
 
-    always @(posedge clk) if (reset_req) begin
-        q_sysctrl_warm_boot <= !reset_req_cold;
-    end
-
-    assign reset_req = spi_reset_req || q_sysctrl_reset_req;
+    assign reset_req = spi_reset_req;
 
     //////////////////////////////////////////////////////////////////////////
     // Synchronize cassette and printer input
@@ -333,56 +288,34 @@ module fpga_top(
     //////////////////////////////////////////////////////////////////////////
     // Bus interface
     //////////////////////////////////////////////////////////////////////////
-    reg q_sysctrl_dis_regs;
-    reg q_sysctrl_dis_psgs;
 
     // Select banking register based on upper address bits
     reg [7:0] reg_bank;
     always @* case (ebus_a[15:14])
-        2'd0: reg_bank = q_reg_bank0;
-        2'd1: reg_bank = q_reg_bank1;
-        2'd2: reg_bank = q_reg_bank2;
-        2'd3: reg_bank = q_reg_bank3;
+        2'd0: reg_bank = {2'b11, 6'd0};
+        2'd1: reg_bank = {2'b00, 6'd33};
+        2'd2: reg_bank = {2'b00, 6'd34};
+        2'd3: reg_bank = {2'b00, 6'd19};
     endcase
 
-    wire [5:0] reg_bank_page    = reg_bank[5:0];
     wire       reg_bank_ro      = reg_bank[7];
     wire       reg_bank_overlay = reg_bank[6];
-
-    // Register data from external bus
-    // reg [7:0] wrdata;
-    // always @(posedge clk) if (!ebus_wr_n) wrdata <= ebus_d_in;
+    wire [5:0] reg_bank_page    = reg_bank[5:0];
 
     wire [7:0] wrdata = ebus_d_in;
 
-    // reg [2:0] q_ebus_wr_n;
-    // reg [2:0] q_ebus_rd_n;
-    // always @(posedge clk) q_ebus_wr_n <= {q_ebus_wr_n[1:0], ebus_wr_n};
-    // always @(posedge clk) q_ebus_rd_n <= {q_ebus_rd_n[1:0], ebus_rd_n};
-
-    wire bus_read2  = !ebus_rd_n && ebus_stb;    //  q_ebus_rd_n[2:1] == 2'b10;
-    wire bus_write2 = !ebus_wr_n && ebus_stb;    //  q_ebus_wr_n[2:1] == 2'b10;
+    wire bus_read2  = !ebus_rd_n && ebus_stb;
+    wire bus_write2 = !ebus_wr_n && ebus_stb;
 
     // Memory space decoding
     wire sel_mem_tram    = !ebus_mreq_n && reg_bank_overlay && ebus_a[13:11] == 3'b110;   // $3000-$37FF
     wire sel_mem_sysram  = !ebus_mreq_n && reg_bank_overlay && ebus_a[13:11] == 3'b111;   // $3800-$3FFF
-    wire sel_mem_rom     = !ebus_mreq_n && reg_bank_page <= 6'd3;                         // Page 0-3
+    wire sel_mem_rom     = !ebus_mreq_n && reg_bank_page <= 6'd3 && !sel_mem_sysram;      // Page 0-3
 
     assign ebus_ba = reg_bank_page[4:0];
 
     // IO space decoding
-    wire sel_io_video             = !q_sysctrl_dis_regs && !ebus_iorq_n && ebus_a[7:4] == 4'hE;
-    wire sel_io_audio_dac         = !q_sysctrl_dis_regs && !ebus_iorq_n && ebus_a[7:0] == 8'hEC;
-    wire sel_io_bank0             = !q_sysctrl_dis_regs && !ebus_iorq_n && ebus_a[7:0] == 8'hF0;
-    wire sel_io_bank1             = !q_sysctrl_dis_regs && !ebus_iorq_n && ebus_a[7:0] == 8'hF1;
-    wire sel_io_bank2             = !q_sysctrl_dis_regs && !ebus_iorq_n && ebus_a[7:0] == 8'hF2;
-    wire sel_io_bank3             = !q_sysctrl_dis_regs && !ebus_iorq_n && ebus_a[7:0] == 8'hF3;
-    wire sel_io_espctrl           = !q_sysctrl_dis_regs && !ebus_iorq_n && ebus_a[7:0] == 8'hF4;
-    wire sel_io_espdata           = !q_sysctrl_dis_regs && !ebus_iorq_n && ebus_a[7:0] == 8'hF5;
-    wire sel_io_ay8910            = !q_sysctrl_dis_psgs && !ebus_iorq_n && (ebus_a[7:0] == 8'hF6 || ebus_a[7:0] == 8'hF7);
-    wire sel_io_ay8910_2          = !q_sysctrl_dis_regs && !q_sysctrl_dis_psgs && !ebus_iorq_n && (ebus_a[7:0] == 8'hF8 || ebus_a[7:0] == 8'hF9);
-    wire sel_io_kbbuf             = !ebus_iorq_n && ebus_a[7:0] == 8'hFA;
-    wire sel_io_sysctrl           = !ebus_iorq_n && ebus_a[7:0] == 8'hFB;
+    wire sel_io_ay8910            = !ebus_iorq_n && (ebus_a[7:0] == 8'hF6 || ebus_a[7:0] == 8'hF7);
     wire sel_io_cassette          = !ebus_iorq_n && ebus_a[7:0] == 8'hFC;
     wire sel_io_vsync_r_cpm_w     = !ebus_iorq_n && ebus_a[7:0] == 8'hFD;
     wire sel_io_printer           = !ebus_iorq_n && ebus_a[7:0] == 8'hFE;
@@ -390,13 +323,11 @@ module fpga_top(
 
     wire sel_internal =
         sel_mem_tram | sel_mem_rom |
-        sel_io_video |
-        sel_io_bank0 | sel_io_bank1 | sel_io_bank2 | sel_io_bank3 |
-        sel_io_espctrl | sel_io_espdata | sel_io_ay8910 | sel_io_ay8910_2 | sel_io_kbbuf | sel_io_sysctrl |
+        sel_io_ay8910 |
         sel_io_cassette | sel_io_vsync_r_cpm_w | sel_io_printer | sel_io_keyb_r_scramble_w;
 
     wire sel_mem_cart    = !ebus_mreq_n && !sel_internal && reg_bank_page[5:2] == 4'b0100;          // Page 16-19
-    wire sel_mem_ram     = !ebus_mreq_n && !sel_internal && reg_bank_page[5];                       // Page 32-63
+    wire sel_mem_ram     = !ebus_mreq_n && !sel_internal && (reg_bank_page[5] || sel_mem_sysram);   // Page 32-63
 
     assign ebus_ram_we_n  = !(sel_mem_ram && !ebus_wr_n && (!reg_bank_ro || sel_mem_sysram));
     assign ebus_ram_ce_n  = !sel_mem_ram;
@@ -406,103 +337,45 @@ module fpga_top(
     always @* begin
         rddata = 8'hFF;
         if (sel_mem_rom)              rddata = rddata_rom;
-        if (sel_mem_tram)             rddata = rddata_tram;            // TRAM $3000-$37FF
+        if (sel_mem_tram)             rddata = rddata_tram;                     // TRAM $3000-$37FF
 
-        if (sel_io_video)             rddata = rddata_io_video;                                // IO $E0-$EF
-        if (sel_io_bank0)             rddata = q_reg_bank0;                                    // IO $F0
-        if (sel_io_bank1)             rddata = q_reg_bank1;                                    // IO $F1
-        if (sel_io_bank2)             rddata = q_reg_bank2;                                    // IO $F2
-        if (sel_io_bank3)             rddata = q_reg_bank3;                                    // IO $F3
-        if (sel_io_espctrl)           rddata = rddata_espctrl;                                 // IO $F4
-        if (sel_io_espdata)           rddata = rddata_espdata;                                 // IO $F5
-        if (sel_io_ay8910)            rddata = rddata_ay8910;                                  // IO $F6/F7
-        if (sel_io_kbbuf)             rddata = rddata_kbbuf;                                   // IO $FA
-        if (sel_io_sysctrl)           rddata = {q_sysctrl_warm_boot, 5'b0, q_sysctrl_dis_psgs, q_sysctrl_dis_regs}; // IO $FB
-        if (sel_io_cassette)          rddata = {7'b0, !q_cassette_in[2]};                      // IO $FC
-        if (sel_io_vsync_r_cpm_w)     rddata = {7'b0, reg_fd_val};                             // IO $FD
-        if (sel_io_printer)           rddata = {7'b0, q_printer_in[2]};                        // IO $FE
-        if (sel_io_keyb_r_scramble_w) rddata = rddata_keyboard;                                // IO $FF
+        if (sel_io_ay8910)            rddata = rddata_ay8910;                   // IO $F6/F7
+        if (sel_io_cassette)          rddata = {7'b0, !q_cassette_in[2]};       // IO $FC
+        if (sel_io_vsync_r_cpm_w)     rddata = {7'b0, reg_fd_val};              // IO $FD
+        if (sel_io_printer)           rddata = {7'b0, q_printer_in[2]};         // IO $FE
+        if (sel_io_keyb_r_scramble_w) rddata = rddata_keyboard;                 // IO $FF
     end
 
     assign ebus_d_oe  = !ebus_rd_n && sel_internal;
     assign ebus_d_out = rddata;
 
-    wire video_irq;
-
-    assign ebus_int_n_pushpull = video_irq ? 1'b0 : 1'b1;
+    assign ebus_int_n_pushpull = 1'b1;
 
     always @(posedge clk or posedge reset)
         if (reset) begin
-            q_audio_dac               <= 8'b0;
-            q_reg_bank0               <= {2'b00, 6'd0};
-            q_reg_bank1               <= {2'b00, 6'd0};
-            q_reg_bank2               <= {2'b00, 6'd0};
-            q_reg_bank3               <= {2'b00, 6'd0};
-            q_sysctrl_dis_regs        <= 0;
-            q_sysctrl_dis_psgs        <= 0;
             cassette_out              <= 0;
             q_reg_cpm_remap           <= 0;
             printer_out               <= 0;
 
         end else begin
-            if (sel_io_audio_dac     && bus_write2) q_audio_dac     <= wrdata;
-            if (sel_io_bank0         && bus_write2) q_reg_bank0     <= wrdata;
-            if (sel_io_bank1         && bus_write2) q_reg_bank1     <= wrdata;
-            if (sel_io_bank2         && bus_write2) q_reg_bank2     <= wrdata;
-            if (sel_io_bank3         && bus_write2) q_reg_bank3     <= wrdata;
             if (sel_io_cassette      && bus_write2) cassette_out    <= wrdata[0];
             if (sel_io_vsync_r_cpm_w && bus_write2) q_reg_cpm_remap <= wrdata[0];
             if (sel_io_printer       && bus_write2) printer_out     <= wrdata[0];
-
-            if (sel_io_sysctrl && bus_write2) begin
-                q_sysctrl_dis_psgs        <= wrdata[1];
-                q_sysctrl_dis_regs        <= wrdata[0];
-            end
         end
-
-    always @(posedge clk) q_sysctrl_reset_req <= (sel_io_sysctrl && bus_write2 && wrdata[7]);
 
     //////////////////////////////////////////////////////////////////////////
     // Boot ROM
     //////////////////////////////////////////////////////////////////////////
     rom rom(
         .clk(clk),
-        .addr(ebus_a[7:0]),
+        .addr(ebus_a[12:0]),
         .rddata(rddata_rom)
     );
 
     //////////////////////////////////////////////////////////////////////////
-    // ESP32 UART
-    //////////////////////////////////////////////////////////////////////////
-    assign esp_tx_data = sel_io_espctrl ? 9'b100000000 : {1'b0, wrdata};
-    assign esp_tx_wr   = bus_write2 && (sel_io_espdata || (sel_io_espctrl && wrdata[7]));
-    assign esp_rx_rd   = bus_read2  &&  sel_io_espdata;
-
-    reg q_esp_rx_fifo_overflow, q_esp_rx_framing_error;
-
-    always @(posedge clk or posedge reset) begin
-        if (reset) begin
-            q_esp_rx_fifo_overflow <= 0;
-            q_esp_rx_framing_error <= 0;
-        end else begin
-            if (sel_io_espctrl && bus_write2) begin
-                q_esp_rx_fifo_overflow <= q_esp_rx_fifo_overflow & ~wrdata[4];
-                q_esp_rx_framing_error <= q_esp_rx_framing_error & ~wrdata[3];
-            end
-
-            if (esp_rx_fifo_overflow) q_esp_rx_fifo_overflow <= 1'b1;
-            if (esp_rx_framing_error) q_esp_rx_framing_error <= 1'b1;
-        end
-    end
-
-    assign rddata_espctrl = {3'b0, q_esp_rx_fifo_overflow, q_esp_rx_framing_error, esp_rx_data[8], esp_tx_fifo_full, !esp_rx_empty};
-    assign rddata_espdata = esp_rx_data[7:0];
-
-    //////////////////////////////////////////////////////////////////////////
     // Video
     //////////////////////////////////////////////////////////////////////////
-    wire tram_wren     = sel_mem_tram  && bus_write2;
-    wire io_video_wren = sel_io_video  && bus_write2;
+    wire tram_wren = sel_mem_tram && bus_write2;
 
     video video(
         .clk(clk),
@@ -510,12 +383,6 @@ module fpga_top(
 
         .vclk(video_clk),
         .video_mode(video_mode),
-
-        .io_addr(ebus_a[3:0]),
-        .io_rddata(rddata_io_video),
-        .io_wrdata(wrdata),
-        .io_wren(io_video_wren),
-        .irq(video_irq),
 
         .tram_addr(ebus_a[10:0]),
         .tram_rddata(rddata_tram),
@@ -572,15 +439,10 @@ module fpga_top(
         .spi_txdata_valid(spi_txdata_valid),
 
         .reset_req(spi_reset_req),
-        .reset_req_cold(reset_req_cold),
         .keys(keys),
         .hctrl1(spi_hctrl1),
         .hctrl2(spi_hctrl2),
 
-        .kbbuf_data(kbbuf_data),
-        .kbbuf_wren(kbbuf_wren),
-
-        .use_t80(use_t80),
         .has_z80(has_z80),
         .video_mode(video_mode));
 
@@ -596,24 +458,6 @@ module fpga_top(
         (ebus_a[10] ? 8'hFF : keys[23:16]) &
         (ebus_a[ 9] ? 8'hFF : keys[15: 8]) &
         (ebus_a[ 8] ? 8'hFF : keys[ 7: 0]);
-
-    //////////////////////////////////////////////////////////////////////////
-    // Keyboard buffer
-    //////////////////////////////////////////////////////////////////////////
-    wire [7:0] kbbuf_rddata;
-    wire       kbbuf_rden = sel_io_kbbuf && bus_read2;
-    wire       kbbuf_rst  = (sel_io_kbbuf && bus_write2) || reset;
-
-    kbbuf kbbuf(
-        .clk(clk),
-        .rst(kbbuf_rst),
-
-        .wrdata(kbbuf_data),
-        .wr_en(kbbuf_wren),
-
-        .rddata(rddata_kbbuf),
-        .rd_en(kbbuf_rden)
-    );
 
     //////////////////////////////////////////////////////////////////////////
     // AY-3-8910
@@ -646,13 +490,8 @@ module fpga_top(
         .ch_c(ay8910_ch_c));
 
     // Create stereo mix of output channels and system beep (cassette output)
-    wire [13:0] mix_l =
-        {2'b0, ay8910_ch_a,   1'b0} + {2'b0, ay8910_ch_b,   1'b0} + {4'b0, ay8910_ch_c  } +
-        {2'b0, q_audio_dac,   4'b0} + {4'b0, beep};
-
-    wire [13:0] mix_r =
-        {4'b0, ay8910_ch_a  }     + {2'b0, ay8910_ch_b,   1'b0} + {2'b0, ay8910_ch_c,   1'b0} +
-        {2'b0, q_audio_dac, 4'b0} + {4'b0, beep};
+    wire [13:0] mix_l = {2'b0, ay8910_ch_a,   1'b0} + {2'b0, ay8910_ch_b, 1'b0} + {4'b0, ay8910_ch_c      } + {4'b0, beep};
+    wire [13:0] mix_r = {4'b0, ay8910_ch_a        } + {2'b0, ay8910_ch_b, 1'b0} + {2'b0, ay8910_ch_c, 1'b0} + {4'b0, beep};
 
     always @(posedge clk) common_audio_l <= {~mix_l[13], mix_l[12:0], 2'b0};
     always @(posedge clk) common_audio_r <= {~mix_r[13], mix_r[12:0], 2'b0};
