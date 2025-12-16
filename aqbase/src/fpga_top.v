@@ -294,7 +294,6 @@ module fpga_top(
     wire        reg_fd_val;
 
     wire  [7:0] rddata_tram;             // MEM $3000-$37FF
-    wire  [7:0] rddata_chram;
     wire  [7:0] rddata_rom;
 
     wire  [7:0] rddata_io_video;         // IO $E0-$EF
@@ -367,7 +366,6 @@ module fpga_top(
     // Memory space decoding
     wire sel_mem_tram    = !ebus_mreq_n && reg_bank_overlay && ebus_a[13:11] == 3'b110;   // $3000-$37FF
     wire sel_mem_sysram  = !ebus_mreq_n && reg_bank_overlay && ebus_a[13:11] == 3'b111;   // $3800-$3FFF
-    wire sel_mem_chram   = !ebus_mreq_n && reg_bank_page == 6'd21;                        // Page 21
     wire sel_mem_rom     = !ebus_mreq_n && reg_bank_page <= 6'd3;                         // Page 0-3
 
     assign ebus_ba = reg_bank_page[4:0];
@@ -391,7 +389,7 @@ module fpga_top(
     wire sel_io_keyb_r_scramble_w = !ebus_iorq_n && ebus_a[7:0] == 8'hFF;
 
     wire sel_internal =
-        sel_mem_tram | sel_mem_chram | sel_mem_rom |
+        sel_mem_tram | sel_mem_rom |
         sel_io_video |
         sel_io_bank0 | sel_io_bank1 | sel_io_bank2 | sel_io_bank3 |
         sel_io_espctrl | sel_io_espdata | sel_io_ay8910 | sel_io_ay8910_2 | sel_io_kbbuf | sel_io_sysctrl |
@@ -409,7 +407,6 @@ module fpga_top(
         rddata = 8'hFF;
         if (sel_mem_rom)              rddata = rddata_rom;
         if (sel_mem_tram)             rddata = rddata_tram;            // TRAM $3000-$37FF
-        if (sel_mem_chram)            rddata = rddata_chram;
 
         if (sel_io_video)             rddata = rddata_io_video;                                // IO $E0-$EF
         if (sel_io_bank0)             rddata = q_reg_bank0;                                    // IO $F0
@@ -505,7 +502,6 @@ module fpga_top(
     // Video
     //////////////////////////////////////////////////////////////////////////
     wire tram_wren     = sel_mem_tram  && bus_write2;
-    wire chram_wren    = sel_mem_chram && bus_write2;
     wire io_video_wren = sel_io_video  && bus_write2;
 
     video video(
@@ -525,11 +521,6 @@ module fpga_top(
         .tram_rddata(rddata_tram),
         .tram_wrdata(wrdata),
         .tram_wren(tram_wren),
-
-        .chram_addr(ebus_a[10:0]),
-        .chram_rddata(rddata_chram),
-        .chram_wrdata(wrdata),
-        .chram_wren(chram_wren),
 
         .video_r(video_r),
         .video_g(video_g),

@@ -21,12 +21,6 @@ module video(
     input  wire  [7:0] tram_wrdata,
     input  wire        tram_wren,
 
-    // Char RAM interface
-    input  wire [10:0] chram_addr,
-    output wire  [7:0] chram_rddata,
-    input  wire  [7:0] chram_wrdata,
-    input  wire        chram_wren,
-
     // VGA output
     output reg   [3:0] video_r,
     output reg   [3:0] video_g,
@@ -50,12 +44,6 @@ module video(
     reg q_vblank;
     always @(posedge vclk) q_vblank <= vblank;
 
-    wire [7:0] rddata_vpaldata;
-
-    reg        q_vctrl_tram_page;       // IO $E0 [7]
-    reg        q_vctrl_80_columns;      // IO $E0 [6]
-    reg        q_vctrl_border_remap;    // IO $E0 [5]
-    reg  [6:0] q_vpalsel;               // IO $EA
     reg  [7:0] q_virqline;              // IO $ED
     reg        q_irqmask_line;          // IO $EE [0]
     reg        q_irqmask_vblank;        // IO $EE [1]
@@ -75,9 +63,6 @@ module video(
     //////////////////////////////////////////////////////////////////////////
     // IO registers
     //////////////////////////////////////////////////////////////////////////
-    wire sel_io_vctrl    = (io_addr == 4'h0);
-    wire sel_io_vpalsel  = (io_addr == 4'hA);
-    wire sel_io_vpaldata = (io_addr == 4'hB);
     wire sel_io_vline    = (io_addr == 4'hC);
     wire sel_io_virqline = (io_addr == 4'hD);
     wire sel_io_irqmask  = (io_addr == 4'hE);
@@ -85,9 +70,6 @@ module video(
 
     always @* begin
         io_rddata = 8'h00;
-        if (sel_io_vctrl)    io_rddata = {q_vctrl_tram_page, q_vctrl_80_columns, q_vctrl_border_remap, 5'b0};
-        if (sel_io_vpalsel)  io_rddata = {1'b0, q_vpalsel};                        // IO $EA
-        if (sel_io_vpaldata) io_rddata = rddata_vpaldata;                          // IO $EB
         if (sel_io_vline)    io_rddata = vpos;                                     // IO $EC
         if (sel_io_virqline) io_rddata = q_virqline;                               // IO $ED
         if (sel_io_irqmask)  io_rddata = {6'b0, q_irqmask_line, q_irqmask_vblank}; // IO $EE
@@ -96,10 +78,6 @@ module video(
 
     always @(posedge clk or posedge reset)
         if (reset) begin
-            q_vctrl_tram_page      <= 0;
-            q_vctrl_80_columns     <= 0;
-            q_vctrl_border_remap   <= 0;
-            q_vpalsel              <= 0;
             q_virqline             <= 0;
             q_irqmask_line         <= 0;
             q_irqmask_vblank       <= 0;
@@ -108,12 +86,6 @@ module video(
 
         end else begin
             if (io_wren) begin
-                if (sel_io_vctrl) begin
-                    q_vctrl_tram_page      <= io_wrdata[7];
-                    q_vctrl_80_columns     <= io_wrdata[6];
-                    q_vctrl_border_remap   <= io_wrdata[5];
-                end
-                if (sel_io_vpalsel)  q_vpalsel    <= io_wrdata[6:0];
                 if (sel_io_virqline) q_virqline   <= io_wrdata;
                 if (sel_io_irqmask) begin
                     q_irqmask_line   <= io_wrdata[1];
@@ -176,27 +148,23 @@ module video(
     always @(posedge vclk) q2_hsync <= q_hsync;
     always @(posedge vclk) q2_vsync <= q_vsync;
 
+    assign reg_fd_val = !vborder;
+
     //////////////////////////////////////////////////////////////////////////
     // Character address
     //////////////////////////////////////////////////////////////////////////
-    reg  q_mode80 = 1'b0;
-
     reg  [10:0] q_row_addr  = 11'd0;
     reg  [10:0] q_char_addr = 11'd0;
 
     wire        next_row         = (vpos >= 8'd23) && vnext && (vpos[2:0] == 3'd7);
-    wire [10:0] d_row_addr       = q_row_addr + (q_mode80 ? 11'd80 : 11'd40);
-    wire [10:0] border_char_addr = q_vctrl_border_remap ? (q_mode80 ? 11'h7FF : 11'h3FF) : 11'h0;
+    wire [10:0] d_row_addr       = q_row_addr + 11'd40;
+    wire [10:0] border_char_addr = 11'h0;
 
     always @(posedge(vclk))
-        if (vblank) begin
-            q_mode80   <= q_vctrl_80_columns;
-            q_row_addr <= 11'd0;
-        end else if (next_row) begin
-            q_row_addr <= d_row_addr;
-        end
+        if (vblank)        q_row_addr <= 11'd0;
+        else if (next_row) q_row_addr <= d_row_addr;
 
-    wire next_char = q_mode80 ? (hpos[2:0] == 3'd0) : (hpos[3:0] == 4'd0);
+    wire next_char = (hpos[3:0] == 4'd0);
 
     wire border = vborder || hborder;
     reg q_border;
@@ -214,8 +182,7 @@ module video(
         else if (next_char)
             d_char_addr = q_char_addr + 11'd1;
 
-        if (!q_mode80)
-            d_char_addr[10] = q_vctrl_tram_page;
+        d_char_addr[10] = 0;
     end
 
     always @(posedge(vclk)) q_char_addr <= d_char_addr;
@@ -224,7 +191,7 @@ module video(
     // Text RAM
     //////////////////////////////////////////////////////////////////////////
     wire [15:0] textram_rddata;
-    wire [11:0] tram_p1_addr = q_vctrl_80_columns ? {tram_addr[10:0], q_vctrl_tram_page} : {q_vctrl_tram_page, tram_addr[9:0], tram_addr[10]};
+    wire [11:0] tram_p1_addr = {1'b0, tram_addr[9:0], tram_addr[10]};
 
     textram textram(
         // First port - CPU access
@@ -251,64 +218,60 @@ module video(
     wire [10:0] charram_addr = {text_data, vpos[2:0]};
     wire  [7:0] charram_data;
 
+    wire  [7:0] chram_rddata;
+
     charram charram(
         .clk1(clk),
-        .addr1(chram_addr),
+        .addr1(11'b0),
         .rddata1(chram_rddata),
-        .wrdata1(chram_wrdata),
-        .wren1(chram_wren),
+        .wrdata1(8'b0),
+        .wren1(1'b0),
 
         .clk2(vclk),
         .addr2(charram_addr),
         .rddata2(charram_data));
 
-    wire [2:0] pixel_sel    = (q_mode80 ? q2_hpos[2:0] : q2_hpos[3:1]) ^ 3'b111;
+    wire [2:0] pixel_sel    = q2_hpos[3:1] ^ 3'b111;
     wire       char_pixel   = charram_data[pixel_sel];
     wire [3:0] text_colidx  = char_pixel ? q_color_data[7:4] : q_color_data[3:0];
 
     //////////////////////////////////////////////////////////////////////////
-    // Compositing
-    //////////////////////////////////////////////////////////////////////////
-    wire [5:0] pixel_colidx = {2'b0, text_colidx};
-    wire       active = !vborder;
-
-    assign reg_fd_val = !vborder;
-
-    //////////////////////////////////////////////////////////////////////////
     // Palette
     //////////////////////////////////////////////////////////////////////////
-    wire [3:0] pal_r, pal_g, pal_b;
+    reg [11:0] color;
+    wire [3:0] pal_r = color[11:8];
+    wire [3:0] pal_g = color[7:4];
+    wire [3:0] pal_b = color[3:0];
 
-    palette palette(
-        .clk(clk),
-        .addr(q_vpalsel),
-        .rddata(rddata_vpaldata),
-        .wrdata(io_wrdata),
-        .wren(io_wren && sel_io_vpaldata),
-
-        .palidx(pixel_colidx),
-        .pal_r(pal_r),
-        .pal_g(pal_g),
-        .pal_b(pal_b));
+    always @* case (text_colidx)
+        4'h0: color = 12'h111;
+        4'h1: color = 12'hF11;
+        4'h2: color = 12'h1F1;
+        4'h3: color = 12'hFF1;
+        4'h4: color = 12'h22E;
+        4'h5: color = 12'hF1F;
+        4'h6: color = 12'h3CC;
+        4'h7: color = 12'hFFF;
+        4'h8: color = 12'hCCC;
+        4'h9: color = 12'h3BB;
+        4'hA: color = 12'hC2C;
+        4'hB: color = 12'h419;
+        4'hC: color = 12'hFF7;
+        4'hD: color = 12'h2D4;
+        4'hE: color = 12'hB22;
+        4'hF: color = 12'h333;
+    endcase
 
     //////////////////////////////////////////////////////////////////////////
     // Output registers
     //////////////////////////////////////////////////////////////////////////
-    always @(posedge(vclk))
-        if (q2_blank) begin
-            video_r  <= 4'b0;
-            video_g  <= 4'b0;
-            video_b  <= 4'b0;
-            video_de <= 1'b0;
-
-        end else begin
-            video_r  <= pal_r;
-            video_g  <= pal_g;
-            video_b  <= pal_b;
-            video_de <= 1'b1;
-        end
-
-    always @(posedge vclk) video_hsync <= q2_hsync;
-    always @(posedge vclk) video_vsync <= q2_vsync;
+    always @(posedge(vclk)) begin
+        video_r     <= q2_blank ? 0 : pal_r;
+        video_g     <= q2_blank ? 0 : pal_g;
+        video_b     <= q2_blank ? 0 : pal_b;
+        video_de    <= !q2_blank;
+        video_hsync <= q2_hsync;
+        video_vsync <= q2_vsync;
+    end
 
 endmodule
