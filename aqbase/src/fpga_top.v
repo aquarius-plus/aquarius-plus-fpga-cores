@@ -587,7 +587,7 @@ module fpga_top(
     wire        t80_iorq_n;      // should tristate when busak_n == 0
     wire        t80_rd_n;        // should tristate when busak_n == 0
     wire        t80_wr_n;        // should tristate when busak_n == 0
-    wire        t80_wait_n = !(q_wait_cnt == 2'd3);
+    wire        t80_wait_n = 1; // !(q_wait_cnt == 2'd3);
 
     wire        t80_busrq_n = spibm_busreq_n;
     wire        t80_busak_n;
