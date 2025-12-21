@@ -11,167 +11,21 @@
 #include <stddef.h>
 
 /*
-** ==================================================================
-** Search for "@@" to find all configurable definitions.
-** ===================================================================
-*/
-
-/*
-@@ LUA_ANSI controls the use of non-ansi features.
-** CHANGE it (define it) if you want Lua to avoid the use of any
-** non-ansi feature or library.
-*/
-#if !defined(LUA_ANSI) && defined(__STRICT_ANSI__)
-#define LUA_ANSI
-#endif
-
-#if !defined(LUA_ANSI) && defined(_WIN32) && !defined(_WIN32_WCE)
-#define LUA_WIN /* enable goodies for regular Windows platforms */
-#endif
-
-#if defined(LUA_WIN)
-#define LUA_DL_DLL
-#define LUA_USE_AFORMAT /* assume 'printf' handles 'aA' specifiers */
-#endif
-
-#if defined(LUA_USE_LINUX)
-#define LUA_USE_POSIX
-#define LUA_USE_DLOPEN    /* needs an extra library: -ldl */
-#define LUA_USE_READLINE  /* needs some extra libraries */
-#define LUA_USE_STRTODHEX /* assume 'strtod' handles hex formats */
-#define LUA_USE_AFORMAT   /* assume 'printf' handles 'aA' specifiers */
-#define LUA_USE_LONGLONG  /* assume support for long long */
-#endif
-
-#if defined(LUA_USE_MACOSX)
-#define LUA_USE_POSIX
-#define LUA_USE_DLOPEN    /* does not need -ldl */
-#define LUA_USE_READLINE  /* needs an extra library: -lreadline */
-#define LUA_USE_STRTODHEX /* assume 'strtod' handles hex formats */
-#define LUA_USE_AFORMAT   /* assume 'printf' handles 'aA' specifiers */
-#define LUA_USE_LONGLONG  /* assume support for long long */
-#endif
-
-/*
-@@ LUA_USE_POSIX includes all functionality listed as X/Open System
-@* Interfaces Extension (XSI).
-** CHANGE it (define it) if your system is XSI compatible.
-*/
-#if defined(LUA_USE_POSIX)
-#define LUA_USE_MKSTEMP
-#define LUA_USE_ISATTY
-#define LUA_USE_POPEN
-#define LUA_USE_ULONGJMP
-#define LUA_USE_GMTIME_R
-#endif
-
-/*
-@@ LUA_PATH_DEFAULT is the default path that Lua uses to look for
-@* Lua libraries.
-@@ LUA_CPATH_DEFAULT is the default path that Lua uses to look for
-@* C libraries.
-** CHANGE them if your machine has a non-conventional directory
-** hierarchy or if you want to install your libraries in
-** non-conventional directories.
-*/
-#if defined(_WIN32) /* { */
-/*
-** In Windows, any exclamation mark ('!') in the path is replaced by the
-** path of the directory of the executable file of the current process.
-*/
-#define LUA_LDIR "!\\lua\\"
-#define LUA_CDIR "!\\"
-#define LUA_PATH_DEFAULT                                                                \
-    LUA_LDIR "?.lua;" LUA_LDIR "?\\init.lua;" LUA_CDIR "?.lua;" LUA_CDIR "?\\init.lua;" \
-             ".\\?.lua"
-#define LUA_CPATH_DEFAULT                     \
-    LUA_CDIR "?.dll;" LUA_CDIR "loadall.dll;" \
-             ".\\?.dll"
-
-#else /* }{ */
-
-#define LUA_VDIR LUA_VERSION_MAJOR "." LUA_VERSION_MINOR "/"
-#define LUA_ROOT "/usr/local/"
-#define LUA_LDIR LUA_ROOT "share/lua/" LUA_VDIR
-#define LUA_CDIR LUA_ROOT "lib/lua/" LUA_VDIR
-#define LUA_PATH_DEFAULT                                                              \
-    LUA_LDIR "?.lua;" LUA_LDIR "?/init.lua;" LUA_CDIR "?.lua;" LUA_CDIR "?/init.lua;" \
-             "./?.lua"
-#define LUA_CPATH_DEFAULT                   \
-    LUA_CDIR "?.so;" LUA_CDIR "loadall.so;" \
-             "./?.so"
-#endif /* } */
-
-/*
-@@ LUA_DIRSEP is the directory separator (for submodules).
-** CHANGE it if your machine does not use "/" as the directory separator
-** and is not Windows. (On Windows Lua automatically uses "\".)
-*/
-#if defined(_WIN32)
-#define LUA_DIRSEP "\\"
-#else
-#define LUA_DIRSEP "/"
-#endif
-
-/*
 @@ LUA_ENV is the name of the variable that holds the current
 @@ environment, used to access global names.
 ** CHANGE it if you do not like this name.
 */
 #define LUA_ENV "_ENV"
 
-/*
-@@ LUA_API is a mark for all core API functions.
-@@ LUALIB_API is a mark for all auxiliary library functions.
-@@ LUAMOD_API is a mark for all standard library opening functions.
-** CHANGE them if you need to define those functions in some special way.
-** For instance, if you want to create one Windows DLL with the core and
-** the libraries, you may want to use the following definition (define
-** LUA_BUILD_AS_DLL to get it).
-*/
-#if defined(LUA_BUILD_AS_DLL) /* { */
-
-#if defined(LUA_CORE) || defined(LUA_LIB) /* { */
-#define LUA_API __declspec(dllexport)
-#else /* }{ */
-#define LUA_API __declspec(dllimport)
-#endif /* } */
-
-#else /* }{ */
-
 #define LUA_API extern
-
-#endif /* } */
 
 /* more often than not the libs go together with the core */
 #define LUALIB_API LUA_API
 #define LUAMOD_API LUALIB_API
 
-/*
-@@ LUAI_FUNC is a mark for all extern functions that are not to be
-@* exported to outside modules.
-@@ LUAI_DDEF and LUAI_DDEC are marks for all extern (const) variables
-@* that are not to be exported to outside modules (LUAI_DDEF for
-@* definitions and LUAI_DDEC for declarations).
-** CHANGE them if you need to mark them in some special way. Elf/gcc
-** (versions 3.2 and later) mark them as "hidden" to optimize access
-** when Lua is compiled as a shared library. Not all elf targets support
-** this attribute. Unfortunately, gcc does not offer a way to check
-** whether the target offers that support, and those without support
-** give a warning about it. To avoid these warnings, change to the
-** default definition.
-*/
-#if defined(__GNUC__) && ((__GNUC__ * 100 + __GNUC_MINOR__) >= 302) && \
-    defined(__ELF__) /* { */
-#define LUAI_FUNC __attribute__((visibility("hidden"))) extern
-#define LUAI_DDEC LUAI_FUNC
-#define LUAI_DDEF /* empty */
-
-#else /* }{ */
 #define LUAI_FUNC extern
 #define LUAI_DDEC extern
 #define LUAI_DDEF /* empty */
-#endif            /* } */
 
 /*
 @@ LUA_QL describes how error messages quote program elements.
@@ -356,79 +210,5 @@
 ** It must have at least 32 bits.
 */
 #define LUA_UNSIGNED unsigned LUA_INT32
-
-/*
-** Some tricks with doubles
-*/
-
-#if defined(LUA_NUMBER_DOUBLE) && !defined(LUA_ANSI) /* { */
-/*
-** The next definitions activate some tricks to speed up the
-** conversion from doubles to integer types, mainly to LUA_UNSIGNED.
-**
-@@ LUA_MSASMTRICK uses Microsoft assembler to avoid clashes with a
-** DirectX idiosyncrasy.
-**
-@@ LUA_IEEE754TRICK uses a trick that should work on any machine
-** using IEEE754 with a 32-bit integer type.
-**
-@@ LUA_IEEELL extends the trick to LUA_INTEGER; should only be
-** defined when LUA_INTEGER is a 32-bit integer.
-**
-@@ LUA_IEEEENDIAN is the endianness of doubles in your machine
-** (0 for little endian, 1 for big endian); if not defined, Lua will
-** check it dynamically for LUA_IEEE754TRICK (but not for LUA_NANTRICK).
-**
-@@ LUA_NANTRICK controls the use of a trick to pack all types into
-** a single double value, using NaN values to represent non-number
-** values. The trick only works on 32-bit machines (ints and pointers
-** are 32-bit values) with numbers represented as IEEE 754-2008 doubles
-** with conventional endianess (12345678 or 87654321), in CPUs that do
-** not produce signaling NaN values (all NaNs are quiet).
-*/
-
-/* Microsoft compiler on a Pentium (32 bit) ? */
-#if defined(LUA_WIN) && defined(_MSC_VER) && defined(_M_IX86) /* { */
-
-#define LUA_MSASMTRICK
-#define LUA_IEEEENDIAN 0
-#define LUA_NANTRICK
-
-/* pentium 32 bits? */
-#elif defined(__i386__) || defined(__i386) || defined(__X86__) /* }{ */
-
-#define LUA_IEEE754TRICK
-#define LUA_IEEELL
-#define LUA_IEEEENDIAN 0
-#define LUA_NANTRICK
-
-/* pentium 64 bits? */
-#elif defined(__x86_64) /* }{ */
-
-#define LUA_IEEE754TRICK
-#define LUA_IEEEENDIAN 0
-
-#elif defined(__POWERPC__) || defined(__ppc__) /* }{ */
-
-#define LUA_IEEE754TRICK
-#define LUA_IEEEENDIAN 1
-
-#else /* }{ */
-
-/* assume IEEE754 and a 32-bit integer type */
-#define LUA_IEEE754TRICK
-
-#endif /* } */
-
-#endif /* } */
-
-/* }================================================================== */
-
-/* =================================================================== */
-
-/*
-** Local configuration. You can use this space to add your redefinitions
-** without modifying the main part of the file.
-*/
 
 #endif

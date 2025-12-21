@@ -11,23 +11,14 @@
 
 LUAMOD_API int(luaopen_base)(lua_State *L);
 
-#define LUA_COLIBNAME "coroutine"
-LUAMOD_API int(luaopen_coroutine)(lua_State *L);
-
 #define LUA_TABLIBNAME "table"
 LUAMOD_API int(luaopen_table)(lua_State *L);
-
-#define LUA_IOLIBNAME "io"
-LUAMOD_API int(luaopen_io)(lua_State *L);
 
 #define LUA_STRLIBNAME "string"
 LUAMOD_API int(luaopen_string)(lua_State *L);
 
 #define LUA_MATHLIBNAME "math"
 LUAMOD_API int(luaopen_math)(lua_State *L);
-
-#define LUA_DBLIBNAME "debug"
-LUAMOD_API int(luaopen_debug)(lua_State *L);
 
 #define LUA_LOADLIBNAME "package"
 LUAMOD_API int(luaopen_package)(lua_State *L);
