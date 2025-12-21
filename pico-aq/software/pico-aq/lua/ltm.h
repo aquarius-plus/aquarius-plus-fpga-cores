@@ -42,7 +42,7 @@ typedef enum {
 #define ttypename(x)   luaT_typenames_[(x) + 1]
 #define objtypename(x) ttypename(ttypenv(x))
 
-const char *const luaT_typenames_[LUA_TOTALTAGS];
+extern const char *const luaT_typenames_[LUA_TOTALTAGS];
 
 const TValue *luaT_gettm(Table *events, TMS event, TString *ename);
 const TValue *luaT_gettmbyobj(lua_State *L, const TValue *o, TMS event);

@@ -62,7 +62,7 @@
 #define ltolower(c) ((c) | ('A' ^ 'a'))
 
 /* two more entries for 0 and -1 (EOZ) */
-const lu_byte luai_ctype_[UCHAR_MAX + 2];
+extern const lu_byte luai_ctype_[UCHAR_MAX + 2];
 
 #else /* }{ */
 

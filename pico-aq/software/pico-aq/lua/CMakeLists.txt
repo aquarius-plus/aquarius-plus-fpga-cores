@@ -19,7 +19,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ldump.c
     lfunc.c
     lgc.c
-    linit.c
     llex.c
     lmem.c
     lobject.c

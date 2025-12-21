@@ -13,7 +13,6 @@
 #include "lua.h"
 
 #include "lauxlib.h"
-#include "lualib.h"
 
 #undef PI
 #define PI                 ((lua_Number)(3.1415926535897932384626433832795))

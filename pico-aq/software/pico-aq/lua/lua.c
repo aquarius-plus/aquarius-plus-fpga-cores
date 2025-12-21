@@ -14,7 +14,6 @@
 #include "lua.h"
 
 #include "lauxlib.h"
-#include "lualib.h"
 
 #if !defined(LUA_PROMPT)
 #define LUA_PROMPT  "> "

@@ -16,7 +16,6 @@
 #include "lua.h"
 
 #include "lauxlib.h"
-#include "lualib.h"
 
 /*
 ** maximum number of captures that a pattern can do during

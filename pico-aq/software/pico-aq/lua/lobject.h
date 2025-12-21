@@ -609,7 +609,7 @@ typedef struct Table {
 */
 #define luaO_nilobject (&luaO_nilobject_)
 
-const TValue luaO_nilobject_;
+extern const TValue luaO_nilobject_;
 
 int         luaO_int2fb(unsigned int x);
 int         luaO_fb2int(int x);
