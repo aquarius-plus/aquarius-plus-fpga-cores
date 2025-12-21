@@ -67,8 +67,6 @@ void luaL_setfuncs(lua_State *L, const luaL_Reg *l, int nup);
 
 int luaL_getsubtable(lua_State *L, int idx, const char *fname);
 
-void luaL_traceback(lua_State *L, lua_State *L1, const char *msg, int level);
-
 void luaL_requiref(lua_State *L, const char *modname, lua_CFunction openf, int glb);
 
 /*

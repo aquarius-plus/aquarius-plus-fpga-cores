@@ -12,6 +12,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE .)
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     lapi.c
+    lauxlib.c
     lcode.c
     lctype.c
     ldebug.c
@@ -33,11 +34,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     lvm.c
     lzio.c
 
-    lauxlib.c
     lbaselib.c
-    lmathlib.c
-    lstrlib.c
-    ltablib.c
+    # lmathlib.c
+    # lstrlib.c
+    # ltablib.c
 
     main.c
 )
@@ -47,5 +47,6 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE m)
 target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Wno-psabi -Wno-unused-parameter)
 target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -fdata-sections -ffunction-sections)
 
-target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -Wl,--gc-sections -Wl,--print-gc-sections)
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -Wl,--gc-sections)
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -Wl,--print-gc-sections)
 
