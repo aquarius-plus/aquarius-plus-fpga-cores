@@ -1,11 +1,4 @@
-/*
-** $Id: lobject.h,v 2.71.1.2 2014/05/07 14:14:58 roberto Exp $
-** Type definitions for Lua objects
-** See Copyright Notice in lua.h
-*/
-
-#ifndef lobject_h
-#define lobject_h
+#pragma once
 
 #include <stdarg.h>
 
@@ -620,5 +613,3 @@ int         luaO_hexavalue(int c);
 const char *luaO_pushvfstring(lua_State *L, const char *fmt, va_list argp);
 const char *luaO_pushfstring(lua_State *L, const char *fmt, ...);
 void        luaO_chunkid(char *out, const char *source, size_t len);
-
-#endif

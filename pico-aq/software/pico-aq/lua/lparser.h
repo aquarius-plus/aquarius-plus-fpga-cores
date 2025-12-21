@@ -1,11 +1,4 @@
-/*
-** $Id: lparser.h,v 1.70.1.1 2013/04/12 18:48:47 roberto Exp $
-** Lua Parser
-** See Copyright Notice in lua.h
-*/
-
-#ifndef lparser_h
-#define lparser_h
+#pragma once
 
 #include "llimits.h"
 #include "lobject.h"
@@ -104,5 +97,3 @@ typedef struct FuncState {
 } FuncState;
 
 Closure *luaY_parser(lua_State *L, ZIO *z, Mbuffer *buff, Dyndata *dyd, const char *name, int firstchar);
-
-#endif

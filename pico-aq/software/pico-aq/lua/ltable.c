@@ -1,10 +1,4 @@
 /*
-** $Id: ltable.c,v 2.72.1.1 2013/04/12 18:48:47 roberto Exp $
-** Lua tables (hash)
-** See Copyright Notice in lua.h
-*/
-
-/*
 ** Implementation of tables (aka arrays, objects, or hash tables).
 ** Tables keep its elements in two parts: an array part and a hash part.
 ** Non-negative integer keys are all candidates to be kept in the array

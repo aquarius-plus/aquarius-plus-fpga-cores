@@ -1,9 +1,3 @@
-/*
-** $Id: lstate.c,v 2.99.1.2 2013/11/08 17:45:31 roberto Exp $
-** Global State
-** See Copyright Notice in lua.h
-*/
-
 #include <stddef.h>
 #include <string.h>
 

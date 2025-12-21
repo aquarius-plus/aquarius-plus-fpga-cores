@@ -1,11 +1,4 @@
-/*
-** $Id: llex.h,v 1.72.1.1 2013/04/12 18:48:47 roberto Exp $
-** Lexical Analyzer
-** See Copyright Notice in lua.h
-*/
-
-#ifndef llex_h
-#define llex_h
+#pragma once
 
 #include "lobject.h"
 #include "lzio.h"
@@ -92,5 +85,3 @@ void        luaX_next(LexState *ls);
 int         luaX_lookahead(LexState *ls);
 l_noret     luaX_syntaxerror(LexState *ls, const char *s);
 const char *luaX_token2str(LexState *ls, int token);
-
-#endif

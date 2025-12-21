@@ -1,11 +1,4 @@
-/*
-** $Id: ltable.h,v 2.16.1.2 2013/08/30 15:49:41 roberto Exp $
-** Lua tables (hash)
-** See Copyright Notice in lua.h
-*/
-
-#ifndef ltable_h
-#define ltable_h
+#pragma once
 
 #include "lobject.h"
 
@@ -36,6 +29,4 @@ int           luaH_getn(Table *t);
 #if defined(LUA_DEBUG)
 Node *luaH_mainposition(const Table *t, const TValue *key);
 int   luaH_isdummy(Node *n);
-#endif
-
 #endif

@@ -1,9 +1,3 @@
-/*
-** $Id: lua.c,v 1.206.1.1 2013/04/12 18:48:47 roberto Exp $
-** Lua stand-alone interpreter
-** See Copyright Notice in lua.h
-*/
-
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>

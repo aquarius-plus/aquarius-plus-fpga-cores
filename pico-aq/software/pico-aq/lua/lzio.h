@@ -1,11 +1,4 @@
-/*
-** $Id: lzio.h,v 1.26.1.1 2013/04/12 18:48:47 roberto Exp $
-** Buffered streams
-** See Copyright Notice in lua.h
-*/
-
-#ifndef lzio_h
-#define lzio_h
+#pragma once
 
 #include "lua.h"
 
@@ -52,5 +45,3 @@ struct Zio {
 };
 
 int luaZ_fill(ZIO *z);
-
-#endif

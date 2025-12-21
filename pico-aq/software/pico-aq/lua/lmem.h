@@ -1,11 +1,4 @@
-/*
-** $Id: lmem.h,v 1.40.1.1 2013/04/12 18:48:47 roberto Exp $
-** Interface to Memory Manager
-** See Copyright Notice in lua.h
-*/
-
-#ifndef lmem_h
-#define lmem_h
+#pragma once
 
 #include <stddef.h>
 
@@ -46,5 +39,3 @@ l_noret luaM_toobig(lua_State *L);
 /* not to be called directly */
 void *luaM_realloc_(lua_State *L, void *block, size_t oldsize, size_t size);
 void *luaM_growaux_(lua_State *L, void *block, int *size, size_t size_elem, int limit, const char *what);
-
-#endif

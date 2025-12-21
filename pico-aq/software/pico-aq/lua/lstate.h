@@ -1,11 +1,4 @@
-/*
-** $Id: lstate.h,v 2.82.1.1 2013/04/12 18:48:47 roberto Exp $
-** Global State
-** See Copyright Notice in lua.h
-*/
-
-#ifndef lstate_h
-#define lstate_h
+#pragma once
 
 #include "lua.h"
 
@@ -206,5 +199,3 @@ void      luaE_setdebt(global_State *g, l_mem debt);
 void      luaE_freethread(lua_State *L, lua_State *L1);
 CallInfo *luaE_extendCI(lua_State *L);
 void      luaE_freeCI(lua_State *L);
-
-#endif

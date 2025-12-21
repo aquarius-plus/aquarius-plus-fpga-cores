@@ -1,11 +1,4 @@
-/*
-** $Id: llimits.h,v 1.103.1.1 2013/04/12 18:48:47 roberto Exp $
-** Limits, basic types, and some other `installation-dependent' definitions
-** See Copyright Notice in lua.h
-*/
-
-#ifndef llimits_h
-#define llimits_h
+#pragma once
 
 #include <limits.h>
 #include <stddef.h>
@@ -246,6 +239,4 @@ typedef lu_int32 Instruction;
 #else
 #define condchangemem(L) \
     ((void)(!(G(L)->gcrunning) || (luaC_fullgc(L, 0), 1)))
-#endif
-
 #endif

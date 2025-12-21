@@ -1,11 +1,4 @@
-/*
-** $Id: lauxlib.h,v 1.120.1.1 2013/04/12 18:48:47 roberto Exp $
-** Auxiliary functions for building Lua libraries
-** See Copyright Notice in lua.h
-*/
-
-#ifndef lauxlib_h
-#define lauxlib_h
+#pragma once
 
 #include <stddef.h>
 #include <stdio.h>
@@ -142,5 +135,3 @@ void  luaL_pushresultsize(luaL_Buffer *B, size_t sz);
 char *luaL_buffinitsize(lua_State *L, luaL_Buffer *B, size_t sz);
 
 /* }====================================================== */
-
-#endif

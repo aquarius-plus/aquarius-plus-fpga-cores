@@ -1,9 +1,3 @@
-/*
-** $Id: lvm.c,v 2.155.1.1 2013/04/12 18:48:47 roberto Exp $
-** Lua virtual machine
-** See Copyright Notice in lua.h
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

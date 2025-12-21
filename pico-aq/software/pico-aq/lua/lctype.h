@@ -1,11 +1,4 @@
-/*
-** $Id: lctype.h,v 1.12.1.1 2013/04/12 18:48:47 roberto Exp $
-** 'ctype' functions for Lua
-** See Copyright Notice in lua.h
-*/
-
-#ifndef lctype_h
-#define lctype_h
+#pragma once
 
 #include "lua.h"
 
@@ -82,5 +75,3 @@ extern const lu_byte luai_ctype_[UCHAR_MAX + 2];
 #define ltolower(c) (tolower(c))
 
 #endif /* } */
-
-#endif

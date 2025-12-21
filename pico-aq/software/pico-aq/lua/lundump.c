@@ -1,9 +1,3 @@
-/*
-** $Id: lundump.c,v 2.22.1.1 2013/04/12 18:48:47 roberto Exp $
-** load precompiled Lua chunks
-** See Copyright Notice in lua.h
-*/
-
 #include <string.h>
 
 #define lundump_c

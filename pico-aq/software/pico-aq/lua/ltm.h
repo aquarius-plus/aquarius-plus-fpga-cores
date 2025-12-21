@@ -1,11 +1,4 @@
-/*
-** $Id: ltm.h,v 2.11.1.1 2013/04/12 18:48:47 roberto Exp $
-** Tag methods
-** See Copyright Notice in lua.h
-*/
-
-#ifndef ltm_h
-#define ltm_h
+#pragma once
 
 #include "lobject.h"
 
@@ -47,5 +40,3 @@ extern const char *const luaT_typenames_[LUA_TOTALTAGS];
 const TValue *luaT_gettm(Table *events, TMS event, TString *ename);
 const TValue *luaT_gettmbyobj(lua_State *L, const TValue *o, TMS event);
 void          luaT_init(lua_State *L);
-
-#endif

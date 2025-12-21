@@ -1,9 +1,3 @@
-/*
-** $Id: ltablib.c,v 1.65.1.2 2014/05/07 16:32:55 roberto Exp $
-** Library for Table Manipulation
-** See Copyright Notice in lua.h
-*/
-
 #include <limits.h>
 #include <stddef.h>
 

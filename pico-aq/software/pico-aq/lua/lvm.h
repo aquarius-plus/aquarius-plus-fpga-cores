@@ -1,11 +1,4 @@
-/*
-** $Id: lvm.h,v 2.18.1.1 2013/04/12 18:48:47 roberto Exp $
-** Lua virtual machine
-** See Copyright Notice in lua.h
-*/
-
-#ifndef lvm_h
-#define lvm_h
+#pragma once
 
 #include "ldo.h"
 #include "lobject.h"
@@ -33,5 +26,3 @@ void          luaV_execute(lua_State *L);
 void          luaV_concat(lua_State *L, int total);
 void          luaV_arith(lua_State *L, StkId ra, const TValue *rb, const TValue *rc, TMS op);
 void          luaV_objlen(lua_State *L, StkId ra, const TValue *rb);
-
-#endif

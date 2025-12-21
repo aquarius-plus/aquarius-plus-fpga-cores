@@ -1,11 +1,4 @@
-/*
-** $Id: luaconf.h,v 1.176.1.2 2013/11/21 17:26:16 roberto Exp $
-** Configuration file for Lua
-** See Copyright Notice in lua.h
-*/
-
-#ifndef lconfig_h
-#define lconfig_h
+#pragma once
 
 #include <limits.h>
 #include <stddef.h>
@@ -200,5 +193,3 @@
 ** It must have at least 32 bits.
 */
 #define LUA_UNSIGNED unsigned LUA_INT32
-
-#endif

@@ -1,11 +1,4 @@
-/*
-** $Id: lgc.h,v 2.58.1.1 2013/04/12 18:48:47 roberto Exp $
-** Garbage Collector
-** See Copyright Notice in lua.h
-*/
-
-#ifndef lgc_h
-#define lgc_h
+#pragma once
 
 #include "lobject.h"
 #include "lstate.h"
@@ -159,5 +152,3 @@ void      luaC_barrierproto_(lua_State *L, Proto *p, Closure *c);
 void      luaC_checkfinalizer(lua_State *L, GCObject *o, Table *mt);
 void      luaC_checkupvalcolor(global_State *g, UpVal *uv);
 void      luaC_changemode(lua_State *L, int mode);
-
-#endif
