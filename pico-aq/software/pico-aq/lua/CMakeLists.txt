@@ -12,38 +12,37 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE .)
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     lapi.c
-    lauxlib.c
-    lbaselib.c
-    lbitlib.c
     lcode.c
-    lcorolib.c
     lctype.c
-    ldblib.c
     ldebug.c
     ldo.c
     ldump.c
     lfunc.c
     lgc.c
     linit.c
-    liolib.c
     llex.c
-    lmathlib.c
     lmem.c
-    loadlib.c
     lobject.c
     lopcodes.c
-    loslib.c
     lparser.c
     lstate.c
     lstring.c
-    lstrlib.c
     ltable.c
-    ltablib.c
     ltm.c
     lua.c
     lundump.c
     lvm.c
     lzio.c
+
+    lauxlib.c
+    lbaselib.c
+    lcorolib.c
+    ldblib.c
+    liolib.c
+    lmathlib.c
+    loadlib.c
+    lstrlib.c
+    ltablib.c
 )
 
 

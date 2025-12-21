@@ -37,7 +37,6 @@ LUALIB_API lua_Number(luaL_optnumber)(lua_State *L, int nArg, lua_Number def);
 LUALIB_API lua_Integer(luaL_checkinteger)(lua_State *L, int numArg);
 LUALIB_API lua_Integer(luaL_optinteger)(lua_State *L, int nArg, lua_Integer def);
 LUALIB_API lua_Unsigned(luaL_checkunsigned)(lua_State *L, int numArg);
-LUALIB_API lua_Unsigned(luaL_optunsigned)(lua_State *L, int numArg, lua_Unsigned def);
 
 LUALIB_API void(luaL_checkstack)(lua_State *L, int sz, const char *msg);
 LUALIB_API void(luaL_checktype)(lua_State *L, int narg, int t);
@@ -60,15 +59,11 @@ LUALIB_API int(luaL_execresult)(lua_State *L, int stat);
 #define LUA_NOREF  (-2)
 #define LUA_REFNIL (-1)
 
-LUALIB_API int(luaL_ref)(lua_State *L, int t);
-LUALIB_API void(luaL_unref)(lua_State *L, int t, int ref);
-
 LUALIB_API int(luaL_loadfilex)(lua_State *L, const char *filename, const char *mode);
 
 #define luaL_loadfile(L, f) luaL_loadfilex(L, f, NULL)
 
 LUALIB_API int(luaL_loadbufferx)(lua_State *L, const char *buff, size_t sz, const char *name, const char *mode);
-LUALIB_API int(luaL_loadstring)(lua_State *L, const char *s);
 
 LUALIB_API lua_State *(luaL_newstate)(void);
 
@@ -109,9 +104,6 @@ LUALIB_API void(luaL_requiref)(lua_State *L, const char *modname, lua_CFunction 
 
 #define luaL_dofile(L, fn) \
     (luaL_loadfile(L, fn) || lua_pcall(L, 0, LUA_MULTRET, 0))
-
-#define luaL_dostring(L, s) \
-    (luaL_loadstring(L, s) || lua_pcall(L, 0, LUA_MULTRET, 0))
 
 #define luaL_getmetatable(L, n) (lua_getfield(L, LUA_REGISTRYINDEX, (n)))
 
@@ -170,17 +162,5 @@ typedef struct luaL_Stream {
     FILE         *f;      /* stream (NULL for incompletely created streams) */
     lua_CFunction closef; /* to close stream (NULL for closed streams) */
 } luaL_Stream;
-
-/* }====================================================== */
-
-/* compatibility with old module system */
-#if defined(LUA_COMPAT_MODULE)
-
-LUALIB_API void(luaL_pushmodule)(lua_State *L, const char *modname, int sizehint);
-LUALIB_API void(luaL_openlib)(lua_State *L, const char *libname, const luaL_Reg *l, int nup);
-
-#define luaL_register(L, n, l) (luaL_openlib(L, (n), (l), 0))
-
-#endif
 
 #endif

@@ -139,7 +139,6 @@ LUA_API void(lua_xmove)(lua_State *from, lua_State *to, int n);
 LUA_API int(lua_isnumber)(lua_State *L, int idx);
 LUA_API int(lua_isstring)(lua_State *L, int idx);
 LUA_API int(lua_iscfunction)(lua_State *L, int idx);
-LUA_API int(lua_isuserdata)(lua_State *L, int idx);
 LUA_API int(lua_type)(lua_State *L, int idx);
 LUA_API const char *(lua_typename)(lua_State *L, int tp);
 
@@ -149,7 +148,6 @@ LUA_API lua_Unsigned(lua_tounsignedx)(lua_State *L, int idx, int *isnum);
 LUA_API int(lua_toboolean)(lua_State *L, int idx);
 LUA_API const char *(lua_tolstring)(lua_State *L, int idx, size_t *len);
 LUA_API size_t(lua_rawlen)(lua_State *L, int idx);
-LUA_API lua_CFunction(lua_tocfunction)(lua_State *L, int idx);
 LUA_API void *(lua_touserdata)(lua_State *L, int idx);
 LUA_API lua_State *(lua_tothread)(lua_State *L, int idx);
 LUA_API const void *(lua_topointer)(lua_State *L, int idx);
@@ -165,8 +163,6 @@ LUA_API const void *(lua_topointer)(lua_State *L, int idx);
 #define LUA_OPMOD 4
 #define LUA_OPPOW 5
 #define LUA_OPUNM 6
-
-LUA_API void(lua_arith)(lua_State *L, int op);
 
 #define LUA_OPEQ 0
 #define LUA_OPLT 1
@@ -200,7 +196,6 @@ LUA_API void(lua_gettable)(lua_State *L, int idx);
 LUA_API void(lua_getfield)(lua_State *L, int idx, const char *k);
 LUA_API void(lua_rawget)(lua_State *L, int idx);
 LUA_API void(lua_rawgeti)(lua_State *L, int idx, int n);
-LUA_API void(lua_rawgetp)(lua_State *L, int idx, const void *p);
 LUA_API void(lua_createtable)(lua_State *L, int narr, int nrec);
 LUA_API void *(lua_newuserdata)(lua_State *L, size_t sz);
 LUA_API int(lua_getmetatable)(lua_State *L, int objindex);
@@ -210,11 +205,9 @@ LUA_API void(lua_getuservalue)(lua_State *L, int idx);
 ** set functions (stack -> Lua)
 */
 LUA_API void(lua_setglobal)(lua_State *L, const char *var);
-LUA_API void(lua_settable)(lua_State *L, int idx);
 LUA_API void(lua_setfield)(lua_State *L, int idx, const char *k);
 LUA_API void(lua_rawset)(lua_State *L, int idx);
 LUA_API void(lua_rawseti)(lua_State *L, int idx, int n);
-LUA_API void(lua_rawsetp)(lua_State *L, int idx, const void *p);
 LUA_API int(lua_setmetatable)(lua_State *L, int objindex);
 LUA_API void(lua_setuservalue)(lua_State *L, int idx);
 
@@ -223,8 +216,6 @@ LUA_API void(lua_setuservalue)(lua_State *L, int idx);
 */
 LUA_API void(lua_callk)(lua_State *L, int nargs, int nresults, int ctx, lua_CFunction k);
 #define lua_call(L, n, r) lua_callk(L, (n), (r), 0, NULL)
-
-LUA_API int(lua_getctx)(lua_State *L, int *ctx);
 
 LUA_API int(lua_pcallk)(lua_State *L, int nargs, int nresults, int errfunc, int ctx, lua_CFunction k);
 #define lua_pcall(L, n, r, f) lua_pcallk(L, (n), (r), (f), 0, NULL)
@@ -270,9 +261,6 @@ LUA_API int(lua_next)(lua_State *L, int idx);
 
 LUA_API void(lua_concat)(lua_State *L, int n);
 LUA_API void(lua_len)(lua_State *L, int idx);
-
-LUA_API lua_Alloc(lua_getallocf)(lua_State *L, void **ud);
-LUA_API void(lua_setallocf)(lua_State *L, lua_Alloc f, void *ud);
 
 /*
 ** ===============================================================

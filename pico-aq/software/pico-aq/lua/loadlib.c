@@ -486,87 +486,6 @@ static int ll_require(lua_State *L) {
 
 /* }====================================================== */
 
-/*
-** {======================================================
-** 'module' function
-** =======================================================
-*/
-#if defined(LUA_COMPAT_MODULE)
-
-/*
-** changes the environment variable of calling function
-*/
-static void set_env(lua_State *L) {
-    lua_Debug ar;
-    if (lua_getstack(L, 1, &ar) == 0 ||
-        lua_getinfo(L, "f", &ar) == 0 || /* get calling function */
-        lua_iscfunction(L, -1))
-        luaL_error(L, LUA_QL("module") " not called from a Lua function");
-    lua_pushvalue(L, -2); /* copy new environment table to top */
-    lua_setupvalue(L, -2, 1);
-    lua_pop(L, 1); /* remove function */
-}
-
-static void dooptions(lua_State *L, int n) {
-    int i;
-    for (i = 2; i <= n; i++) {
-        if (lua_isfunction(L, i)) { /* avoid 'calling' extra info. */
-            lua_pushvalue(L, i);    /* get option (a function) */
-            lua_pushvalue(L, -2);   /* module */
-            lua_call(L, 1, 0);
-        }
-    }
-}
-
-static void modinit(lua_State *L, const char *modname) {
-    const char *dot;
-    lua_pushvalue(L, -1);
-    lua_setfield(L, -2, "_M"); /* module._M = module */
-    lua_pushstring(L, modname);
-    lua_setfield(L, -2, "_NAME");
-    dot = strrchr(modname, '.'); /* look for last dot in module name */
-    if (dot == NULL)
-        dot = modname;
-    else
-        dot++;
-    /* set _PACKAGE as package name (full module name minus last part) */
-    lua_pushlstring(L, modname, dot - modname);
-    lua_setfield(L, -2, "_PACKAGE");
-}
-
-static int ll_module(lua_State *L) {
-    const char *modname = luaL_checkstring(L, 1);
-    int         lastarg = lua_gettop(L); /* last parameter */
-    luaL_pushmodule(L, modname, 1);      /* get/create module table */
-    /* check whether table already has a _NAME field */
-    lua_getfield(L, -1, "_NAME");
-    if (!lua_isnil(L, -1)) /* is table an initialized module? */
-        lua_pop(L, 1);
-    else { /* no; initialize it */
-        lua_pop(L, 1);
-        modinit(L, modname);
-    }
-    lua_pushvalue(L, -1);
-    set_env(L);
-    dooptions(L, lastarg);
-    return 1;
-}
-
-static int ll_seeall(lua_State *L) {
-    luaL_checktype(L, 1, LUA_TTABLE);
-    if (!lua_getmetatable(L, 1)) {
-        lua_createtable(L, 0, 1); /* create new metatable */
-        lua_pushvalue(L, -1);
-        lua_setmetatable(L, 1);
-    }
-    lua_pushglobaltable(L);
-    lua_setfield(L, -2, "__index"); /* mt.__index = _G */
-    return 0;
-}
-
-#endif
-/* }====================================================== */
-
 /* auxiliary mark (for internal use) */
 #define AUXMARK "\1"
 
@@ -600,15 +519,9 @@ static void setpath(lua_State *L, const char *fieldname, const char *envname1, c
 static const luaL_Reg pk_funcs[] = {
     {"loadlib", ll_loadlib},
     {"searchpath", ll_searchpath},
-#if defined(LUA_COMPAT_MODULE)
-    {"seeall", ll_seeall},
-#endif
     {NULL, NULL}};
 
 static const luaL_Reg ll_funcs[] = {
-#if defined(LUA_COMPAT_MODULE)
-    {"module", ll_module},
-#endif
     {"require", ll_require},
     {NULL, NULL}};
 
@@ -636,10 +549,6 @@ LUAMOD_API int luaopen_package(lua_State *L) {
     /* create `package' table */
     luaL_newlib(L, pk_funcs);
     createsearcherstable(L);
-#if defined(LUA_COMPAT_LOADERS)
-    lua_pushvalue(L, -1);           /* make a copy of 'searchers' table */
-    lua_setfield(L, -3, "loaders"); /* put it in field `loaders' */
-#endif
     lua_setfield(L, -2, "searchers"); /* put it in field 'searchers' */
     /* set field 'path' */
     setpath(L, "path", LUA_PATHVERSION, LUA_PATH, LUA_PATH_DEFAULT);

@@ -85,17 +85,6 @@ static int luaB_tonumber(lua_State *L) {
     return 1;
 }
 
-static int luaB_error(lua_State *L) {
-    int level = luaL_optint(L, 2, 1);
-    lua_settop(L, 1);
-    if (lua_isstring(L, 1) && level > 0) { /* add extra information? */
-        luaL_where(L, level);
-        lua_pushvalue(L, 1);
-        lua_concat(L, 2);
-    }
-    return lua_error(L);
-}
-
 static int luaB_getmetatable(lua_State *L) {
     luaL_checkany(L, 1);
     if (!lua_getmetatable(L, 1)) {
@@ -146,31 +135,6 @@ static int luaB_rawset(lua_State *L) {
     lua_settop(L, 3);
     lua_rawset(L, 1);
     return 1;
-}
-
-static int luaB_collectgarbage(lua_State *L) {
-    static const char *const opts[]    = {"stop", "restart", "collect", "count", "step", "setpause", "setstepmul", "setmajorinc", "isrunning", "generational", "incremental", NULL};
-    static const int         optsnum[] = {LUA_GCSTOP, LUA_GCRESTART, LUA_GCCOLLECT, LUA_GCCOUNT, LUA_GCSTEP, LUA_GCSETPAUSE, LUA_GCSETSTEPMUL, LUA_GCSETMAJORINC, LUA_GCISRUNNING, LUA_GCGEN, LUA_GCINC};
-    int                      o         = optsnum[luaL_checkoption(L, 1, "collect", opts)];
-    int                      ex        = luaL_optint(L, 2, 0);
-    int                      res       = lua_gc(L, o, ex);
-    switch (o) {
-        case LUA_GCCOUNT: {
-            int b = lua_gc(L, LUA_GCCOUNTB, 0);
-            lua_pushnumber(L, res + ((lua_Number)b / 1024));
-            lua_pushinteger(L, b);
-            return 2;
-        }
-        case LUA_GCSTEP:
-        case LUA_GCISRUNNING: {
-            lua_pushboolean(L, res);
-            return 1;
-        }
-        default: {
-            lua_pushinteger(L, res);
-            return 1;
-        }
-    }
 }
 
 static int luaB_type(lua_State *L) {
@@ -238,14 +202,6 @@ static int load_aux(lua_State *L, int status, int envidx) {
     }
 }
 
-static int luaB_loadfile(lua_State *L) {
-    const char *fname  = luaL_optstring(L, 1, NULL);
-    const char *mode   = luaL_optstring(L, 2, NULL);
-    int         env    = (!lua_isnone(L, 3) ? 3 : 0); /* 'env' index or 0 if no 'env' */
-    int         status = luaL_loadfilex(L, fname, mode);
-    return load_aux(L, status, env);
-}
-
 /*
 ** {======================================================
 ** Generic Read function
@@ -300,19 +256,6 @@ static int luaB_load(lua_State *L) {
 
 /* }====================================================== */
 
-static int dofilecont(lua_State *L) {
-    return lua_gettop(L) - 1;
-}
-
-static int luaB_dofile(lua_State *L) {
-    const char *fname = luaL_optstring(L, 1, NULL);
-    lua_settop(L, 1);
-    if (luaL_loadfile(L, fname) != LUA_OK)
-        return lua_error(L);
-    lua_callk(L, 0, LUA_MULTRET, 0, dofilecont);
-    return dofilecont(L);
-}
-
 static int luaB_assert(lua_State *L) {
     if (!lua_toboolean(L, 1))
         return luaL_error(L, "%s", luaL_optstring(L, 2, "assertion failed!"));
@@ -335,64 +278,130 @@ static int luaB_select(lua_State *L) {
     }
 }
 
-static int finishpcall(lua_State *L, int status) {
-    if (!lua_checkstack(L, 1)) { /* no space for extra boolean? */
-        lua_settop(L, 0);        /* create space for return values */
-        lua_pushboolean(L, 0);
-        lua_pushstring(L, "stack overflow");
-        return 2; /* return false, msg */
-    }
-    lua_pushboolean(L, status); /* first result (status) */
-    lua_replace(L, 1);          /* put first result in first slot */
-    return lua_gettop(L);
-}
-
-static int pcallcont(lua_State *L) {
-    int status = lua_getctx(L, NULL);
-    return finishpcall(L, (status == LUA_YIELD));
-}
-
-static int luaB_pcall(lua_State *L) {
-    int status;
-    luaL_checkany(L, 1);
-    lua_pushnil(L);
-    lua_insert(L, 1); /* create space for status result */
-    status = lua_pcallk(L, lua_gettop(L) - 2, LUA_MULTRET, 0, 0, pcallcont);
-    return finishpcall(L, (status == LUA_OK));
-}
-
-static int luaB_xpcall(lua_State *L) {
-    int status;
-    int n = lua_gettop(L);
-    luaL_argcheck(L, n >= 2, 2, "value expected");
-    lua_pushvalue(L, 1); /* exchange function... */
-    lua_copy(L, 2, 1);   /* ...and error handler */
-    lua_replace(L, 2);
-    status = lua_pcallk(L, n - 2, LUA_MULTRET, 1, 0, pcallcont);
-    return finishpcall(L, (status == LUA_OK));
-}
-
 static int luaB_tostring(lua_State *L) {
     luaL_checkany(L, 1);
     luaL_tolstring(L, 1, NULL);
     return 1;
 }
 
+//////////////////////////////////////////////////////////////////////////////
+// Math functions and operators
+//////////////////////////////////////////////////////////////////////////////
+typedef lua_Unsigned b_uint;
+
+#define LUA_NBITS 32
+#define ALLONES   (~(((~(lua_Unsigned)0) << (LUA_NBITS - 1)) << 1))
+
+// macro to trim extra bits
+#define trim(x) ((x) & ALLONES)
+
+static b_uint andaux(lua_State *L) {
+    int    i, n = lua_gettop(L);
+    b_uint r = ~(b_uint)0;
+    for (i = 1; i <= n; i++)
+        r &= luaL_checkunsigned(L, i);
+    return trim(r);
+}
+
+static int b_not(lua_State *L) {
+    b_uint r = ~luaL_checkunsigned(L, 1);
+    lua_pushunsigned(L, trim(r));
+    return 1;
+}
+
+static int b_and(lua_State *L) {
+    b_uint r = andaux(L);
+    lua_pushunsigned(L, r);
+    return 1;
+}
+
+static int b_or(lua_State *L) {
+    int    i, n = lua_gettop(L);
+    b_uint r = 0;
+    for (i = 1; i <= n; i++)
+        r |= luaL_checkunsigned(L, i);
+    lua_pushunsigned(L, trim(r));
+    return 1;
+}
+
+static int b_xor(lua_State *L) {
+    int    i, n = lua_gettop(L);
+    b_uint r = 0;
+    for (i = 1; i <= n; i++)
+        r ^= luaL_checkunsigned(L, i);
+    lua_pushunsigned(L, trim(r));
+    return 1;
+}
+
+static int b_shift(lua_State *L, b_uint r, int i) {
+    if (i < 0) { // shift right?
+        i = -i;
+        r = trim(r);
+        if (i >= LUA_NBITS)
+            r = 0;
+        else
+            r >>= i;
+    } else { // shift left
+        if (i >= LUA_NBITS)
+            r = 0;
+        else
+            r <<= i;
+        r = trim(r);
+    }
+    lua_pushunsigned(L, r);
+    return 1;
+}
+
+static int b_lshift(lua_State *L) {
+    return b_shift(L, luaL_checkunsigned(L, 1), luaL_checkint(L, 2));
+}
+
+static int b_rshift(lua_State *L) {
+    return b_shift(L, luaL_checkunsigned(L, 1), -luaL_checkint(L, 2));
+}
+
+static int b_arshift(lua_State *L) {
+    b_uint r = luaL_checkunsigned(L, 1);
+    int    i = luaL_checkint(L, 2);
+    if (i < 0 || !(r & ((b_uint)1 << (LUA_NBITS - 1))))
+        return b_shift(L, r, -i);
+    else { // arithmetic shift for 'negative' number
+        if (i >= LUA_NBITS)
+            r = ALLONES;
+        else
+            r = trim((r >> i) | ~(~(b_uint)0 >> i)); /* add signal bit */
+        lua_pushunsigned(L, r);
+        return 1;
+    }
+}
+
+static int b_rot(lua_State *L, int i) {
+    b_uint r = luaL_checkunsigned(L, 1);
+    i &= (LUA_NBITS - 1); /* i = i % NBITS */
+    r = trim(r);
+    if (i != 0) /* avoid undefined shift of LUA_NBITS when i == 0 */
+        r = (r << i) | (r >> (LUA_NBITS - i));
+    lua_pushunsigned(L, trim(r));
+    return 1;
+}
+
+static int b_lrot(lua_State *L) {
+    return b_rot(L, luaL_checkint(L, 2));
+}
+
+static int b_rrot(lua_State *L) {
+    return b_rot(L, -luaL_checkint(L, 2));
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
 static const luaL_Reg base_funcs[] = {
     {"assert", luaB_assert},
-    {"collectgarbage", luaB_collectgarbage},
-    {"dofile", luaB_dofile},
-    {"error", luaB_error},
     {"getmetatable", luaB_getmetatable},
     {"ipairs", luaB_ipairs},
-    {"loadfile", luaB_loadfile},
     {"load", luaB_load},
-#if defined(LUA_COMPAT_LOADSTRING)
-    {"loadstring", luaB_load},
-#endif
     {"next", luaB_next},
     {"pairs", luaB_pairs},
-    {"pcall", luaB_pcall},
     {"print", luaB_print},
     {"rawequal", luaB_rawequal},
     {"rawlen", luaB_rawlen},
@@ -400,11 +409,24 @@ static const luaL_Reg base_funcs[] = {
     {"rawset", luaB_rawset},
     {"select", luaB_select},
     {"setmetatable", luaB_setmetatable},
-    {"tonumber", luaB_tonumber},
+    {"tonum", luaB_tonumber},
     {"tostring", luaB_tostring},
     {"type", luaB_type},
-    {"xpcall", luaB_xpcall},
-    {NULL, NULL}};
+
+    // Math functions and operators
+    {"bnot", b_not},
+    {"band", b_and},
+    {"bor", b_or},
+    {"bxor", b_xor},
+
+    {"shl", b_lshift},
+    {"shr", b_arshift},
+    {"lshr", b_rshift},
+    {"rotl", b_lrot},
+    {"rotr", b_rrot},
+
+    {NULL, NULL},
+};
 
 LUAMOD_API int luaopen_base(lua_State *L) {
     /* set global _G */

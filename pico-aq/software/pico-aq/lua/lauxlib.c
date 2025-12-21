@@ -373,10 +373,6 @@ LUALIB_API lua_Integer luaL_optinteger(lua_State *L, int narg, lua_Integer def) 
     return luaL_opt(L, luaL_checkinteger, narg, def);
 }
 
-LUALIB_API lua_Unsigned luaL_optunsigned(lua_State *L, int narg, lua_Unsigned def) {
-    return luaL_opt(L, luaL_checkunsigned, narg, def);
-}
-
 /* }====================================================== */
 
 /*
@@ -457,46 +453,6 @@ LUALIB_API void luaL_buffinit(lua_State *L, luaL_Buffer *B) {
 LUALIB_API char *luaL_buffinitsize(lua_State *L, luaL_Buffer *B, size_t sz) {
     luaL_buffinit(L, B);
     return luaL_prepbuffsize(B, sz);
-}
-
-/* }====================================================== */
-
-/*
-** {======================================================
-** Reference system
-** =======================================================
-*/
-
-/* index of free-list header */
-#define freelist 0
-
-LUALIB_API int luaL_ref(lua_State *L, int t) {
-    int ref;
-    if (lua_isnil(L, -1)) {
-        lua_pop(L, 1);     /* remove from stack */
-        return LUA_REFNIL; /* `nil' has a unique fixed reference */
-    }
-    t = lua_absindex(L, t);
-    lua_rawgeti(L, t, freelist);         /* get first free element */
-    ref = (int)lua_tointeger(L, -1);     /* ref = t[freelist] */
-    lua_pop(L, 1);                       /* remove it from stack */
-    if (ref != 0) {                      /* any free element? */
-        lua_rawgeti(L, t, ref);          /* remove it from list */
-        lua_rawseti(L, t, freelist);     /* (t[freelist] = t[ref]) */
-    } else                               /* no free elements */
-        ref = (int)lua_rawlen(L, t) + 1; /* get a new reference */
-    lua_rawseti(L, t, ref);
-    return ref;
-}
-
-LUALIB_API void luaL_unref(lua_State *L, int t, int ref) {
-    if (ref >= 0) {
-        t = lua_absindex(L, t);
-        lua_rawgeti(L, t, freelist);
-        lua_rawseti(L, t, ref); /* t[ref] = t[freelist] */
-        lua_pushinteger(L, ref);
-        lua_rawseti(L, t, freelist); /* t[freelist] = ref */
-    }
 }
 
 /* }====================================================== */
@@ -629,10 +585,6 @@ LUALIB_API int luaL_loadbufferx(lua_State *L, const char *buff, size_t size, con
     return lua_load(L, getS, &ls, name, mode);
 }
 
-LUALIB_API int luaL_loadstring(lua_State *L, const char *s) {
-    return luaL_loadbuffer(L, s, strlen(s), s);
-}
-
 /* }====================================================== */
 
 LUALIB_API int luaL_getmetafield(lua_State *L, int obj, const char *event) {
@@ -689,84 +641,6 @@ LUALIB_API const char *luaL_tolstring(lua_State *L, int idx, size_t *len) {
     }
     return lua_tolstring(L, -1, len);
 }
-
-/*
-** {======================================================
-** Compatibility with 5.1 module functions
-** =======================================================
-*/
-#if defined(LUA_COMPAT_MODULE)
-
-static const char *luaL_findtable(lua_State *L, int idx, const char *fname, int szhint) {
-    const char *e;
-    if (idx)
-        lua_pushvalue(L, idx);
-    do {
-        e = strchr(fname, '.');
-        if (e == NULL)
-            e = fname + strlen(fname);
-        lua_pushlstring(L, fname, e - fname);
-        lua_rawget(L, -2);
-        if (lua_isnil(L, -1)) {                              /* no such field? */
-            lua_pop(L, 1);                                   /* remove this nil */
-            lua_createtable(L, 0, (*e == '.' ? 1 : szhint)); /* new table for field */
-            lua_pushlstring(L, fname, e - fname);
-            lua_pushvalue(L, -2);
-            lua_settable(L, -4);          /* set new table into field */
-        } else if (!lua_istable(L, -1)) { /* field has a non-table value? */
-            lua_pop(L, 2);                /* remove table and value */
-            return fname;                 /* return problematic part of the name */
-        }
-        lua_remove(L, -2); /* remove previous table */
-        fname = e + 1;
-    } while (*e == '.');
-    return NULL;
-}
-
-/*
-** Count number of elements in a luaL_Reg list.
-*/
-static int libsize(const luaL_Reg *l) {
-    int size = 0;
-    for (; l && l->name; l++) size++;
-    return size;
-}
-
-/*
-** Find or create a module table with a given name. The function
-** first looks at the _LOADED table and, if that fails, try a
-** global variable with that name. In any case, leaves on the stack
-** the module table.
-*/
-LUALIB_API void luaL_pushmodule(lua_State *L, const char *modname, int sizehint) {
-    luaL_findtable(L, LUA_REGISTRYINDEX, "_LOADED", 1); /* get _LOADED table */
-    lua_getfield(L, -1, modname);                       /* get _LOADED[modname] */
-    if (!lua_istable(L, -1)) {                          /* not found? */
-        lua_pop(L, 1);                                  /* remove previous result */
-        /* try global variable (and create one if it does not exist) */
-        lua_pushglobaltable(L);
-        if (luaL_findtable(L, 0, modname, sizehint) != NULL)
-            luaL_error(L, "name conflict for module " LUA_QS, modname);
-        lua_pushvalue(L, -1);
-        lua_setfield(L, -3, modname); /* _LOADED[modname] = new table */
-    }
-    lua_remove(L, -2); /* remove _LOADED table */
-}
-
-LUALIB_API void luaL_openlib(lua_State *L, const char *libname, const luaL_Reg *l, int nup) {
-    luaL_checkversion(L);
-    if (libname) {
-        luaL_pushmodule(L, libname, libsize(l)); /* get/create library table */
-        lua_insert(L, -(nup + 1));               /* move library table to below upvalues */
-    }
-    if (l)
-        luaL_setfuncs(L, l, nup);
-    else
-        lua_pop(L, nup); /* remove upvalues */
-}
-
-#endif
-/* }====================================================== */
 
 /*
 ** set functions from list 'l' into table at top - 'nup'; each
