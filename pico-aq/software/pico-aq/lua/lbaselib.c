@@ -394,6 +394,95 @@ static int b_rrot(lua_State *L) {
 }
 
 //////////////////////////////////////////////////////////////////////////////
+// Coroutines
+//////////////////////////////////////////////////////////////////////////////
+
+
+static int auxresume(lua_State *L, lua_State *co, int narg) {
+    int status;
+    if (!lua_checkstack(co, narg)) {
+        lua_pushliteral(L, "too many arguments to resume");
+        return -1; /* error flag */
+    }
+    if (lua_status(co) == LUA_OK && lua_gettop(co) == 0) {
+        lua_pushliteral(L, "cannot resume dead coroutine");
+        return -1; /* error flag */
+    }
+    lua_xmove(L, co, narg);
+    status = lua_resume(co, L, narg);
+    if (status == LUA_OK || status == LUA_YIELD) {
+        int nres = lua_gettop(co);
+        if (!lua_checkstack(L, nres + 1)) {
+            lua_pop(co, nres); /* remove results anyway */
+            lua_pushliteral(L, "too many results to resume");
+            return -1; /* error flag */
+        }
+        lua_xmove(co, L, nres); /* move yielded values */
+        return nres;
+    } else {
+        lua_xmove(co, L, 1); /* move error message */
+        return -1;           /* error flag */
+    }
+}
+
+static int luaB_coresume(lua_State *L) {
+    lua_State *co = lua_tothread(L, 1);
+    int        r;
+    luaL_argcheck(L, co, 1, "coroutine expected");
+    r = auxresume(L, co, lua_gettop(L) - 1);
+    if (r < 0) {
+        lua_pushboolean(L, 0);
+        lua_insert(L, -2);
+        return 2; /* return false + error message */
+    } else {
+        lua_pushboolean(L, 1);
+        lua_insert(L, -(r + 1));
+        return r + 1; /* return true + `resume' returns */
+    }
+}
+
+static int luaB_cocreate(lua_State *L) {
+    lua_State *NL;
+    luaL_checktype(L, 1, LUA_TFUNCTION);
+    NL = lua_newthread(L);
+    lua_pushvalue(L, 1); /* move function to top */
+    lua_xmove(L, NL, 1); /* move function from L to NL */
+    return 1;
+}
+
+static int luaB_yield(lua_State *L) {
+    return lua_yield(L, lua_gettop(L));
+}
+
+static int luaB_costatus(lua_State *L) {
+    lua_State *co = lua_tothread(L, 1);
+    luaL_argcheck(L, co, 1, "coroutine expected");
+    if (L == co)
+        lua_pushliteral(L, "running");
+    else {
+        switch (lua_status(co)) {
+            case LUA_YIELD:
+                lua_pushliteral(L, "suspended");
+                break;
+            case LUA_OK: {
+                lua_Debug ar;
+                if (lua_getstack(co, 0, &ar) > 0) /* does it have frames? */
+                    lua_pushliteral(L, "normal"); /* it is running */
+                else if (lua_gettop(co) == 0)
+                    lua_pushliteral(L, "dead");
+                else
+                    lua_pushliteral(L, "suspended"); /* initial state */
+                break;
+            }
+            default: /* some error occurred */
+                lua_pushliteral(L, "dead");
+                break;
+        }
+    }
+    return 1;
+}
+
+//////////////////////////////////////////////////////////////////////////////
 
 static const luaL_Reg base_funcs[] = {
     {"assert", luaB_assert},
@@ -424,6 +513,12 @@ static const luaL_Reg base_funcs[] = {
     {"lshr", b_rshift},
     {"rotl", b_lrot},
     {"rotr", b_rrot},
+
+    // Coroutines
+    {"cocreate", luaB_cocreate},
+    {"coresume", luaB_coresume},
+    {"costatus", luaB_costatus},
+    {"yield", luaB_yield},
 
     {NULL, NULL},
 };
