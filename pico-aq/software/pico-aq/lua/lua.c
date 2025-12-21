@@ -358,13 +358,15 @@ static int collectargs(char **argv, int *args) {
                 break;
             case 'i':
                 noextrachars(argv[i]);
-                args[has_i] = 1; /* go through */
+                args[has_i] = 1;
+                // fall-through
             case 'v':
                 noextrachars(argv[i]);
                 args[has_v] = 1;
                 break;
             case 'e':
-                args[has_e] = 1;          /* go through */
+                args[has_e] = 1;
+                // fall-through
             case 'l':                     /* both options need an argument */
                 if (argv[i][2] == '\0') { /* no concatenated argument? */
                     i++;                  /* try next 'argv' */

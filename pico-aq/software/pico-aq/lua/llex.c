@@ -472,7 +472,7 @@ static int llex(LexState *ls, SemInfo *seminfo) {
                 read_string(ls, ls->current, seminfo);
                 return TK_STRING;
             }
-            case '.': { /* '.', '..', '...', or number */
+            case '.': /* '.', '..', '...', or number */
                 save_and_next(ls);
                 if (check_next(ls, ".")) {
                     if (check_next(ls, "."))
@@ -481,8 +481,7 @@ static int llex(LexState *ls, SemInfo *seminfo) {
                         return TK_CONCAT; /* '..' */
                 } else if (!lisdigit(ls->current))
                     return '.';
-                /* else go through */
-            }
+                // fall-through
             case '0':
             case '1':
             case '2':

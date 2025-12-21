@@ -490,11 +490,11 @@ int luaK_exp2RK(FuncState *fs, expdesc *e) {
             } else
                 break;
         }
-        case VKNUM: {
+        case VKNUM:
             e->u.info = luaK_numberK(fs, e->u.nval);
             e->k      = VK;
-            /* go through */
-        }
+            // fall-through
+
         case VK: {
             if (e->u.info <= MAXINDEXRK) /* constant fits in argC? */
                 return RKASK(e->u.info);
