@@ -128,8 +128,7 @@ int luaD_rawrunprotected(lua_State *L, Pfunc f, void *ud) {
     lj.status   = LUA_OK;
     lj.previous = L->errorJmp; /* chain new error handler */
     L->errorJmp = &lj;
-    LUAI_TRY(L, &lj,
-             (*f)(L, ud););
+    LUAI_TRY(L, &lj, (*f)(L, ud););
     L->errorJmp = lj.previous; /* restore old error handler */
     L->nCcalls  = oldnCcalls;
     return lj.status;
@@ -513,7 +512,7 @@ static void resume(lua_State *L, void *ud) {
     lua_assert(nCcalls == L->nCcalls);
 }
 
-LUA_API int lua_resume(lua_State *L, lua_State *from, int nargs) {
+int lua_resume(lua_State *L, lua_State *from, int nargs) {
     int status;
     int oldnny = L->nny; /* save 'nny' */
     lua_lock(L);
@@ -544,7 +543,7 @@ LUA_API int lua_resume(lua_State *L, lua_State *from, int nargs) {
     return status;
 }
 
-LUA_API int lua_yieldk(lua_State *L, int nresults, int ctx, lua_CFunction k) {
+int lua_yieldk(lua_State *L, int nresults, int ctx, lua_CFunction k) {
     CallInfo *ci = L->ci;
     luai_userstateyield(L, nresults);
     lua_lock(L);

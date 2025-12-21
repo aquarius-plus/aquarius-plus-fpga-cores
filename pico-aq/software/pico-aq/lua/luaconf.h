@@ -17,16 +17,6 @@
 */
 #define LUA_ENV "_ENV"
 
-#define LUA_API extern
-
-/* more often than not the libs go together with the core */
-#define LUALIB_API LUA_API
-#define LUAMOD_API LUALIB_API
-
-#define LUAI_FUNC extern
-#define LUAI_DDEC extern
-#define LUAI_DDEF /* empty */
-
 /*
 @@ LUA_QL describes how error messages quote program elements.
 ** CHANGE it if you want a different appearance.

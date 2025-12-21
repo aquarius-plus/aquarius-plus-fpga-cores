@@ -85,12 +85,12 @@ typedef struct LexState {
     char              decpoint; /* locale decimal point */
 } LexState;
 
-LUAI_FUNC void        luaX_init(lua_State *L);
-LUAI_FUNC void        luaX_setinput(lua_State *L, LexState *ls, ZIO *z, TString *source, int firstchar);
-LUAI_FUNC TString    *luaX_newstring(LexState *ls, const char *str, size_t l);
-LUAI_FUNC void        luaX_next(LexState *ls);
-LUAI_FUNC int         luaX_lookahead(LexState *ls);
-LUAI_FUNC l_noret     luaX_syntaxerror(LexState *ls, const char *s);
-LUAI_FUNC const char *luaX_token2str(LexState *ls, int token);
+void        luaX_init(lua_State *L);
+void        luaX_setinput(lua_State *L, LexState *ls, ZIO *z, TString *source, int firstchar);
+TString    *luaX_newstring(LexState *ls, const char *str, size_t l);
+void        luaX_next(LexState *ls);
+int         luaX_lookahead(LexState *ls);
+l_noret     luaX_syntaxerror(LexState *ls, const char *s);
+const char *luaX_token2str(LexState *ls, int token);
 
 #endif

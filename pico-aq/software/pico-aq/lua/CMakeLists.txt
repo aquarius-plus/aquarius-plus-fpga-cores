@@ -29,7 +29,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     lstring.c
     ltable.c
     ltm.c
-    lua.c
+    # lua.c
     lundump.c
     lvm.c
     lzio.c
@@ -39,6 +39,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     lmathlib.c
     lstrlib.c
     ltablib.c
+
+    main.c
 )
 
 

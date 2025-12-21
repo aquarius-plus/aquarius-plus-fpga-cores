@@ -187,7 +187,7 @@ static const luaL_Reg tab_funcs[] = {
     {"sort", sort},
     {NULL, NULL}};
 
-LUAMOD_API int luaopen_table(lua_State *L) {
+int luaopen_table(lua_State *L) {
     luaL_newlib(L, tab_funcs);
     return 1;
 }

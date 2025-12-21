@@ -218,7 +218,7 @@ static void close_state(lua_State *L) {
     (*g->frealloc)(g->ud, fromstate(L), sizeof(LG), 0); /* free main block */
 }
 
-LUA_API lua_State *lua_newthread(lua_State *L) {
+lua_State *lua_newthread(lua_State *L) {
     lua_State *L1;
     lua_lock(L);
     luaC_checkGC(L);
@@ -245,7 +245,7 @@ void luaE_freethread(lua_State *L, lua_State *L1) {
     luaM_free(L, l);
 }
 
-LUA_API lua_State *lua_newstate(lua_Alloc f, void *ud) {
+lua_State *lua_newstate(lua_Alloc f, void *ud) {
     int           i;
     lua_State    *L;
     global_State *g;
@@ -296,7 +296,7 @@ LUA_API lua_State *lua_newstate(lua_Alloc f, void *ud) {
     return L;
 }
 
-LUA_API void lua_close(lua_State *L) {
+void lua_close(lua_State *L) {
     L = G(L)->mainthread; /* only the main thread can be closed */
     lua_lock(L);
     close_state(L);

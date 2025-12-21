@@ -23,7 +23,7 @@
 #include "lstring.h"
 #include "lvm.h"
 
-LUAI_DDEF const TValue luaO_nilobject_ = {NILCONSTANT};
+const TValue luaO_nilobject_ = {NILCONSTANT};
 
 /*
 ** converts an integer to a "floating point byte", represented as
