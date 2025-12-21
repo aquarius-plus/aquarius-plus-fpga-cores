@@ -43,21 +43,6 @@ static int tinsert(lua_State *L) {
     return 0;
 }
 
-static int tremove(lua_State *L) {
-    int size = aux_getn(L, 1);
-    int pos  = luaL_optint(L, 2, size);
-    if (pos != size) /* validate 'pos' if given */
-        luaL_argcheck(L, 1 <= pos && pos <= size + 1, 1, "position out of bounds");
-    lua_rawgeti(L, 1, pos); /* result = t[pos] */
-    for (; pos < size; pos++) {
-        lua_rawgeti(L, 1, pos + 1);
-        lua_rawseti(L, 1, pos); /* t[pos] = t[pos+1] */
-    }
-    lua_pushnil(L);
-    lua_rawseti(L, 1, pos); /* t[pos] = nil */
-    return 1;
-}
-
 static void addfield(lua_State *L, luaL_Buffer *b, int i) {
     lua_rawgeti(L, 1, i);
     if (!lua_isstring(L, -1))
@@ -82,45 +67,6 @@ static int tconcat(lua_State *L) {
         addfield(L, &b, i);
     luaL_pushresult(&b);
     return 1;
-}
-
-/*
-** {======================================================
-** Pack/unpack
-** =======================================================
-*/
-
-static int pack(lua_State *L) {
-    int n = lua_gettop(L);    /* number of elements to pack */
-    lua_createtable(L, n, 1); /* create result table */
-    lua_pushinteger(L, n);
-    lua_setfield(L, -2, "n"); /* t.n = number of elements */
-    if (n > 0) {              /* at least one element? */
-        int i;
-        lua_pushvalue(L, 1);
-        lua_rawseti(L, -2, 1);   /* insert first element */
-        lua_replace(L, 1);       /* move table into index 1 */
-        for (i = n; i >= 2; i--) /* assign other elements */
-            lua_rawseti(L, 1, i);
-    }
-    return 1; /* return table */
-}
-
-static int unpack(lua_State *L) {
-    int          i, e;
-    unsigned int n;
-    luaL_checktype(L, 1, LUA_TTABLE);
-    i = luaL_optint(L, 2, 1);
-    e = luaL_opt(L, luaL_checkint, 3, luaL_len(L, 1));
-    if (i > e)
-        return 0;                          /* empty range */
-    n = (unsigned int)e - (unsigned int)i; /* number of elements minus 1 */
-    if (n > (INT_MAX - 10) || !lua_checkstack(L, ++n))
-        return luaL_error(L, "too many results to unpack");
-    lua_rawgeti(L, 1, i); /* push arg[i] (avoiding overflow problems) */
-    while (i++ < e)       /* push arg[i + 1...e] */
-        lua_rawgeti(L, 1, i);
-    return n;
 }
 
 /* }====================================================== */
@@ -238,9 +184,6 @@ static int sort(lua_State *L) {
 static const luaL_Reg tab_funcs[] = {
     {"concat", tconcat},
     {"insert", tinsert},
-    {"pack", pack},
-    {"unpack", unpack},
-    {"remove", tremove},
     {"sort", sort},
     {NULL, NULL}};
 

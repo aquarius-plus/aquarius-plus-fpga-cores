@@ -397,7 +397,6 @@ static int b_rrot(lua_State *L) {
 // Coroutines
 //////////////////////////////////////////////////////////////////////////////
 
-
 static int auxresume(lua_State *L, lua_State *co, int narg) {
     int status;
     if (!lua_checkstack(co, narg)) {
@@ -483,14 +482,65 @@ static int luaB_costatus(lua_State *L) {
 }
 
 //////////////////////////////////////////////////////////////////////////////
+// Tables
+//////////////////////////////////////////////////////////////////////////////
+#define aux_getn(L, n) (luaL_checktype(L, n, LUA_TTABLE), luaL_len(L, n))
+
+static int pack(lua_State *L) {
+    int n = lua_gettop(L);    /* number of elements to pack */
+    lua_createtable(L, n, 1); /* create result table */
+    lua_pushinteger(L, n);
+    lua_setfield(L, -2, "n"); /* t.n = number of elements */
+    if (n > 0) {              /* at least one element? */
+        int i;
+        lua_pushvalue(L, 1);
+        lua_rawseti(L, -2, 1);   /* insert first element */
+        lua_replace(L, 1);       /* move table into index 1 */
+        for (i = n; i >= 2; i--) /* assign other elements */
+            lua_rawseti(L, 1, i);
+    }
+    return 1; /* return table */
+}
+
+static int unpack(lua_State *L) {
+    int          i, e;
+    unsigned int n;
+    luaL_checktype(L, 1, LUA_TTABLE);
+    i = luaL_optint(L, 2, 1);
+    e = luaL_opt(L, luaL_checkint, 3, luaL_len(L, 1));
+    if (i > e)
+        return 0;                          /* empty range */
+    n = (unsigned int)e - (unsigned int)i; /* number of elements minus 1 */
+    if (n > (INT_MAX - 10) || !lua_checkstack(L, ++n))
+        return luaL_error(L, "too many results to unpack");
+    lua_rawgeti(L, 1, i); /* push arg[i] (avoiding overflow problems) */
+    while (i++ < e)       /* push arg[i + 1...e] */
+        lua_rawgeti(L, 1, i);
+    return n;
+}
+
+static int tremove(lua_State *L) {
+    int size = aux_getn(L, 1);
+    int pos  = luaL_optint(L, 2, size);
+    if (pos != size) /* validate 'pos' if given */
+        luaL_argcheck(L, 1 <= pos && pos <= size + 1, 1, "position out of bounds");
+    lua_rawgeti(L, 1, pos); /* result = t[pos] */
+    for (; pos < size; pos++) {
+        lua_rawgeti(L, 1, pos + 1);
+        lua_rawseti(L, 1, pos); /* t[pos] = t[pos+1] */
+    }
+    lua_pushnil(L);
+    lua_rawseti(L, 1, pos); /* t[pos] = nil */
+    return 1;
+}
+
+//////////////////////////////////////////////////////////////////////////////
 
 static const luaL_Reg base_funcs[] = {
     {"assert", luaB_assert},
     {"getmetatable", luaB_getmetatable},
-    {"ipairs", luaB_ipairs},
     {"load", luaB_load},
     {"next", luaB_next},
-    {"pairs", luaB_pairs},
     {"print", luaB_print},
     {"rawequal", luaB_rawequal},
     {"rawlen", luaB_rawlen},
@@ -519,6 +569,13 @@ static const luaL_Reg base_funcs[] = {
     {"coresume", luaB_coresume},
     {"costatus", luaB_costatus},
     {"yield", luaB_yield},
+
+    // Tables
+    {"deli", tremove},
+    {"pairs", luaB_pairs},
+    {"ipairs", luaB_ipairs},
+    {"pack", pack},
+    {"unpack", unpack},
 
     {NULL, NULL},
 };

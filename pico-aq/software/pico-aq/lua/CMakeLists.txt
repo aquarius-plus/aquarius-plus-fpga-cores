@@ -22,6 +22,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     linit.c
     llex.c
     lmem.c
+    loadlib.c
     lobject.c
     lopcodes.c
     lparser.c
@@ -36,11 +37,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 
     lauxlib.c
     lbaselib.c
-    lcorolib.c
-    ldblib.c
-    liolib.c
     lmathlib.c
-    loadlib.c
     lstrlib.c
     ltablib.c
 )
