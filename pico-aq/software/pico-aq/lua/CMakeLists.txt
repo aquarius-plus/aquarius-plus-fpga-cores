@@ -34,6 +34,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     lvm.c
     lzio.c
 
+    mychanges.c
+
     lbaselib.c
     # lmathlib.c
     # lstrlib.c

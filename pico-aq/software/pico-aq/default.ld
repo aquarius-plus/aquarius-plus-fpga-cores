@@ -1,4 +1,4 @@
-STACK_SIZE = 8k;
+STACK_SIZE = 32k;
 
 MEMORY {
     ram   (rwx) : ORIGIN = 0x80400,                   LENGTH = 512k - 1k - STACK_SIZE

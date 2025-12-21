@@ -47,9 +47,7 @@ target_link_options(${PROJECT_NAME} PRIVATE -Wl,-T${CMAKE_CURRENT_LIST_DIR}/defa
 target_compile_definitions(${PROJECT_NAME} PRIVATE PROJECT_VERSION="${CMAKE_PROJECT_VERSION}")
 
 
-if (MATHLIB)
 target_link_libraries(${PROJECT_NAME} PRIVATE m)
-endif()
 
 
 add_custom_target(debug
@@ -64,6 +62,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE NO_LIB_INIT)
 target_include_directories(${PROJECT_NAME} PRIVATE
     .
     lib
+    lua
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
@@ -76,4 +75,30 @@ target_sources(${PROJECT_NAME} PRIVATE
     lib/malloc.c
     lib/readline.c
     lib/syscalls.c
+
+    lua/lapi.c
+    lua/lauxlib.c
+    lua/lbaselib.c
+    lua/lcode.c
+    lua/lctype.c
+    lua/ldebug.c
+    lua/ldo.c
+    lua/ldump.c
+    lua/lfunc.c
+    lua/lgc.c
+    lua/llex.c
+    lua/lmem.c
+    lua/lobject.c
+    lua/lopcodes.c
+    lua/lparser.c
+    lua/lstate.c
+    lua/lstring.c
+    lua/ltable.c
+    lua/ltm.c
+    lua/lundump.c
+    lua/lvm.c
+    lua/lzio.c
+
+    lua/mychanges.c
+
 )
