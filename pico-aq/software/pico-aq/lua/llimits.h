@@ -227,16 +227,5 @@ typedef lu_int32 Instruction;
 /*
 ** macro to control inclusion of some hard tests on stack reallocation
 */
-#if !defined(HARDSTACKTESTS)
 #define condmovestack(L) ((void)0)
-#else
-/* realloc stack keeping its size */
-#define condmovestack(L) luaD_reallocstack((L), (L)->stacksize)
-#endif
-
-#if !defined(HARDMEMTESTS)
 #define condchangemem(L) condmovestack(L)
-#else
-#define condchangemem(L) \
-    ((void)(!(G(L)->gcrunning) || (luaC_fullgc(L, 0), 1)))
-#endif

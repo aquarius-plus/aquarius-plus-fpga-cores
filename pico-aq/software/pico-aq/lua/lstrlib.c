@@ -902,10 +902,6 @@ static int str_format(lua_State *L) {
                 case 'e':
                 case 'E':
                 case 'f':
-#if defined(LUA_USE_AFORMAT)
-                case 'a':
-                case 'A':
-#endif
                 case 'g':
                 case 'G': {
                     addlenmod(form, LUA_FLTFRMLEN);
