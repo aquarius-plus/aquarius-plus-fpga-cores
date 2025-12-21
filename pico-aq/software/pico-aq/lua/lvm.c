@@ -481,36 +481,38 @@ void luaV_finishOp(lua_State *L) {
 
 /* execute a jump instruction */
 #define dojump(ci, i, e)                         \
-    {                                            \
+    do {                                         \
         int a = GETARG_A(i);                     \
         if (a > 0)                               \
             luaF_close(L, ci->u.l.base + a - 1); \
         ci->u.l.savedpc += GETARG_sBx(i) + e;    \
-    }
+    } while (0)
 
 /* for test instructions, execute the jump instruction that follows it */
 #define donextjump(ci)        \
-    {                         \
+    do {                      \
         i = *ci->u.l.savedpc; \
         dojump(ci, i, 1);     \
-    }
+    } while (0)
 
 #define Protect(x)           \
-    {                        \
+    do {                     \
         {                    \
             x;               \
         };                   \
         base = ci->u.l.base; \
-    }
+    } while (0)
 
-#define checkGC(L, c)                             \
-    Protect(luaC_condGC(L, {L->top = (c);  /* limit of live values */ \
+#define checkGC(L, c)                                 \
+    do {                                              \
+        Protect(luaC_condGC(L, {L->top = (c);  /* limit of live values */ \
                           luaC_step(L); \
                           L->top = ci->top; }) /* restore top */ \
-            luai_threadyield(L);)
+                luai_threadyield(L););                \
+    } while (0)
 
 #define arith_op(op, tm)                                 \
-    {                                                    \
+    do {                                                 \
         TValue *rb = RKB(i);                             \
         TValue *rc = RKC(i);                             \
         if (ttisnumber(rb) && ttisnumber(rc)) {          \
@@ -519,7 +521,7 @@ void luaV_finishOp(lua_State *L) {
         } else {                                         \
             Protect(luaV_arith(L, ra, rb, rc, tm));      \
         }                                                \
-    }
+    } while (0)
 
 void luaV_execute(lua_State *L) {
     CallInfo *ci = L->ci;
@@ -686,19 +688,22 @@ newframe: /* reentry point when frame changes (call/return) */
                 Protect(
                     if (cast_int(equalobj(L, rb, rc)) != GETARG_A(i))
                         ci->u.l.savedpc++;
-                    else donextjump(ci);) break;
+                    else donextjump(ci););
+                break;
             }
             case OP_LT: {
                 Protect(
                     if (luaV_lessthan(L, RKB(i), RKC(i)) != GETARG_A(i))
                         ci->u.l.savedpc++;
-                    else donextjump(ci);) break;
+                    else donextjump(ci););
+                break;
             }
             case OP_LE: {
                 Protect(
                     if (luaV_lessequal(L, RKB(i), RKC(i)) != GETARG_A(i))
                         ci->u.l.savedpc++;
-                    else donextjump(ci);) break;
+                    else donextjump(ci););
+                break;
             }
             case OP_TEST: {
                 if (GETARG_C(i) ? l_isfalse(ra) : !l_isfalse(ra))
