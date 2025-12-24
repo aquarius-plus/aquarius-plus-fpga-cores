@@ -294,15 +294,15 @@ module fpga_core(
 
     wire  [9:0] ovl_text_addr;
     wire [15:0] ovl_text_wrdata;
-    wire        ovl_text_wr;
+    wire        ovl_text_wren;
 
     wire [10:0] ovl_font_addr;
     wire  [7:0] ovl_font_wrdata;
-    wire        ovl_font_wr;
+    wire        ovl_font_wren;
 
     wire  [3:0] ovl_palette_addr;
     wire [15:0] ovl_palette_wrdata;
-    wire        ovl_palette_wr;
+    wire        ovl_palette_wren;
 
     assign spi_txdata       = 64'b0;
     assign spi_txdata_valid = 1'b0;
@@ -327,15 +327,15 @@ module fpga_core(
         // Display overlay interface
         .ovl_text_addr(ovl_text_addr),
         .ovl_text_wrdata(ovl_text_wrdata),
-        .ovl_text_wr(ovl_text_wr),
+        .ovl_text_wren(ovl_text_wren),
 
         .ovl_font_addr(ovl_font_addr),
         .ovl_font_wrdata(ovl_font_wrdata),
-        .ovl_font_wr(ovl_font_wr),
+        .ovl_font_wren(ovl_font_wren),
 
         .ovl_palette_addr(ovl_palette_addr),
         .ovl_palette_wrdata(ovl_palette_wrdata),
-        .ovl_palette_wr(ovl_palette_wr),
+        .ovl_palette_wren(ovl_palette_wren),
 
         // ESP SPI slave interface
         .esp_ssel_n(esp_ssel_n),
@@ -645,9 +645,10 @@ module fpga_core(
     //////////////////////////////////////////////////////////////////////////
     // Display overlay
     //////////////////////////////////////////////////////////////////////////
-    aqp_overlay overlay(
+    fpga_overlay overlay(
+        .clk(clk),
+
         // Core video interface
-        .video_clk(clk),
         .video_r(video_r),
         .video_g(video_g),
         .video_b(video_b),
@@ -659,19 +660,17 @@ module fpga_core(
         .video_mode(1'b1),
 
         // Overlay interface
-        .ovl_clk(clk),
-
         .ovl_text_addr(ovl_text_addr),
         .ovl_text_wrdata(ovl_text_wrdata),
-        .ovl_text_wr(ovl_text_wr),
+        .ovl_text_wren(ovl_text_wren),
 
         .ovl_font_addr(ovl_font_addr),
         .ovl_font_wrdata(ovl_font_wrdata),
-        .ovl_font_wr(ovl_font_wr),
+        .ovl_font_wren(ovl_font_wren),
 
         .ovl_palette_addr(ovl_palette_addr),
         .ovl_palette_wrdata(ovl_palette_wrdata),
-        .ovl_palette_wr(ovl_palette_wr),
+        .ovl_palette_wren(ovl_palette_wren),
 
         // VGA signals
         .vga_r(vga_r),

@@ -21,15 +21,15 @@ module aqp_esp_spi(
     // Display overlay interface
     output wire  [9:0] ovl_text_addr,
     output wire [15:0] ovl_text_wrdata,
-    output wire        ovl_text_wr,
+    output wire        ovl_text_wren,
 
     output wire [10:0] ovl_font_addr,
     output wire  [7:0] ovl_font_wrdata,
-    output wire        ovl_font_wr,
+    output wire        ovl_font_wren,
 
     output wire  [3:0] ovl_palette_addr,
     output wire [15:0] ovl_palette_wrdata,
-    output wire        ovl_palette_wr,
+    output wire        ovl_palette_wren,
 
     // ESP SPI slave interface
     input  wire        esp_ssel_n,
@@ -210,14 +210,14 @@ module aqp_esp_spi(
     // Overlay interface
     assign ovl_text_addr      = q_byte_cnt[10:1];
     assign ovl_text_wrdata    = q_data[63:48];
-    assign ovl_text_wr        = (q_cmd == CMD_OVL_TEXT && q_byte_cnt[0] && q_data_updated);
+    assign ovl_text_wren      = (q_cmd == CMD_OVL_TEXT && q_byte_cnt[0] && q_data_updated);
 
     assign ovl_font_addr      = q_byte_cnt[10:0];
     assign ovl_font_wrdata    = q_data[63:56];
-    assign ovl_font_wr        = (q_cmd == CMD_OVL_FONT && q_data_updated);
+    assign ovl_font_wren      = (q_cmd == CMD_OVL_FONT && q_data_updated);
 
     assign ovl_palette_addr   = q_byte_cnt[4:1];
     assign ovl_palette_wrdata = q_data[63:48];
-    assign ovl_palette_wr     = (q_cmd == CMD_OVL_PALETTE && q_byte_cnt[0] && q_data_updated);
+    assign ovl_palette_wren   = (q_cmd == CMD_OVL_PALETTE && q_byte_cnt[0] && q_data_updated);
 
 endmodule
