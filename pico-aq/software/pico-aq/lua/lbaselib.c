@@ -3,12 +3,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define lbaselib_c
 #define LUA_LIB
 
 #include "lua.h"
 
 #include "lauxlib.h"
+
+#include "myfuncs.h"
 
 static int luaB_print(lua_State *L) {
     int n = lua_gettop(L); /* number of arguments */
@@ -569,6 +570,9 @@ static const luaL_Reg base_funcs[] = {
     {"ipairs", luaB_ipairs},
     {"pack", pack},
     {"unpack", unpack},
+
+    // My funcs
+    {"cls", my_cls},
 
     {NULL, NULL},
 };

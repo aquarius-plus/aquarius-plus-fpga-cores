@@ -10,6 +10,9 @@ add_executable(${CMAKE_PROJECT_NAME})
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE .)
 
+set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY C_STANDARD 11)
+
+
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     lapi.c
     lauxlib.c
@@ -35,6 +38,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     lzio.c
 
     mychanges.c
+    myfuncs.c
 
     lbaselib.c
     # lmathlib.c
