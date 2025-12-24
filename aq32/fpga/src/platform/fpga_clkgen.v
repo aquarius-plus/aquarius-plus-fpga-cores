@@ -1,14 +1,13 @@
 `default_nettype none
 `timescale 1 ns / 1 ps
 
-module aqp_clkctrl(
-    input  wire clk_in,
-    output wire clk_out
+module fpga_clkgen(
+    input  wire sysclk,
+    output wire clk_25_175,
+    output wire clk_28_63636
 );
 
     wire clk0;
-    wire clk28;
-
     wire clk180, clk270, clk2x180, clk90, clkdv, clkfx, clkfx180, dcm_locked, psdone;    // unused
     wire [7:0] status;  // unused
 
@@ -45,14 +44,14 @@ module aqp_clkctrl(
         .PSDONE(psdone),
         .STATUS(status),
         .CLKFB(clk0),
-        .CLKIN(clk_in),
+        .CLKIN(sysclk),
         .DSSEN(1'b0),
         .PSCLK(1'b0),
         .PSEN(1'b0),
         .PSINCDEC(1'b0), 
         .RST(1'b0)
     );
-    BUFG bufg_28(.I(clk2x), .O(clk28));
+    BUFG bufg_28(.I(clk2x), .O(clk_28_63636));
 
     wire clk25;
     wire pllfb;
@@ -100,10 +99,10 @@ module aqp_clkctrl(
         .CLKOUT5(pll_clkout5),
         .LOCKED(pll_locked),
         .CLKFBIN(pllfb),
-        .CLKIN(clk28),
+        .CLKIN(clk_28_63636),
         .RST(1'b0)
     );
 
-    BUFG bufg_25(.I(clk25), .O(clk_out));
+    BUFG bufg_25(.I(clk25), .O(clk_25_175));
 
 endmodule

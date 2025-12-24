@@ -253,6 +253,5 @@ NET "hc2[6]"            IOSTANDARD = LVTTL;
 NET "hc2[7]"            IOSTANDARD = LVTTL;
 NET "hc2[8]"            IOSTANDARD = LVTTL;
 
-NET "clk"       TNM_NET = clk25;
-
-TIMESPEC TS_clk    = PERIOD "clk25" 25.175 MHz HIGH 50%;
+NET "clk_25_175" TNM_NET = clk_25_175;
+TIMESPEC TS_clk = PERIOD "clk_25_175" 25.175 MHz HIGH 50%;

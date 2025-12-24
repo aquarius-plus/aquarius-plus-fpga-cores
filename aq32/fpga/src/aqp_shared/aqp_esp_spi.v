@@ -6,11 +6,9 @@ module aqp_esp_spi(
     input  wire        reset,
 
     // System information
-    input  wire  [7:0] sysinfo_core_type,
-    input  wire  [7:0] sysinfo_flags,
-    input  wire  [7:0] sysinfo_version_major,
-    input  wire  [7:0] sysinfo_version_minor,
-
+    input  wire   [7:0] core_type,
+    input  wire   [7:0] core_flags,
+    input  wire  [15:0] core_version,
     input  wire [127:0] core_name,
 
     // Interface for core specific messages
@@ -152,10 +150,10 @@ module aqp_esp_spi(
                     CMD_GET_SYSINFO: begin
                         q_txdata <= {
                             32'b0,
-                            sysinfo_version_minor,
-                            sysinfo_version_major,
-                            sysinfo_flags,
-                            sysinfo_core_type
+                            core_version[7:0],
+                            core_version[15:8],
+                            core_flags,
+                            core_type
                         };
                         q_tx_state <= 2'd1;
                     end

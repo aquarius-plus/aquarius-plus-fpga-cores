@@ -12,7 +12,6 @@ module spiregs(
     output wire        spi_txdata_valid,
 
     output reg         reset_req,
-    output reg         reset_req_cold,
     output reg  [63:0] keys,
     output reg   [7:0] hctrl1,
     output reg   [7:0] hctrl2,
@@ -39,10 +38,8 @@ module spiregs(
     // 01h: Reset command
     always @(posedge clk) begin
         reset_req      <= 1'b0;
-        reset_req_cold <= 1'b0;
         if (spi_cmd == CMD_RESET && spi_msg_end) begin
             reset_req      <= 1'b1;
-            reset_req_cold <= spi_rxdata[57];
             // q_use_t80      <= spi_rxdata[56];
         end
     end
