@@ -3,6 +3,7 @@
 
 module fpga_spislave(
     input  wire         clk,
+    input  wire         reset,
 
     // System information
     input  wire   [7:0] core_type,
@@ -29,6 +30,16 @@ module fpga_spislave(
     output wire  [3:0] ovl_palette_addr,
     output wire [15:0] ovl_palette_wrdata,
     output wire        ovl_palette_wren,
+
+    // Command signals
+    output reg         reset_req,
+    output reg   [7:0] hctrl1,
+    output reg   [7:0] hctrl2,
+    output reg  [63:0] keys,
+    output reg  [63:0] gamepad1,
+    output reg  [63:0] gamepad2,
+    output reg  [15:0] kbbuf16_wrdata,
+    output reg         kbbuf16_wren,
 
     // SPI interface
     input  wire        esp_ssel_n,
@@ -143,12 +154,18 @@ module fpga_spislave(
     reg [7:0] q_status   = 0;
 
     localparam [7:0]
-        CMD_OVL_TEXT    = 8'hF4,
-        CMD_OVL_FONT    = 8'hF5,
-        CMD_OVL_PALETTE = 8'hF6,
-        CMD_GET_SYSINFO = 8'hF8,
-        CMD_GET_NAME1   = 8'hF9,
-        CMD_GET_NAME2   = 8'hFA;
+        CMD_RESET           = 8'h01,
+        CMD_SET_HCTRL       = 8'h11,
+        CMD_SET_KEYB_MATRIX = 8'h10,
+        CMD_WRITE_KBBUF16   = 8'h13,
+        CMD_WRITE_GAMEPAD1  = 8'h14,
+        CMD_WRITE_GAMEPAD2  = 8'h15,
+        CMD_OVL_TEXT        = 8'hF4,
+        CMD_OVL_FONT        = 8'hF5,
+        CMD_OVL_PALETTE     = 8'hF6,
+        CMD_GET_SYSINFO     = 8'hF8,
+        CMD_GET_NAME1       = 8'hF9,
+        CMD_GET_NAME2       = 8'hFA;
 
     always @(posedge clk) begin
         if (msg_start) begin
@@ -214,6 +231,55 @@ module fpga_spislave(
                 q_tx_data <= {8'h00, q_tx_data[63:8]};
         end
     end
+
+    // 01h: Reset command
+    always @(posedge clk) begin
+        reset_req <= 0;
+        if (spi_cmd == CMD_RESET && spi_msg_end) begin
+            reset_req <= 1;
+        end
+    end
+
+    // 10h: Set keyboard matrix
+    always @(posedge clk or posedge reset)
+        if (reset)
+            keys <= 64'hFFFFFFFFFFFFFFFF;
+        else if (spi_cmd == CMD_SET_KEYB_MATRIX && spi_msg_end)
+            keys <= spi_rxdata;
+
+    // 11h: Set hand controllers
+    always @(posedge clk or posedge reset)
+        if (reset)
+            {hctrl2, hctrl1} <= 16'hFFFF;
+        else if (spi_cmd == CMD_SET_HCTRL && spi_msg_end)
+            {hctrl2, hctrl1} <= spi_rxdata[63:48];
+
+    // 13h: Write keyboard buffer (16-bit)
+    always @(posedge clk or posedge reset)
+        if (reset) begin
+            kbbuf16_wrdata <= 0;
+            kbbuf16_wren   <= 0;
+        end else begin
+            kbbuf16_wren <= 0;
+            if (spi_cmd == CMD_WRITE_KBBUF16 && spi_msg_end) begin
+                kbbuf16_wrdata <= spi_rxdata[63:48];
+                kbbuf16_wren   <= 1;
+            end
+        end
+
+    // 14h: Set gamepad1
+    always @(posedge clk or posedge reset)
+        if (reset)
+            gamepad1 <= 0;
+        else if (spi_cmd == CMD_WRITE_GAMEPAD1 && spi_msg_end)
+            gamepad1 <= spi_rxdata;
+
+    // 15h: Set gamepad2
+    always @(posedge clk or posedge reset)
+        if (reset)
+            gamepad2 <= 0;
+        else if (spi_cmd == CMD_WRITE_GAMEPAD2 && spi_msg_end)
+            gamepad2 <= spi_rxdata;
 
     assign esp_notify = 0;
 

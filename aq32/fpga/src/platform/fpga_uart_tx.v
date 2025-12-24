@@ -1,7 +1,7 @@
 `default_nettype none
 `timescale 1 ns / 1 ps
 
-module aqp_esp_uart_tx(
+module fpga_uart_tx(
     input  wire        clk,
     input  wire        reset,
 
@@ -14,12 +14,8 @@ module aqp_esp_uart_tx(
     // Bit-timing
     reg [2:0] q_clk_cnt = 3'd0;
     always @(posedge clk)
-        if (q_clk_cnt == 3'd5)
-            q_clk_cnt <= 0;
-        else
-            q_clk_cnt <= q_clk_cnt + 3'd1;
-
-    // always @(posedge clk) q_clk_cnt <= q_clk_cnt + 3'd1;
+        if (q_clk_cnt == 3'd5) q_clk_cnt <= 0;
+        else                   q_clk_cnt <= q_clk_cnt + 3'd1;
 
     wire next_bit = q_clk_cnt == 3'd0;
 
@@ -31,17 +27,17 @@ module aqp_esp_uart_tx(
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
-            q_uart_txd <= 1'b1;
-            q_busy     <= 1'b0;
-            q_tx_shift <= 9'b0;
-            q_bit_cnt  <= 4'b0;
+            q_uart_txd <= 1;
+            q_busy     <= 0;
+            q_tx_shift <= 0;
+            q_bit_cnt  <= 0;
 
         end else begin
             if (!q_busy) begin
-                q_uart_txd <= 1'b1;
+                q_uart_txd <= 1;
                 if (tx_valid) begin
                     q_tx_shift <= { tx_data, 1'b0 };
-                    q_busy     <= 1'b1;
+                    q_busy     <= 1;
                     q_bit_cnt  <= 4'd9;
                 end
 
@@ -49,8 +45,8 @@ module aqp_esp_uart_tx(
                 q_uart_txd <= q_tx_shift[0];
 
                 if (q_bit_cnt == 4'd0) begin
-                    q_busy     <= 1'b0;
-                    q_uart_txd <= 1'b1;
+                    q_busy     <= 0;
+                    q_uart_txd <= 1;
                 end else begin
                     q_bit_cnt  <= q_bit_cnt - 4'd1;
                 end

@@ -1,7 +1,7 @@
 `default_nettype none
 `timescale 1 ns / 1 ps
 
-module aqp_esp_uart_rx_fifo(
+module fpga_uart_rx_fifo(
     input  wire       clk,
     input  wire       reset,
 

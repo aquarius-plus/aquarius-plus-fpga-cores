@@ -72,6 +72,18 @@ module fpga_top(
         .clk_28_63636(clk_28_63636));
 
     //////////////////////////////////////////////////////////////////////////
+    // Generate reset signal
+    //////////////////////////////////////////////////////////////////////////
+    wire spi_reset_req;
+
+    reg [19:0] q_reset_cnt = 0;
+    always @(posedge clk_25_175)
+        if      (spi_reset_req)    q_reset_cnt <= 0;
+        else if (!q_reset_cnt[19]) q_reset_cnt <= q_reset_cnt + 20'd1;
+
+    wire reset_25_175 = !q_reset_cnt[19];
+
+    //////////////////////////////////////////////////////////////////////////
     // Handle unused external Z80 and peripherals
     //////////////////////////////////////////////////////////////////////////
     reg [2:0] q_clk_div = 0;
@@ -146,6 +158,28 @@ module fpga_top(
     );
 
     //////////////////////////////////////////////////////////////////////////
+    // Hand controller interface
+    //////////////////////////////////////////////////////////////////////////
+    assign hc1[7:0] = 8'bZ;
+    assign hc2[7:0] = 8'bZ;
+    assign hc1[8]   = 1'b0;
+    assign hc2[8]   = 1'b0;
+
+    wire [7:0] spi_hctrl1, spi_hctrl2;
+
+    // Synchronize inputs
+    reg [7:0] q_hctrl1, q2_hctrl1;
+    reg [7:0] q_hctrl2, q2_hctrl2;
+    always @(posedge clk_25_175) q_hctrl1  <= hc1[7:0];
+    always @(posedge clk_25_175) q2_hctrl1 <= q_hctrl1;
+    always @(posedge clk_25_175) q_hctrl2  <= hc2[7:0];
+    always @(posedge clk_25_175) q2_hctrl2 <= q_hctrl2;
+
+    // Combine data from ESP with data from handcontroller input
+    wire [7:0] hctrl1 = q2_hctrl1 & spi_hctrl1;
+    wire [7:0] hctrl2 = q2_hctrl2 & spi_hctrl2;
+
+    //////////////////////////////////////////////////////////////////////////
     // Audio DAC
     //////////////////////////////////////////////////////////////////////////
     wire [15:0] audio_sample_l;
@@ -176,11 +210,18 @@ module fpga_top(
     wire  [63:0] spi_txdata;
     wire         spi_txdata_valid;
 
+    wire  [63:0] keys;
+    wire  [63:0] gamepad1;
+    wire  [63:0] gamepad2;
+    wire  [15:0] kbbuf16_wrdata;
+    wire         kbbuf16_wren;
+
     assign spi_txdata       = 64'b0;
     assign spi_txdata_valid = 1'b0;
 
     fpga_spislave fpga_spislave(
         .clk(clk_25_175),
+        .reset(reset_25_175),
 
         // System information
         .core_type(core_type),
@@ -208,6 +249,16 @@ module fpga_top(
         .ovl_palette_wrdata(ovl_palette_wrdata),
         .ovl_palette_wren(ovl_palette_wren),
 
+        // Command signals
+        .reset_req(spi_reset_req),
+        .hctrl1(spi_hctrl1),
+        .hctrl2(spi_hctrl2),
+        .keys(keys),
+        .gamepad1(gamepad1),
+        .gamepad2(gamepad2),
+        .kbbuf16_wrdata(kbbuf16_wrdata),
+        .kbbuf16_wren(kbbuf16_wren),
+
         // ESP SPI slave interface
         .esp_ssel_n(esp_ssel_n),
         .esp_sclk(esp_sclk),
@@ -216,10 +267,39 @@ module fpga_top(
         .esp_notify(esp_notify));
 
     //////////////////////////////////////////////////////////////////////////
+    // ESP32 UART
+    //////////////////////////////////////////////////////////////////////////
+    wire [8:0] uart_txfifo_data;
+    wire       uart_txfifo_wren;
+    wire       uart_txfifo_full;
+    wire [8:0] uart_rxfifo_data;
+    wire       uart_rxfifo_rden;
+    wire       uart_rxfifo_empty;
+
+    fpga_uart fpga_uart(
+        .clk(clk_25_175),
+        .reset(reset_25_175),
+
+        .txfifo_data(uart_txfifo_data),
+        .txfifo_wren(uart_txfifo_wren),
+        .txfifo_full(uart_txfifo_full),
+
+        .rxfifo_data(uart_rxfifo_data),
+        .rxfifo_rden(uart_rxfifo_rden),
+        .rxfifo_empty(uart_rxfifo_empty),
+
+        .esp_rx(esp_rx),
+        .esp_tx(esp_tx),
+        .esp_cts(esp_cts),
+        .esp_rts(esp_rts));
+
+    //////////////////////////////////////////////////////////////////////////
     // FPGA core
     //////////////////////////////////////////////////////////////////////////
     fpga_core fpga_core(
         .clk_25_175(clk_25_175),
+        .reset_25_175(reset_25_175),
+
         .clk_28_63636(clk_28_63636),
 
         // Core information
@@ -255,15 +335,22 @@ module fpga_top(
         .audio_l(audio_sample_l),
         .audio_r(audio_sample_r),
 
-        // Hand controller interface
-        .hc1(hc1),
-        .hc2(hc2),
+        // Input peripherals
+        .hctrl1(hctrl1),
+        .hctrl2(hctrl2),
+        .keys(keys),
+        .gamepad1(gamepad1),
+        .gamepad2(gamepad2),
+        .kbbuf16_wrdata(kbbuf16_wrdata),
+        .kbbuf16_wren(kbbuf16_wren),
 
         // ESP32 serial interface
-        .esp_tx(esp_tx),
-        .esp_rx(esp_rx),
-        .esp_rts(esp_rts),
-        .esp_cts(esp_cts)
+        .uart_txfifo_data(uart_txfifo_data),
+        .uart_txfifo_wren(uart_txfifo_wren),
+        .uart_txfifo_full(uart_txfifo_full),
+        .uart_rxfifo_data(uart_rxfifo_data),
+        .uart_rxfifo_rden(uart_rxfifo_rden),
+        .uart_rxfifo_empty(uart_rxfifo_empty)
     );
 
 endmodule

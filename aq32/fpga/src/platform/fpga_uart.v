@@ -1,16 +1,16 @@
 `default_nettype none
 `timescale 1 ns / 1 ps
 
-module aqp_esp_uart(
+module fpga_uart(
     input  wire        clk,
     input  wire        reset,
 
     input  wire  [8:0] txfifo_data,   // if bit8 set: transmit start-of-frame, ignore data
-    input  wire        txfifo_wr,
+    input  wire        txfifo_wren,
     output wire        txfifo_full,
 
     output wire  [8:0] rxfifo_data,   // if bit8 set: received start-of-frame, other data bits will be 0
-    input  wire        rxfifo_rd,
+    input  wire        rxfifo_rden,
     output wire        rxfifo_empty,
 
     // ESP UART interface
@@ -42,12 +42,12 @@ module aqp_esp_uart(
     reg  [1:0] q_tx_state;
     wire       tx_valid = (q_tx_state == 2'b00) && !q_tx_start && !q_cts[1] && !txfifo_empty && !tx_busy;
 
-    aqp_esp_uart_tx_fifo tx_fifo(
+    fpga_uart_tx_fifo tx_fifo(
 	    .clk(clk),
         .reset(reset),
 
     	.wrdata(txfifo_data),
-	    .wr_en(txfifo_wr),
+	    .wr_en(txfifo_wren),
 
         .rddata(txfifo_q),
     	.rd_en(tx_valid),
@@ -58,12 +58,12 @@ module aqp_esp_uart(
     // State machine to send escaped data
     always @(posedge clk or posedge reset) begin
         if (reset) begin
-            q_tx_state <= 2'b00;
-            q_tx_start <= 1'b0;
-            q_tx_data  <= 8'h00;
+            q_tx_state <= 0;
+            q_tx_start <= 0;
+            q_tx_data  <= 0;
 
         end else begin
-            q_tx_start <= 1'b0;
+            q_tx_start <= 0;
 
             case (q_tx_state)
                 2'b00: begin
@@ -103,7 +103,7 @@ module aqp_esp_uart(
         end
     end
 
-    aqp_esp_uart_tx esp_uart_tx(
+    fpga_uart_tx esp_uart_tx(
         .clk(clk),
         .reset(reset),
         .uart_txd(esp_tx),
@@ -121,7 +121,7 @@ module aqp_esp_uart(
 
     assign esp_rts = rxfifo_almost_full;
 
-    aqp_esp_uart_rx esp_uart_rx(
+    fpga_uart_rx esp_uart_rx(
         .clk(clk),
         .reset(reset),
         .uart_rxd(esp_rx),
@@ -135,30 +135,30 @@ module aqp_esp_uart(
     // State machine to receive escaped data
     always @(posedge clk or posedge reset) begin
         if (reset) begin
-            q_rx_escape     <= 1'b0;
-            q_rxfifo_wrdata <= 9'h000;
-            q_rxfifo_wr     <= 1'b0;
+            q_rx_escape     <= 0;
+            q_rxfifo_wrdata <= 0;
+            q_rxfifo_wr     <= 0;
 
         end else begin
-            q_rxfifo_wr <= 1'b0;
+            q_rxfifo_wr <= 0;
 
             if (rx_valid) begin
                 if (rx_data == 8'h7E) begin // Start-of-frame?
                     q_rxfifo_wrdata <= 9'h100;
-                    q_rxfifo_wr     <= 1'b1;
-                    q_rx_escape     <= 1'b0;
+                    q_rxfifo_wr     <= 1;
+                    q_rx_escape     <= 0;
                 end else if (rx_data == 8'h7D) begin // Escape byte?
-                    q_rx_escape     <= 1'b1;
+                    q_rx_escape     <= 1;
                 end else begin
                     q_rxfifo_wrdata <= {1'b0, rx_data ^ (q_rx_escape ? 8'h20 : 8'h00)};
-                    q_rxfifo_wr     <= 1'b1;
-                    q_rx_escape     <= 1'b0;
+                    q_rxfifo_wr     <= 1;
+                    q_rx_escape     <= 0;
                 end
             end
         end
     end
 
-    aqp_esp_uart_rx_fifo rx_fifo(
+    fpga_uart_rx_fifo rx_fifo(
 	    .clk(clk),
         .reset(reset),
 
@@ -166,7 +166,7 @@ module aqp_esp_uart(
 	    .wr_en(q_rxfifo_wr),
 
         .rddata(rxfifo_data),
-    	.rd_en(rxfifo_rd),
+    	.rd_en(rxfifo_rden),
 
     	.empty(rxfifo_empty),
     	.full(rxfifo_full),
