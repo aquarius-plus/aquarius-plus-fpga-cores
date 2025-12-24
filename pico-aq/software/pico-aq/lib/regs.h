@@ -85,6 +85,8 @@ struct regs_tram {
 #define CHRAM      ((volatile uint8_t *)0x05000)
 #define TRAM       ((struct regs_tram *)0x06000)
 
+#define VRAM       ((volatile uint32_t *)0x08000)
+
 enum {
     ESPCMD_RESET       = 0x01, // Reset ESP
     ESPCMD_VERSION     = 0x02, // Get version string

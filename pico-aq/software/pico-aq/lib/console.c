@@ -1,8 +1,8 @@
 #include "console.h"
 
-#define DEF_FGCOL    (0)
-#define DEF_BGCOL    (3)
-#define CURSOR_COLOR (0x80)
+#define DEF_FGCOL    (6)
+#define DEF_BGCOL    (1)
+#define CURSOR_COLOR (0x68)
 
 static void memset16(uint16_t *dst, uint16_t val, unsigned count) {
     while (count--)

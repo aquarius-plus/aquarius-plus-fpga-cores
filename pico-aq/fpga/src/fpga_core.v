@@ -240,16 +240,13 @@ module fpga_core(
     //////////////////////////////////////////////////////////////////////////
     wire        irq_vblank;
 
-    wire        tram_strobe;
-    wire        chram_strobe;
+    wire        vram_strobe;
     wire        pal_strobe;
 
-    wire        tram_wren     = cpu_wren && tram_strobe;
-    wire        chram_wren    = cpu_wren && chram_strobe;
+    wire        vram_wren     = cpu_wren && vram_strobe;
     wire        pal_wren      = cpu_wren && pal_strobe;
 
-    wire [31:0] tram_rddata;
-    wire  [7:0] chram_rddata;
+    wire [31:0] vram_rddata;
     wire [11:0] pal_rddata;
 
     video video(
@@ -258,16 +255,11 @@ module fpga_core(
 
         .irq_vblank(irq_vblank),
 
-        .tram_addr(cpu_addr[12:2]),
-        .tram_rddata(tram_rddata),
-        .tram_wrdata(cpu_wrdata),
-        .tram_bytesel(cpu_bytesel),
-        .tram_wren(tram_wren),
-
-        .chram_addr(cpu_addr[10:0]),
-        .chram_rddata(chram_rddata),
-        .chram_wrdata(cpu_wrdata[7:0]),
-        .chram_wren(chram_wren),
+        .vram_addr(cpu_addr[14:2]),
+        .vram_rddata(vram_rddata),
+        .vram_wrdata(cpu_wrdata),
+        .vram_bytesel(cpu_bytesel),
+        .vram_wren(vram_wren),
 
         .pal_addr(cpu_addr[4:1]),
         .pal_rddata(pal_rddata),
@@ -300,8 +292,7 @@ module fpga_core(
     wire   reg_gamepad2_h_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0202C;
 
     assign pal_strobe            = cpu_strobe && {cpu_addr[31: 8],  8'b0} == 32'h04000;
-    assign chram_strobe          = cpu_strobe && {cpu_addr[31:11], 11'b0} == 32'h05000;
-    assign tram_strobe           = cpu_strobe && {cpu_addr[31:13], 13'b0} == 32'h06000;
+    assign vram_strobe           = cpu_strobe && {cpu_addr[31:15], 15'b0} == 32'h08000;
     assign sram_strobe           = cpu_strobe && {cpu_addr[31:19], 19'b0} == 32'h80000;
 
     reg [31:0] q_cpu_addr;
@@ -312,8 +303,7 @@ module fpga_core(
     always @* begin
         cpu_wait = 0;
         if (bootrom_strobe)   cpu_wait = common_wait;
-        if (chram_strobe)     cpu_wait = common_wait;
-        if (tram_strobe)      cpu_wait = common_wait;
+        if (vram_strobe)      cpu_wait = common_wait;
         if (sram_strobe)      cpu_wait = sram_wait;
     end
 
@@ -334,8 +324,7 @@ module fpga_core(
         if (reg_gamepad2_h_strobe) cpu_rddata = gamepad2[63:32];
 
         if (pal_strobe)            cpu_rddata = {4'b0, pal_rddata, 4'b0, pal_rddata};
-        if (chram_strobe)          cpu_rddata = {chram_rddata, chram_rddata, chram_rddata, chram_rddata};
-        if (tram_strobe)           cpu_rddata = tram_rddata;
+        if (vram_strobe)           cpu_rddata = vram_rddata;
         if (sram_strobe)           cpu_rddata = sram_rddata;
     end
 

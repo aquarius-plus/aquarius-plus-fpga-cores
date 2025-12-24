@@ -7,18 +7,12 @@ module video(
 
     output wire        irq_vblank,
 
-    // Text RAM interface
-    input  wire [10:0] tram_addr,
-    output wire [31:0] tram_rddata,
-    input  wire [31:0] tram_wrdata,
-    input  wire  [3:0] tram_bytesel,
-    input  wire        tram_wren,
-
-    // Char RAM interface
-    input  wire [10:0] chram_addr,
-    output wire  [7:0] chram_rddata,
-    input  wire  [7:0] chram_wrdata,
-    input  wire        chram_wren,
+    // Video RAM interface
+    input  wire [12:0] vram_addr,
+    output wire [31:0] vram_rddata,
+    input  wire [31:0] vram_wrdata,
+    input  wire  [3:0] vram_bytesel,
+    input  wire        vram_wren,
 
     // Palette RAM interface
     input  wire  [3:0] pal_addr,
@@ -31,9 +25,9 @@ module video(
     input  wire        video_hlast,
     input  wire  [9:0] video_vpos,
     input  wire        video_vlast,
-    output wire  [3:0] video_r,
-    output wire  [3:0] video_g,
-    output wire  [3:0] video_b
+    output reg   [3:0] video_r,
+    output reg   [3:0] video_g,
+    output reg   [3:0] video_b
 );
 
     wire hblank = !(video_hpos < 10'd640);
@@ -61,82 +55,94 @@ module video(
     always @(posedge clk) q2_hpos <= q_hpos;
 
     //////////////////////////////////////////////////////////////////////////
-    // Character address
+    // Video RAM (192x160)
     //////////////////////////////////////////////////////////////////////////
-    reg         q_mode80         = 1'b0;
-    reg  [11:0] q_row_addr       = 12'd0;
-    reg  [11:0] q_char_addr      = 12'd0;
-    wire        next_row         = vnext && (vpos9[2:0] == 3'd7);
-    wire [11:0] d_row_addr       = q_row_addr + (q_mode80 ? 12'd80 : 12'd40);
-    wire [11:0] border_char_addr = 12'h7FF;
+    reg         q_vpage = 0;
 
-    always @(posedge(clk))
-        if (vblank) begin
-            q_mode80   <= 1'd1;
-            q_row_addr <= 12'd0;
-        end else if (next_row) begin
-            q_row_addr <= d_row_addr;
+    reg  [14:0] q_line_addr;
+    reg  [14:0] q_pixel_addr;
+    reg   [1:0] q_sub_pixel_cnt;
+    reg   [1:0] q_sub_line_cnt;
+    reg         q_border;
+
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            q_line_addr     <= 0;
+            q_pixel_addr    <= 0;
+            q_sub_pixel_cnt <= 0;
+            q_sub_line_cnt  <= 0;
+            q_border        <= 0;
+
+        end else begin
+            q_border <= 0;
+
+            if (q_sub_pixel_cnt == 2'd2) begin
+                q_sub_pixel_cnt <= 0;
+                q_pixel_addr    <= q_pixel_addr + 15'd1;
+            end else begin
+                q_sub_pixel_cnt <= q_sub_pixel_cnt + 2'd1;
+            end
+
+            if (video_hpos < 10'd32 || video_hpos >= 10'd608) begin
+                q_sub_pixel_cnt <= 0;
+                q_border        <= 1;
+            end
+
+            if (video_hlast) begin
+                if (q_sub_line_cnt == 2'd2) begin
+                    q_sub_line_cnt <= 0;
+                    q_line_addr <= q_pixel_addr;
+                end else begin
+                    q_sub_line_cnt <= q_sub_line_cnt + 2'd1;
+                    q_pixel_addr <= q_line_addr;
+                end
+            end
+
+            if (video_vlast) begin
+                q_line_addr     <= 0;
+                q_sub_pixel_cnt <= 0;
+                q_pixel_addr    <= 0;
+                q_sub_line_cnt  <= 0;
+            end
         end
-
-    wire next_char    = q_mode80 ? (video_hpos[2:0] == 3'd0) : (video_hpos[3:0] == 4'd0);
-    wire start_active = q_blank && !blank;
-
-    reg  [11:0] d_char_addr;
-    always @* begin
-        if      (start_active) d_char_addr = q_row_addr;
-        else if (next_char)    d_char_addr = q_char_addr + 12'd1;
-        else                   d_char_addr = q_char_addr;
     end
 
-    always @(posedge(clk)) q_char_addr <= d_char_addr;
+    reg [2:0] q_pixsel;
+    always @(posedge clk) q_pixsel <= q_pixel_addr[2:0];
 
-    //////////////////////////////////////////////////////////////////////////
-    // Text RAM
-    //////////////////////////////////////////////////////////////////////////
-    wire [31:0] textram_rddata;
-
-    dpram8k textram(
+    wire [31:0] vdata;
+    dpram32k vram(
         .a_clk(clk),
-        .a_addr(tram_addr),
-        .a_wrdata(tram_wrdata),
-        .a_wrsel(tram_bytesel), 
-        .a_wren(tram_wren),
-        .a_rddata(tram_rddata),
+        .a_addr(vram_addr),
+        .a_wrdata(vram_wrdata),
+        .a_wrsel({
+            vram_bytesel[3], vram_bytesel[3],
+            vram_bytesel[2], vram_bytesel[2],
+            vram_bytesel[1], vram_bytesel[1],
+            vram_bytesel[0], vram_bytesel[0]
+        }),
+        .a_wren(vram_wren),
+        .a_rddata(vram_rddata),
 
         .b_clk(clk),
-        .b_addr(d_char_addr[11:1]),
+        .b_addr({q_vpage, q_pixel_addr[14:3]}),
         .b_wrdata(32'b0),
-        .b_wrsel(4'b0), 
+        .b_wrsel(8'b0),
         .b_wren(1'b0),
-        .b_rddata(textram_rddata));
+        .b_rddata(vdata)
+    );
 
-    wire [15:0] textram_color_text = q_char_addr[0] ? textram_rddata[31:16] : textram_rddata[15:0];
-    wire  [7:0] text_data  = textram_color_text[7:0];
-    wire  [7:0] color_data = textram_color_text[15:8];
-
-    reg [7:0] q_color_data;
-    always @(posedge clk) q_color_data <= color_data;
-
-    //////////////////////////////////////////////////////////////////////////
-    // Character RAM
-    //////////////////////////////////////////////////////////////////////////
-    wire [10:0] charram_addr = {text_data, vpos9[2:0]};
-    wire  [7:0] charram_data;
-
-    charram charram(
-        .clk1(clk),
-        .addr1(chram_addr),
-        .rddata1(chram_rddata),
-        .wrdata1(chram_wrdata),
-        .wren1(chram_wren),
-
-        .clk2(clk),
-        .addr2(charram_addr),
-        .rddata2(charram_data));
-
-    wire [2:0] pixel_sel    = (q_mode80 ? q2_hpos[2:0] : q2_hpos[3:1]) ^ 3'b111;
-    wire       char_pixel   = charram_data[pixel_sel];
-    wire [3:0] text_colidx  = char_pixel ? q_color_data[7:4] : q_color_data[3:0];
+    reg [3:0] pix_colidx;
+    always @* case (q_pixsel)
+        3'd0: pix_colidx = vdata[31:28];
+        3'd1: pix_colidx = vdata[27:24];
+        3'd2: pix_colidx = vdata[23:20];
+        3'd3: pix_colidx = vdata[19:16];
+        3'd4: pix_colidx = vdata[15:12];
+        3'd5: pix_colidx = vdata[11: 8];
+        3'd6: pix_colidx = vdata[ 7: 4];
+        3'd7: pix_colidx = vdata[ 3: 0];
+    endcase
 
     //////////////////////////////////////////////////////////////////////////
     // Palette
@@ -149,14 +155,16 @@ module video(
         .a_rddata(pal_rddata),
         .a_wrdata(pal_wrdata),
         .a_wren({12{pal_wren}}),
-        .b_addr(text_colidx),
+        .b_addr(pix_colidx),
         .b_rddata({pal_r, pal_g, pal_b}));
 
     //////////////////////////////////////////////////////////////////////////
     // Output registers
     //////////////////////////////////////////////////////////////////////////
-    assign video_r = pal_r;
-    assign video_g = pal_g;
-    assign video_b = pal_b;
+    always @(posedge clk) begin
+        video_r <= q_border ? 4'b0 : pal_r;
+        video_g <= q_border ? 4'b0 : pal_g;
+        video_b <= q_border ? 4'b0 : pal_b;
+    end
 
 endmodule
