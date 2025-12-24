@@ -3,6 +3,8 @@
 
 module fpga_core(
     input  wire         clk_25_175,
+    input  wire         reset_25_175,
+
     input  wire         clk_28_63636,
 
     // Core information
@@ -34,16 +36,37 @@ module fpga_core(
     output wire   [3:0] video_g,
     output wire   [3:0] video_b,
 
-    // PWM audio outputs
-    output wire         audio_l,
-    output wire         audio_r,
+    // Audio outputs (signed 16-bits)s
+    output wire  [15:0] audio_l,
+    output wire  [15:0] audio_r,
 
-    // ESP32 serial interface
-    output wire         esp_tx,
-    input  wire         esp_rx,
-    output wire         esp_rts,
-    input  wire         esp_cts
+    // Input peripherals
+    input  wire   [7:0] hctrl1,
+    input  wire   [7:0] hctrl2,
+    input  wire  [63:0] keys,
+    input  wire  [63:0] gamepad1,
+    input  wire  [63:0] gamepad2,
+    input  wire  [15:0] kbbuf16_wrdata,
+    input  wire         kbbuf16_wren,
+
+    // ESP32 UART
+    output wire   [8:0] uart_txfifo_data,
+    output wire         uart_txfifo_wren,
+    input  wire         uart_txfifo_full,
+    input  wire   [8:0] uart_rxfifo_data,
+    output wire         uart_rxfifo_rden,
+    input  wire         uart_rxfifo_empty
 );
+
+    wire clk   = clk_25_175;
+    wire reset = reset_25_175;
+
+    assign spi_txdata       = 0;
+    assign spi_txdata_valid = 0;
+
+    assign uart_txfifo_data = 0;
+    assign uart_txfifo_wren = 0;
+    assign uart_rxfifo_rden = 0;
 
     //////////////////////////////////////////////////////////////////////////
     // Core information
@@ -52,24 +75,6 @@ module fpga_core(
     assign core_flags   = 8'h00;
     assign core_version = {8'd0, 8'd01};
     assign core_name    = "My32            ";
-
-    //////////////////////////////////////////////////////////////////////////
-    // Generate reset signal
-    //////////////////////////////////////////////////////////////////////////
-    wire reset_req = 0;
-
-    reg [4:0] q_reset_cnt = 0;
-    always @(posedge clk_25_175)
-        if (!q_reset_cnt[4]) q_reset_cnt <= q_reset_cnt + 5'b1;
-        else if (reset_req)  q_reset_cnt <= 5'b0;
-
-    wire reset = !q_reset_cnt[4];
-
-    //////////////////////////////////////////////////////////////////////////
-    // Interface for core specific messages
-    //////////////////////////////////////////////////////////////////////////
-    assign spi_txdata = 0;
-    assign spi_txdata_valid = 0;
 
     //////////////////////////////////////////////////////////////////////////
     // Memory
@@ -161,11 +166,5 @@ module fpga_core(
     //////////////////////////////////////////////////////////////////////////
     assign audio_l = 0;
     assign audio_r = 0;
-
-    //////////////////////////////////////////////////////////////////////////
-    // ESP32 serial interface
-    //////////////////////////////////////////////////////////////////////////
-    assign esp_tx  = 1;
-    assign esp_rts = 1;
 
 endmodule
