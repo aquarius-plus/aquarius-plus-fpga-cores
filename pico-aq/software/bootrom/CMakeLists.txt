@@ -34,7 +34,7 @@ add_custom_command(
     COMMAND riscv-none-elf-objdump -t ${EXECNAME}.elf | expand -t36 | tail -n +5 | sort > dump_symbols.txt
     COMMAND riscv-none-elf-size -A ${EXECNAME}.elf
     COMMAND riscv-none-elf-size -G ${EXECNAME}.elf
-    # COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/genrom.py ${EXECNAME}.bin ${CMAKE_CURRENT_SOURCE_DIR}/../../fpga/src/bootrom.v
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/genrom.py ${EXECNAME}.bin ${CMAKE_CURRENT_SOURCE_DIR}/../../fpga/src/bootrom.v
     COMMAND echo -n "static const " > ${CMAKE_CURRENT_SOURCE_DIR}/../../../../emulator/fpga_cores/pico-aq/bootrom.h
     COMMAND xxd -i ${EXECNAME}.bin >> ${CMAKE_CURRENT_SOURCE_DIR}/../../../../emulator/fpga_cores/pico-aq/bootrom.h
 )

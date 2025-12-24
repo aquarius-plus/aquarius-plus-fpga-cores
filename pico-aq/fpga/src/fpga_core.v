@@ -85,53 +85,6 @@ module fpga_core(
     wire        cpu_strobe;
 
     //////////////////////////////////////////////////////////////////////////
-    // Time tick generation (1ms)
-    //////////////////////////////////////////////////////////////////////////
-    wire       reg_mtime_strobe;
-    wire       reg_mtimeh_strobe;
-    wire       reg_mtimecmp_strobe;
-    wire       reg_mtimecmph_strobe;
-
-    reg [14:0] q_time_tick_cnt;
-    reg        q_time_tick;
-    reg [63:0] q_mtime;
-    reg [63:0] q_mtimecmp;
-    reg        q_mtimeirq;
-
-    always @(posedge clk or posedge reset)
-        if (reset) begin
-            q_time_tick_cnt <= 0;
-            q_time_tick     <= 0;
-        end else begin
-            q_time_tick <= 0;
-
-            if (q_time_tick_cnt == 15'd25174) begin
-                q_time_tick_cnt <= 0;
-                q_time_tick     <= 1;
-            end else begin
-                q_time_tick_cnt <= q_time_tick_cnt + 15'd1;
-            end
-        end
-
-    always @(posedge clk or posedge reset)
-        if (reset) begin
-            q_mtime    <= 0;
-            q_mtimecmp <= 0;
-            q_mtimeirq <= 0;
-
-        end else begin
-            if (q_time_tick)
-                q_mtime <= q_mtime + 64'd1;
-
-            q_mtimeirq <= q_mtimecmp <= q_mtime;
-
-            if (reg_mtime_strobe     && cpu_wren) q_mtime[31:0]     <= cpu_wrdata;
-            if (reg_mtimeh_strobe    && cpu_wren) q_mtime[63:32]    <= cpu_wrdata;
-            if (reg_mtimecmp_strobe  && cpu_wren) q_mtimecmp[31:0]  <= cpu_wrdata;
-            if (reg_mtimecmph_strobe && cpu_wren) q_mtimecmp[63:32] <= cpu_wrdata;
-        end
-
-    //////////////////////////////////////////////////////////////////////////
     // CPU
     //////////////////////////////////////////////////////////////////////////
     reg         cpu_wait;
@@ -143,7 +96,6 @@ module fpga_core(
         cpu_irq[20] = irq_uart;
         cpu_irq[19] = irq_keybuf;
         cpu_irq[16] = irq_vblank;
-        cpu_irq[ 7] = q_mtimeirq;
     end
 
     cpu #(
@@ -153,8 +105,6 @@ module fpga_core(
     ) cpu(
         .clk(clk),
         .reset(reset),
-
-        .mtime(q_mtime),
 
         // Bus interface
         .bus_addr(cpu_addr),
@@ -319,7 +269,7 @@ module fpga_core(
         .chram_wrdata(cpu_wrdata[7:0]),
         .chram_wren(chram_wren),
 
-        .pal_addr(cpu_addr[7:1]),
+        .pal_addr(cpu_addr[4:1]),
         .pal_rddata(pal_rddata),
         .pal_wrdata(cpu_wrdata[11:0]),
         .pal_wren(pal_wren),
@@ -348,11 +298,6 @@ module fpga_core(
     wire   reg_gamepad1_h_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02024;
     wire   reg_gamepad2_l_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02028;
     wire   reg_gamepad2_h_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0202C;
-
-    assign reg_mtime_strobe      = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02080;
-    assign reg_mtimeh_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02084;
-    assign reg_mtimecmp_strobe   = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02088;
-    assign reg_mtimecmph_strobe  = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0208C;
 
     assign pal_strobe            = cpu_strobe && {cpu_addr[31: 8],  8'b0} == 32'h04000;
     assign chram_strobe          = cpu_strobe && {cpu_addr[31:11], 11'b0} == 32'h05000;
@@ -387,11 +332,6 @@ module fpga_core(
         if (reg_gamepad1_h_strobe) cpu_rddata = gamepad1[63:32];
         if (reg_gamepad2_l_strobe) cpu_rddata = gamepad2[31:0];
         if (reg_gamepad2_h_strobe) cpu_rddata = gamepad2[63:32];
-
-        if (reg_mtime_strobe)      cpu_rddata = q_mtime[31:0];
-        if (reg_mtimeh_strobe)     cpu_rddata = q_mtime[63:32];
-        if (reg_mtimecmp_strobe)   cpu_rddata = q_mtimecmp[31:0];
-        if (reg_mtimecmph_strobe)  cpu_rddata = q_mtimecmp[63:32];
 
         if (pal_strobe)            cpu_rddata = {4'b0, pal_rddata, 4'b0, pal_rddata};
         if (chram_strobe)          cpu_rddata = {chram_rddata, chram_rddata, chram_rddata, chram_rddata};

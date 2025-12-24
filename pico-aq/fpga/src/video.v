@@ -21,7 +21,7 @@ module video(
     input  wire        chram_wren,
 
     // Palette RAM interface
-    input  wire  [6:0] pal_addr,
+    input  wire  [3:0] pal_addr,
     output wire [11:0] pal_rddata,
     input  wire [11:0] pal_wrdata,
     input  wire        pal_wren,
@@ -139,22 +139,17 @@ module video(
     wire [3:0] text_colidx  = char_pixel ? q_color_data[7:4] : q_color_data[3:0];
 
     //////////////////////////////////////////////////////////////////////////
-    // Compositing
-    //////////////////////////////////////////////////////////////////////////
-    wire [6:0] pixel_colidx = {3'b0, text_colidx};
-
-    //////////////////////////////////////////////////////////////////////////
     // Palette
     //////////////////////////////////////////////////////////////////////////
     wire [3:0] pal_r, pal_g, pal_b;
 
-    distram128d #(.WIDTH(12)) palette(
+    distram16d #(.WIDTH(12)) palette(
         .clk(clk),
         .a_addr(pal_addr),
         .a_rddata(pal_rddata),
         .a_wrdata(pal_wrdata),
         .a_wren({12{pal_wren}}),
-        .b_addr(pixel_colidx),
+        .b_addr(text_colidx),
         .b_rddata({pal_r, pal_g, pal_b}));
 
     //////////////////////////////////////////////////////////////////////////

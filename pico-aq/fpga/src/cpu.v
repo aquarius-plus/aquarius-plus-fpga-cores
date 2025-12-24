@@ -9,8 +9,6 @@ module cpu #(
     input  wire        clk,
     input  wire        reset,
 
-    input  wire [63:0] mtime,
-
     // Bus interface
     output wire [31:0] bus_addr,
     output wire [31:0] bus_wrdata,
@@ -58,7 +56,6 @@ module cpu #(
     reg  [4:0] d_mcause_code,   q_mcause_code;  // 0x342 Machine trap cause
     reg [31:0] d_mtval,         q_mtval;        // 0x343 Machine bad address or instruction
     reg [31:0] d_mip,           q_mip;          // 0x344 Machine interrupt-pending register
-    reg [63:0] d_mcycle,        q_mcycle;       // 0xB00/0xB80 Machine cycle counter
 
     assign bus_addr     = q_addr;
     assign bus_wrdata   = q_wrdata;
@@ -347,12 +344,6 @@ module cpu #(
     wire is_mtval    = (csr == 12'h343);    // Machine bad address or instruction
     wire is_mip      = (csr == 12'h344);    // Machine interrupt pending
 
-    // Machine Counter/Timers
-    wire is_mcycle   = (csr == 12'hB00 || csr == 12'hC00);    // Machine cycle counter
-    wire is_mcycleh  = (csr == 12'hB80 || csr == 12'hC80);    // Upper 32 bits of mcycle
-    wire is_time     = (csr == 12'hC01);                      // Machine time counter
-    wire is_timeh    = (csr == 12'hC81);                      // Upper 32 bits of mtime
-
     // mstatus register
     reg [31:0] mstatus;
     always @* begin
@@ -374,10 +365,6 @@ module cpu #(
         if (is_mcause)    csr_rdata = {q_mcause_irq, 26'b0, q_mcause_code};
         if (is_mtval)     csr_rdata = q_mtval;
         if (is_mip)       csr_rdata = q_mip & IRQ_USED;
-        if (is_mcycle)    csr_rdata = q_mcycle[31:0];
-        if (is_mcycleh)   csr_rdata = q_mcycle[63:32];
-        if (is_time)      csr_rdata = mtime[31:0];
-        if (is_timeh)     csr_rdata = mtime[63:32];
     end
 
     wire [31:0] csr_operand = funct3[2] ? {27'd0, rs1_idx} : rs1_data;
@@ -498,7 +485,6 @@ module cpu #(
         d_mcause_code  = q_mcause_code;
         d_mtval        = q_mtval;
         d_mip          = q_mip;
-        d_mcycle       = q_mcycle + 64'd1;
         rd_wr          = 0;
         div_start      = 0;
         do_trap        = 0;
@@ -583,8 +569,6 @@ module cpu #(
                                     if (is_mscratch) d_mscratch      = csr_wdata;
                                     if (is_mepc)     d_mepc[31:2]    = csr_wdata[31:2];
                                     if (is_mip)      d_mip           = csr_wdata & IRQ_USED;
-                                    if (is_mcycle)   d_mcycle[31:0]  = csr_wdata;
-                                    if (is_mcycleh)  d_mcycle[63:32] = csr_wdata;
 
                                     if (is_mcause) begin
                                         d_mcause_irq  = csr_wdata[31];
@@ -666,7 +650,6 @@ module cpu #(
             q_mcause_code  <= 0;
             q_mtval        <= 0;
             q_mip          <= 0;
-            q_mcycle       <= 0;
 
         end else begin
             q_pc           <= d_pc;
@@ -687,7 +670,6 @@ module cpu #(
             q_mcause_code  <= d_mcause_code;
             q_mtval        <= d_mtval;
             q_mip          <= d_mip;
-            q_mcycle       <= d_mcycle;
         end
 
 endmodule

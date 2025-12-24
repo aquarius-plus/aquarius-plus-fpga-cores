@@ -76,29 +76,29 @@ target_sources(${PROJECT_NAME} PRIVATE
     lib/readline.c
     lib/syscalls.c
 
-    lua/lapi.c
-    lua/lauxlib.c
-    lua/lbaselib.c
-    lua/lcode.c
-    lua/lctype.c
-    lua/ldebug.c
-    lua/ldo.c
-    lua/ldump.c
-    lua/lfunc.c
-    lua/lgc.c
-    lua/llex.c
-    lua/lmem.c
-    lua/lobject.c
-    lua/lopcodes.c
-    lua/lparser.c
-    lua/lstate.c
-    lua/lstring.c
-    lua/ltable.c
-    lua/ltm.c
-    lua/lundump.c
-    lua/lvm.c
-    lua/lzio.c
+    # lua/lapi.c
+    # lua/lauxlib.c
+    # lua/lbaselib.c
+    # lua/lcode.c
+    # lua/lctype.c
+    # lua/ldebug.c
+    # lua/ldo.c
+    # lua/ldump.c
+    # lua/lfunc.c
+    # lua/lgc.c
+    # lua/llex.c
+    # lua/lmem.c
+    # lua/lobject.c
+    # lua/lopcodes.c
+    # lua/lparser.c
+    # lua/lstate.c
+    # lua/lstring.c
+    # lua/ltable.c
+    # lua/ltm.c
+    # lua/lundump.c
+    # lua/lvm.c
+    # lua/lzio.c
 
-    lua/mychanges.c
-
+    # lua/mychanges.c
+    # lua/myfuncs.c
 )

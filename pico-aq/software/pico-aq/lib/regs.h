@@ -81,36 +81,9 @@ struct regs_tram {
 #define KEYS       (*(volatile uint64_t *)0x2018)
 #define GAMEPAD1   (*(volatile uint64_t *)0x2020)
 #define GAMEPAD2   (*(volatile uint64_t *)0x2028)
-#define GFX        ((struct regs_gfx *)0x2040)
-#define PCM        ((struct regs_pcm *)0x2400)
-#define FMSYNTH    ((struct regs_fmsynth *)0x2800)
-#define SPRATTR    ((volatile uint32_t *)0x03000)
-#define SPRPOS     ((volatile uint32_t *)0x03400)
 #define PALETTE    ((volatile uint16_t *)0x04000)
 #define CHRAM      ((volatile uint8_t *)0x05000)
 #define TRAM       ((struct regs_tram *)0x06000)
-#define VRAM       ((volatile uint8_t *)0x08000)
-#define TILEMAP2   ((volatile uint16_t *)(VRAM + 0x6000))
-#define TILEMAP1   ((volatile uint16_t *)(VRAM + 0x7000))
-#define VRAM4BPP   ((volatile uint8_t *)0x10000)
-
-#define SPRATTR_TILEIDX_Pos 0
-#define SPRATTR_TILEIDX_Msk (0x3FF << SPRATTR_TILEIDX_Pos)
-#define SPRATTR_H16         (1 << 10)
-#define SPRATTR_HFLIP       (1 << 11)
-#define SPRATTR_VFLIP       (1 << 12)
-#define SPRATTR_PALETTE_Pos 13
-#define SPRATTR_PALETTE_Msk (7 << SPRATTR_PALETTE_Pos)
-#define SPRATTR_ZDEPTH_Pos  16
-#define SPRATTR_ZDEPTH_Msk  (1 << SPRATTR_ZDEPTH_Pos)
-
-#define TILEMAP_TILEIDX_Pos 0
-#define TILEMAP_TILEIDX_Msk (0x3FF << TILEMAP_TILEIDX_Pos)
-#define TILEMAP_PRIO        (1 << 10)
-#define TILEMAP_HFLIP       (1 << 11)
-#define TILEMAP_VFLIP       (1 << 12)
-#define TILEMAP_PALETTE_Pos 13
-#define TILEMAP_PALETTE_Msk (7 << TILEMAP_PALETTE_Pos)
 
 enum {
     ESPCMD_RESET       = 0x01, // Reset ESP
@@ -170,15 +143,6 @@ enum {
 #define ESP_STATUS_RXNE       (1 << 0)
 #define ESP_STATUS_TXF        (1 << 1)
 #define ESP_DATA_START_OF_MSG (1 << 8)
-
-#define GFX_CTRL_TEXT_EN      (1 << 0)
-#define GFX_CTRL_TEXT_MODE80  (1 << 1)
-#define GFX_CTRL_TEXT_PRIO    (1 << 2)
-#define GFX_CTRL_GFX_EN       (1 << 3)
-#define GFX_CTRL_GFX_TILEMODE (1 << 4)
-#define GFX_CTRL_SPR_EN       (1 << 5)
-#define GFX_CTRL_LAYER2_EN    (1 << 6)
-#define GFX_CTRL_BM_WRAP      (1 << 7)
 
 #ifdef __cplusplus
 }

@@ -7,9 +7,7 @@ static const uint16_t palette[16] = {
 
 void reinit_video(void) {
 #ifndef PCDEV
-    GFX->CTRL = GFX_CTRL_TEXT_MODE80 | GFX_CTRL_TEXT_EN;
-
-    for (int i = 0; i < 64; i++)
+    for (int i = 0; i < 16; i++)
         PALETTE[i] = palette[i & 15];
 
     int fd = esp_open("esp:latin1b.chr", 0);

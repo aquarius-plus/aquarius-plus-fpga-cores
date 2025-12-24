@@ -10,7 +10,7 @@ static void memset16(uint16_t *dst, uint16_t val, unsigned count) {
 }
 
 static inline int _num_columns(void) {
-    return (GFX->CTRL & GFX_CTRL_TEXT_MODE80) ? 80 : 40;
+    return 80;
 }
 
 static void hide_cursor(void) {
@@ -41,26 +41,20 @@ void _clear_screen(void) {
 #define INITVAL2 0x55AA
 
 void console_init(void) {
-    if (GFX->CTRL != (GFX_CTRL_TEXT_MODE80 | GFX_CTRL_TEXT_EN) ||
-        TRAM->init_val1 != INITVAL1 ||
-        TRAM->init_val2 != INITVAL2) {
+    reinit_video();
 
-        reinit_video();
+    TRAM->text_color     = (DEF_FGCOL << 12) | (DEF_BGCOL << 8);
+    TRAM->cursor_visible = false;
+    TRAM->cursor_enabled = true;
+    TRAM->cursor_color   = (CURSOR_COLOR << 8);
 
-        TRAM->text_color     = (DEF_FGCOL << 12) | (DEF_BGCOL << 8);
-        TRAM->cursor_visible = false;
-        TRAM->cursor_enabled = true;
-        TRAM->cursor_color   = (CURSOR_COLOR << 8);
+    _clear_screen();
 
-        _clear_screen();
-
-        TRAM->init_val1 = INITVAL1;
-        TRAM->init_val2 = INITVAL2;
-    }
+    TRAM->init_val1 = INITVAL1;
+    TRAM->init_val2 = INITVAL2;
 
     hide_cursor();
 
-    GFX->CTRL            = GFX_CTRL_TEXT_MODE80 | GFX_CTRL_TEXT_EN;
     TRAM->cursor_enabled = true;
     TRAM->text_color     = (DEF_FGCOL << 12) | (DEF_BGCOL << 8);
     TRAM->cursor_color   = (CURSOR_COLOR << 8);
@@ -75,11 +69,6 @@ bool console_set_width(int width) {
         return false;
 
     if (width != _num_columns()) {
-        if (width == 80) {
-            GFX->CTRL |= GFX_CTRL_TEXT_MODE80;
-        } else {
-            GFX->CTRL &= ~GFX_CTRL_TEXT_MODE80;
-        }
         _clear_screen();
     }
     return true;

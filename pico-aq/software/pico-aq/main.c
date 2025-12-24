@@ -16,6 +16,7 @@ int main(void) {
     console_init();
     console_puts("\r\n Pico-Aq V0.1\r\n\r\n");
 
+#if 0
     lua_State *L = luaL_newstate(); // Create a new Lua state
     luaL_requiref(L, "_G", luaopen_base, 1);
 
@@ -27,7 +28,7 @@ int main(void) {
     lua_pcall(L, 0, LUA_MULTRET, 0);
 
     lua_close(L); // Close the Lua state
-
+#endif
 
     while (1);
 
