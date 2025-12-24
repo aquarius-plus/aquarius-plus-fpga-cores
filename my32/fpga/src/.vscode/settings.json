@@ -2,11 +2,8 @@
     "verilog.linting.verilator.includePath": [
         "lint_wrappers",
         ".",
-        "aqp_shared",
-        "wrappers",
         "platform",
-        "video",
-        "audio"
+        "wrappers"
     ],
     "verilog.linting.verilator.arguments": "-Wall verilator.vlt"
 }

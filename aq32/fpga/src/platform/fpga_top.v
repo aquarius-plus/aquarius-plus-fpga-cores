@@ -1,24 +1,24 @@
 `default_nettype none
 `timescale 1 ns / 1 ps
 
-module aq32_top(
-    input  wire        sysclk,          // 14.31818MHz
+module fpga_top(
+    input  wire        sysclk,
 
     // Z80 bus interface
     inout  wire        ebus_reset_n,
-    output wire        ebus_phi,        // 3.579545MHz
+    output wire        ebus_phi,
     output wire [15:0] ebus_a,
     inout  wire  [7:0] ebus_d,
     output wire        ebus_rd_n,
     output wire        ebus_wr_n,
     output wire        ebus_mreq_n,
     output wire        ebus_iorq_n,
-    output wire        ebus_int_n,      // Open-drain output
-    output wire        ebus_busreq_n,   // Open-drain output
+    output wire        ebus_int_n,
+    output wire        ebus_busreq_n,
     input  wire        ebus_busack_n,
     output wire  [4:0] ebus_ba,
-    output wire        ebus_ram_ce_n,   // 512KB RAM
-    output wire        ebus_cart_ce_n,  // Cartridge
+    output wire        ebus_ram_ce_n,
+    output wire        ebus_cart_ce_n,
     output wire        ebus_ram_we_n,
 
     // PWM audio outputs
