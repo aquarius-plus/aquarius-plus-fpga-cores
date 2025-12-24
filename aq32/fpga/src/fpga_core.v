@@ -11,6 +11,13 @@ module fpga_core(
     output wire  [15:0] core_version,
     output wire [127:0] core_name,
 
+    // Interface for core specific messages
+    input  wire         spi_msg_end,
+    input  wire   [7:0] spi_cmd,
+    input  wire  [63:0] spi_rxdata,
+    output wire  [63:0] spi_txdata,
+    output wire         spi_txdata_valid,
+
     // Memory interface
     output wire [18:0] sram_a,
     output wire        sram_ce_n,
@@ -18,33 +25,28 @@ module fpga_core(
     output wire        sram_we_n,
     inout  wire  [7:0] sram_dq,
 
-    // PWM audio outputs
-    output wire        audio_l,
-    output wire        audio_r,
+    // Video output
+    input  wire   [9:0] video_hpos,
+    input  wire         video_hlast,
+    input  wire   [9:0] video_vpos,
+    input  wire         video_vlast,
+    output wire   [3:0] video_r,
+    output wire   [3:0] video_g,
+    output wire   [3:0] video_b,
+
+    // Audio outputs (signed 16-bits)
+    output wire [15:0] audio_l,
+    output wire [15:0] audio_r,
 
     // Hand controller interface
     inout  wire  [8:0] hc1,
     inout  wire  [8:0] hc2,
 
-    // VGA output
-    output wire  [3:0] vga_r,
-    output wire  [3:0] vga_g,
-    output wire  [3:0] vga_b,
-    output wire        vga_hsync,
-    output wire        vga_vsync,
-
     // ESP32 serial interface
     output wire        esp_tx,
     input  wire        esp_rx,
     output wire        esp_rts,
-    input  wire        esp_cts,
-
-    // ESP32 SPI interface (also used for loading FPGA image)
-    input  wire        esp_ssel_n,
-    input  wire        esp_sclk,
-    input  wire        esp_mosi,
-    output wire        esp_miso,
-    output wire        esp_notify
+    input  wire        esp_cts
 );
 
     wire spi_reset_req;
@@ -284,67 +286,6 @@ module fpga_core(
     assign irq_uart = !esp_rx_empty;
 
     //////////////////////////////////////////////////////////////////////////
-    // ESP SPI slave interface
-    //////////////////////////////////////////////////////////////////////////
-    wire        spi_msg_end;
-    wire  [7:0] spi_cmd;
-    wire [63:0] spi_rxdata;
-    wire [63:0] spi_txdata;
-    wire        spi_txdata_valid;
-
-    wire  [9:0] ovl_text_addr;
-    wire [15:0] ovl_text_wrdata;
-    wire        ovl_text_wren;
-
-    wire [10:0] ovl_font_addr;
-    wire  [7:0] ovl_font_wrdata;
-    wire        ovl_font_wren;
-
-    wire  [3:0] ovl_palette_addr;
-    wire [15:0] ovl_palette_wrdata;
-    wire        ovl_palette_wren;
-
-    assign spi_txdata       = 64'b0;
-    assign spi_txdata_valid = 1'b0;
-
-    aqp_esp_spi esp_spi(
-        .clk(clk),
-        .reset(reset),
-
-        // System information
-        .core_type(core_type),
-        .core_flags(core_flags),
-        .core_version(core_version),
-        .core_name(core_name),
-
-        // Interface for core specific messages
-        .spi_msg_end(spi_msg_end),
-        .spi_cmd(spi_cmd),
-        .spi_rxdata(spi_rxdata),
-        .spi_txdata(spi_txdata),
-        .spi_txdata_valid(spi_txdata_valid),
-
-        // Display overlay interface
-        .ovl_text_addr(ovl_text_addr),
-        .ovl_text_wrdata(ovl_text_wrdata),
-        .ovl_text_wren(ovl_text_wren),
-
-        .ovl_font_addr(ovl_font_addr),
-        .ovl_font_wrdata(ovl_font_wrdata),
-        .ovl_font_wren(ovl_font_wren),
-
-        .ovl_palette_addr(ovl_palette_addr),
-        .ovl_palette_wrdata(ovl_palette_wrdata),
-        .ovl_palette_wren(ovl_palette_wren),
-
-        // ESP SPI slave interface
-        .esp_ssel_n(esp_ssel_n),
-        .esp_sclk(esp_sclk),
-        .esp_mosi(esp_mosi),
-        .esp_miso(esp_miso),
-        .esp_notify(esp_notify));
-
-    //////////////////////////////////////////////////////////////////////////
     // Hand controller interface
     //////////////////////////////////////////////////////////////////////////
     assign hc1[7:0] = 8'bZ;
@@ -494,31 +435,12 @@ module fpga_core(
             common_audio_r = 16'h7FFF;
     end
 
-    aqp_pwm_dac pwm_dac(
-        .clk(clk),
-        .reset(reset),
-
-        // Sample input
-        .next_sample(1'b1),
-        .left_data(common_audio_l),
-        .right_data(common_audio_r),
-
-        // PWM audio output
-        .audio_l(audio_l),
-        .audio_r(audio_r));
+    assign audio_l = common_audio_l;
+    assign audio_r = common_audio_r;
 
     //////////////////////////////////////////////////////////////////////////
     // Video
     //////////////////////////////////////////////////////////////////////////
-    wire  [3:0] video_r;
-    wire  [3:0] video_g;
-    wire  [3:0] video_b;
-    wire        video_de;
-    wire        video_hsync;
-    wire        video_vsync;
-    wire        video_newframe;
-    wire        video_oddline;
-
     wire        video_irq;
 
     wire        sprattr_strobe;
@@ -633,52 +555,13 @@ module fpga_core(
         .vram_wren(vram_wren),
         .vram_rddata(vram_rddata),
 
+        .video_hpos(video_hpos),
+        .video_hlast(video_hlast),
+        .video_vpos(video_vpos),
+        .video_vlast(video_vlast),
         .video_r(video_r),
         .video_g(video_g),
-        .video_b(video_b),
-        .video_de(video_de),
-        .video_hsync(video_hsync),
-        .video_vsync(video_vsync),
-        .video_newframe(video_newframe),
-        .video_oddline(video_oddline));
-
-    //////////////////////////////////////////////////////////////////////////
-    // Display overlay
-    //////////////////////////////////////////////////////////////////////////
-    fpga_overlay overlay(
-        .clk(clk),
-
-        // Core video interface
-        .video_r(video_r),
-        .video_g(video_g),
-        .video_b(video_b),
-        .video_de(video_de),
-        .video_hsync(video_hsync),
-        .video_vsync(video_vsync),
-        .video_newframe(video_newframe),
-        .video_oddline(video_oddline),
-        .video_mode(1'b1),
-
-        // Overlay interface
-        .ovl_text_addr(ovl_text_addr),
-        .ovl_text_wrdata(ovl_text_wrdata),
-        .ovl_text_wren(ovl_text_wren),
-
-        .ovl_font_addr(ovl_font_addr),
-        .ovl_font_wrdata(ovl_font_wrdata),
-        .ovl_font_wren(ovl_font_wren),
-
-        .ovl_palette_addr(ovl_palette_addr),
-        .ovl_palette_wrdata(ovl_palette_wrdata),
-        .ovl_palette_wren(ovl_palette_wren),
-
-        // VGA signals
-        .vga_r(vga_r),
-        .vga_g(vga_g),
-        .vga_b(vga_b),
-        .vga_hsync(vga_hsync),
-        .vga_vsync(vga_vsync)
-    );
+        .video_b(video_b));
 
     //////////////////////////////////////////////////////////////////////////
     // CPU bus interconnect

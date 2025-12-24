@@ -40,8 +40,6 @@ add wave -noupdate -group Video /tb/top_inst/video/video_b
 add wave -noupdate -group Video /tb/top_inst/video/video_de
 add wave -noupdate -group Video /tb/top_inst/video/video_hsync
 add wave -noupdate -group Video /tb/top_inst/video/video_vsync
-add wave -noupdate -group Video /tb/top_inst/video/video_newframe
-add wave -noupdate -group Video /tb/top_inst/video/video_oddline
 add wave -noupdate -group Video /tb/top_inst/video/vclk_reset
 add wave -noupdate -group Video /tb/top_inst/video/vpos
 add wave -noupdate -group Video /tb/top_inst/video/vblank

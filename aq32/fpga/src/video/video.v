@@ -57,22 +57,32 @@ module video(
     output wire [31:0] vram_rddata,
 
     // VGA output
-    output reg   [3:0] video_r,
-    output reg   [3:0] video_g,
-    output reg   [3:0] video_b,
-    output reg         video_de,
-    output reg         video_hsync,
-    output reg         video_vsync,
-    output wire        video_newframe,
-    output reg         video_oddline);
+    input  wire   [9:0] video_hpos,
+    input  wire         video_hlast,
+    input  wire   [9:0] video_vpos,
+    input  wire         video_vlast,
+    output wire   [3:0] video_r,
+    output wire   [3:0] video_g,
+    output wire   [3:0] video_b
+);
 
-    wire [8:0] vpos9;
-    wire       vblank;
+    wire hblank = !(video_hpos < 10'd640);
+    wire vblank = !(video_vpos < 10'd480);
+    wire blank  = hblank || vblank;
+    wire vnext  = video_vpos[0] && video_hlast;
+
+    wire [8:0] vpos9 = video_vpos[9:1];
 
     assign vline = vpos9;
 
     reg q_vblank;
     always @(posedge clk) q_vblank <= vblank;
+
+    reg q_blank;
+    always @(posedge clk) q_blank <= blank;
+
+    reg q2_blank;
+    always @(posedge clk) q2_blank <= q_blank;
 
     wire [7:0] rddata_sprattr;
 
@@ -83,49 +93,9 @@ module video(
     assign irq_line   = !q_irqline_match && irqline_match;
     assign irq_vblank = !q_vblank        && vblank;
 
-    //////////////////////////////////////////////////////////////////////////
-    // Video timing
-    //////////////////////////////////////////////////////////////////////////
-    wire [9:0] hpos;
-    wire       hsync, hblank, hlast;
-    wire [9:0] vpos10;
-    wire       vsync, vnext;
-    wire       blank;
-
-    aqp_video_timing video_timing(
-        .clk(clk),
-        .mode(1'b1),
-
-        .hpos(hpos),
-        .hsync(hsync),
-        .hblank(hblank),
-        .hlast(hlast),
-
-        .vpos(vpos10),
-        .vsync(vsync),
-        .vblank(vblank),
-        .vnext(vnext),
-        .vnewframe(video_newframe),
-
-        .blank(blank));
-
-    always @(posedge clk) video_oddline <= vpos10[0];
-
-    assign vpos9 = vpos10[9:1];
-
     reg [9:0] q_hpos, q2_hpos;
-    always @(posedge clk) q_hpos  <= hpos;
+    always @(posedge clk) q_hpos  <= video_hpos;
     always @(posedge clk) q2_hpos <= q_hpos;
-
-    reg q_blank, q_hsync, q_vsync;
-    always @(posedge clk) q_blank <= blank;
-    always @(posedge clk) q_hsync <= hsync;
-    always @(posedge clk) q_vsync <= vsync;
-
-    reg q2_blank, q2_hsync, q2_vsync;
-    always @(posedge clk) q2_blank <= q_blank;
-    always @(posedge clk) q2_hsync <= q_hsync;
-    always @(posedge clk) q2_vsync <= q_vsync;
 
     //////////////////////////////////////////////////////////////////////////
     // Character address
@@ -145,7 +115,7 @@ module video(
             q_row_addr <= d_row_addr;
         end
 
-    wire next_char    = q_mode80 ? (hpos[2:0] == 3'd0) : (hpos[3:0] == 4'd0);
+    wire next_char    = q_mode80 ? (video_hpos[2:0] == 3'd0) : (video_hpos[3:0] == 4'd0);
     wire start_active = q_blank && !blank;
 
     reg  [11:0] d_char_addr;
@@ -285,7 +255,7 @@ module video(
     wire [6:0] linebuf_data;
     reg  [8:0] q_linebuf_rdidx;
 
-    always @(posedge clk) q_linebuf_rdidx <= hpos[9:1];
+    always @(posedge clk) q_linebuf_rdidx <= video_hpos[9:1];
 
     reg q_gfx_start;
     always @(posedge clk) q_gfx_start <= vnext;
@@ -367,21 +337,8 @@ module video(
     //////////////////////////////////////////////////////////////////////////
     // Output registers
     //////////////////////////////////////////////////////////////////////////
-    always @(posedge(clk))
-        if (q2_blank) begin
-            video_r  <= 4'b0;
-            video_g  <= 4'b0;
-            video_b  <= 4'b0;
-            video_de <= 1'b0;
-
-        end else begin
-            video_r  <= pal_r;
-            video_g  <= pal_g;
-            video_b  <= pal_b;
-            video_de <= 1'b1;
-        end
-
-    always @(posedge clk) video_hsync <= q2_hsync;
-    always @(posedge clk) video_vsync <= q2_vsync;
+    assign video_r = pal_r;
+    assign video_g = pal_g;
+    assign video_b = pal_b;
 
 endmodule

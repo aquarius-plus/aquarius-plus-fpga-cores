@@ -1,12 +1,10 @@
 `default_nettype none
 `timescale 1 ns / 1 ps
 
-module aqp_pwm_dac(
+module fpga_dac(
     input  wire        clk,
-    input  wire        reset,
 
     // Sample input
-    input  wire        next_sample,
     input  wire [15:0] left_data,
     input  wire [15:0] right_data,
 
@@ -18,11 +16,9 @@ module aqp_pwm_dac(
     reg [15:0] q_right_sample = 16'd0;
 
     always @(posedge clk) begin
-        if (next_sample) begin
-            // Convert to unsigned data
-            q_left_sample  <= {~left_data[15],  left_data[14:0]};
-            q_right_sample <= {~right_data[15], right_data[14:0]};
-        end
+        // Convert to unsigned data
+        q_left_sample  <= {~left_data[15],  left_data[14:0]};
+        q_right_sample <= {~right_data[15], right_data[14:0]};
     end
 
     // PWM output
