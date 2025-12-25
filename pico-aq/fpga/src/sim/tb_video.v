@@ -52,7 +52,7 @@ module tb_video;
     wire [12:0] vram_addr = 0;
     wire [31:0] vram_rddata;
     wire [31:0] vram_wrdata = 0;
-    wire  [3:0] vram_bytesel = 0;
+    wire  [3:0] vram_wrsel = 0;
     wire        vram_wren = 0;
 
     // Text RAM interface
@@ -89,7 +89,7 @@ module tb_video;
         .vram_addr(vram_addr),
         .vram_rddata(vram_rddata),
         .vram_wrdata(vram_wrdata),
-        .vram_bytesel(vram_bytesel),
+        .vram_wrsel(vram_wrsel),
         .vram_wren(vram_wren),
 
         // Text RAM interface

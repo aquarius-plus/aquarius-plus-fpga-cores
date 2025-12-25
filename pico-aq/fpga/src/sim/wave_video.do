@@ -6,7 +6,7 @@ add wave -noupdate /tb_video/video/irq_vblank
 add wave -noupdate /tb_video/video/vram_addr
 add wave -noupdate /tb_video/video/vram_rddata
 add wave -noupdate /tb_video/video/vram_wrdata
-add wave -noupdate /tb_video/video/vram_bytesel
+add wave -noupdate /tb_video/video/vram_wrsel
 add wave -noupdate /tb_video/video/vram_wren
 add wave -noupdate /tb_video/video/tram_addr
 add wave -noupdate /tb_video/video/tram_rddata

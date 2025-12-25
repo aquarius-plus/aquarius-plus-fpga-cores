@@ -32,7 +32,7 @@ add wave -noupdate -group Video /tb/top_inst/video/pal_wren
 add wave -noupdate -group Video /tb/top_inst/video/vram_addr
 add wave -noupdate -group Video /tb/top_inst/video/vram_rddata
 add wave -noupdate -group Video /tb/top_inst/video/vram_wrdata
-add wave -noupdate -group Video /tb/top_inst/video/vram_bytesel
+add wave -noupdate -group Video /tb/top_inst/video/vram_wrsel
 add wave -noupdate -group Video /tb/top_inst/video/vram_wren
 add wave -noupdate -group Video /tb/top_inst/video/video_r
 add wave -noupdate -group Video /tb/top_inst/video/video_g

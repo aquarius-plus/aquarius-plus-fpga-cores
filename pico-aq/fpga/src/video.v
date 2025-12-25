@@ -7,18 +7,20 @@ module video(
 
     output wire        irq_vblank,
 
-    // Video RAM interface
-    input  wire [12:0] vram_addr,
-    output wire [31:0] vram_rddata,
-    input  wire [31:0] vram_wrdata,
-    input  wire  [3:0] vram_bytesel,
-    input  wire        vram_wren,
-
     // Palette RAM interface
     input  wire  [3:0] pal_addr,
     output wire [11:0] pal_rddata,
     input  wire [11:0] pal_wrdata,
     input  wire        pal_wren,
+
+    // Video RAM interface
+    input  wire  [2:0] vram_offset,
+
+    input  wire [12:0] vram_addr,
+    input  wire [31:0] vram_wrdata,
+    input  wire  [7:0] vram_wrsel,
+    input  wire        vram_wren,
+    output wire [31:0] vram_rddata,
 
     // VGA output
     input  wire  [9:0] video_hpos,
@@ -32,27 +34,11 @@ module video(
 
     wire hblank = !(video_hpos < 10'd640);
     wire vblank = !(video_vpos < 10'd480);
-    wire blank  = hblank || vblank;
-    wire vnext  = video_vpos[0] && video_hlast;
-
-    wire [8:0] vpos9 = video_vpos[9:1];
 
     reg q_vblank;
     always @(posedge clk) q_vblank <= vblank;
 
-    reg q_blank;
-    always @(posedge clk) q_blank <= blank;
-
-    reg q2_blank;
-    always @(posedge clk) q2_blank <= q_blank;
-
-    wire [7:0] rddata_sprattr;
-
     assign irq_vblank = !q_vblank && vblank;
-
-    reg [9:0] q_hpos, q2_hpos;
-    always @(posedge clk) q_hpos  <= video_hpos;
-    always @(posedge clk) q2_hpos <= q_hpos;
 
     //////////////////////////////////////////////////////////////////////////
     // Video RAM (192x160)
@@ -111,37 +97,31 @@ module video(
     always @(posedge clk) q_pixsel <= q_pixel_addr[2:0];
 
     wire [31:0] vdata;
-    dpram32k vram(
-        .a_clk(clk),
+    vram vram(
+        .clk(clk),
+
+        .a_offset(vram_offset),
+
         .a_addr(vram_addr),
         .a_wrdata(vram_wrdata),
-        .a_wrsel({
-            vram_bytesel[3], vram_bytesel[3],
-            vram_bytesel[2], vram_bytesel[2],
-            vram_bytesel[1], vram_bytesel[1],
-            vram_bytesel[0], vram_bytesel[0]
-        }),
+        .a_wrsel(vram_wrsel),
         .a_wren(vram_wren),
         .a_rddata(vram_rddata),
 
-        .b_clk(clk),
         .b_addr({q_vpage, q_pixel_addr[14:3]}),
-        .b_wrdata(32'b0),
-        .b_wrsel(8'b0),
-        .b_wren(1'b0),
         .b_rddata(vdata)
     );
 
     reg [3:0] pix_colidx;
     always @* case (q_pixsel)
-        3'd0: pix_colidx = vdata[31:28];
-        3'd1: pix_colidx = vdata[27:24];
-        3'd2: pix_colidx = vdata[23:20];
-        3'd3: pix_colidx = vdata[19:16];
-        3'd4: pix_colidx = vdata[15:12];
-        3'd5: pix_colidx = vdata[11: 8];
-        3'd6: pix_colidx = vdata[ 7: 4];
-        3'd7: pix_colidx = vdata[ 3: 0];
+        3'd7: pix_colidx = vdata[31:28];
+        3'd6: pix_colidx = vdata[27:24];
+        3'd5: pix_colidx = vdata[23:20];
+        3'd4: pix_colidx = vdata[19:16];
+        3'd3: pix_colidx = vdata[15:12];
+        3'd2: pix_colidx = vdata[11: 8];
+        3'd1: pix_colidx = vdata[ 7: 4];
+        3'd0: pix_colidx = vdata[ 3: 0];
     endcase
 
     //////////////////////////////////////////////////////////////////////////

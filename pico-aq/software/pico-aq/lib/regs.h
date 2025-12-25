@@ -81,11 +81,15 @@ struct regs_tram {
 #define KEYS       (*(volatile uint64_t *)0x2018)
 #define GAMEPAD1   (*(volatile uint64_t *)0x2020)
 #define GAMEPAD2   (*(volatile uint64_t *)0x2028)
+
+#define VRAM_OFFSET (*(volatile uint32_t *)0x2100)
+
 #define PALETTE    ((volatile uint16_t *)0x04000)
 #define CHRAM      ((volatile uint8_t *)0x05000)
 #define TRAM       ((struct regs_tram *)0x06000)
 
 #define VRAM       ((volatile uint32_t *)0x08000)
+#define VRAM4BIT   ((volatile uint8_t *)0x10000)
 
 enum {
     ESPCMD_RESET       = 0x01, // Reset ESP
