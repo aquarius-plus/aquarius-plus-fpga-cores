@@ -239,49 +239,9 @@ module fpga_core(
     // Video
     //////////////////////////////////////////////////////////////////////////
     wire        irq_vblank;
-
-    wire        pal_strobe;
-    wire        vram_strobe;
-    wire        vram4bpp_strobe;
-
-    wire        pal_wren      = cpu_wren && pal_strobe;
-
-    wire [11:0] pal_rddata;
-    wire [31:0] vram_rddata;
-    wire [31:0] vram4bpp_rddata;
-
-    wire [12:0] vram_addr = vram4bpp_strobe ? cpu_addr[15:3] : cpu_addr[14:2];
-    reg  [31:0] vram_wrdata;
-    reg   [7:0] vram_wrsel;
-    wire        vram_wren = cpu_wren && (vram_strobe || vram4bpp_strobe);
-
-    always @* begin
-        vram_wrdata = cpu_wrdata;
-        vram_wrsel = {
-            cpu_bytesel[3], cpu_bytesel[3],
-            cpu_bytesel[2], cpu_bytesel[2],
-            cpu_bytesel[1], cpu_bytesel[1],
-            cpu_bytesel[0], cpu_bytesel[0]
-        };
-
-        if (vram4bpp_strobe) begin
-            vram_wrdata = {
-                cpu_wrdata[27:24], cpu_wrdata[19:16], cpu_wrdata[11:8], cpu_wrdata[3:0],
-                cpu_wrdata[27:24], cpu_wrdata[19:16], cpu_wrdata[11:8], cpu_wrdata[3:0]
-            };
-            vram_wrsel = cpu_addr[2] ?
-                {      cpu_bytesel[3], cpu_bytesel[2], cpu_bytesel[1], cpu_bytesel[0], 4'b0} :
-                {4'b0, cpu_bytesel[3], cpu_bytesel[2], cpu_bytesel[1], cpu_bytesel[0]      };
-        end
-    end
-
-    reg    q_vram_addr0;
-    always @(posedge clk) q_vram_addr0 <= cpu_addr[2];
-    assign vram4bpp_rddata = q_vram_addr0 ?
-        {4'b0, vram_rddata[31:28], 4'b0, vram_rddata[27:24], 4'b0, vram_rddata[23:20], 4'b0, vram_rddata[19:16]} :
-        {4'b0, vram_rddata[15:12], 4'b0, vram_rddata[11: 8], 4'b0, vram_rddata[ 7: 4], 4'b0, vram_rddata[ 3: 0]};
-
-    reg [2:0] q_vram_offset;
+    wire        video_strobe;
+    wire        video_wait;
+    wire [31:0] video_rddata;
 
     video video(
         .clk(clk),
@@ -289,18 +249,13 @@ module fpga_core(
 
         .irq_vblank(irq_vblank),
 
-        .pal_addr(cpu_addr[4:1]),
-        .pal_rddata(pal_rddata),
-        .pal_wrdata(cpu_wrdata[11:0]),
-        .pal_wren(pal_wren),
-
-        .vram_offset(q_vram_offset),
-
-        .vram_addr(vram_addr),
-        .vram_wrdata(vram_wrdata),
-        .vram_wrsel(vram_wrsel),
-        .vram_wren(vram_wren),
-        .vram_rddata(vram_rddata),
+        .bus_addr(cpu_addr[16:0]),
+        .bus_wrdata(cpu_wrdata),
+        .bus_bytesel(cpu_bytesel),
+        .bus_wren(cpu_wren),
+        .bus_strobe(video_strobe),
+        .bus_wait(video_wait),
+        .bus_rddata(video_rddata),
 
         .video_hpos(video_hpos),
         .video_hlast(video_hlast),
@@ -327,11 +282,8 @@ module fpga_core(
     wire   reg_gamepad2_l_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02028;
     wire   reg_gamepad2_h_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0202C;
 
-    wire   reg_vram_offset       = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02100;
+    assign video_strobe          = cpu_strobe && {cpu_addr[31:17], 17'b0} == 32'h20000;
 
-    assign pal_strobe            = cpu_strobe && {cpu_addr[31: 8],  8'b0} == 32'h04000;
-    assign vram_strobe           = cpu_strobe && {cpu_addr[31:15], 15'b0} == 32'h08000;
-    assign vram4bpp_strobe       = cpu_strobe && {cpu_addr[31:16], 16'b0} == 32'h10000;
     assign sram_strobe           = cpu_strobe && {cpu_addr[31:19], 19'b0} == 32'h80000;
 
     reg [31:0] q_cpu_addr;
@@ -342,8 +294,7 @@ module fpga_core(
     always @* begin
         cpu_wait = 0;
         if (bootrom_strobe)   cpu_wait = common_wait;
-        if (vram_strobe)      cpu_wait = common_wait;
-        if (vram4bpp_strobe)  cpu_wait = common_wait;
+        if (video_strobe)     cpu_wait = video_wait;
         if (sram_strobe)      cpu_wait = sram_wait;
     end
 
@@ -363,19 +314,8 @@ module fpga_core(
         if (reg_gamepad2_l_strobe) cpu_rddata = gamepad2[31:0];
         if (reg_gamepad2_h_strobe) cpu_rddata = gamepad2[63:32];
 
-        if (reg_vram_offset)       cpu_rddata = {29'b0, q_vram_offset};
-
-        if (pal_strobe)            cpu_rddata = {4'b0, pal_rddata, 4'b0, pal_rddata};
-        if (vram_strobe)           cpu_rddata = vram_rddata;
-        if (vram4bpp_strobe)       cpu_rddata = vram4bpp_rddata;
+        if (video_strobe)          cpu_rddata = video_rddata;
         if (sram_strobe)           cpu_rddata = sram_rddata;
     end
-
-    always @(posedge clk or posedge reset)
-        if (reset) begin
-            q_vram_offset <= 0;
-        end else begin
-            if (cpu_wren && reg_vram_offset) q_vram_offset <= cpu_wrdata[2:0];
-        end
 
 endmodule

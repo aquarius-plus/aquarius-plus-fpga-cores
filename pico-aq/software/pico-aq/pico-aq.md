@@ -1,3 +1,5 @@
+Aqua-8
+
 Drawing acceleration registers:
 
 | Register   | Width | Description                                                 |

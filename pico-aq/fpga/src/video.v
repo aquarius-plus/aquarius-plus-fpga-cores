@@ -7,20 +7,14 @@ module video(
 
     output wire        irq_vblank,
 
-    // Palette RAM interface
-    input  wire  [3:0] pal_addr,
-    output wire [11:0] pal_rddata,
-    input  wire [11:0] pal_wrdata,
-    input  wire        pal_wren,
-
-    // Video RAM interface
-    input  wire  [2:0] vram_offset,
-
-    input  wire [12:0] vram_addr,
-    input  wire [31:0] vram_wrdata,
-    input  wire  [7:0] vram_wrsel,
-    input  wire        vram_wren,
-    output wire [31:0] vram_rddata,
+    // Bus interface
+    input  wire [16:0] bus_addr,
+    input  wire [31:0] bus_wrdata,
+    input  wire  [3:0] bus_bytesel,
+    input  wire        bus_wren,
+    input  wire        bus_strobe,
+    output wire        bus_wait,
+    output reg  [31:0] bus_rddata,
 
     // VGA output
     input  wire  [9:0] video_hpos,
@@ -31,6 +25,73 @@ module video(
     output reg   [3:0] video_g,
     output reg   [3:0] video_b
 );
+
+    reg [16:0] q_bus_addr;
+    always @(posedge clk) q_bus_addr <= bus_addr;
+
+    wire        pal_strobe             = bus_strobe && {bus_addr[16: 5],  5'b0} == 17'h00000;
+    wire        reg_vram_offset_strobe = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00100;
+    wire        vram_strobe            = bus_strobe && {bus_addr[16:15], 15'b0} == 17'h08000;
+    wire        vram4bpp_strobe        = bus_strobe && {bus_addr[16],    16'b0} == 17'h10000;
+
+
+    wire [11:0] pal_rddata;
+
+    // Video RAM interface
+    reg   [2:0] q_vram_offset;
+
+    wire [12:0] vram_addr = vram4bpp_strobe ? bus_addr[15:3] : bus_addr[14:2];
+    reg  [31:0] vram_wrdata;
+    reg   [7:0] vram_wrsel;
+    wire        vram_wren = bus_wren && (vram_strobe || vram4bpp_strobe);
+    wire [31:0] vram_rddata;
+    wire [31:0] vram4bpp_rddata;
+
+    always @* begin
+        vram_wrdata = bus_wrdata;
+        vram_wrsel = {
+            bus_bytesel[3], bus_bytesel[3],
+            bus_bytesel[2], bus_bytesel[2],
+            bus_bytesel[1], bus_bytesel[1],
+            bus_bytesel[0], bus_bytesel[0]
+        };
+
+        if (vram4bpp_strobe) begin
+            vram_wrdata = {
+                bus_wrdata[27:24], bus_wrdata[19:16], bus_wrdata[11:8], bus_wrdata[3:0],
+                bus_wrdata[27:24], bus_wrdata[19:16], bus_wrdata[11:8], bus_wrdata[3:0]
+            };
+            vram_wrsel = bus_addr[2] ?
+                {      bus_bytesel[3], bus_bytesel[2], bus_bytesel[1], bus_bytesel[0], 4'b0} :
+                {4'b0, bus_bytesel[3], bus_bytesel[2], bus_bytesel[1], bus_bytesel[0]      };
+        end
+    end
+
+    assign vram4bpp_rddata = q_bus_addr[2] ?
+        {4'b0, vram_rddata[31:28], 4'b0, vram_rddata[27:24], 4'b0, vram_rddata[23:20], 4'b0, vram_rddata[19:16]} :
+        {4'b0, vram_rddata[15:12], 4'b0, vram_rddata[11: 8], 4'b0, vram_rddata[ 7: 4], 4'b0, vram_rddata[ 3: 0]};
+
+    always @(posedge clk or posedge reset)
+        if (reset) begin
+            q_vram_offset <= 0;
+        end else begin
+            if (bus_wren && reg_vram_offset_strobe) q_vram_offset <= bus_wrdata[2:0];
+        end
+
+    //////////////////////////////////////////////////////////////////////////
+    // Bus interface
+    //////////////////////////////////////////////////////////////////////////
+    wire common_wait = !bus_wren && (q_bus_addr != bus_addr);
+
+    assign bus_wait = (vram_strobe || vram4bpp_strobe) && common_wait;
+
+    always @* begin
+        bus_rddata = 0;
+        if (pal_strobe)             bus_rddata = {4'b0, pal_rddata, 4'b0, pal_rddata};
+        if (reg_vram_offset_strobe) bus_rddata = {29'b0, q_vram_offset};
+        if (vram_strobe)            bus_rddata = vram_rddata;
+        if (vram4bpp_strobe)        bus_rddata = vram4bpp_rddata;
+    end
 
     wire hblank = !(video_hpos < 10'd640);
     wire vblank = !(video_vpos < 10'd480);
@@ -100,7 +161,7 @@ module video(
     vram vram(
         .clk(clk),
 
-        .a_offset(vram_offset),
+        .a_offset(q_vram_offset),
 
         .a_addr(vram_addr),
         .a_wrdata(vram_wrdata),
@@ -131,10 +192,10 @@ module video(
 
     distram16d #(.WIDTH(12)) palette(
         .clk(clk),
-        .a_addr(pal_addr),
+        .a_addr(bus_addr[4:1]),
         .a_rddata(pal_rddata),
-        .a_wrdata(pal_wrdata),
-        .a_wren({12{pal_wren}}),
+        .a_wrdata(bus_wrdata[11:0]),
+        .a_wren({12{bus_wren && pal_strobe}}),
         .b_addr(pix_colidx),
         .b_rddata({pal_r, pal_g, pal_b}));
 
