@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-project(pico-aq VERSION 0.1 LANGUAGES C CXX ASM)
+project(aqua-8 VERSION 0.1 LANGUAGES C CXX ASM)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(APPLE FALSE)

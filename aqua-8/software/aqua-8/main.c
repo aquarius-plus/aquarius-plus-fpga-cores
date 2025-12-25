@@ -64,7 +64,7 @@ int main(void) {
     // TRAM->init_val1 = 0;
     // TRAM->init_val2 = 0;
     // console_init();
-    // console_puts("\r\n Pico-Aq V0.1\r\n\r\n");
+    // console_puts("\r\n AQUA-8 V0.1\r\n\r\n");
 
     for (int i = 0; i < 16; i++)
         PALETTE[i] = palette[i & 15];

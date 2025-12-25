@@ -152,4 +152,4 @@ _esp_get_byte:      // result in a0, clobbers t1
     lw      a0, 4(t0)
     ret
 
-_fn: .ascii "/cores/pico-aq/pico-aq.bin\0"
+_fn: .ascii "/cores/aqua-8/aqua-8.bin\0"

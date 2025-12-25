@@ -73,7 +73,7 @@ module fpga_core(
     assign core_type    = 8'h02;
     assign core_flags   = 8'h02;
     assign core_version = {8'd0, 8'd01};
-    assign core_name    = "pico-aq         ";
+    assign core_name    = "aqua-8          ";
 
     wire        irq_uart;
     wire        irq_keybuf;

@@ -91,12 +91,12 @@ module bootrom(
         9'h050:  rddata <= 32'h0042A503;
         9'h051:  rddata <= 32'h00008067;
         9'h052:  rddata <= 32'h726F632F;
-        9'h053:  rddata <= 32'h702F7365;
-        9'h054:  rddata <= 32'h2D6F6369;
-        9'h055:  rddata <= 32'h702F7161;
-        9'h056:  rddata <= 32'h2D6F6369;
-        9'h057:  rddata <= 32'h622E7161;
-        9'h058:  rddata <= 32'h00006E69;
+        9'h053:  rddata <= 32'h612F7365;
+        9'h054:  rddata <= 32'h2D617571;
+        9'h055:  rddata <= 32'h71612F38;
+        9'h056:  rddata <= 32'h382D6175;
+        9'h057:  rddata <= 32'h6E69622E;
+        9'h058:  rddata <= 32'h00000000;
         default: rddata <= 32'h00000000;
     endcase
 
