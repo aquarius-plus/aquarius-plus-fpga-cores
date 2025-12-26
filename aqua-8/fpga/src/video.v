@@ -29,17 +29,19 @@ module video(
     reg [16:0] q_bus_addr;
     always @(posedge clk) q_bus_addr <= bus_addr;
 
-    wire        pal_strobe         = bus_strobe && {bus_addr[16: 5],  5'b0} == 17'h00000;   // 00-1F
-    wire        remap_strobe       = bus_strobe && {bus_addr[16: 4],  4'b0} == 17'h00020;   // 20-2F
-    wire        reg_posx_strobe    = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00100;
-    wire        reg_posy_strobe    = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00104;
-    wire        reg_color_strobe   = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00108;
-    wire        reg_flags_strobe   = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h0010C;
-    wire        reg_wr1bpp_strobe  = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00110;
-    wire        reg_wr4bpp_strobe  = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00114;
-    wire        reg_remap_t_strobe = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00118;
-    wire        vram_strobe        = bus_strobe && {bus_addr[16:15], 15'b0} == 17'h08000;
-    wire        vram4bpp_strobe    = bus_strobe && {bus_addr[16],    16'b0} == 17'h10000;
+    wire        strobe_palette       = bus_strobe && {bus_addr[16: 5],  5'b0} == 17'h00000;   // 00-1F
+    wire        strobe_remap         = bus_strobe && {bus_addr[16: 4],  4'b0} == 17'h00020;   // 20-2F
+    wire        strobe_reg_posx      = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00100;
+    wire        strobe_reg_posy      = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00104;
+    wire        strobe_reg_color     = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00108;
+    wire        strobe_reg_flags     = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h0010C;
+    wire        strobe_reg_wr1bpp    = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00110;
+    wire        strobe_reg_wr4bpp    = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00114;
+    wire        strobe_reg_remap_t   = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00118;
+    wire        strobe_reg_page      = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h0011C;
+    wire        strobe_reg_clip_rect = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00120;
+    wire        strobe_vram          = bus_strobe && {bus_addr[16:15], 15'b0} == 17'h08000;
+    wire        strobe_vram4bpp      = bus_strobe && {bus_addr[16],    16'b0} == 17'h10000;
 
     wire [11:0] pal_rddata;
 
@@ -56,14 +58,14 @@ module video(
     wire  [3:0] remap6_rddata;  // unused
     wire  [3:0] remap7_rddata;  // unused
 
-    distram16d #(.WIDTH(4)) remap0(.clk(clk), .a_addr(bus_addr[3:0]), .a_rddata(remap0_rddata), .a_wrdata(bus_wrdata[3:0]), .a_wren({4{bus_wren && remap_strobe}}), .b_addr(bus_wrdata[ 3: 0]), .b_rddata(remapped_data[ 3: 0]));
-    distram16d #(.WIDTH(4)) remap1(.clk(clk), .a_addr(bus_addr[3:0]), .a_rddata(remap1_rddata), .a_wrdata(bus_wrdata[3:0]), .a_wren({4{bus_wren && remap_strobe}}), .b_addr(bus_wrdata[ 7: 4]), .b_rddata(remapped_data[ 7: 4]));
-    distram16d #(.WIDTH(4)) remap2(.clk(clk), .a_addr(bus_addr[3:0]), .a_rddata(remap2_rddata), .a_wrdata(bus_wrdata[3:0]), .a_wren({4{bus_wren && remap_strobe}}), .b_addr(bus_wrdata[11: 8]), .b_rddata(remapped_data[11: 8]));
-    distram16d #(.WIDTH(4)) remap3(.clk(clk), .a_addr(bus_addr[3:0]), .a_rddata(remap3_rddata), .a_wrdata(bus_wrdata[3:0]), .a_wren({4{bus_wren && remap_strobe}}), .b_addr(bus_wrdata[15:12]), .b_rddata(remapped_data[15:12]));
-    distram16d #(.WIDTH(4)) remap4(.clk(clk), .a_addr(bus_addr[3:0]), .a_rddata(remap4_rddata), .a_wrdata(bus_wrdata[3:0]), .a_wren({4{bus_wren && remap_strobe}}), .b_addr(bus_wrdata[19:16]), .b_rddata(remapped_data[19:16]));
-    distram16d #(.WIDTH(4)) remap5(.clk(clk), .a_addr(bus_addr[3:0]), .a_rddata(remap5_rddata), .a_wrdata(bus_wrdata[3:0]), .a_wren({4{bus_wren && remap_strobe}}), .b_addr(bus_wrdata[23:20]), .b_rddata(remapped_data[23:20]));
-    distram16d #(.WIDTH(4)) remap6(.clk(clk), .a_addr(bus_addr[3:0]), .a_rddata(remap6_rddata), .a_wrdata(bus_wrdata[3:0]), .a_wren({4{bus_wren && remap_strobe}}), .b_addr(bus_wrdata[27:24]), .b_rddata(remapped_data[27:24]));
-    distram16d #(.WIDTH(4)) remap7(.clk(clk), .a_addr(bus_addr[3:0]), .a_rddata(remap7_rddata), .a_wrdata(bus_wrdata[3:0]), .a_wren({4{bus_wren && remap_strobe}}), .b_addr(bus_wrdata[31:28]), .b_rddata(remapped_data[31:28]));
+    distram16d #(.WIDTH(4)) remap0(.clk(clk), .a_addr(bus_addr[3:0]), .a_rddata(remap0_rddata), .a_wrdata(bus_wrdata[3:0]), .a_wren({4{bus_wren && strobe_remap}}), .b_addr(bus_wrdata[ 3: 0]), .b_rddata(remapped_data[ 3: 0]));
+    distram16d #(.WIDTH(4)) remap1(.clk(clk), .a_addr(bus_addr[3:0]), .a_rddata(remap1_rddata), .a_wrdata(bus_wrdata[3:0]), .a_wren({4{bus_wren && strobe_remap}}), .b_addr(bus_wrdata[ 7: 4]), .b_rddata(remapped_data[ 7: 4]));
+    distram16d #(.WIDTH(4)) remap2(.clk(clk), .a_addr(bus_addr[3:0]), .a_rddata(remap2_rddata), .a_wrdata(bus_wrdata[3:0]), .a_wren({4{bus_wren && strobe_remap}}), .b_addr(bus_wrdata[11: 8]), .b_rddata(remapped_data[11: 8]));
+    distram16d #(.WIDTH(4)) remap3(.clk(clk), .a_addr(bus_addr[3:0]), .a_rddata(remap3_rddata), .a_wrdata(bus_wrdata[3:0]), .a_wren({4{bus_wren && strobe_remap}}), .b_addr(bus_wrdata[15:12]), .b_rddata(remapped_data[15:12]));
+    distram16d #(.WIDTH(4)) remap4(.clk(clk), .a_addr(bus_addr[3:0]), .a_rddata(remap4_rddata), .a_wrdata(bus_wrdata[3:0]), .a_wren({4{bus_wren && strobe_remap}}), .b_addr(bus_wrdata[19:16]), .b_rddata(remapped_data[19:16]));
+    distram16d #(.WIDTH(4)) remap5(.clk(clk), .a_addr(bus_addr[3:0]), .a_rddata(remap5_rddata), .a_wrdata(bus_wrdata[3:0]), .a_wren({4{bus_wren && strobe_remap}}), .b_addr(bus_wrdata[23:20]), .b_rddata(remapped_data[23:20]));
+    distram16d #(.WIDTH(4)) remap6(.clk(clk), .a_addr(bus_addr[3:0]), .a_rddata(remap6_rddata), .a_wrdata(bus_wrdata[3:0]), .a_wren({4{bus_wren && strobe_remap}}), .b_addr(bus_wrdata[27:24]), .b_rddata(remapped_data[27:24]));
+    distram16d #(.WIDTH(4)) remap7(.clk(clk), .a_addr(bus_addr[3:0]), .a_rddata(remap7_rddata), .a_wrdata(bus_wrdata[3:0]), .a_wren({4{bus_wren && strobe_remap}}), .b_addr(bus_wrdata[31:28]), .b_rddata(remapped_data[31:28]));
 
     //////////////////////////////////////////////////////////////////////////
     // Video RAM interface
@@ -72,12 +74,18 @@ module video(
     // Flags (q_reg_flags):
     // 0:increment y by 1 after write
     // 1:increment x by 8 after write
+    // 2:flip horizontally
 
     reg  [15:0] q_reg_posx;
     reg  [15:0] q_reg_posy;
     reg   [3:0] q_reg_color;
     reg   [3:0] q_reg_flags;
     reg  [15:0] q_reg_remap_t;  // Remapping transparency
+    reg   [1:0] q_reg_page;     // 0:displayed page, 1:write page
+    reg   [7:0] q_reg_clip_x1;
+    reg   [7:0] q_reg_clip_x2;
+    reg   [7:0] q_reg_clip_y1;
+    reg   [7:0] q_reg_clip_y2;
 
     reg   [2:0] vram_offset;
     reg  [12:0] vram_addr;
@@ -87,6 +95,9 @@ module video(
 
     wire [31:0] vram_rddata;
     wire [31:0] vram4bpp_rddata;
+
+    wire [15:0] lclip_result = q_reg_posx - {8'b0, q_reg_clip_x1};
+    wire [15:0] rclip_result = q_reg_posx - {8'b0, q_reg_clip_x2};
 
     // addr=y*24 + x/8
     wire [12:0] pos_addr = {1'b0, q_reg_posy[7:0], 4'b0} + {2'b0, q_reg_posy[7:0], 3'b0} + q_reg_posx[15:3];
@@ -98,14 +109,14 @@ module video(
         vram_wrsel  = 0;
         vram_wren   = 0;
 
-        if (vram_strobe) begin
+        if (strobe_vram) begin
             // Address-based 32-bit access (8 pixels at at time)
             vram_addr   = bus_addr[14:2];
             vram_wrdata = bus_wrdata;
             vram_wrsel  = {{2{bus_bytesel[3]}}, {2{bus_bytesel[2]}}, {2{bus_bytesel[1]}}, {2{bus_bytesel[0]}}};
             vram_wren   = bus_wren;
             
-        end else if (vram4bpp_strobe) begin
+        end else if (strobe_vram4bpp) begin
             // Address-based 4bpp -> 8bpp conversion access (4 pixels at a time)
             vram_addr   = bus_addr[15:3];
             vram_wrdata = {2{bus_wrdata[27:24], bus_wrdata[19:16], bus_wrdata[11:8], bus_wrdata[3:0]}};
@@ -116,7 +127,7 @@ module video(
 
         end else begin
 
-            if (reg_wr1bpp_strobe) begin
+            if (strobe_reg_wr1bpp) begin
                 // Position based 1bpp -> 4bpp conversion (8 pixels at a time)
                 vram_offset = q_reg_posx[2:0];
                 vram_addr   = pos_addr;
@@ -124,11 +135,21 @@ module video(
                 vram_wrsel  = bus_wrdata[7:0];
                 vram_wren   = bus_wren;
 
-            end else if (reg_wr4bpp_strobe) begin
+            end else if (strobe_reg_wr4bpp) begin
                 // Position based 32-bit access (8 pixels at a time)
                 vram_offset = q_reg_posx[2:0];
                 vram_addr   = pos_addr;
-                vram_wrdata = remapped_data;
+                vram_wrdata = q_reg_flags[2] ? {
+                    remapped_data[ 3: 0],
+                    remapped_data[ 7: 4],
+                    remapped_data[11: 8],
+                    remapped_data[15:12],
+                    remapped_data[19:16],
+                    remapped_data[23:20],
+                    remapped_data[27:24],
+                    remapped_data[31:28]
+                } : remapped_data;
+
                 vram_wrsel  = ~{
                     q_reg_remap_t[remapped_data[31:28]],
                     q_reg_remap_t[remapped_data[27:24]],
@@ -144,28 +165,40 @@ module video(
 
             // Deny drawing outside visible area
             if (q_reg_posx >= 16'd192 && q_reg_posx <= 16'd65528) vram_wren = 0;
-            if (q_reg_posy >= 16'd160) vram_wren = 0;
+            if (q_reg_posy >= 16'd160)                            vram_wren = 0;
 
-            // Don't write past right or left border
-            case (q_reg_posx[7:0])
-                8'd185: vram_wrsel[7]   = 0;
-                8'd186: vram_wrsel[7:6] = 0;
-                8'd187: vram_wrsel[7:5] = 0;
-                8'd188: vram_wrsel[7:4] = 0;
-                8'd189: vram_wrsel[7:3] = 0;
-                8'd190: vram_wrsel[7:2] = 0;
-                8'd191: vram_wrsel[7:1] = 0;
+            // Left-side clipping
+            if (lclip_result[15]) begin
+                case (lclip_result)
+                    16'hFFF9: vram_wrsel[6:0] = 0; // -7
+                    16'hFFFA: vram_wrsel[5:0] = 0; // -6
+                    16'hFFFB: vram_wrsel[4:0] = 0; // -5
+                    16'hFFFC: vram_wrsel[3:0] = 0; // -4
+                    16'hFFFD: vram_wrsel[2:0] = 0; // -3
+                    16'hFFFE: vram_wrsel[1:0] = 0; // -2
+                    16'hFFFF: vram_wrsel[0]   = 0; // -1
+                    default: vram_wrsel = 0;
+                endcase
+            end
 
-                8'd249: vram_wrsel[6:0] = 0; // -7
-                8'd250: vram_wrsel[5:0] = 0; // -6
-                8'd251: vram_wrsel[4:0] = 0; // -5
-                8'd252: vram_wrsel[3:0] = 0; // -4
-                8'd253: vram_wrsel[2:0] = 0; // -3
-                8'd254: vram_wrsel[1:0] = 0; // -2
-                8'd255: vram_wrsel[0]   = 0; // -1
+            // Right-side clipping
+            if (!rclip_result[15]) begin
+                vram_wrsel = 0;
+            end else begin
+                case (rclip_result)
+                    16'hFFF9: vram_wrsel[7]   = 0;
+                    16'hFFFA: vram_wrsel[7:6] = 0;
+                    16'hFFFB: vram_wrsel[7:5] = 0;
+                    16'hFFFC: vram_wrsel[7:4] = 0;
+                    16'hFFFD: vram_wrsel[7:3] = 0;
+                    16'hFFFE: vram_wrsel[7:2] = 0;
+                    16'hFFFF: vram_wrsel[7:1] = 0;
+                    default: begin end
+                endcase
+            end
 
-                default: begin end
-            endcase
+            // Vertical clipping
+            if (q_reg_posy < {8'b0, q_reg_clip_y1} || q_reg_posy >= {8'b0, q_reg_clip_y2}) vram_wrsel = 0;
 
         end
     end
@@ -181,18 +214,30 @@ module video(
             q_reg_flags   <= 0;
             q_reg_color   <= 0;
             q_reg_remap_t <= 0;
+            q_reg_page    <= 0;
+            q_reg_clip_y2 <= 8'd160;
+            q_reg_clip_y1 <= 8'd0;
+            q_reg_clip_x2 <= 8'd192;
+            q_reg_clip_x1 <= 8'd0;
 
         end else if (bus_wren) begin
-            if (bus_wren && (reg_wr1bpp_strobe || reg_wr4bpp_strobe)) begin
+            if (bus_wren && (strobe_reg_wr1bpp || strobe_reg_wr4bpp)) begin
                 if (q_reg_flags[0]) q_reg_posy <= q_reg_posy + 16'd1;
                 if (q_reg_flags[1]) q_reg_posx <= q_reg_posx + 16'd8;
             end
 
-            if (reg_posx_strobe)    q_reg_posx    <= bus_wrdata[31:16];
-            if (reg_posy_strobe)    q_reg_posy    <= bus_wrdata[31:16];
-            if (reg_flags_strobe)   q_reg_flags   <= bus_wrdata[3:0];
-            if (reg_color_strobe)   q_reg_color   <= bus_wrdata[3:0];
-            if (reg_remap_t_strobe) q_reg_remap_t <= bus_wrdata[15:0];
+            if (strobe_reg_posx)    q_reg_posx    <= bus_wrdata[31:16];
+            if (strobe_reg_posy)    q_reg_posy    <= bus_wrdata[31:16];
+            if (strobe_reg_flags)   q_reg_flags   <= bus_wrdata[3:0];
+            if (strobe_reg_color)   q_reg_color   <= bus_wrdata[3:0];
+            if (strobe_reg_remap_t) q_reg_remap_t <= bus_wrdata[15:0];
+            if (strobe_reg_page)    q_reg_page    <= bus_wrdata[1:0];
+            if (strobe_reg_clip_rect) begin
+                if (bus_bytesel[3]) q_reg_clip_y2 <= bus_wrdata[31:24];
+                if (bus_bytesel[2]) q_reg_clip_y1 <= bus_wrdata[23:16];
+                if (bus_bytesel[1]) q_reg_clip_x2 <= bus_wrdata[15:8];
+                if (bus_bytesel[0]) q_reg_clip_x1 <= bus_wrdata[7:0];
+            end
         end
 
     //////////////////////////////////////////////////////////////////////////
@@ -200,19 +245,21 @@ module video(
     //////////////////////////////////////////////////////////////////////////
     wire common_wait = !bus_wren && (q_bus_addr != bus_addr);
 
-    assign bus_wait = (vram_strobe || vram4bpp_strobe) && common_wait;
+    assign bus_wait = (strobe_vram || strobe_vram4bpp) && common_wait;
 
     always @* begin
         bus_rddata = 0;
-        if (pal_strobe)             bus_rddata = {2{4'b0, pal_rddata}};
-        if (remap_strobe)           bus_rddata = {4{4'b0, remap0_rddata}};
-        if (reg_posx_strobe)        bus_rddata = {q_reg_posx, 16'b0};
-        if (reg_posy_strobe)        bus_rddata = {q_reg_posy, 16'b0};
-        if (reg_flags_strobe)       bus_rddata = {28'b0, q_reg_flags};
-        if (reg_color_strobe)       bus_rddata = {28'b0, q_reg_color};
-        if (reg_remap_t_strobe)     bus_rddata = {16'b0, q_reg_remap_t};
-        if (vram_strobe)            bus_rddata = vram_rddata;
-        if (vram4bpp_strobe)        bus_rddata = vram4bpp_rddata;
+        if (strobe_palette)       bus_rddata = {2{4'b0, pal_rddata}};
+        if (strobe_remap)         bus_rddata = {4{4'b0, remap0_rddata}};
+        if (strobe_reg_posx)      bus_rddata = {q_reg_posx, 16'b0};
+        if (strobe_reg_posy)      bus_rddata = {q_reg_posy, 16'b0};
+        if (strobe_reg_flags)     bus_rddata = {28'b0, q_reg_flags};
+        if (strobe_reg_color)     bus_rddata = {28'b0, q_reg_color};
+        if (strobe_reg_remap_t)   bus_rddata = {16'b0, q_reg_remap_t};
+        if (strobe_reg_page)      bus_rddata = {30'b0, q_reg_page};
+        if (strobe_reg_clip_rect) bus_rddata = {q_reg_clip_y2, q_reg_clip_y1, q_reg_clip_x2, q_reg_clip_x1};
+        if (strobe_vram)          bus_rddata = vram_rddata;
+        if (strobe_vram4bpp)      bus_rddata = vram4bpp_rddata;
     end
 
     wire hblank = !(video_hpos < 10'd640);
@@ -226,8 +273,6 @@ module video(
     //////////////////////////////////////////////////////////////////////////
     // Video RAM (192x160)
     //////////////////////////////////////////////////////////////////////////
-    reg         q_vpage = 0;
-
     reg  [14:0] q_line_addr     = 0;
     reg  [14:0] q_pixel_addr    = 0;
     reg   [1:0] q_sub_pixel_cnt = 0;
@@ -276,13 +321,13 @@ module video(
 
         .a_offset(vram_offset),
 
-        .a_addr(vram_addr),
+        .a_addr({vram_addr[12] ^ q_reg_page[1], vram_addr[11:0]}),
         .a_wrdata(vram_wrdata),
         .a_wrsel(vram_wrsel),
         .a_wren(vram_wren),
         .a_rddata(vram_rddata),
 
-        .b_addr({q_vpage, q_pixel_addr[14:3]}),
+        .b_addr({q_reg_page[0], q_pixel_addr[14:3]}),
         .b_rddata(vdata)
     );
 
@@ -308,7 +353,7 @@ module video(
         .a_addr(bus_addr[4:1]),
         .a_rddata(pal_rddata),
         .a_wrdata(bus_wrdata[11:0]),
-        .a_wren({12{bus_wren && pal_strobe}}),
+        .a_wren({12{bus_wren && strobe_palette}}),
         .b_addr(pix_colidx),
         .b_rddata({pal_r, pal_g, pal_b}));
 

@@ -97,6 +97,12 @@ struct regs_tram {
 #define REG_WR1BPP   (*(volatile uint8_t *)0x20110)
 #define REG_WR4BPP   (*(volatile uint32_t *)0x20114)
 #define REG_REMAPT   (*(volatile uint32_t *)0x20118)
+#define REG_PAGE     (*(volatile uint32_t *)0x2011C)
+#define REG_CLIPRECT (*(volatile uint32_t *)0x20120)
+#define REG_CLIPX1   (*(volatile uint8_t *)0x20120)
+#define REG_CLIPX2   (*(volatile uint8_t *)0x20121)
+#define REG_CLIPY1   (*(volatile uint8_t *)0x20122)
+#define REG_CLIPY2   (*(volatile uint8_t *)0x20123)
 
 #define VRAM     ((volatile uint32_t *)0x28000)
 #define VRAM4BIT ((volatile uint8_t *)0x30000)

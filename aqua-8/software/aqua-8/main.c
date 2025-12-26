@@ -163,25 +163,74 @@ int main(void) {
     // scr_pset(192 - 1, 101, 0x77777777);
     // scr_pset(192 - 0, 100, 0x77777777);
 
+    unsigned page = 0;
+    REG_PAGE      = page;
+
+    for (unsigned i = 0; i < 24 * 160; i++) {
+        VRAM[i] = 0x11111111;
+    }
+
+    int x1   = 0;
+    int x2   = 192;
+    int y1   = 0;
+    int y2   = 160;
+    int xdir = 1;
+
     while (1) {
         PALETTE[1] = 0x080;
+
+        REG_CLIPRECT = (y2 << 24) | (y1 << 16) | (x2 << 8) | (x1 << 0);
 
         for (unsigned i = 0; i < 24 * 160; i++) {
             VRAM[i] = 0x11111111;
         }
 
         for (int i = 0; i < 23; i++) {
-            char tmp[64];
-            snprintf(tmp, sizeof(tmp), "Hello world %6u %6u %6u", cnt, cnt, cnt);
-            scr_print(tmp, 0, i * 7, 7);
+            // char tmp[64];
+            // snprintf(tmp, sizeof(tmp), "Hello world %6u %6u %6u", cnt, cnt, cnt);
+            // scr_print(tmp, 0, i * 7, 7);
+            // char tmp[64];
+            // snprintf(tmp, sizeof(tmp), "Hello world %6u %6u %6u", cnt, cnt, cnt);
+            scr_print("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 1, 1+i * 7, 7);
         }
 
         PALETTE[1] = 0x008;
 
-        cnt++;
-        wait_frame();
+        // cnt++;
 
         // Wait for vsync
+        wait_frame();
+        page ^= 3;
+        REG_PAGE = page;
+
+#if 0
+        x1 += xdir;
+        if (x1 <= 0)
+            xdir = 1;
+        else if (x1 >= 191)
+            xdir = -1;
+#endif
+#if 0
+        x2 += xdir;
+        if (x2 <= 0)
+            xdir = 1;
+        else if (x2 >= 191)
+            xdir = -1;
+#endif
+#if 0
+        y1 += xdir;
+        if (y1 <= 0)
+            xdir = 1;
+        else if (y1 >= 159)
+            xdir = -1;
+#endif
+#if 0
+        y2 += xdir;
+        if (y2 <= 0)
+            xdir = 1;
+        else if (y2 >= 159)
+            xdir = -1;
+#endif
     }
     // for (int j = 0; j < 20; j++)
     //     draw_str(8, j * 7, "lua_State *L = luaL_newstate();", 6);
