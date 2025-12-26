@@ -22,14 +22,14 @@ static const uint16_t palette[16] = {
 
 void reinit_video(void) {
 #ifndef PCDEV
-    for (int i = 0; i < 16; i++)
-        PALETTE[i] = palette[i & 15];
+    // for (int i = 0; i < 16; i++)
+    //     PALETTE[i] = palette[i & 15];
 
-    int fd = esp_open("esp:latin1b.chr", 0);
-    if (fd >= 0) {
-        esp_read(fd, (void *)CHRAM, 2048);
-        esp_close(fd);
-    }
+    // int fd = esp_open("esp:latin1b.chr", 0);
+    // if (fd >= 0) {
+    //     esp_read(fd, (void *)CHRAM, 2048);
+    //     esp_close(fd);
+    // }
 #endif
 }
 

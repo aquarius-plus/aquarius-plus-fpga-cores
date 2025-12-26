@@ -74,6 +74,40 @@ struct regs_tram {
     uint16_t init_val2;
 };
 
+struct regs_video {
+    volatile uint16_t PALETTE[16];
+    union {
+        volatile uint32_t POSX1616;
+        struct {
+            volatile uint16_t _pad1;
+            volatile uint16_t POSX16;
+        };
+    };
+    union {
+        volatile uint32_t POSY1616;
+        struct {
+            volatile uint16_t _pad2;
+            volatile uint16_t POSY16;
+        };
+    };
+    volatile uint32_t COLOR;
+    volatile uint32_t REMAP_T;
+    volatile uint8_t  REMAP[16];
+    union {
+        volatile uint32_t CLIPRECT;
+        struct {
+            volatile uint8_t CLIPX1;
+            volatile uint8_t CLIPX2;
+            volatile uint8_t CLIPY1;
+            volatile uint8_t CLIPY2;
+        };
+    };
+    volatile uint32_t FLAGS;
+    volatile uint32_t WR1BPP;
+    volatile uint32_t WR4BPP;
+    volatile uint32_t PAGE;
+};
+
 #define ESP_STATUS (*(volatile uint32_t *)0x2000)
 #define ESP_DATA   (*(volatile uint32_t *)0x2004)
 #define KEYBUF     (*(volatile int32_t *)0x2010)
@@ -85,25 +119,7 @@ struct regs_tram {
 #define TRAM  ((struct regs_tram *)0x06000)
 #define CHRAM ((volatile uint8_t *)0x05000)
 
-#define PALETTE   ((volatile uint16_t *)0x20000)
-#define REMAPPING ((volatile uint8_t *)0x20020)
-
-#define REG_POSX1616 (*(volatile uint32_t *)0x20100)
-#define REG_POSX16   (*(volatile uint16_t *)0x20102)
-#define REG_POSY1616 (*(volatile uint32_t *)0x20104)
-#define REG_POSY16   (*(volatile uint16_t *)0x20106)
-#define REG_COLOR    (*(volatile uint32_t *)0x20108)
-#define REG_FLAGS    (*(volatile uint32_t *)0x2010C)
-#define REG_WR1BPP   (*(volatile uint8_t *)0x20110)
-#define REG_WR4BPP   (*(volatile uint32_t *)0x20114)
-#define REG_REMAPT   (*(volatile uint32_t *)0x20118)
-#define REG_PAGE     (*(volatile uint32_t *)0x2011C)
-#define REG_CLIPRECT (*(volatile uint32_t *)0x20120)
-#define REG_CLIPX1   (*(volatile uint8_t *)0x20120)
-#define REG_CLIPX2   (*(volatile uint8_t *)0x20121)
-#define REG_CLIPY1   (*(volatile uint8_t *)0x20122)
-#define REG_CLIPY2   (*(volatile uint8_t *)0x20123)
-
+#define VIDEO    ((struct regs_video *)0x20000)
 #define VRAM     ((volatile uint32_t *)0x28000)
 #define VRAM4BIT ((volatile uint8_t *)0x30000)
 

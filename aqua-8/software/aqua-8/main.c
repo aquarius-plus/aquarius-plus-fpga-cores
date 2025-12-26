@@ -36,9 +36,9 @@ static const uint8_t font2[760] = {
 };
 
 void scr_pset(int x, int y, unsigned color) {
-    REG_POSX16 = x;
-    REG_POSY16 = y;
-    REG_WR4BPP = color;
+    VIDEO->POSX16 = x;
+    VIDEO->POSY16 = y;
+    VIDEO->WR4BPP = color;
 
     // VRAM4BIT[y * 192 + x] = color;
 }
@@ -50,16 +50,16 @@ void draw_char(int x, int y, uint8_t ch, unsigned color) {
 
     const uint8_t *p = &font[ch * 8];
 
-    REG_COLOR  = color;
-    REG_FLAGS  = 1;
-    REG_POSX16 = x;
-    REG_POSY16 = y;
-    REG_WR1BPP = p[0];
-    REG_WR1BPP = p[1];
-    REG_WR1BPP = p[2];
-    REG_WR1BPP = p[3];
-    REG_WR1BPP = p[4];
-    REG_WR1BPP = p[5];
+    VIDEO->COLOR  = color;
+    VIDEO->FLAGS  = 1;
+    VIDEO->POSX16 = x;
+    VIDEO->POSY16 = y;
+    VIDEO->WR1BPP = p[0];
+    VIDEO->WR1BPP = p[1];
+    VIDEO->WR1BPP = p[2];
+    VIDEO->WR1BPP = p[3];
+    VIDEO->WR1BPP = p[4];
+    VIDEO->WR1BPP = p[5];
 }
 
 void draw_char2(int x, int y, uint8_t ch, unsigned color) {
@@ -69,22 +69,22 @@ void draw_char2(int x, int y, uint8_t ch, unsigned color) {
 
     const uint8_t *p = &font2[ch * 8];
 
-    REG_COLOR  = color;
-    REG_FLAGS  = 1;
-    REG_POSX16 = x;
-    REG_POSY16 = y;
-    REG_WR1BPP = p[0];
-    REG_WR1BPP = p[1];
-    REG_WR1BPP = p[2];
-    REG_WR1BPP = p[3];
-    REG_WR1BPP = p[4];
-    REG_WR1BPP = p[5];
+    VIDEO->COLOR  = color;
+    VIDEO->FLAGS  = 1;
+    VIDEO->POSX16 = x;
+    VIDEO->POSY16 = y;
+    VIDEO->WR1BPP = p[0];
+    VIDEO->WR1BPP = p[1];
+    VIDEO->WR1BPP = p[2];
+    VIDEO->WR1BPP = p[3];
+    VIDEO->WR1BPP = p[4];
+    VIDEO->WR1BPP = p[5];
 }
 
 void scr_print(const char *str, int x, int y, unsigned color) {
     while (*str) {
-        draw_char(x, y, *str, color);
-        x += 6;
+        draw_char2(x, y, *str, color);
+        x += 4;
         str++;
     }
 }
@@ -102,10 +102,10 @@ int main(void) {
     unsigned cnt = 0;
 
     for (int i = 0; i < 16; i++)
-        PALETTE[i] = palette[i & 15];
+        VIDEO->PALETTE[i] = palette[i & 15];
     for (int i = 0; i < 16; i++)
-        REMAPPING[i] = i;
-    REG_REMAPT = 0x0;
+        VIDEO->REMAP[i] = i;
+    VIDEO->REMAP_T = 0x0;
 
     // for (unsigned j = 0; j < 160; j++) {
     //     for (unsigned i = 0; i < 24; i++) {
@@ -134,13 +134,17 @@ int main(void) {
 
     // ((uint32_t *)VRAM4BIT)[0] = 0x0000007;
 
-    // for (int ch = 32; ch < 127; ch++) {
-    //     draw_char((ch & 31) * 6, (ch / 32) * 7, ch, 6);
-    // }
+    for (unsigned i = 0; i < 24 * 160; i++) {
+        VRAM[i] = 0x11111111;
+    }
+    for (int ch = 32; ch < 127; ch++) {
+        draw_char((ch & 31) * 6, (ch / 32) * 7, ch, 6);
+    }
+    for (int ch = 32; ch < 127; ch++) {
+        draw_char2((ch & 31) * 4, 40 + (ch / 32) * 6, ch, 6);
+    }
 
-    // for (int ch = 32; ch < 127; ch++) {
-    //     draw_char2((ch & 31) * 5, 40 + (ch / 32) * 7, ch, 6);
-    // }
+    // while (1);
 
     // // REG_FLAGS = 4;
     // scr_pset(0, 100, 0x77777777);
@@ -164,11 +168,7 @@ int main(void) {
     // scr_pset(192 - 0, 100, 0x77777777);
 
     unsigned page = 0;
-    REG_PAGE      = page;
-
-    for (unsigned i = 0; i < 24 * 160; i++) {
-        VRAM[i] = 0x11111111;
-    }
+    VIDEO->PAGE   = page;
 
     int x1   = 0;
     int x2   = 192;
@@ -176,10 +176,11 @@ int main(void) {
     int y2   = 160;
     int xdir = 1;
 
-    while (1) {
-        PALETTE[1] = 0x080;
+    uint16_t col1 = VIDEO->PALETTE[1];
 
-        REG_CLIPRECT = (y2 << 24) | (y1 << 16) | (x2 << 8) | (x1 << 0);
+    while (1) {
+        VIDEO->PALETTE[1] = 0x080;
+        VIDEO->CLIPRECT   = (y2 << 24) | (y1 << 16) | (x2 << 8) | (x1 << 0);
 
         for (unsigned i = 0; i < 24 * 160; i++) {
             VRAM[i] = 0x11111111;
@@ -191,19 +192,19 @@ int main(void) {
             // scr_print(tmp, 0, i * 7, 7);
             // char tmp[64];
             // snprintf(tmp, sizeof(tmp), "Hello world %6u %6u %6u", cnt, cnt, cnt);
-            scr_print("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 1, 1+i * 7, 7);
+            scr_print("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 0, 0 + i * 7, 7);
         }
 
-        PALETTE[1] = 0x008;
+        VIDEO->PALETTE[1] = col1;
 
         // cnt++;
 
         // Wait for vsync
         wait_frame();
         page ^= 3;
-        REG_PAGE = page;
+        VIDEO->PAGE = page;
 
-#if 0
+#if 1
         x1 += xdir;
         if (x1 <= 0)
             xdir = 1;

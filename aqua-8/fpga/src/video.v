@@ -29,19 +29,19 @@ module video(
     reg [16:0] q_bus_addr;
     always @(posedge clk) q_bus_addr <= bus_addr;
 
-    wire        strobe_palette       = bus_strobe && {bus_addr[16: 5],  5'b0} == 17'h00000;   // 00-1F
-    wire        strobe_remap         = bus_strobe && {bus_addr[16: 4],  4'b0} == 17'h00020;   // 20-2F
-    wire        strobe_reg_posx      = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00100;
-    wire        strobe_reg_posy      = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00104;
-    wire        strobe_reg_color     = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00108;
-    wire        strobe_reg_flags     = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h0010C;
-    wire        strobe_reg_wr1bpp    = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00110;
-    wire        strobe_reg_wr4bpp    = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00114;
-    wire        strobe_reg_remap_t   = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00118;
-    wire        strobe_reg_page      = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h0011C;
-    wire        strobe_reg_clip_rect = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00120;
-    wire        strobe_vram          = bus_strobe && {bus_addr[16:15], 15'b0} == 17'h08000;
-    wire        strobe_vram4bpp      = bus_strobe && {bus_addr[16],    16'b0} == 17'h10000;
+    wire        strobe_palette       = bus_strobe && {bus_addr[16: 5],  5'b0} == 17'h00000; // 00-1F
+    wire        strobe_reg_posx      = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00020;
+    wire        strobe_reg_posy      = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00024;
+    wire        strobe_reg_color     = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00028;
+    wire        strobe_reg_remap_t   = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h0002C;
+    wire        strobe_remap         = bus_strobe && {bus_addr[16: 4],  4'b0} == 17'h00030; // 30-3F
+    wire        strobe_reg_clip_rect = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00040;
+    wire        strobe_reg_flags     = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00044;
+    wire        strobe_reg_wr1bpp    = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00048;
+    wire        strobe_reg_wr4bpp    = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h0004C;
+    wire        strobe_reg_page      = bus_strobe && {bus_addr[16: 2],  2'b0} == 17'h00050;
+    wire        strobe_vram          = bus_strobe && {bus_addr[16:15], 15'b0} == 17'h08000; // 8000-FFFF
+    wire        strobe_vram4bpp      = bus_strobe && {bus_addr[16],    16'b0} == 17'h10000; // 10000-1FFFF
 
     wire [11:0] pal_rddata;
 
