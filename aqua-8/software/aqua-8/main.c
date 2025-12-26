@@ -33,7 +33,11 @@ static const uint8_t font[1016] = {
 };
 
 void scr_pset(int x, int y, unsigned color) {
-    VRAM4BIT[y * 192 + x] = color;
+    REG_POSX16 = x;
+    REG_POSY16 = y;
+    REG_WR4BPP = color;
+
+    // VRAM4BIT[y * 192 + x] = color;
 }
 
 void draw_char(int x, int y, uint8_t ch, unsigned color) {
@@ -43,13 +47,16 @@ void draw_char(int x, int y, uint8_t ch, unsigned color) {
 
     const uint8_t *p = &font[ch * 8];
 
-    for (int j = 0; j < 6; j++) {
-        for (int i = 0; i < 5; i++) {
-            if (*p & (1 << i))
-                scr_pset(x + i, y + j, color);
-        }
-        p++;
-    }
+    REG_COLOR  = color;
+    REG_FLAGS  = 1;
+    REG_POSX16 = x;
+    REG_POSY16 = y;
+    REG_WR1BPP = p[0];
+    REG_WR1BPP = p[1];
+    REG_WR1BPP = p[2];
+    REG_WR1BPP = p[3];
+    REG_WR1BPP = p[4];
+    REG_WR1BPP = p[5];
 }
 
 void scr_print(const char *str, int x, int y, unsigned color) {
@@ -85,8 +92,6 @@ int main(void) {
 
     // *((uint32_t *)((uint8_t *)VRAM + 0)) = 0x00000007;
 
-    VRAM_OFFSET = 0;
-
     // VRAM[0]      = 0x00000007;
     // VRAM[24]     = 0x00000070;
     // VRAM[24 * 2] = 0x00000700;
@@ -98,9 +103,17 @@ int main(void) {
 
     // ((uint32_t *)VRAM4BIT)[0] = 0x0000007;
 
+    for (int i = 0; i < 16; i++) {
+        REMAPPING[i] = i;
+    }
+    REG_REMAPT = 0x0;
+
     for (int ch = 32; ch < 127; ch++) {
         draw_char((ch & 31) * 6, (ch / 32) * 7, ch, 6);
     }
+
+    // REG_FLAGS = 4;
+    scr_pset(96, 80, 7);
 
     // for (int j = 0; j < 20; j++)
     //     draw_str(8, j * 7, "lua_State *L = luaL_newstate();", 6);

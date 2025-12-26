@@ -75,6 +75,9 @@ module fpga_core(
     assign core_version = {8'd0, 8'd01};
     assign core_name    = "aqua-8          ";
 
+    //////////////////////////////////////////////////////////////////////////
+    // CPU
+    //////////////////////////////////////////////////////////////////////////
     wire        irq_uart;
     wire        irq_keybuf;
 
@@ -83,10 +86,6 @@ module fpga_core(
     wire  [3:0] cpu_bytesel;
     wire        cpu_wren;
     wire        cpu_strobe;
-
-    //////////////////////////////////////////////////////////////////////////
-    // CPU
-    //////////////////////////////////////////////////////////////////////////
     reg         cpu_wait;
     reg  [31:0] cpu_rddata;
     reg  [31:0] cpu_irq;
@@ -165,7 +164,6 @@ module fpga_core(
         .sram_we_n(sram_we_n),
         .sram_dq(sram_dq));
 
-
 `define USE_CACHE
 `ifdef USE_CACHE
     assign sram_m_bytesel = 4'b1111;
@@ -192,7 +190,6 @@ module fpga_core(
         .m_rddata(sram_m_rddata));
 
 `else
-
     assign sram_m_addr    = cpu_addr[18:2];
     assign sram_m_wrdata  = cpu_wrdata;
     assign sram_m_bytesel = cpu_bytesel;
@@ -200,7 +197,6 @@ module fpga_core(
     assign sram_m_strobe  = sram_strobe;
     assign sram_wait      = sram_m_wait;
     assign sram_rddata    = sram_m_rddata;
-
 `endif
 
     //////////////////////////////////////////////////////////////////////////
@@ -230,8 +226,7 @@ module fpga_core(
 
         .rddata(kbbuf_rddata),
         .rd_en(kbbuf_rden),
-        .rd_empty(kbbuf_empty)
-    );
+        .rd_empty(kbbuf_empty));
 
     assign irq_keybuf = !kbbuf_empty;
 
@@ -269,10 +264,8 @@ module fpga_core(
     // CPU bus interconnect
     //////////////////////////////////////////////////////////////////////////
     wire   bootrom_strobe        = cpu_strobe && {cpu_addr[31:11], 11'b0} == 32'h00000;
-
     wire   reg_esp_status_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02000;
     assign reg_esp_data_strobe   = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02004;
-
     assign reg_keybuf_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02010;
     wire   reg_hctrl_strobe      = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02014;
     wire   reg_keys_l_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02018;
@@ -281,30 +274,25 @@ module fpga_core(
     wire   reg_gamepad1_h_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02024;
     wire   reg_gamepad2_l_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02028;
     wire   reg_gamepad2_h_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0202C;
-
     assign video_strobe          = cpu_strobe && {cpu_addr[31:17], 17'b0} == 32'h20000;
-
     assign sram_strobe           = cpu_strobe && {cpu_addr[31:19], 19'b0} == 32'h80000;
 
     reg [31:0] q_cpu_addr;
     always @(posedge clk) q_cpu_addr <= cpu_addr;
-
     wire common_wait = !cpu_wren && (q_cpu_addr != cpu_addr);
 
     always @* begin
         cpu_wait = 0;
-        if (bootrom_strobe)   cpu_wait = common_wait;
-        if (video_strobe)     cpu_wait = video_wait;
-        if (sram_strobe)      cpu_wait = sram_wait;
+        if (bootrom_strobe) cpu_wait = common_wait;
+        if (video_strobe)   cpu_wait = video_wait;
+        if (sram_strobe)    cpu_wait = sram_wait;
     end
 
     always @* begin
         cpu_rddata = 0;
         if (bootrom_strobe)        cpu_rddata = bootrom_rddata;
-
         if (reg_esp_status_strobe) cpu_rddata = {30'b0, uart_txfifo_full, !uart_rxfifo_empty};
         if (reg_esp_data_strobe)   cpu_rddata = {23'b0, uart_rxfifo_data};
-
         if (reg_keybuf_strobe)     cpu_rddata = {kbbuf_empty, 15'b0, kbbuf_rddata};
         if (reg_hctrl_strobe)      cpu_rddata = {16'b0, hctrl2, hctrl1};
         if (reg_keys_l_strobe)     cpu_rddata = keys[31:0];
@@ -313,7 +301,6 @@ module fpga_core(
         if (reg_gamepad1_h_strobe) cpu_rddata = gamepad1[63:32];
         if (reg_gamepad2_l_strobe) cpu_rddata = gamepad2[31:0];
         if (reg_gamepad2_h_strobe) cpu_rddata = gamepad2[63:32];
-
         if (video_strobe)          cpu_rddata = video_rddata;
         if (sram_strobe)           cpu_rddata = sram_rddata;
     end

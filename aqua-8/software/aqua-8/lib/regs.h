@@ -82,13 +82,24 @@ struct regs_tram {
 #define GAMEPAD1   (*(volatile uint64_t *)0x2020)
 #define GAMEPAD2   (*(volatile uint64_t *)0x2028)
 
-#define TRAM       ((struct regs_tram *)0x06000)
-#define CHRAM      ((volatile uint8_t *)0x05000)
+#define TRAM  ((struct regs_tram *)0x06000)
+#define CHRAM ((volatile uint8_t *)0x05000)
 
-#define PALETTE     ((volatile uint16_t *)0x20000)
-#define VRAM_OFFSET (*(volatile uint32_t *)0x20100)
-#define VRAM        ((volatile uint32_t *)0x28000)
-#define VRAM4BIT    ((volatile uint8_t *)0x30000)
+#define PALETTE   ((volatile uint16_t *)0x20000)
+#define REMAPPING ((volatile uint8_t *)0x20020)
+
+#define REG_POSX1616 (*(volatile uint32_t *)0x20100)
+#define REG_POSX16   (*(volatile uint16_t *)0x20102)
+#define REG_POSY1616 (*(volatile uint32_t *)0x20104)
+#define REG_POSY16   (*(volatile uint16_t *)0x20106)
+#define REG_COLOR    (*(volatile uint32_t *)0x20108)
+#define REG_FLAGS    (*(volatile uint32_t *)0x2010C)
+#define REG_WR1BPP   (*(volatile uint8_t *)0x20110)
+#define REG_WR4BPP   (*(volatile uint32_t *)0x20114)
+#define REG_REMAPT   (*(volatile uint32_t *)0x20118)
+
+#define VRAM     ((volatile uint32_t *)0x28000)
+#define VRAM4BIT ((volatile uint8_t *)0x30000)
 
 enum {
     ESPCMD_RESET       = 0x01, // Reset ESP
