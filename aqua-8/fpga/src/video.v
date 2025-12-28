@@ -99,8 +99,10 @@ module video(
     wire [15:0] lclip_result = q_reg_posx - {8'b0, q_reg_clip_x1};
     wire [15:0] rclip_result = q_reg_posx - {8'b0, q_reg_clip_x2};
 
-    // addr=y*24 + x/8
-    wire [12:0] pos_addr = {1'b0, q_reg_posy[7:0], 4'b0} + {2'b0, q_reg_posy[7:0], 3'b0} + q_reg_posx[15:3];
+    // addr=y*25 + x/8
+    wire [12:0] pos_addr =
+        {1'b0, q_reg_posy[7:0], 4'b0} + {2'b0, q_reg_posy[7:0], 3'b0} + {5'b0, q_reg_posy[7:0]} +
+        q_reg_posx[15:3];
 
     always @* begin
         vram_offset = 0;
@@ -164,7 +166,7 @@ module video(
             end
 
             // Deny drawing outside visible area
-            if (q_reg_posx >= 16'd192 && q_reg_posx <= 16'd65528) vram_wren = 0;
+            if (q_reg_posx >= 16'd200 && q_reg_posx <= 16'd65528) vram_wren = 0;
             if (q_reg_posy >= 16'd160)                            vram_wren = 0;
 
             // Left-side clipping
@@ -217,7 +219,7 @@ module video(
             q_reg_page    <= 0;
             q_reg_clip_y2 <= 8'd160;
             q_reg_clip_y1 <= 8'd0;
-            q_reg_clip_x2 <= 8'd192;
+            q_reg_clip_x2 <= 8'd200;
             q_reg_clip_x1 <= 8'd0;
 
         end else if (bus_wren) begin
@@ -271,7 +273,7 @@ module video(
     assign irq_vblank = !q_vblank && vblank;
 
     //////////////////////////////////////////////////////////////////////////
-    // Video RAM (192x160)
+    // Video RAM (200x160)
     //////////////////////////////////////////////////////////////////////////
     reg  [14:0] q_line_addr     = 0;
     reg  [14:0] q_pixel_addr    = 0;
@@ -289,7 +291,7 @@ module video(
             q_sub_pixel_cnt <= q_sub_pixel_cnt + 2'd1;
         end
 
-        if (video_hpos < 10'd32 || video_hpos >= 10'd608) begin
+        if (video_hpos < 10'd20 || video_hpos >= 10'd620) begin
             q_sub_pixel_cnt <= 0;
             q_border        <= 1;
         end
@@ -297,10 +299,10 @@ module video(
         if (video_hlast) begin
             if (q_sub_line_cnt == 2'd2) begin
                 q_sub_line_cnt <= 0;
-                q_line_addr <= q_pixel_addr;
+                q_line_addr    <= q_pixel_addr;
             end else begin
                 q_sub_line_cnt <= q_sub_line_cnt + 2'd1;
-                q_pixel_addr <= q_line_addr;
+                q_pixel_addr   <= q_line_addr;
             end
         end
 

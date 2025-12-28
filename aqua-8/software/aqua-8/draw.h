@@ -1,0 +1,30 @@
+#pragma once
+
+#include "common.h"
+
+static inline void swapint(int *a, int *b) {
+    int c = *a;
+    *a    = *b;
+    *b    = c;
+}
+
+static inline void wait_frame(void) {
+    while ((csr_read_clear(mip, (1 << 16)) & (1 << 16)) == 0);
+}
+
+void palette_init(void);
+void remap_reset(void);
+void clear_screen(unsigned color);
+
+void draw_sprite(unsigned spr, int x, int y);
+void draw_game_sprite(unsigned spr, int x, int y);
+
+void draw_pixel(int x, int y, unsigned color);
+int  draw_char(int x, int y, uint8_t ch, unsigned color);
+int  draw_char_altfont(int x, int y, uint8_t ch, unsigned color);
+int  draw_text(const char *str, int x, int y, unsigned color, bool use_altfont);
+void draw_hline(int x, int y, int w, unsigned col);
+void draw_vline(int x, int y, int h, unsigned col);
+void draw_rect(int x0, int y0, int x1, int y1, unsigned col);
+void fill_rect(int x0, int y0, int x1, int y1, unsigned col);
+void draw_icon(int x, int y, unsigned icon, unsigned color);

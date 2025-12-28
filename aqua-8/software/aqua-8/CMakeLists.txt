@@ -68,9 +68,11 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_sources(${PROJECT_NAME} PRIVATE
     main.c
 
+    draw.c
+
     lib/start.S
     lib/common.c
-    lib/console.c
+    # lib/console.c
     lib/esp.c
     lib/malloc.c
     lib/readline.c

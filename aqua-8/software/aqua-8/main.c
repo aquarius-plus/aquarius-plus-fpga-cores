@@ -5,253 +5,280 @@
 
 #include "lua.h"
 #include "lauxlib.h"
-
-void load_executable(const char *path);
+#include "draw.h"
+#include "trap.h"
+#include "esp.h"
 
 int luaopen_base(lua_State *L);
 
-static const uint16_t palette[16] = {
-    0x000,
-    0x125,
-    0x725,
-    0x085,
-    0xA53,
-    0x554,
-    0xCCC,
-    0xFFE,
-    0xF04,
-    0xFA0,
-    0xFF2,
-    0x0E5,
-    0x2AF,
-    0x879,
-    0xF7A,
-    0xFCA};
+volatile bool frame30 = false;
 
-static const uint8_t font[760] = {
-#include "font.inl"
-};
-static const uint8_t font2[760] = {
-#include "altfont.inl"
-};
+void vblank_handler(void) {
+    static unsigned frame = 0;
+    frame++;
 
-void scr_pset(int x, int y, unsigned color) {
-    VIDEO->POSX16 = x;
-    VIDEO->POSY16 = y;
-    VIDEO->WR4BPP = color;
-
-    // VRAM4BIT[y * 192 + x] = color;
-}
-
-void draw_char(int x, int y, uint8_t ch, unsigned color) {
-    if (ch < 32 || ch > 127)
-        return;
-    ch -= 32;
-
-    const uint8_t *p = &font[ch * 8];
-
-    VIDEO->COLOR  = color;
-    VIDEO->FLAGS  = 1;
-    VIDEO->POSX16 = x;
-    VIDEO->POSY16 = y;
-    VIDEO->WR1BPP = p[0];
-    VIDEO->WR1BPP = p[1];
-    VIDEO->WR1BPP = p[2];
-    VIDEO->WR1BPP = p[3];
-    VIDEO->WR1BPP = p[4];
-    VIDEO->WR1BPP = p[5];
-}
-
-void draw_char2(int x, int y, uint8_t ch, unsigned color) {
-    if (ch < 32 || ch > 127)
-        return;
-    ch -= 32;
-
-    const uint8_t *p = &font2[ch * 8];
-
-    VIDEO->COLOR  = color;
-    VIDEO->FLAGS  = 1;
-    VIDEO->POSX16 = x;
-    VIDEO->POSY16 = y;
-    VIDEO->WR1BPP = p[0];
-    VIDEO->WR1BPP = p[1];
-    VIDEO->WR1BPP = p[2];
-    VIDEO->WR1BPP = p[3];
-    VIDEO->WR1BPP = p[4];
-    VIDEO->WR1BPP = p[5];
-}
-
-void scr_print(const char *str, int x, int y, unsigned color) {
-    while (*str) {
-        draw_char2(x, y, *str, color);
-        x += 4;
-        str++;
+    // if (frame & 1)
+    {
+        frame30 = true;
     }
 }
 
-static void wait_frame(void) {
-    while ((csr_read_clear(mip, (1 << 16)) & (1 << 16)) == 0);
+void trap_handler(struct trap_regs *regs) {
+    unsigned mip = csr_read_clear(mip, -1UL);
+    if (mip & (1 << VBLANK_IRQn)) {
+        vblank_handler();
+    }
+}
+
+enum {
+    MODE_CONSOLE = 0,
+    MODE_CODE    = 1,
+    MODE_SPRITE  = 2,
+    MODE_MAP     = 3,
+    MODE_SFX     = 4,
+    MODE_MUSIC   = 5,
+};
+
+static int      mode = MODE_CODE;
+static unsigned sec  = 0;
+static uint16_t last = 0;
+
+void screen_code(void) {
+    fill_rect(0, 7, 199, 152, 1);
+
+    char bla[32];
+    snprintf(bla, sizeof(bla), "bla: %u", sec);
+    draw_text(bla, 50, 50, 7, false);
+    snprintf(bla, sizeof(bla), "last: %04x", last);
+    draw_text(bla, 50, 60, 7, false);
+
+    draw_text("Line 1/1 Col 1", 1, 154, 14, true);
+
+    // VRAM4BIT[0]++;
+}
+
+void screen_sprite(void) {
+    fill_rect(0, 7, 199, 152, 5);
+
+    int x, y;
+
+    // draw_text("#0", 1, 8, 7, false);
+
+    // Palette
+    {
+        x = 1;
+        y = 8;
+
+        draw_rect(x, y, x + 1 + 64, y + 1 + 16, 0);
+        x += 1;
+        y += 1;
+
+        for (int i = 0; i < 16; i++) {
+            int row = i / 8;
+            int col = i % 8;
+
+            fill_rect(
+                x + col * 8, y + row * 8,
+                x + col * 8 + 7, y + row * 8 + 7,
+                i);
+        }
+    }
+
+    // Sprite overview
+    {
+        x = 200 - 128 - 3;
+        y = 8;
+        draw_rect(x, y, x + 1 + 128, y + 1 + 128, 0);
+        fill_rect(x + 1, y + 1, x + 128, y + 128, 0);
+        x += 1;
+        y += 1;
+
+        for (int i = 0; i < 256; i++) {
+            int row = i / 16;
+            int col = i % 16;
+
+            draw_game_sprite(i, x + col * 8, y + row * 8);
+        }
+    }
+
+    // Sprite editor
+    {
+        x = 1;
+        y = 27;
+        draw_rect(x, y, x + 1 + 64, y + 1 + 64, 0);
+    }
+
+    // Commands
+    {
+        x = 5;
+        y = 98;
+
+        for (int i = 0; i < 6; i++) {
+            draw_icon(x + i * 10, y, 16 + i, i == 0 ? 7 : 13);
+        }
+
+        y += 9;
+        for (int i = 0; i < 6; i++) {
+            draw_icon(x + i * 10, y, 32 + i, 13);
+        }
+    }
+}
+
+void screen(void) {
+    fill_rect(0, 0, 199, 6, 8);
+    fill_rect(0, 159 - 6, 199, 159, 2);
+
+    // Mode icons
+    {
+        int x = 200 - 5 * 8;
+        draw_icon(x, 1, 0, mode == MODE_CODE ? 7 : 2);
+        x += 8;
+        draw_icon(x, 1, 1, mode == MODE_SPRITE ? 7 : 2);
+        x += 8;
+        draw_icon(x, 1, 2, mode == MODE_MAP ? 7 : 2);
+        x += 8;
+        draw_icon(x, 1, 3, mode == MODE_SFX ? 7 : 2);
+        x += 8;
+        draw_icon(x, 1, 4, mode == MODE_MUSIC ? 7 : 2);
+    }
+
+    const char *title = "";
+    switch (mode) {
+        case MODE_CODE: title = "Code editor"; break;
+        case MODE_SPRITE: title = "Sprite editor"; break;
+        case MODE_MAP: title = "Map editor"; break;
+        case MODE_SFX: title = "SFX editor"; break;
+        case MODE_MUSIC: title = "Music editor"; break;
+    }
+    draw_text(title, 1, 1, 15, true);
+
+    switch (mode) {
+        case MODE_CODE: title = "Code editor"; break;
+        case MODE_SPRITE: title = "Sprite editor"; break;
+        case MODE_MAP: title = "Map editor"; break;
+        case MODE_SFX: title = "SFX editor"; break;
+        case MODE_MUSIC: title = "Music editor"; break;
+    }
+
+    switch (mode) {
+        case MODE_CODE: screen_code(); break;
+        case MODE_SPRITE: screen_sprite(); break;
+        case MODE_MAP: break;
+        case MODE_SFX: break;
+        case MODE_MUSIC: break;
+    }
+
+    // // draw_hline(10, 10, 100, 7);
+    // // draw_vline(10, 10, 100, 7);
+    // // draw_hline(10, 109, 100, 7);
+    // // draw_vline(109, 10, 100, 7);
+
+    // for (int i = 0; i < 16; i++) {
+    //     fill_rect(i * 8, 30, i * 8 + 7, 37, i);
+    // }
+}
+
+void draw_mouse_cursor(int x, int y) {
+    int spr = 0;
+    if (y < 7 && x >= 200 - 5 * 8) {
+        spr = 1;
+    } else if (y >= 7 && y < 160 - 7 && mode == MODE_CODE)
+        spr = 2;
+
+    int sx = x;
+    int sy = y;
+    switch (spr) {
+        case 0: // Pointer
+            sx -= 1;
+            sy -= 1;
+            break;
+        case 1: // Hand
+            sx -= 3;
+            sy -= 1;
+            break;
+        case 2: // I-beam
+            sx -= 1;
+            sy -= 4;
+            break;
+        default: break;
+    }
+
+    draw_sprite(spr, sx, sy);
+}
+
+void on_click(int x, int y, int buttons) {
+    int buttons_left = 200 - 5 * 8;
+
+    if (y < 7 && x >= buttons_left && x < 200) {
+        mode = MODE_CODE + (x - buttons_left) / 8;
+    }
+}
+
+void handle_mouse(void) {
+    static uint8_t prev_buttons = 0;
+
+    esp_cmd(ESPCMD_GETMOUSE);
+    uint8_t result = esp_get_byte();
+    if (result == 0) {
+        uint16_t x = esp_get_byte();
+        x |= esp_get_byte() << 8;
+        uint8_t y       = esp_get_byte();
+        uint8_t buttons = esp_get_byte();
+        int8_t  wheel   = esp_get_byte();
+
+        // char bla[32];
+        // snprintf(bla, sizeof(bla), "%u %u %u %d", x, y, buttons, wheel);
+        // draw_text(bla, 50, 70, 7, false);
+
+        uint8_t pressed_buttons = ~prev_buttons & buttons;
+        prev_buttons            = buttons;
+
+        if (pressed_buttons)
+            on_click(x, y, buttons);
+
+        draw_mouse_cursor(x, y);
+    }
 }
 
 int main(void) {
-    // TRAM->init_val1 = 0;
-    // TRAM->init_val2 = 0;
-    // console_init();
-    // console_puts("\r\n AQUA-8 V0.1\r\n\r\n");
+    esp_closeall();
 
-    unsigned cnt = 0;
+    palette_init();
+    remap_reset();
 
-    for (int i = 0; i < 16; i++)
-        VIDEO->PALETTE[i] = palette[i & 15];
-    for (int i = 0; i < 16; i++)
-        VIDEO->REMAP[i] = i;
-    VIDEO->REMAP_T = 0x0;
+    __irq_enable();
+    csr_write(mie, (1 << VBLANK_IRQn));
 
-    // for (unsigned j = 0; j < 160; j++) {
-    //     for (unsigned i = 0; i < 24; i++) {
-    //         unsigned col = 1; //((j / 40) * 4 + (i / 6)) & 0xF;
+    unsigned t = 0;
 
-    //         uint32_t color =
-    //             (col << 28) | (col << 24) |
-    //             (col << 20) | (col << 16) |
-    //             (col << 12) | (col << 8) |
-    //             (col << 4) | (col << 0);
+    screen();
 
-    //         VRAM[j * 24 + i] = color;
-    //     }
-    // }
+    // uint16_t org1 = VIDEO->PALETTE[1];
 
-    // *((uint32_t *)((uint8_t *)VRAM + 0)) = 0x00000007;
-
-    // VRAM[0]      = 0x00000007;
-    // VRAM[24]     = 0x00000070;
-    // VRAM[24 * 2] = 0x00000700;
-    // VRAM[24 * 3] = 0x00007000;
-    // VRAM[24 * 4] = 0x00070000;
-    // VRAM[24 * 5] = 0x00700000;
-    // VRAM[24 * 6] = 0x07000000;
-    // VRAM[24 * 7] = 0x70000000;
-
-    // ((uint32_t *)VRAM4BIT)[0] = 0x0000007;
-
-    for (unsigned i = 0; i < 24 * 160; i++) {
-        VRAM[i] = 0x11111111;
-    }
-    for (int ch = 32; ch < 127; ch++) {
-        draw_char((ch & 31) * 6, (ch / 32) * 7, ch, 6);
-    }
-    for (int ch = 32; ch < 127; ch++) {
-        draw_char2((ch & 31) * 4, 40 + (ch / 32) * 6, ch, 6);
-    }
-
-    // while (1);
-
-    // // REG_FLAGS = 4;
-    // scr_pset(0, 100, 0x77777777);
-    // scr_pset(-1, 101, 0x77777777);
-    // scr_pset(-2, 102, 0x77777777);
-    // scr_pset(-3, 103, 0x77777777);
-    // scr_pset(-4, 104, 0x77777777);
-    // scr_pset(-5, 105, 0x77777777);
-    // scr_pset(-6, 106, 0x77777777);
-    // scr_pset(-7, 107, 0x77777777);
-    // scr_pset(-8, 108, 0x77777777);
-
-    // scr_pset(192 - 8, 108, 0x77777777);
-    // scr_pset(192 - 7, 107, 0x77777777);
-    // scr_pset(192 - 6, 106, 0x77777777);
-    // scr_pset(192 - 5, 105, 0x77777777);
-    // scr_pset(192 - 4, 104, 0x77777777);
-    // scr_pset(192 - 3, 103, 0x77777777);
-    // scr_pset(192 - 2, 102, 0x77777777);
-    // scr_pset(192 - 1, 101, 0x77777777);
-    // scr_pset(192 - 0, 100, 0x77777777);
-
-    unsigned page = 0;
+    unsigned page = 1;
     VIDEO->PAGE   = page;
 
-    int x1   = 0;
-    int x2   = 192;
-    int y1   = 0;
-    int y2   = 160;
-    int xdir = 1;
-
-    uint16_t col1 = VIDEO->PALETTE[1];
-
     while (1) {
-        VIDEO->PALETTE[1] = 0x080;
-        VIDEO->CLIPRECT   = (y2 << 24) | (y1 << 16) | (x2 << 8) | (x1 << 0);
-
-        for (unsigned i = 0; i < 24 * 160; i++) {
-            VRAM[i] = 0x11111111;
+        frame30 = false;
+        while (!frame30) {
         }
-
-        for (int i = 0; i < 23; i++) {
-            // char tmp[64];
-            // snprintf(tmp, sizeof(tmp), "Hello world %6u %6u %6u", cnt, cnt, cnt);
-            // scr_print(tmp, 0, i * 7, 7);
-            // char tmp[64];
-            // snprintf(tmp, sizeof(tmp), "Hello world %6u %6u %6u", cnt, cnt, cnt);
-            scr_print("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 0, 0 + i * 7, 7);
-        }
-
-        VIDEO->PALETTE[1] = col1;
-
-        // cnt++;
-
-        // Wait for vsync
-        wait_frame();
         page ^= 3;
         VIDEO->PAGE = page;
 
-#if 1
-        x1 += xdir;
-        if (x1 <= 0)
-            xdir = 1;
-        else if (x1 >= 191)
-            xdir = -1;
-#endif
-#if 0
-        x2 += xdir;
-        if (x2 <= 0)
-            xdir = 1;
-        else if (x2 >= 191)
-            xdir = -1;
-#endif
-#if 0
-        y1 += xdir;
-        if (y1 <= 0)
-            xdir = 1;
-        else if (y1 >= 159)
-            xdir = -1;
-#endif
-#if 0
-        y2 += xdir;
-        if (y2 <= 0)
-            xdir = 1;
-        else if (y2 >= 159)
-            xdir = -1;
-#endif
+        screen();
+        handle_mouse();
+
+        if (++t % 30 == 0)
+            sec++;
+
+        while (1) {
+            int keybuf = KEYBUF;
+            if (keybuf < 0)
+                break;
+
+            last = keybuf;
+        }
     }
-    // for (int j = 0; j < 20; j++)
-    //     draw_str(8, j * 7, "lua_State *L = luaL_newstate();", 6);
 
-#if 0
-    lua_State *L = luaL_newstate(); // Create a new Lua state
-    luaL_requiref(L, "_G", luaopen_base, 1);
-
-    luaL_loadstring(
-        L,
-        "a=2^3;\n"
-        "print(a)\n"
-        "print('Hello, World!')\n");
-    lua_pcall(L, 0, LUA_MULTRET, 0);
-
-    lua_close(L); // Close the Lua state
-#endif
-
-    while (1);
-
-    // load_executable("/cores/aq32/shell.aq32");
     return 0;
 }

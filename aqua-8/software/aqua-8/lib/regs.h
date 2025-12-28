@@ -28,52 +28,6 @@ extern "C" {
 #define KEY_MOD_SHIFT   (1 << 9)
 #define KEY_MOD_CTRL    (1 << 8)
 
-struct regs_gfx {
-    volatile uint32_t CTRL;
-    volatile uint32_t LINE;
-    volatile uint32_t IRQLINE;
-    volatile uint32_t _pad;
-    volatile uint32_t SCRX1;
-    volatile uint32_t SCRY1;
-    volatile uint32_t SCRX2;
-    volatile uint32_t SCRY2;
-};
-
-struct regs_pcm {
-    volatile uint32_t status;
-    volatile uint32_t fifo_ctrl;
-    volatile uint32_t rate;
-    volatile uint32_t data;
-};
-
-struct regs_fmsynth {
-    volatile uint32_t opmode;
-    volatile uint32_t ctrl;
-    volatile uint32_t key_on;
-    volatile uint32_t _pad[29 + 32 + 32];
-    volatile uint32_t ch_attr[32];
-    volatile uint32_t op_attr0[64];
-    volatile uint32_t op_attr1[64];
-};
-
-static_assert(sizeof(struct regs_fmsynth) == 1024);
-
-#define TEXT_COLUMNS 80
-#define TEXT_ROWS    30
-
-struct regs_tram {
-    uint16_t text[TEXT_COLUMNS * TEXT_ROWS];
-    uint16_t init_val1;
-    uint16_t text_color;
-    uint16_t saved_color;
-    uint16_t cursor_color;
-    uint8_t  cursor_row;
-    uint8_t  cursor_column;
-    uint8_t  cursor_visible;
-    uint8_t  cursor_enabled;
-    uint16_t init_val2;
-};
-
 struct regs_video {
     volatile uint16_t PALETTE[16];
     union {

@@ -66,6 +66,14 @@ void reinit_video(void);
 
 void hexdump(const void *buf, int length);
 
+static inline bool __irq_disable(void) {
+    return (csr_read_clear(mstatus, 8) & 8) != 0;
+}
+
+static inline void __irq_enable(void) {
+    csr_set(mstatus, 8);
+}
+
 #ifdef __cplusplus
 }
 #endif
