@@ -1,5 +1,9 @@
 #include "scr.h"
 
-void scr_music(void) {
-    scr_common(1);
+static void draw(void) {
+    scr_common(5);
 }
+
+screen_t scr_music = {
+    .draw = draw,
+};

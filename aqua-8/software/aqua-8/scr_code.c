@@ -1,6 +1,6 @@
 #include "scr.h"
 
-void scr_code(void) {
+static void draw(void) {
     scr_common(1);
 
     // char bla[32];
@@ -13,3 +13,7 @@ void scr_code(void) {
 
     // VRAM4BIT[0]++;
 }
+
+screen_t scr_code = {
+    .draw = draw,
+};

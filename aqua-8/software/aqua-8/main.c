@@ -59,15 +59,7 @@ void draw_mouse_cursor(int x, int y) {
     draw_sprite(spr, sx, sy);
 }
 
-void on_click(int x, int y, int buttons) {
-    int buttons_left = 200 - 5 * 8;
-
-    if (y < 7 && x >= buttons_left && x < 200) {
-        mode = MODE_CODE + (x - buttons_left) / 8;
-    }
-}
-
-void handle_mouse(void) {
+static void handle_mouse(void) {
     static uint8_t prev_buttons = 0;
 
     esp_cmd(ESPCMD_GETMOUSE);
@@ -83,13 +75,21 @@ void handle_mouse(void) {
         // snprintf(bla, sizeof(bla), "%u %u %u %d", x, y, buttons, wheel);
         // draw_text(bla, 50, 70, 7, false);
 
-        uint8_t pressed_buttons = ~prev_buttons & buttons;
+        uint8_t clicked_buttons = ~prev_buttons & buttons;
         prev_buttons            = buttons;
 
-        if (pressed_buttons)
-            on_click(x, y, buttons);
-
+        scr_mouse(x, y, buttons, clicked_buttons, wheel);
         draw_mouse_cursor(x, y);
+    }
+}
+
+static void handle_keybuf(void) {
+    while (1) {
+        int keybuf = KEYBUF;
+        if (keybuf < 0)
+            break;
+
+        // last = keybuf;
     }
 }
 
@@ -102,31 +102,17 @@ int main(void) {
     __irq_enable();
     csr_write(mie, (1 << VBLANK_IRQn));
 
-    unsigned t = 0;
-
     // uint16_t org1 = VIDEO->PALETTE[1];
 
     unsigned page = 1;
     VIDEO->PAGE   = page;
 
     while (1) {
-        switch (mode) {
-            case MODE_CODE: scr_code(); break;
-            case MODE_SPRITE: scr_sprite(); break;
-            case MODE_MAP: scr_map(); break;
-            case MODE_SFX: scr_sfx(); break;
-            case MODE_MUSIC: scr_music(); break;
-        }
+        screen_t *scr = scr_get_current();
+        scr->draw();
 
         handle_mouse();
-
-        while (1) {
-            int keybuf = KEYBUF;
-            if (keybuf < 0)
-                break;
-
-            // last = keybuf;
-        }
+        handle_keybuf();
 
         frame30 = false;
         while (!frame30) {

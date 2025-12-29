@@ -12,12 +12,25 @@ enum {
     MODE_MUSIC   = 5,
 };
 
+typedef struct {
+    // void (*mouse_move)(void);
+    // void (*key_up)(void);
+    // void (*key_down)(void);
+    void (*draw)(void);
+    void (*on_mouse)(int x, int y, int buttons, int clicked_buttons, int wheel);
+
+    void (*on_char)(uint8_t ch);
+} screen_t;
+
+screen_t *scr_get_current(void);
+
 extern int mode;
 
 void scr_common(unsigned bg_col);
+void scr_mouse(int x, int y, int buttons, int clicked_buttons, int wheel);
 
-void scr_code(void);
-void scr_sprite(void);
-void scr_map(void);
-void scr_sfx(void);
-void scr_music(void);
+extern screen_t scr_code;
+extern screen_t scr_sprite;
+extern screen_t scr_map;
+extern screen_t scr_sfx;
+extern screen_t scr_music;

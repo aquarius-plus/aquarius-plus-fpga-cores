@@ -1,6 +1,6 @@
 #include "scr.h"
 
-void scr_sprite(void) {
+static void draw(void) {
     scr_common(5);
 
     int x, y;
@@ -53,16 +53,23 @@ void scr_sprite(void) {
 
     // Commands
     {
+        unsigned color     = 13;
+        unsigned color_sel = 7;
+
         x = 5;
         y = 98;
 
         for (int i = 0; i < 6; i++) {
-            draw_icon(x + i * 10, y, 16 + i, i == 0 ? 7 : 13);
+            draw_icon(x + i * 10, y, 16 + i, i == 0 ? color_sel : color);
         }
 
         y += 9;
         for (int i = 0; i < 6; i++) {
-            draw_icon(x + i * 10, y, 32 + i, 13);
+            draw_icon(x + i * 10, y, 32 + i, color);
         }
     }
 }
+
+screen_t scr_sprite = {
+    .draw = draw,
+};
