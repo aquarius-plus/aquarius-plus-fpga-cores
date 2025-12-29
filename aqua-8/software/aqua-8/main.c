@@ -109,6 +109,10 @@ static void draw_mouse_cursor(void) {
             sx -= 1;
             sy -= 4;
             break;
+        case MOUSE_SPR_CROSSHAIR:
+            sx -= 3;
+            sy -= 3;
+            break;
         default: break;
     }
     draw_sprite(state.mouse_spr, sx, sy);

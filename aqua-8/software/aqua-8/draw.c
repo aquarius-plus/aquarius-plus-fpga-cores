@@ -1,4 +1,5 @@
 #include "draw.h"
+#include "state.h"
 
 static const uint8_t font[760] = {
 #include "font.inl"
@@ -11,9 +12,6 @@ static const uint8_t icons[760] = {
 };
 static const uint32_t sprites[] = {
 #include "sprites.inl"
-};
-static const uint32_t game_sprites[] = {
-#include "game_sprites.inl"
 };
 static const uint16_t palette[16] = {
     0x000, 0x125, 0x725, 0x085, 0xA53, 0x555, 0xCCC, 0xFFE,
@@ -61,7 +59,7 @@ void draw_sprite(unsigned spr, int x, int y) {
 }
 
 void draw_game_sprite(unsigned spr, int x, int y) {
-    const uint32_t *p = &game_sprites[(spr >> 4) * 128 + (spr & 15)];
+    const uint32_t *p = &state.sprites[(spr >> 4) * 128 + (spr & 15)];
 
     VIDEO->REMAP_T = 1;
     VIDEO->FLAGS   = 1;

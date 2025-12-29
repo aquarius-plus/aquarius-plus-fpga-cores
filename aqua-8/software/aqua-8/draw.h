@@ -21,6 +21,13 @@ static inline bool rect_contains(const rect_t *r, int x, int y) {
     return x >= r->x0 && x <= r->x1 && y >= r->y0 && y <= r->y1;
 }
 
+static inline void rect_shrink(rect_t *r, int amount) {
+    r->x0 += amount;
+    r->y0 += amount;
+    r->x1 -= amount;
+    r->y1 -= amount;
+}
+
 void palette_init(void);
 void remap_reset(void);
 void clear_screen(unsigned color);

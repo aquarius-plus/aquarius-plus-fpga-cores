@@ -4,7 +4,6 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("png")
-parser.add_argument("bin")
 args = parser.parse_args()
 
 img = Image.open(args.png)

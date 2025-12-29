@@ -12,7 +12,17 @@ static void draw(void) {
         x = 1;
         y = 8;
 
-        draw_rect(&(rect_t){x, y, x + 1 + 64, y + 1 + 16}, 0);
+        rect_t r = {x, y, x + 1 + 64, y + 1 + 16};
+        draw_rect(&r, 0);
+        rect_shrink(&r, 1);
+
+        if (mouse_hover(&r, MOUSE_SPR_HAND)) {
+            if (state.mouse_ev.buttons == 1)
+                state.spr_edit.color =
+                    ((state.mouse_ev.y - r.y0) / 8) * 8 +
+                    ((state.mouse_ev.x - r.x0) / 8);
+        }
+
         x += 1;
         y += 1;
 
@@ -22,6 +32,15 @@ static void draw(void) {
 
             fill_rect(&(rect_t){x + col * 8, y + row * 8, x + col * 8 + 7, y + row * 8 + 7}, i);
         }
+
+        rect_t r2;
+        r2.x0 = r.x0 + (state.spr_edit.color % 8) * 8 - 1;
+        r2.y0 = r.y0 + (state.spr_edit.color / 8) * 8 - 1;
+        r2.x1 = r2.x0 + 9;
+        r2.y1 = r2.y0 + 9;
+        draw_rect(&r2, 7);
+        rect_shrink(&r2, 1);
+        draw_rect(&r2, 0);
     }
 
     // Sprite overview
@@ -29,7 +48,16 @@ static void draw(void) {
         x = 200 - 128 - 3;
         y = 8;
         draw_rect(&(rect_t){x, y, x + 1 + 128, y + 1 + 128}, 0);
-        fill_rect(&(rect_t){x + 1, y + 1, x + 128, y + 128}, 0);
+
+        rect_t r = {x + 1, y + 1, x + 128, y + 128};
+        if (mouse_hover(&r, MOUSE_SPR_HAND)) {
+            if (state.mouse_ev.buttons == 1)
+                state.spr_edit.spr_idx =
+                    ((state.mouse_ev.y - r.y0) / 8) * 16 +
+                    ((state.mouse_ev.x - r.x0) / 8);
+        }
+
+        fill_rect(&r, 0);
         x += 1;
         y += 1;
 
@@ -39,13 +67,48 @@ static void draw(void) {
 
             draw_game_sprite(i, x + col * 8, y + row * 8);
         }
+
+        {
+            r.x0 += (state.spr_edit.spr_idx % 16) * 8;
+            r.y0 += (state.spr_edit.spr_idx / 16) * 8;
+
+            r.x1 = r.x0 + 8;
+            r.y1 = r.y0 + 8;
+            r.x0 -= 1;
+            r.y0 -= 1;
+            draw_rect(&r, 7);
+        }
     }
 
     // Sprite editor
     {
         x = 1;
         y = 27;
-        draw_rect(&(rect_t){x, y, x + 1 + 64, y + 1 + 64}, 0);
+
+        rect_t r = {x, y, x + 1 + 64, y + 1 + 64};
+        draw_rect(&r, 0);
+        rect_shrink(&r, 1);
+
+        const uint32_t *spr = &state.sprites[(state.spr_edit.spr_idx >> 4) * 128 + (state.spr_edit.spr_idx & 15)];
+
+        for (int j = 0; j < 8; j++) {
+            for (int i = 0; i < 8; i++) {
+                rect_t r2;
+                r2.x0 = r.x0 + i * 8;
+                r2.y0 = r.y0 + j * 8;
+                r2.x1 = r2.x0 + 7;
+                r2.y1 = r2.y0 + 7;
+
+                unsigned col = (*spr >> (i * 4)) & 0xF;
+
+                if (mouse_hover(&r2, MOUSE_SPR_CROSSHAIR)) {
+                    col = state.spr_edit.color;
+                }
+
+                fill_rect(&r2, col);
+            }
+            spr += 16;
+        }
     }
 
     // Commands

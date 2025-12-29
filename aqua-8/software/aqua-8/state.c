@@ -1,7 +1,7 @@
 #include "state.h"
 
 state_t state = {
-    .mode = MODE_SFX,
+    .mode = MODE_SPRITE,
 
     .sfx_edit = {
         .sfx_idx    = 0,
@@ -20,5 +20,14 @@ state_t state = {
             .loop_end   = 0,
             .notes      = {0xFFC0, 0xFFC1, 0xFFC2, 0xFFC3, 0xFFC4, 0xFFC5, 0xFFC6, 0xFFC7, 0xFFC8, 0xFFC9, 0xFFCA, 0xFFCB, 0xFFCC, 0xFFCD, 0xFFCE, 0xFFCF, 0xFFC9, 0x0FFF},
         },
+
+    },
+
+    .spr_edit = {
+        .color = 15,
+    },
+
+    .sprites = {
+#include "game_sprites.inl"
     },
 };

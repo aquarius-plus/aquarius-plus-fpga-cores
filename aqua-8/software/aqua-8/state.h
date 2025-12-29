@@ -11,9 +11,10 @@ enum {
     MODE_CONSOLE,
 };
 
-#define MOUSE_SPR_POINTER 0
-#define MOUSE_SPR_HAND    1
-#define MOUSE_SPR_IBEAM   2
+#define MOUSE_SPR_POINTER   0
+#define MOUSE_SPR_HAND      1
+#define MOUSE_SPR_IBEAM     2
+#define MOUSE_SPR_CROSSHAIR 3
 
 typedef struct {
     uint8_t x;
@@ -31,6 +32,11 @@ typedef struct {
 } sfx_t;
 
 typedef struct {
+    uint8_t spr_idx;
+    uint8_t color;
+} sprite_edit_t;
+
+typedef struct {
     uint8_t sfx_idx;
     uint8_t octave;
     uint8_t volume;
@@ -46,8 +52,10 @@ typedef struct {
     uint8_t       mouse_spr;
     uint16_t      modifiers;
 
-    sfx_edit_t sfx_edit;
-    sfx_t      sfx[64];
+    sprite_edit_t spr_edit;
+    uint32_t      sprites[16 * 16 * 8];
+    sfx_edit_t    sfx_edit;
+    sfx_t         sfx[64];
 } state_t;
 
 extern state_t state;
