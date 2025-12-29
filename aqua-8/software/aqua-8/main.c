@@ -154,7 +154,9 @@ int main(void) {
         handle_mouse();
         handle_keybuf();
 
+        state.status_text[0] = 0;
         scr_get_current()->draw();
+        scr_draw_status();
         draw_mouse_cursor();
         state.mouse_ev.clicked_buttons = 0;
         state.mouse_ev.wheel           = 0;

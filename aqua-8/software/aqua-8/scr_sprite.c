@@ -1,5 +1,33 @@
 #include "scr.h"
 
+static void on_tool_click(unsigned tool) {
+    switch (tool) {
+        case TOOL_ROTATE: break;
+        case TOOL_HFLIP: break;
+        case TOOL_VFLIP: break;
+        case TOOL_DELETE: break;
+
+        default:
+            state.spr_edit.tool = tool;
+            break;
+    }
+}
+
+const char *tool_status_text[] = {
+    "Draw",                          // TOOL_PIXEL
+    "Shape: line",                   // TOOL_LINE
+    "Fill",                          // TOOL_FILL
+    "Select",                        // TOOL_SELECT
+    "Rotate",                        // TOOL_ROTATE
+    "Color picker",                  // TOOL_COLORPICK
+    "Shape: circle (Ctrl: Fill)",    // TOOL_CIRCLE
+    "Shape: rectangle (Ctrl: Fill)", // TOOL_RECT
+    "Stamp from clipboard",          // TOOL_STAMP
+    "Flip horizontally",             // TOOL_HFLIP
+    "Flip vertically",               // TOOL_VFLIP
+    "Erase",                         // TOOL_DELETE
+};
+
 static void draw(void) {
     scr_common(5);
 
@@ -17,10 +45,13 @@ static void draw(void) {
         rect_shrink(&r, 1);
 
         if (mouse_hover(&r, MOUSE_SPR_HAND)) {
+            unsigned hover_color = ((state.mouse_ev.y - r.y0) / 8) * 8 +
+                                   ((state.mouse_ev.x - r.x0) / 8);
+
+            snprintf(state.status_text, sizeof(state.status_text), "Color %u", hover_color);
+
             if (state.mouse_ev.buttons == 1)
-                state.spr_edit.color =
-                    ((state.mouse_ev.y - r.y0) / 8) * 8 +
-                    ((state.mouse_ev.x - r.x0) / 8);
+                state.spr_edit.color = hover_color;
         }
 
         x += 1;
@@ -51,10 +82,14 @@ static void draw(void) {
 
         rect_t r = {x + 1, y + 1, x + 128, y + 128};
         if (mouse_hover(&r, MOUSE_SPR_HAND)) {
+            unsigned hover_idx =
+                ((state.mouse_ev.y - r.y0) / 8) * 16 +
+                ((state.mouse_ev.x - r.x0) / 8);
+
+            snprintf(state.status_text, sizeof(state.status_text), "Sprite %u", hover_idx);
+
             if (state.mouse_ev.buttons == 1)
-                state.spr_edit.spr_idx =
-                    ((state.mouse_ev.y - r.y0) / 8) * 16 +
-                    ((state.mouse_ev.x - r.x0) / 8);
+                state.spr_edit.spr_idx = hover_idx;
         }
 
         fill_rect(&r, 0);
@@ -113,19 +148,40 @@ static void draw(void) {
 
     // Commands
     {
-        unsigned color     = 13;
-        unsigned color_sel = 7;
+        unsigned color       = 13;
+        unsigned color_sel   = 7;
+        unsigned color_hover = 12;
 
         x = 5;
         y = 98;
 
-        for (int i = 0; i < 6; i++) {
-            draw_icon(x + i * 10, y, 16 + i, i == 0 ? color_sel : color);
-        }
+        unsigned tool = 0;
+        for (int j = 0; j < 2; j++) {
+            for (int i = 0; i < 6; i++) {
+                unsigned col = color;
 
-        y += 9;
-        for (int i = 0; i < 6; i++) {
-            draw_icon(x + i * 10, y, 32 + i, color);
+                rect_t r;
+                r.x0 = x + i * 10;
+                r.y0 = y;
+                r.x1 = r.x0 + 7;
+                r.y1 = r.y0 + 7;
+
+                // fill_rect(&r, 0);
+
+                if (mouse_hover(&r, MOUSE_SPR_HAND)) {
+                    strcpy(state.status_text, tool_status_text[tool]);
+
+                    col = color_hover;
+                    if (state.mouse_ev.clicked_buttons == 1 && state.mouse_ev.buttons == state.mouse_ev.clicked_buttons)
+                        on_tool_click(tool);
+                }
+                if (tool == state.spr_edit.tool)
+                    col = color_sel;
+
+                draw_icon(x + i * 10, y, (j + 1) * 16 + i, col);
+                tool++;
+            }
+            y += 9;
         }
     }
 }

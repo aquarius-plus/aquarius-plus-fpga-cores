@@ -31,9 +31,25 @@ typedef struct {
     uint16_t notes[32];
 } sfx_t;
 
+enum {
+    TOOL_PIXEL,
+    TOOL_LINE,
+    TOOL_FILL,
+    TOOL_SELECT,
+    TOOL_ROTATE,
+    TOOL_COLORPICK,
+    TOOL_CIRCLE,
+    TOOL_RECT,
+    TOOL_STAMP,
+    TOOL_HFLIP,
+    TOOL_VFLIP,
+    TOOL_DELETE,
+};
+
 typedef struct {
     uint8_t spr_idx;
     uint8_t color;
+    uint8_t tool;
 } sprite_edit_t;
 
 typedef struct {
@@ -50,6 +66,7 @@ typedef struct {
     uint8_t       mode;
     mouse_event_t mouse_ev;
     uint8_t       mouse_spr;
+    char          status_text[40];
     uint16_t      modifiers;
 
     sprite_edit_t spr_edit;

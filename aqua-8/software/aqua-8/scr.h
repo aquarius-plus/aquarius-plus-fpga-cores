@@ -11,6 +11,7 @@ typedef struct {
 
 screen_t *scr_get_current(void);
 
+void scr_draw_status(void);
 void scr_common(unsigned bg_col);
 void scr_key(uint16_t code);
 

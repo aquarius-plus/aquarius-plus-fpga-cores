@@ -11,6 +11,10 @@ screen_t *scr_get_current(void) {
     }
 }
 
+void scr_draw_status(void) {
+    draw_text(state.status_text, 1, 154, 14, true);
+}
+
 void scr_common(unsigned bg_col) {
     fill_rect(&(rect_t){0, 0, 199, 6}, 8);
     fill_rect(&(rect_t){0, 7, 199, 152}, bg_col);
