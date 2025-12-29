@@ -31,33 +31,33 @@ void trap_handler(struct trap_regs *regs) {
     }
 }
 
-void draw_mouse_cursor(int x, int y) {
-    int spr = 0;
-    if (y < 7 && x >= 200 - 5 * 8) {
-        spr = 1;
-    } else if (y >= 7 && y < 160 - 7 && mode == MODE_CODE)
-        spr = 2;
+// void draw_mouse_cursor(int x, int y) {
+//     int spr = 0;
+//     if (y < 7 && x >= 200 - 5 * 8) {
+//         spr = 1;
+//     } else if (y >= 7 && y < 160 - 7 && state.mode == MODE_CODE)
+//         spr = 2;
 
-    int sx = x;
-    int sy = y;
-    switch (spr) {
-        case 0: // Pointer
-            sx -= 1;
-            sy -= 1;
-            break;
-        case 1: // Hand
-            sx -= 3;
-            sy -= 1;
-            break;
-        case 2: // I-beam
-            sx -= 1;
-            sy -= 4;
-            break;
-        default: break;
-    }
+//     int sx = x;
+//     int sy = y;
+//     switch (spr) {
+//         case 0: // Pointer
+//             sx -= 1;
+//             sy -= 1;
+//             break;
+//         case 1: // Hand
+//             sx -= 3;
+//             sy -= 1;
+//             break;
+//         case 2: // I-beam
+//             sx -= 1;
+//             sy -= 4;
+//             break;
+//         default: break;
+//     }
 
-    draw_sprite(spr, sx, sy);
-}
+//     draw_sprite(spr, sx, sy);
+// }
 
 static void handle_mouse(void) {
     static uint8_t prev_buttons = 0;
@@ -71,19 +71,48 @@ static void handle_mouse(void) {
         uint8_t buttons = esp_get_byte();
         int8_t  wheel   = esp_get_byte();
 
+        if (x > 240)
+            x = 240;
+
         // char bla[32];
         // snprintf(bla, sizeof(bla), "%u %u %u %d", x, y, buttons, wheel);
         // draw_text(bla, 50, 70, 7, false);
 
+        state.mouse_spr = MOUSE_SPR_POINTER;
+
         uint8_t clicked_buttons = ~prev_buttons & buttons;
         prev_buttons            = buttons;
 
-        scr_mouse(x, y, buttons, clicked_buttons, wheel);
-        draw_mouse_cursor(x, y);
+        state.mouse_ev.x               = x;
+        state.mouse_ev.y               = y;
+        state.mouse_ev.buttons         = buttons;
+        state.mouse_ev.clicked_buttons = clicked_buttons;
+        state.mouse_ev.wheel           = wheel;
     }
 }
 
 uint16_t lastKeys[16];
+
+static void draw_mouse_cursor(void) {
+    int sx = state.mouse_ev.x;
+    int sy = state.mouse_ev.y;
+    switch (state.mouse_spr) {
+        case MOUSE_SPR_POINTER:
+            sx -= 1;
+            sy -= 1;
+            break;
+        case MOUSE_SPR_HAND:
+            sx -= 3;
+            sy -= 1;
+            break;
+        case MOUSE_SPR_IBEAM:
+            sx -= 1;
+            sy -= 4;
+            break;
+        default: break;
+    }
+    draw_sprite(state.mouse_spr, sx, sy);
+}
 
 static void handle_keybuf(void) {
     while (1) {
@@ -94,8 +123,8 @@ static void handle_keybuf(void) {
         for (int i = 0; i < 15; i++) {
             lastKeys[i] = lastKeys[i + 1];
         }
-        lastKeys[15] = keybuf;
-
+        lastKeys[15]    = keybuf;
+        state.modifiers = keybuf & KEY_MODIFIERS;
         scr_key(keybuf);
 
         // last = keybuf;
@@ -117,9 +146,14 @@ int main(void) {
     VIDEO->PAGE   = page;
 
     while (1) {
-        VIDEO->PALETTE[5] = 0xFFF;
+        // VIDEO->PALETTE[5] = 0xFFF;
+        handle_mouse();
+        handle_keybuf();
 
         scr_get_current()->draw();
+        draw_mouse_cursor();
+        state.mouse_ev.clicked_buttons = 0;
+        state.mouse_ev.wheel           = 0;
 
 #if 0
         for (int i = 0; i < 16; i++) {
@@ -128,9 +162,6 @@ int main(void) {
             draw_text(buf, 10, 10 + i * 8, 7, true);
         }
 #endif
-
-        handle_mouse();
-        handle_keybuf();
 
         palette_init();
 

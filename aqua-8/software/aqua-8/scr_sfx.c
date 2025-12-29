@@ -1,50 +1,5 @@
 #include "scr.h"
 
-typedef struct {
-    uint8_t  speed;
-    uint8_t  loop_start;
-    uint8_t  loop_end;
-    uint16_t notes[32];
-} sfx_t;
-
-typedef struct {
-    uint8_t sfx_idx;
-    uint8_t octave;
-    uint8_t volume;
-    uint8_t waveform;
-    uint8_t effect;
-    uint8_t cursor_row;
-    uint8_t cursor_col;
-
-    mouse_event_t mouse_ev;
-} sfx_edit_t;
-
-typedef struct {
-    sfx_edit_t sfx_edit;
-    sfx_t      sfx[64];
-} state_t;
-
-state_t state = {
-    .sfx_edit = {
-        .sfx_idx    = 0,
-        .octave     = 2,
-        .volume     = 5,
-        .waveform   = 0,
-        .effect     = 0,
-        .cursor_row = 1,
-        .cursor_col = 1,
-    },
-
-    .sfx = {
-        {
-            .speed      = 16,
-            .loop_start = 0,
-            .loop_end   = 0,
-            .notes      = {0xFFC0, 0xFFC1, 0xFFC2, 0xFFC3, 0xFFC4, 0xFFC5, 0xFFC6, 0xFFC7, 0xFFC8, 0xFFC9, 0xFFCA, 0xFFCB, 0xFFCC, 0xFFCD, 0xFFCE, 0xFFCF, 0xFFC9, 0x0FFF},
-        },
-    },
-};
-
 static void draw_note_row(int x, int y, int row) {
     uint16_t note_code = state.sfx[state.sfx_edit.sfx_idx].notes[row];
     unsigned pitch     = note_code & 63;
@@ -61,8 +16,6 @@ static void draw_note_row(int x, int y, int row) {
     bool is_current_row = row == state.sfx_edit.cursor_row;
     int  cursor_col     = is_current_row ? state.sfx_edit.cursor_col : -1;
 
-    bool clicked = state.sfx_edit.mouse_ev.clicked_buttons == 1 && state.sfx_edit.mouse_ev.buttons == state.sfx_edit.mouse_ev.clicked_buttons;
-
     // fill_rect(x, y, x + 29, y + 6, 0);
 
     {
@@ -73,7 +26,7 @@ static void draw_note_row(int x, int y, int row) {
         {
             rect_t r = {x + 1, y + 1, x + 8, y + 7};
             fill_rect(&r, cursor_col == 0 ? 3 : bg_col);
-            if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+            if (mouse_clicked(&r, 1, MOUSE_SPR_IBEAM)) {
                 state.sfx_edit.cursor_row = row;
                 state.sfx_edit.cursor_col = 0;
             }
@@ -81,7 +34,7 @@ static void draw_note_row(int x, int y, int row) {
         {
             rect_t r = {x + 9, y + 1, x + 13, y + 7};
             fill_rect(&r, cursor_col == 1 ? 3 : bg_col);
-            if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+            if (mouse_clicked(&r, 1, MOUSE_SPR_IBEAM)) {
                 state.sfx_edit.cursor_row = row;
                 state.sfx_edit.cursor_col = 1;
             }
@@ -89,7 +42,7 @@ static void draw_note_row(int x, int y, int row) {
         {
             rect_t r = {x + 14, y + 1, x + 18, y + 7};
             fill_rect(&r, cursor_col == 2 ? 3 : bg_col);
-            if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+            if (mouse_clicked(&r, 1, MOUSE_SPR_IBEAM)) {
                 state.sfx_edit.cursor_row = row;
                 state.sfx_edit.cursor_col = 2;
             }
@@ -97,7 +50,7 @@ static void draw_note_row(int x, int y, int row) {
         {
             rect_t r = {x + 19, y + 1, x + 23, y + 7};
             fill_rect(&r, cursor_col == 3 ? 3 : bg_col);
-            if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+            if (mouse_clicked(&r, 1, MOUSE_SPR_IBEAM)) {
                 state.sfx_edit.cursor_row = row;
                 state.sfx_edit.cursor_col = 3;
             }
@@ -105,7 +58,7 @@ static void draw_note_row(int x, int y, int row) {
         {
             rect_t r = {x + 24, y + 1, x + 28, y + 7};
             fill_rect(&r, cursor_col == 4 ? 3 : bg_col);
-            if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+            if (mouse_clicked(&r, 1, MOUSE_SPR_IBEAM)) {
                 state.sfx_edit.cursor_row = row;
                 state.sfx_edit.cursor_col = 4;
             }
@@ -134,8 +87,6 @@ static void draw(void) {
     int x, y;
     scr_common(5);
 
-    bool clicked = state.sfx_edit.mouse_ev.clicked_buttons == 1 && state.sfx_edit.mouse_ev.buttons == state.sfx_edit.mouse_ev.clicked_buttons;
-
     sfx_t *sfx = &state.sfx[state.sfx_edit.sfx_idx];
 
     // SFX
@@ -152,7 +103,7 @@ static void draw(void) {
             x = sfx_x + 2;
             for (int i = 0; i < 4; i++) {
                 rect_t r = {x, y, x + 8, y + 6};
-                if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y))
+                if (mouse_lclick(&r))
                     state.sfx_edit.sfx_idx = nr;
 
                 fill_rect(&r, nr == state.sfx_edit.sfx_idx ? 7 : 13);
@@ -186,13 +137,13 @@ static void draw(void) {
             draw_text(tmp, x, y, 6, true);
 
             // Handle value changes
-            if (rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+            if (mouse_hover(&r, MOUSE_SPR_HAND)) {
                 int new_val = sfx->speed;
-                if (state.sfx_edit.mouse_ev.clicked_buttons == 1)
+                if (state.mouse_ev.clicked_buttons == 1)
                     new_val++;
-                else if (state.sfx_edit.mouse_ev.clicked_buttons == 2)
+                else if (state.mouse_ev.clicked_buttons == 2)
                     new_val--;
-                new_val += state.sfx_edit.mouse_ev.wheel;
+                new_val += state.mouse_ev.wheel;
                 sfx->speed = clamp(new_val, 1, 255);
             }
         }
@@ -212,13 +163,13 @@ static void draw(void) {
                 draw_text(tmp, x, y, 6, true);
 
                 // Handle value changes
-                if (rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                if (mouse_hover(&r, MOUSE_SPR_HAND)) {
                     int new_val = sfx->loop_start;
-                    if (state.sfx_edit.mouse_ev.clicked_buttons == 1)
+                    if (state.mouse_ev.clicked_buttons == 1)
                         new_val++;
-                    else if (state.sfx_edit.mouse_ev.clicked_buttons == 2)
+                    else if (state.mouse_ev.clicked_buttons == 2)
                         new_val--;
-                    new_val += state.sfx_edit.mouse_ev.wheel;
+                    new_val += state.mouse_ev.wheel;
                     sfx->loop_start = clamp(new_val, 0, 63);
                 }
             }
@@ -233,13 +184,13 @@ static void draw(void) {
                 draw_text(tmp, x, y, 6, true);
 
                 // Handle value changes
-                if (rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                if (mouse_hover(&r, MOUSE_SPR_HAND)) {
                     int new_val = sfx->loop_end;
-                    if (state.sfx_edit.mouse_ev.clicked_buttons == 1)
+                    if (state.mouse_ev.clicked_buttons == 1)
                         new_val++;
-                    else if (state.sfx_edit.mouse_ev.clicked_buttons == 2)
+                    else if (state.mouse_ev.clicked_buttons == 2)
                         new_val--;
-                    new_val += state.sfx_edit.mouse_ev.wheel;
+                    new_val += state.mouse_ev.wheel;
                     sfx->loop_end = clamp(new_val, 0, 63);
                 }
             }
@@ -257,9 +208,8 @@ static void draw(void) {
                 draw_char_altfont(x + 1, y, '0' + i, 5);
 
                 // Handle value changes
-                if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                if (mouse_lclick(&r))
                     state.sfx_edit.octave = i;
-                }
 
                 x += 6;
             }
@@ -284,9 +234,8 @@ static void draw(void) {
                     fill_rect(&(rect_t){x, y + (7 - i), x + 1, y + 6}, state.sfx_edit.volume == i ? 7 : 6);
 
                 // Handle value changes
-                if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                if (mouse_lclick(&r))
                     state.sfx_edit.volume = i;
-                }
 
                 x += 3;
             }
@@ -302,9 +251,8 @@ static void draw(void) {
                 draw_icon(x, y, 48 + i, 7);
 
                 // Handle value changes
-                if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                if (mouse_lclick(&r))
                     state.sfx_edit.waveform = i;
-                }
 
                 x += 9;
             }
@@ -320,9 +268,8 @@ static void draw(void) {
                 draw_icon(x, y, 64 + i, 5);
 
                 // Handle value changes
-                if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                if (mouse_lclick(&r))
                     state.sfx_edit.effect = i;
-                }
 
                 x += 9;
             }
@@ -347,38 +294,6 @@ static void draw(void) {
     // x = 56;
     // y = 90;
     // fill_rect(x, y, x + 128, y + 64, 0);
-
-    state.sfx_edit.mouse_ev.clicked_buttons = 0;
-    state.sfx_edit.mouse_ev.wheel           = 0;
-}
-
-static void on_mouse(const mouse_event_t *ev) {
-    state.sfx_edit.mouse_ev = *ev;
-
-    // if (ev->buttons == ev->clicked_buttons && ev->buttons == 1) {
-    //     int x, y;
-    //     // SFX
-    //     {
-    //         int sfx_x = 2;
-    //         int sfx_y = 9;
-
-    //         y = sfx_y + 11;
-
-    //         int nr = 0;
-    //         for (int j = 0; j < 16; j++) {
-    //             x = sfx_x + 2;
-    //             for (int i = 0; i < 4; i++) {
-    //                 if (ev->x >= x && ev->x <= x + 8 && ev->y >= y && ev->y <= y + 6) {
-    //                     state.sfx_edit.sfx_idx = nr;
-    //                     return;
-    //                 }
-    //                 x += 10;
-    //                 nr++;
-    //             }
-    //             y += 8;
-    //         }
-    //     }
-    // }
 }
 
 static void on_key(uint16_t code) {
@@ -428,7 +343,6 @@ static void on_key(uint16_t code) {
 }
 
 screen_t scr_sfx = {
-    .draw     = draw,
-    .on_mouse = on_mouse,
-    .on_key   = on_key,
+    .draw   = draw,
+    .on_key = on_key,
 };

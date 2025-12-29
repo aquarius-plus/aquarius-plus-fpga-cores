@@ -76,6 +76,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     scr_music.c
 
     draw.c
+    state.c
 
     lib/start.S
     lib/common.c

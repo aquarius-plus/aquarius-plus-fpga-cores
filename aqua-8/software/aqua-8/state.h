@@ -1,0 +1,53 @@
+#pragma once
+
+#include "common.h"
+
+enum {
+    MODE_CODE = 0,
+    MODE_SPRITE,
+    MODE_MAP,
+    MODE_SFX,
+    MODE_MUSIC,
+    MODE_CONSOLE,
+};
+
+#define MOUSE_SPR_POINTER 0
+#define MOUSE_SPR_HAND    1
+#define MOUSE_SPR_IBEAM   2
+
+typedef struct {
+    uint8_t x;
+    uint8_t y;
+    uint8_t buttons;
+    uint8_t clicked_buttons;
+    int8_t  wheel;
+} mouse_event_t;
+
+typedef struct {
+    uint8_t  speed;
+    uint8_t  loop_start;
+    uint8_t  loop_end;
+    uint16_t notes[32];
+} sfx_t;
+
+typedef struct {
+    uint8_t sfx_idx;
+    uint8_t octave;
+    uint8_t volume;
+    uint8_t waveform;
+    uint8_t effect;
+    uint8_t cursor_row;
+    uint8_t cursor_col;
+} sfx_edit_t;
+
+typedef struct {
+    uint8_t       mode;
+    mouse_event_t mouse_ev;
+    uint8_t       mouse_spr;
+    uint16_t      modifiers;
+
+    sfx_edit_t sfx_edit;
+    sfx_t      sfx[64];
+} state_t;
+
+extern state_t state;

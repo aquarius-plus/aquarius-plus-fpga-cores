@@ -2,37 +2,38 @@
 
 #include "common.h"
 #include "draw.h"
-
-enum {
-    MODE_CONSOLE = 0,
-    MODE_CODE    = 1,
-    MODE_SPRITE  = 2,
-    MODE_MAP     = 3,
-    MODE_SFX     = 4,
-    MODE_MUSIC   = 5,
-};
-
-typedef struct {
-    uint8_t x;
-    uint8_t y;
-    uint8_t buttons;
-    uint8_t clicked_buttons;
-    int8_t  wheel;
-} mouse_event_t;
+#include "state.h"
 
 typedef struct {
     void (*draw)(void);
-    void (*on_mouse)(const mouse_event_t *ev);
     void (*on_key)(uint16_t code);
 } screen_t;
 
 screen_t *scr_get_current(void);
 
-extern int mode;
-
 void scr_common(unsigned bg_col);
 void scr_key(uint16_t code);
-void scr_mouse(int x, int y, int buttons, int clicked_buttons, int wheel);
+
+static inline bool mouse_clicked(const rect_t *r, uint8_t button, uint8_t spr) {
+    if (rect_contains(r, state.mouse_ev.x, state.mouse_ev.y)) {
+        state.mouse_spr = spr;
+
+        if (state.mouse_ev.clicked_buttons == button && state.mouse_ev.buttons == state.mouse_ev.clicked_buttons)
+            return true;
+    }
+    return false;
+}
+
+static inline bool mouse_hover(const rect_t *r, uint8_t spr) {
+    if (rect_contains(r, state.mouse_ev.x, state.mouse_ev.y)) {
+        state.mouse_spr = spr;
+        return true;
+    }
+    return false;
+}
+
+static inline bool mouse_lclick(const rect_t *r) { return mouse_clicked(r, 1, MOUSE_SPR_HAND); }
+static inline bool mouse_rclick(const rect_t *r) { return mouse_clicked(r, 2, MOUSE_SPR_HAND); }
 
 extern screen_t scr_code;
 extern screen_t scr_sprite;
