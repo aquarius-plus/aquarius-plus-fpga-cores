@@ -183,11 +183,22 @@ void draw_vline(int x, int y, int h, unsigned col) {
         VIDEO->WR1BPP = 1;
 }
 
-void draw_rect(int x0, int y0, int x1, int y1, unsigned col) {
-    if (x1 < x0)
-        swapint(&x0, &x1);
-    if (y1 < y0)
-        swapint(&y0, &y1);
+void draw_rect(const rect_t *r, unsigned col) {
+    int x0, y0, x1, y1;
+    if (r->x0 < r->x1) {
+        x0 = r->x0;
+        x1 = r->x1;
+    } else {
+        x0 = r->x1;
+        x1 = r->x0;
+    }
+    if (r->y0 < r->y1) {
+        y0 = r->y0;
+        y1 = r->y1;
+    } else {
+        y0 = r->y1;
+        y1 = r->y0;
+    }
 
     int w = (x1 - x0) + 1;
     int h = (y1 - y0) + 1;
@@ -198,11 +209,22 @@ void draw_rect(int x0, int y0, int x1, int y1, unsigned col) {
     draw_vline(x1, y0, h, col);
 }
 
-void fill_rect(int x0, int y0, int x1, int y1, unsigned col) {
-    if (x1 < x0)
-        swapint(&x0, &x1);
-    if (y1 < y0)
-        swapint(&y0, &y1);
+void fill_rect(const rect_t *r, unsigned col) {
+    int x0, y0, x1, y1;
+    if (r->x0 < r->x1) {
+        x0 = r->x0;
+        x1 = r->x1;
+    } else {
+        x0 = r->x1;
+        x1 = r->x0;
+    }
+    if (r->y0 < r->y1) {
+        y0 = r->y0;
+        y1 = r->y1;
+    } else {
+        y0 = r->y1;
+        y1 = r->y0;
+    }
 
     int w = (x1 - x0) + 1;
     int h = (y1 - y0) + 1;

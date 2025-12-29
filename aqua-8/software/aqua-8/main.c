@@ -83,11 +83,20 @@ static void handle_mouse(void) {
     }
 }
 
+uint16_t lastKeys[16];
+
 static void handle_keybuf(void) {
     while (1) {
         int keybuf = KEYBUF;
         if (keybuf < 0)
             break;
+
+        for (int i = 0; i < 15; i++) {
+            lastKeys[i] = lastKeys[i + 1];
+        }
+        lastKeys[15] = keybuf;
+
+        scr_key(keybuf);
 
         // last = keybuf;
     }
@@ -108,11 +117,22 @@ int main(void) {
     VIDEO->PAGE   = page;
 
     while (1) {
-        screen_t *scr = scr_get_current();
-        scr->draw();
+        VIDEO->PALETTE[5] = 0xFFF;
+
+        scr_get_current()->draw();
+
+#if 0
+        for (int i = 0; i < 16; i++) {
+            char buf[16];
+            snprintf(buf, sizeof(buf), "%04X\n", lastKeys[i]);
+            draw_text(buf, 10, 10 + i * 8, 7, true);
+        }
+#endif
 
         handle_mouse();
         handle_keybuf();
+
+        palette_init();
 
         frame30 = false;
         while (!frame30) {

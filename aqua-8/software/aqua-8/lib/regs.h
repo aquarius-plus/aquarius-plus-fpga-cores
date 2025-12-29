@@ -28,6 +28,9 @@ extern "C" {
 #define KEY_MOD_SHIFT   (1 << 9)
 #define KEY_MOD_CTRL    (1 << 8)
 
+#define KEY_MODIFIERS (KEY_MOD_GUI | KEY_MOD_ALT | KEY_MOD_SHIFT | KEY_MOD_CTRL)
+#define KEY_CODE_MASK (0xFF)
+
 struct regs_video {
     volatile uint16_t PALETTE[16];
     union {

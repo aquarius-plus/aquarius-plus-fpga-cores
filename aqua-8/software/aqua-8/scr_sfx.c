@@ -15,6 +15,8 @@ typedef struct {
     uint8_t effect;
     uint8_t cursor_row;
     uint8_t cursor_col;
+
+    mouse_event_t mouse_ev;
 } sfx_edit_t;
 
 typedef struct {
@@ -29,7 +31,7 @@ state_t state = {
         .volume     = 5,
         .waveform   = 0,
         .effect     = 0,
-        .cursor_row = 0,
+        .cursor_row = 1,
         .cursor_col = 1,
     },
 
@@ -43,21 +45,7 @@ state_t state = {
     },
 };
 
-// 01100000240452400528000280452b0450c005280450000529042240162d04500005307553c5252d000130052b0451f006260352b026260420c0052404500005230450c00521045230461f0450c0051c0421c025
-
-// 01 Editor mode
-// 10 Note duration
-// 00 Loop start
-// 00 Loop end
-// 24045
-// 24005
-// 28000
-// 28045
-// 2b045
-// 0c005
-// 280450000529042240162d04500005307553c5252d000130052b0451f006260352b026260420c0052404500005230450c00521045230461f0450c0051c0421c025
-
-static void draw_note(int x, int y, int row) {
+static void draw_note_row(int x, int y, int row) {
     uint16_t note_code = state.sfx[state.sfx_edit.sfx_idx].notes[row];
     unsigned pitch     = note_code & 63;
     unsigned wf        = (note_code >> 6) & 7;
@@ -70,43 +58,83 @@ static void draw_note(int x, int y, int row) {
     unsigned note   = pitch % 12;
     unsigned octave = pitch / 12;
 
-    bool     is_current_row = row == state.sfx_edit.cursor_row;
-    unsigned cursor_col     = state.sfx_edit.cursor_col;
+    bool is_current_row = row == state.sfx_edit.cursor_row;
+    int  cursor_col     = is_current_row ? state.sfx_edit.cursor_col : -1;
+
+    bool clicked = state.sfx_edit.mouse_ev.clicked_buttons == 1 && state.sfx_edit.mouse_ev.buttons == state.sfx_edit.mouse_ev.clicked_buttons;
 
     // fill_rect(x, y, x + 29, y + 6, 0);
 
-    if (is_current_row) {
+    {
         // fill_rect(x + 1, y + 1, x + 28, y + 7, 1);
 
-        fill_rect(x + 1, y + 1, x + 8, y + 7, cursor_col == 0 ? 3 : 1);
-        fill_rect(x + 9, y + 1, x + 13, y + 7, cursor_col == 1 ? 3 : 1);
-        fill_rect(x + 14, y + 1, x + 18, y + 7, cursor_col == 2 ? 3 : 1);
-        fill_rect(x + 19, y + 1, x + 23, y + 7, cursor_col == 3 ? 3 : 1);
-        fill_rect(x + 24, y + 1, x + 28, y + 7, cursor_col == 4 ? 3 : 1);
+        unsigned bg_col = is_current_row ? 1 : 0;
 
-    } else {
-        fill_rect(x + 1, y + 1, x + 28, y + 7, 0);
+        {
+            rect_t r = {x + 1, y + 1, x + 8, y + 7};
+            fill_rect(&r, cursor_col == 0 ? 3 : bg_col);
+            if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                state.sfx_edit.cursor_row = row;
+                state.sfx_edit.cursor_col = 0;
+            }
+        }
+        {
+            rect_t r = {x + 9, y + 1, x + 13, y + 7};
+            fill_rect(&r, cursor_col == 1 ? 3 : bg_col);
+            if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                state.sfx_edit.cursor_row = row;
+                state.sfx_edit.cursor_col = 1;
+            }
+        }
+        {
+            rect_t r = {x + 14, y + 1, x + 18, y + 7};
+            fill_rect(&r, cursor_col == 2 ? 3 : bg_col);
+            if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                state.sfx_edit.cursor_row = row;
+                state.sfx_edit.cursor_col = 2;
+            }
+        }
+        {
+            rect_t r = {x + 19, y + 1, x + 23, y + 7};
+            fill_rect(&r, cursor_col == 3 ? 3 : bg_col);
+            if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                state.sfx_edit.cursor_row = row;
+                state.sfx_edit.cursor_col = 3;
+            }
+        }
+        {
+            rect_t r = {x + 24, y + 1, x + 28, y + 7};
+            fill_rect(&r, cursor_col == 4 ? 3 : bg_col);
+            if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                state.sfx_edit.cursor_row = row;
+                state.sfx_edit.cursor_col = 4;
+            }
+        }
     }
+
+    unsigned col_vol0 = is_current_row ? 2 : 1;
 
     // fill_rect(x + 1, y + 1, x + 7, y + 7, 10);
 
     x += 2;
-    draw_char_altfont(x, y + 2, vol == 0 ? '.' : note0[note], vol == 0 ? 1 : 7); // .CDEFGAB
+    draw_char_altfont(x, y + 2, vol == 0 ? '.' : note0[note], vol == 0 ? col_vol0 : 7); // .CDEFGAB
     x += 4;
-    draw_char_altfont(x, y + 2, vol == 0 ? '.' : note1[note], vol == 0 ? 1 : 7); // #
+    draw_char_altfont(x, y + 2, vol == 0 ? '.' : note1[note], vol == 0 ? col_vol0 : 7); // #
     x += 4;
-    draw_char_altfont(x, y + 2, vol == 0 ? '.' : '0' + octave, vol == 0 ? 1 : 6); // 01234
+    draw_char_altfont(x, y + 2, vol == 0 ? '.' : '0' + octave, vol == 0 ? col_vol0 : 6); // 01234
     x += 5;
-    draw_char_altfont(x, y + 2, vol == 0 ? '.' : '0' + wf, vol == 0 ? 1 : 14); // Waveform: 01234567
+    draw_char_altfont(x, y + 2, vol == 0 ? '.' : '0' + wf, vol == 0 ? col_vol0 : 14); // Waveform: 01234567
     x += 5;
-    draw_char_altfont(x, y + 2, vol == 0 ? '.' : '0' + vol, vol == 0 ? 1 : 12); // Volume: 01234567
+    draw_char_altfont(x, y + 2, vol == 0 ? '.' : '0' + vol, vol == 0 ? col_vol0 : 12); // Volume: 01234567
     x += 5;
-    draw_char_altfont(x, y + 2, (vol == 0 || fx == 0) ? '.' : '0' + fx, vol == 0 ? 1 : 13); // Effect: 01234567
+    draw_char_altfont(x, y + 2, (vol == 0 || fx == 0) ? '.' : '0' + fx, vol == 0 ? col_vol0 : 13); // Effect: 01234567
 }
 
 static void draw(void) {
     int x, y;
     scr_common(5);
+
+    bool clicked = state.sfx_edit.mouse_ev.clicked_buttons == 1 && state.sfx_edit.mouse_ev.buttons == state.sfx_edit.mouse_ev.clicked_buttons;
 
     sfx_t *sfx = &state.sfx[state.sfx_edit.sfx_idx];
 
@@ -114,7 +142,7 @@ static void draw(void) {
     int sfx_x = 2;
     int sfx_y = 9;
     {
-        fill_rect(sfx_x, sfx_y, sfx_x + 42, sfx_y + 140, 1);
+        fill_rect(&(rect_t){sfx_x, sfx_y, sfx_x + 42, sfx_y + 140}, 1);
         draw_text("SFX", sfx_x + 16, sfx_y + 3, 7, true);
 
         y = sfx_y + 11;
@@ -123,7 +151,11 @@ static void draw(void) {
         for (int j = 0; j < 16; j++) {
             x = sfx_x + 2;
             for (int i = 0; i < 4; i++) {
-                fill_rect(x, y, x + 8, y + 6, nr == state.sfx_edit.sfx_idx ? 7 : 13);
+                rect_t r = {x, y, x + 8, y + 6};
+                if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y))
+                    state.sfx_edit.sfx_idx = nr;
+
+                fill_rect(&r, nr == state.sfx_edit.sfx_idx ? 7 : 13);
                 draw_char_altfont(x + 1, y + 1, '0' + (nr / 10), 5);
                 draw_char_altfont(x + 5, y + 1, '0' + (nr % 10), 5);
 
@@ -142,72 +174,158 @@ static void draw(void) {
         // fill_rect(param_x, param_y, param_x + 121, param_y + 26, 1);
 
         // Speed
-        x = param_x + 2;
-        y = param_y + 2;
-        draw_text("SPD", x, y, 6, true);
-        x += 14;
-        fill_rect(x - 1, y - 1, x + 11, y + 5, 0);
-        snprintf(tmp, sizeof(tmp), "%03u", sfx->speed);
-        draw_text(tmp, x, y, 6, true);
+        {
+            x = param_x + 2;
+            y = param_y + 2;
+            draw_text("SPD", x, y, 6, true);
+            x += 14;
+
+            rect_t r = {x - 1, y - 1, x + 11, y + 5};
+            fill_rect(&r, 0);
+            snprintf(tmp, sizeof(tmp), "%03u", sfx->speed);
+            draw_text(tmp, x, y, 6, true);
+
+            // Handle value changes
+            if (rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                int new_val = sfx->speed;
+                if (state.sfx_edit.mouse_ev.clicked_buttons == 1)
+                    new_val++;
+                else if (state.sfx_edit.mouse_ev.clicked_buttons == 2)
+                    new_val--;
+                new_val += state.sfx_edit.mouse_ev.wheel;
+                sfx->speed = clamp(new_val, 1, 255);
+            }
+        }
 
         // Loop
-        x = param_x + 49;
-        y = param_y + 2;
-        draw_text(sfx->loop_start > 0 && sfx->loop_end == 0 ? "LEN" : "LOOP", x, y, 6, true);
-        x += 18;
-        fill_rect(x - 1, y - 1, x + 7, y + 5, 0);
-        snprintf(tmp, sizeof(tmp), "%02u", sfx->loop_start);
-        draw_text(tmp, x, y, 6, true);
-        x += 11;
-        fill_rect(x - 1, y - 1, x + 7, y + 5, 0);
-        snprintf(tmp, sizeof(tmp), "%02u", sfx->loop_end);
-        draw_text(tmp, x, y, 6, true);
+        {
+            x = param_x + 49;
+            y = param_y + 2;
+            draw_text(sfx->loop_start > 0 && sfx->loop_end == 0 ? "LEN" : "LOOP", x, y, 6, true);
+            x += 18;
+
+            // Loop start
+            {
+                rect_t r = {x - 1, y - 1, x + 7, y + 5};
+                fill_rect(&r, 0);
+                snprintf(tmp, sizeof(tmp), "%02u", sfx->loop_start);
+                draw_text(tmp, x, y, 6, true);
+
+                // Handle value changes
+                if (rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                    int new_val = sfx->loop_start;
+                    if (state.sfx_edit.mouse_ev.clicked_buttons == 1)
+                        new_val++;
+                    else if (state.sfx_edit.mouse_ev.clicked_buttons == 2)
+                        new_val--;
+                    new_val += state.sfx_edit.mouse_ev.wheel;
+                    sfx->loop_start = clamp(new_val, 0, 63);
+                }
+            }
+
+            x += 11;
+
+            // Loop end
+            {
+                rect_t r = {x - 1, y - 1, x + 7, y + 5};
+                fill_rect(&r, 0);
+                snprintf(tmp, sizeof(tmp), "%02u", sfx->loop_end);
+                draw_text(tmp, x, y, 6, true);
+
+                // Handle value changes
+                if (rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                    int new_val = sfx->loop_end;
+                    if (state.sfx_edit.mouse_ev.clicked_buttons == 1)
+                        new_val++;
+                    else if (state.sfx_edit.mouse_ev.clicked_buttons == 2)
+                        new_val--;
+                    new_val += state.sfx_edit.mouse_ev.wheel;
+                    sfx->loop_end = clamp(new_val, 0, 63);
+                }
+            }
+        }
 
         // Octave
-        x = param_x + 2;
-        y = param_y + 11;
-        draw_text("OCT", x, y, 6, true);
-        x += 13;
-        for (int i = 0; i <= 4; i++) {
-            fill_rect(x, y - 1, x + 4, y + 5, (state.sfx_edit.octave == i) ? 7 : 6);
-            draw_char_altfont(x + 1, y, '0' + i, 5);
-            x += 6;
+        {
+            x = param_x + 2;
+            y = param_y + 11;
+            draw_text("OCT", x, y, 6, true);
+            x += 13;
+            for (int i = 0; i <= 4; i++) {
+                rect_t r = {x, y - 1, x + 4, y + 5};
+                fill_rect(&r, (state.sfx_edit.octave == i) ? 7 : 6);
+                draw_char_altfont(x + 1, y, '0' + i, 5);
+
+                // Handle value changes
+                if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                    state.sfx_edit.octave = i;
+                }
+
+                x += 6;
+            }
         }
 
         // Volume
-        x = param_x + 2;
-        y = param_y + 20;
-        draw_text("VOL", x, y, 6, true);
-        x += 13;
-        y -= 1;
-        for (int i = 0; i <= 7; i++) {
-            // Black
-            if (i < 7)
-                fill_rect(x, y, x + 1, y + (6 - i), state.sfx_edit.volume == i ? 13 : 0);
+        {
+            x = param_x + 2;
+            y = param_y + 20;
+            draw_text("VOL", x, y, 6, true);
+            x += 13;
+            y -= 1;
+            for (int i = 0; i <= 7; i++) {
+                rect_t r = {x, y, x + 2, y + 6};
 
-            // White
-            if (i > 0)
-                fill_rect(x, y + (7 - i), x + 1, y + 6, state.sfx_edit.volume == i ? 7 : 6);
+                // Black
+                if (i < 7)
+                    fill_rect(&(rect_t){x, y, x + 1, y + (6 - i)}, state.sfx_edit.volume == i ? 13 : 0);
 
-            x += 3;
+                // White
+                if (i > 0)
+                    fill_rect(&(rect_t){x, y + (7 - i), x + 1, y + 6}, state.sfx_edit.volume == i ? 7 : 6);
+
+                // Handle value changes
+                if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                    state.sfx_edit.volume = i;
+                }
+
+                x += 3;
+            }
         }
 
         // Waveforms
-        x = param_x + 49;
-        y = param_y + 10;
-        for (int i = 0; i < 8; i++) {
-            fill_rect(x, y, x + 7, y + 5, i == state.sfx_edit.waveform ? i + 8 : 6);
-            draw_icon(x, y, 48 + i, 7);
-            x += 9;
+        {
+            x = param_x + 49;
+            y = param_y + 10;
+            for (int i = 0; i < 8; i++) {
+                rect_t r = {x, y, x + 7, y + 5};
+                fill_rect(&r, i == state.sfx_edit.waveform ? i + 8 : 6);
+                draw_icon(x, y, 48 + i, 7);
+
+                // Handle value changes
+                if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                    state.sfx_edit.waveform = i;
+                }
+
+                x += 9;
+            }
         }
 
         // Effects
-        x = param_x + 49;
-        y = param_y + 20;
-        for (int i = 0; i < 8; i++) {
-            fill_rect(x, y, x + 7, y + 5, i == state.sfx_edit.effect ? 7 : 13);
-            draw_icon(x, y, 64 + i, 5);
-            x += 9;
+        {
+            x = param_x + 49;
+            y = param_y + 20;
+            for (int i = 0; i < 8; i++) {
+                rect_t r = {x, y, x + 7, y + 5};
+                fill_rect(&r, i == state.sfx_edit.effect ? 7 : 13);
+                draw_icon(x, y, 64 + i, 5);
+
+                // Handle value changes
+                if (clicked && rect_contains(&r, state.sfx_edit.mouse_ev.x, state.sfx_edit.mouse_ev.y)) {
+                    state.sfx_edit.effect = i;
+                }
+
+                x += 9;
+            }
         }
     }
 
@@ -219,9 +337,9 @@ static void draw(void) {
     for (int row = 0; row < 4; row++) {
         x = notes_x + row * 32;
         y = notes_y;
-        draw_rect(x, y, x + 29, y + 57, 0);
+        draw_rect(&(rect_t){x, y, x + 29, y + 57}, 0);
         for (int i = 0; i < 8; i++) {
-            draw_note(x, y, idx++);
+            draw_note_row(x, y, idx++);
             y += 7;
         }
     }
@@ -229,36 +347,88 @@ static void draw(void) {
     // x = 56;
     // y = 90;
     // fill_rect(x, y, x + 128, y + 64, 0);
+
+    state.sfx_edit.mouse_ev.clicked_buttons = 0;
+    state.sfx_edit.mouse_ev.wheel           = 0;
 }
 
-static void on_mouse(int mx, int my, int buttons, int clicked_buttons, int wheel) {
-    if (buttons == clicked_buttons && buttons == 1) {
-        int x, y;
-        // SFX
-        {
-            int sfx_x = 2;
-            int sfx_y = 9;
+static void on_mouse(const mouse_event_t *ev) {
+    state.sfx_edit.mouse_ev = *ev;
 
-            y = sfx_y + 11;
+    // if (ev->buttons == ev->clicked_buttons && ev->buttons == 1) {
+    //     int x, y;
+    //     // SFX
+    //     {
+    //         int sfx_x = 2;
+    //         int sfx_y = 9;
 
-            int nr = 0;
-            for (int j = 0; j < 16; j++) {
-                x = sfx_x + 2;
-                for (int i = 0; i < 4; i++) {
-                    if (mx >= x && mx <= x + 8 && my >= y && my <= y + 6) {
-                        state.sfx_edit.sfx_idx = nr;
-                        return;
-                    }
-                    x += 10;
-                    nr++;
+    //         y = sfx_y + 11;
+
+    //         int nr = 0;
+    //         for (int j = 0; j < 16; j++) {
+    //             x = sfx_x + 2;
+    //             for (int i = 0; i < 4; i++) {
+    //                 if (ev->x >= x && ev->x <= x + 8 && ev->y >= y && ev->y <= y + 6) {
+    //                     state.sfx_edit.sfx_idx = nr;
+    //                     return;
+    //                 }
+    //                 x += 10;
+    //                 nr++;
+    //             }
+    //             y += 8;
+    //         }
+    //     }
+    // }
+}
+
+static void on_key(uint16_t code) {
+    if ((code & KEY_IS_SCANCODE) == 0) {
+        unsigned key = (code & (KEY_MODIFIERS | KEY_CODE_MASK));
+
+        switch (key) {
+            case CH_UP: state.sfx_edit.cursor_row--; break;
+            case CH_UP | KEY_MOD_CTRL: state.sfx_edit.cursor_row -= 4; break;
+            case CH_DOWN: state.sfx_edit.cursor_row++; break;
+            case CH_DOWN | KEY_MOD_CTRL: state.sfx_edit.cursor_row += 4; break;
+            case CH_LEFT: {
+                if (state.sfx_edit.cursor_col == 0) {
+                    state.sfx_edit.cursor_col = 4;
+                    state.sfx_edit.cursor_row -= 8;
+                } else {
+                    state.sfx_edit.cursor_col--;
                 }
-                y += 8;
+                break;
             }
+            case CH_LEFT | KEY_MOD_CTRL: state.sfx_edit.cursor_row -= 8; break;
+
+            case CH_RIGHT: {
+                if (state.sfx_edit.cursor_col == 4) {
+                    state.sfx_edit.cursor_col = 0;
+                    state.sfx_edit.cursor_row += 8;
+                } else {
+                    state.sfx_edit.cursor_col++;
+                }
+                break;
+            }
+            case CH_RIGHT | KEY_MOD_CTRL: state.sfx_edit.cursor_row += 8; break;
+
+            case CH_HOME: state.sfx_edit.cursor_row = 0; break;
+            case CH_END: state.sfx_edit.cursor_row = 31; break;
+            case CH_PAGEUP: state.sfx_edit.cursor_row -= 4; break;
+            case CH_PAGEDOWN: state.sfx_edit.cursor_row += 4; break;
+            case CH_DELETE: {
+
+                break;
+            }
+            default: break;
         }
+
+        state.sfx_edit.cursor_row &= 31;
     }
 }
 
 screen_t scr_sfx = {
     .draw     = draw,
     .on_mouse = on_mouse,
+    .on_key   = on_key,
 };

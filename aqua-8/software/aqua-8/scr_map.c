@@ -9,8 +9,8 @@ static void draw(void) {
     {
         x = 200 - 128 - 3;
         y = 8;
-        draw_rect(x, y, x + 1 + 128, y + 1 + 128, 0);
-        fill_rect(x + 1, y + 1, x + 128, y + 128, 0);
+        draw_rect(&(rect_t){x, y, x + 1 + 128, y + 1 + 128}, 0);
+        fill_rect(&(rect_t){x + 1, y + 1, x + 128, y + 128}, 0);
         x += 1;
         y += 1;
 

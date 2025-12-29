@@ -12,6 +12,15 @@ static inline void wait_frame(void) {
     while ((csr_read_clear(mip, (1 << 16)) & (1 << 16)) == 0);
 }
 
+typedef struct {
+    int x0, y0;
+    int x1, y1;
+} rect_t;
+
+static inline bool rect_contains(const rect_t *r, int x, int y) {
+    return x >= r->x0 && x <= r->x1 && y >= r->y0 && y <= r->y1;
+}
+
 void palette_init(void);
 void remap_reset(void);
 void clear_screen(unsigned color);
@@ -25,6 +34,6 @@ int  draw_char_altfont(int x, int y, uint8_t ch, unsigned color);
 int  draw_text(const char *str, int x, int y, unsigned color, bool use_altfont);
 void draw_hline(int x, int y, int w, unsigned col);
 void draw_vline(int x, int y, int h, unsigned col);
-void draw_rect(int x0, int y0, int x1, int y1, unsigned col);
-void fill_rect(int x0, int y0, int x1, int y1, unsigned col);
+void draw_rect(const rect_t *r, unsigned col);
+void fill_rect(const rect_t *r, unsigned col);
 void draw_icon(int x, int y, unsigned icon, unsigned color);

@@ -12,7 +12,7 @@ static void draw(void) {
         x = 1;
         y = 8;
 
-        draw_rect(x, y, x + 1 + 64, y + 1 + 16, 0);
+        draw_rect(&(rect_t){x, y, x + 1 + 64, y + 1 + 16}, 0);
         x += 1;
         y += 1;
 
@@ -20,10 +20,7 @@ static void draw(void) {
             int row = i / 8;
             int col = i % 8;
 
-            fill_rect(
-                x + col * 8, y + row * 8,
-                x + col * 8 + 7, y + row * 8 + 7,
-                i);
+            fill_rect(&(rect_t){x + col * 8, y + row * 8, x + col * 8 + 7, y + row * 8 + 7}, i);
         }
     }
 
@@ -31,8 +28,8 @@ static void draw(void) {
     {
         x = 200 - 128 - 3;
         y = 8;
-        draw_rect(x, y, x + 1 + 128, y + 1 + 128, 0);
-        fill_rect(x + 1, y + 1, x + 128, y + 128, 0);
+        draw_rect(&(rect_t){x, y, x + 1 + 128, y + 1 + 128}, 0);
+        fill_rect(&(rect_t){x + 1, y + 1, x + 128, y + 128}, 0);
         x += 1;
         y += 1;
 
@@ -48,7 +45,7 @@ static void draw(void) {
     {
         x = 1;
         y = 27;
-        draw_rect(x, y, x + 1 + 64, y + 1 + 64, 0);
+        draw_rect(&(rect_t){x, y, x + 1 + 64, y + 1 + 64}, 0);
     }
 
     // Commands

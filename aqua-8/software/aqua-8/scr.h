@@ -13,13 +13,17 @@ enum {
 };
 
 typedef struct {
-    // void (*mouse_move)(void);
-    // void (*key_up)(void);
-    // void (*key_down)(void);
-    void (*draw)(void);
-    void (*on_mouse)(int x, int y, int buttons, int clicked_buttons, int wheel);
+    uint8_t x;
+    uint8_t y;
+    uint8_t buttons;
+    uint8_t clicked_buttons;
+    int8_t  wheel;
+} mouse_event_t;
 
-    void (*on_char)(uint8_t ch);
+typedef struct {
+    void (*draw)(void);
+    void (*on_mouse)(const mouse_event_t *ev);
+    void (*on_key)(uint16_t code);
 } screen_t;
 
 screen_t *scr_get_current(void);
@@ -27,6 +31,7 @@ screen_t *scr_get_current(void);
 extern int mode;
 
 void scr_common(unsigned bg_col);
+void scr_key(uint16_t code);
 void scr_mouse(int x, int y, int buttons, int clicked_buttons, int wheel);
 
 extern screen_t scr_code;
