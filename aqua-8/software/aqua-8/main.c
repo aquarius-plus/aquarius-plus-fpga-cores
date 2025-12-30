@@ -132,11 +132,6 @@ static void handle_keybuf(void) {
 
         // last = keybuf;
     }
-
-    // FIXME: For some reason on real hardware this is needed
-    for (int i = 0; i < 16; i++) {
-        ((volatile uint16_t *)lastKeys)[i];
-    }
 }
 
 int main(void) {
@@ -160,7 +155,7 @@ int main(void) {
     VIDEO->PAGE   = page;
 
     while (1) {
-        VIDEO->PALETTE[1] = 0x222;
+        // VIDEO->PALETTE[1] = 0x222;
         handle_mouse();
         handle_keybuf();
 

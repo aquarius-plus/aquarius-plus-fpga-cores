@@ -22,7 +22,7 @@ module sram_ctrl(
     inout  wire  [7:0] sram_dq
 );
 
-    assign sram_ce_n = 1'b0;
+    assign sram_ce_n = 0;
 
     reg  [2:0] d_state,      q_state;
     reg [18:0] d_sram_a,     q_sram_a;

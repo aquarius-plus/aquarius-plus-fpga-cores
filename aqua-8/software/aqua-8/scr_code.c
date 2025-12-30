@@ -377,14 +377,24 @@ static void colorize(const uint8_t *p, int len, int first_pos) {
 }
 
 static void draw(void) {
+    scr_common(1);
+
     code_edit_t *state = &edit_state.code_edit;
+
+    // Mouse handling
+    {
+        rect_t r = {0, 7, 199, 152};
+        if (mouse_clicked(&r, 1, MOUSE_SPR_IBEAM)) {
+            state->loc_cursor.line = state->scr_first_line + (edit_state.mouse_ev.y - r.y0) / 7;
+            state->loc_cursor.pos  = state->scr_first_pos + (edit_state.mouse_ev.x - r.x0) / 4;
+        }
+        state->scr_first_line += -edit_state.mouse_ev.wheel;
+    }
 
     state->loc_cursor.line = clamp(state->loc_cursor.line, 0, editbuf_get_line_count(state->editbuf) - 1);
     state->loc_cursor.pos  = max(0, state->loc_cursor.pos);
     state->scr_first_line  = clamp(state->scr_first_line, max(0, state->loc_cursor.line - (EDITOR_ROWS - 1)), state->loc_cursor.line);
     state->scr_first_pos   = clamp(state->scr_first_pos, max(0, get_cursor_pos() - (EDITOR_COLUMNS - 1)), get_cursor_pos());
-
-    scr_common(1);
 
     for (int row = 0; row < EDITOR_ROWS; row++) {
         int y = 8 + row * 7;

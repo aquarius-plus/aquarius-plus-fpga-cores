@@ -52,35 +52,8 @@ module sram_cache(
     wire  [5:0] tag       = cram_rddata[37:32];
     wire        needs_wb  = tag_valid && tag_dirty;
 
-    wire [31:0] b_data_rddata;
-    dpram8k cache_ram(
-        .a_clk(clk),
-        .a_addr(cram_addr),
-        .a_wrdata(cram_wrdata[31:0]),
-        .a_wrsel(cram_bytesel),
-        .a_wren(cram_wren),
-        .a_rddata(cram_rddata[31:0]),
-
-        .b_clk(1'b0),
-        .b_addr(11'b0),
-        .b_wrdata(32'b0),
-        .b_wrsel(4'b0),
-        .b_wren(1'b0),
-        .b_rddata(b_data_rddata));
-
-    wire [8:0] b_tag_rddata;
-    dpram_tag cache_tags(
-        .a_clk(clk),
-        .a_addr(cram_addr),
-        .a_wrdata(cram_wrdata[40:32]),
-        .a_wren(cram_wren),
-        .a_rddata(cram_rddata[40:32]),
-
-        .b_clk(1'b0),
-        .b_addr(11'b0),
-        .b_wrdata(9'b0),
-        .b_wren(1'b0),
-        .b_rddata(b_tag_rddata));
+    cache_ram  cache_ram( .clk(clk), .addr(cram_addr), .wrdata(cram_wrdata[31:0]), .wrsel(cram_bytesel), .wren(cram_wren), .rddata(cram_rddata[31: 0]));
+    cache_tags cache_tags(.clk(clk), .addr(cram_addr), .wrdata(cram_wrdata[40:32]),                      .wren(cram_wren), .rddata(cram_rddata[40:32]));
 
     //////////////////////////////////////////////////////////////////////////
     // Slave side state machine
