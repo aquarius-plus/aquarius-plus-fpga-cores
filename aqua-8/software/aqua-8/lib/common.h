@@ -74,6 +74,10 @@ static inline void __irq_enable(void) {
     csr_set(mstatus, 8);
 }
 
+static inline void __membar(void) {
+    __asm__ __volatile__("" ::: "memory");
+}
+
 #ifdef __cplusplus
 }
 #endif

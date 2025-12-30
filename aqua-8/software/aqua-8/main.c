@@ -91,8 +91,6 @@ static void handle_mouse(void) {
     }
 }
 
-uint16_t lastKeys[16];
-
 static void draw_mouse_cursor(void) {
     int sx = edit_state.mouse_ev.x;
     int sy = edit_state.mouse_ev.y;
@@ -119,6 +117,7 @@ static void draw_mouse_cursor(void) {
 }
 
 static void handle_keybuf(void) {
+    static uint16_t lastKeys[16];
     while (1) {
         int keybuf = KEYBUF;
         if (keybuf < 0)
@@ -133,9 +132,12 @@ static void handle_keybuf(void) {
 
         // last = keybuf;
     }
-}
 
-uint8_t code_buf[64 * 1024];
+    // FIXME: For some reason on real hardware this is needed
+    for (int i = 0; i < 16; i++) {
+        ((volatile uint16_t *)lastKeys)[i];
+    }
+}
 
 int main(void) {
     esp_closeall();
@@ -146,10 +148,10 @@ int main(void) {
     __irq_enable();
     csr_write(mie, (1 << VBLANK_IRQn));
 
-    editbuf_init(&edit_state.code_edit.editbuf, code_buf, sizeof(code_buf));
-
-    if (editbuf_load(&edit_state.code_edit.editbuf, "/sdk/cb/projects/tetris/tetris.cb")) {
-        edit_state.mode = MODE_CODE;
+    for (unsigned mode = MODE_CODE; mode <= MODE_MUSIC; mode++) {
+        screen_t *scr = scr_get(mode);
+        if (scr->init)
+            scr->init();
     }
 
     // uint16_t org1 = VIDEO->PALETTE[1];
@@ -158,7 +160,7 @@ int main(void) {
     VIDEO->PAGE   = page;
 
     while (1) {
-        // VIDEO->PALETTE[5] = 0xFFF;
+        VIDEO->PALETTE[1] = 0x222;
         handle_mouse();
         handle_keybuf();
 
@@ -168,14 +170,6 @@ int main(void) {
         draw_mouse_cursor();
         edit_state.mouse_ev.clicked_buttons = 0;
         edit_state.mouse_ev.wheel           = 0;
-
-#if 0
-        for (int i = 0; i < 16; i++) {
-            char buf[16];
-            snprintf(buf, sizeof(buf), "%04X\n", lastKeys[i]);
-            draw_text(buf, 10, 10 + i * 8, 7, true);
-        }
-#endif
 
         palette_init();
 

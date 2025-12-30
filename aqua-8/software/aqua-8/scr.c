@@ -65,7 +65,7 @@ void scr_key(uint16_t key) {
     //     return;
     // }
 
-    if (edit_state.editing) {
+    // if (edit_state.editing) {
         if (key == (KEY_MOD_ALT | CH_LEFT)) {
             if (edit_state.mode == MODE_CODE) {
                 edit_state.mode = MODE_MUSIC;
@@ -98,5 +98,5 @@ void scr_key(uint16_t key) {
             if (scr->on_key)
                 scr->on_key(key);
         }
-    }
+    // }
 }

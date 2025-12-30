@@ -63,8 +63,14 @@ typedef struct {
 } sfx_edit_t;
 
 typedef struct {
-    editbuf_t  editbuf;
-    location_t cursor;
+    editbuf_t *editbuf;
+    char       filename[64];
+    location_t loc_cursor;
+    location_t loc_selection;
+    int        scr_first_line;
+    int        scr_first_pos;
+    location_t loc_selection_from;
+    location_t loc_selection_to;
 } code_edit_t;
 
 typedef struct {
