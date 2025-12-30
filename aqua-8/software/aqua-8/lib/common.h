@@ -62,8 +62,6 @@ static inline int clamp(int val, int _min, int _max) {
     return val;
 }
 
-void reinit_video(void);
-
 void hexdump(const void *buf, int length);
 
 static inline bool __irq_disable(void) {

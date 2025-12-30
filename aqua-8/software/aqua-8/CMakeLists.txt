@@ -76,6 +76,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     
     scr_code/scr_code.c
     scr_code/editbuf.c
+    scr_code/edit_ops.c
+    scr_code/colorize.c
 
     draw/draw.c
 
