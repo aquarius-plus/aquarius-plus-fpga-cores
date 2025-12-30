@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common.h"
-#include "draw.h"
+#include "draw/draw.h"
 #include "state.h"
 
 typedef struct {

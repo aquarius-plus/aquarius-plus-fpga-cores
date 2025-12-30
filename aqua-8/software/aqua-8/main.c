@@ -5,7 +5,6 @@
 
 #include "lua.h"
 #include "lauxlib.h"
-#include "draw.h"
 #include "trap.h"
 #include "esp.h"
 #include "scr.h"

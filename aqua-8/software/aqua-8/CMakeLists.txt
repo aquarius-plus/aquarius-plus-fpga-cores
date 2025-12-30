@@ -69,15 +69,17 @@ target_sources(${PROJECT_NAME} PRIVATE
     main.c
 
     scr.c
-    scr_code.c
     scr_sprite.c
     scr_map.c
     scr_sfx.c
     scr_music.c
+    
+    scr_code/scr_code.c
+    scr_code/editbuf.c
 
-    draw.c
+    draw/draw.c
+
     state.c
-    editbuf.c
 
     lib/start.S
     lib/common.c

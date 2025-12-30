@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common.h"
-#include "editbuf.h"
+#include "scr_code/editbuf.h"
 
 enum {
     MODE_CODE = 0,
