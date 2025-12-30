@@ -77,6 +77,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 
     draw.c
     state.c
+    editbuf.c
 
     lib/start.S
     lib/common.c

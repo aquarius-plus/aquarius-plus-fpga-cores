@@ -5,29 +5,32 @@
 #include "state.h"
 
 typedef struct {
+    void (*init)(void);
     void (*draw)(void);
     void (*on_key)(uint16_t code);
 } screen_t;
 
-screen_t *scr_get_current(void);
+screen_t               *scr_get(unsigned mode);
+static inline screen_t *scr_get_current(void) { return scr_get(edit_state.mode); }
 
+void scr_init(void);
 void scr_draw_status(void);
 void scr_common(unsigned bg_col);
 void scr_key(uint16_t code);
 
 static inline bool mouse_clicked(const rect_t *r, uint8_t button, uint8_t spr) {
-    if (rect_contains(r, state.mouse_ev.x, state.mouse_ev.y)) {
-        state.mouse_spr = spr;
+    if (rect_contains(r, edit_state.mouse_ev.x, edit_state.mouse_ev.y)) {
+        edit_state.mouse_spr = spr;
 
-        if (state.mouse_ev.clicked_buttons == button && state.mouse_ev.buttons == state.mouse_ev.clicked_buttons)
+        if (edit_state.mouse_ev.clicked_buttons == button && edit_state.mouse_ev.buttons == edit_state.mouse_ev.clicked_buttons)
             return true;
     }
     return false;
 }
 
 static inline bool mouse_hover(const rect_t *r, uint8_t spr) {
-    if (rect_contains(r, state.mouse_ev.x, state.mouse_ev.y)) {
-        state.mouse_spr = spr;
+    if (rect_contains(r, edit_state.mouse_ev.x, edit_state.mouse_ev.y)) {
+        edit_state.mouse_spr = spr;
         return true;
     }
     return false;

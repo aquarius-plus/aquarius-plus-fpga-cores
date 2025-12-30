@@ -94,6 +94,7 @@ ssize_t _read(int fd, void *buf, size_t count) {
 
         return result;
 
+#if 0
     } else if (fd == STDIN_FILENO) {
         uint8_t *p = buf;
 
@@ -111,7 +112,7 @@ ssize_t _read(int fd, void *buf, size_t count) {
             }
         }
         return p - (uint8_t *)buf;
-
+#endif
     } else {
         errno = EINVAL;
         return -1;
@@ -124,7 +125,7 @@ int _write(int fd, const void *buf, size_t count) {
         if (result < 0)
             return esp_set_errno(result);
         return result;
-
+#if 0
     } else if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
         const uint8_t *p = buf;
         while (count--) {
@@ -135,7 +136,7 @@ int _write(int fd, const void *buf, size_t count) {
             console_putc(ch);
         }
         return p - (uint8_t *)buf;
-
+#endif
     } else {
         errno = EINVAL;
         return -1;

@@ -1,7 +1,7 @@
 #include "scr.h"
 
 static void draw_note_row(int x, int y, int row) {
-    uint16_t note_code = state.sfx[state.sfx_edit.sfx_idx].notes[row];
+    uint16_t note_code = data_state.sfx[edit_state.sfx_edit.sfx_idx].notes[row];
     unsigned pitch     = note_code & 63;
     unsigned wf        = (note_code >> 6) & 7;
     unsigned vol       = (note_code >> 9) & 7;
@@ -13,8 +13,8 @@ static void draw_note_row(int x, int y, int row) {
     unsigned note   = pitch % 12;
     unsigned octave = pitch / 12;
 
-    bool is_current_row = row == state.sfx_edit.cursor_row;
-    int  cursor_col     = is_current_row ? state.sfx_edit.cursor_col : -1;
+    bool is_current_row = row == edit_state.sfx_edit.cursor_row;
+    int  cursor_col     = is_current_row ? edit_state.sfx_edit.cursor_col : -1;
 
     // fill_rect(x, y, x + 29, y + 6, 0);
 
@@ -27,40 +27,40 @@ static void draw_note_row(int x, int y, int row) {
             rect_t r = {x + 1, y + 1, x + 8, y + 7};
             fill_rect(&r, cursor_col == 0 ? 3 : bg_col);
             if (mouse_clicked(&r, 1, MOUSE_SPR_IBEAM)) {
-                state.sfx_edit.cursor_row = row;
-                state.sfx_edit.cursor_col = 0;
+                edit_state.sfx_edit.cursor_row = row;
+                edit_state.sfx_edit.cursor_col = 0;
             }
         }
         {
             rect_t r = {x + 9, y + 1, x + 13, y + 7};
             fill_rect(&r, cursor_col == 1 ? 3 : bg_col);
             if (mouse_clicked(&r, 1, MOUSE_SPR_IBEAM)) {
-                state.sfx_edit.cursor_row = row;
-                state.sfx_edit.cursor_col = 1;
+                edit_state.sfx_edit.cursor_row = row;
+                edit_state.sfx_edit.cursor_col = 1;
             }
         }
         {
             rect_t r = {x + 14, y + 1, x + 18, y + 7};
             fill_rect(&r, cursor_col == 2 ? 3 : bg_col);
             if (mouse_clicked(&r, 1, MOUSE_SPR_IBEAM)) {
-                state.sfx_edit.cursor_row = row;
-                state.sfx_edit.cursor_col = 2;
+                edit_state.sfx_edit.cursor_row = row;
+                edit_state.sfx_edit.cursor_col = 2;
             }
         }
         {
             rect_t r = {x + 19, y + 1, x + 23, y + 7};
             fill_rect(&r, cursor_col == 3 ? 3 : bg_col);
             if (mouse_clicked(&r, 1, MOUSE_SPR_IBEAM)) {
-                state.sfx_edit.cursor_row = row;
-                state.sfx_edit.cursor_col = 3;
+                edit_state.sfx_edit.cursor_row = row;
+                edit_state.sfx_edit.cursor_col = 3;
             }
         }
         {
             rect_t r = {x + 24, y + 1, x + 28, y + 7};
             fill_rect(&r, cursor_col == 4 ? 3 : bg_col);
             if (mouse_clicked(&r, 1, MOUSE_SPR_IBEAM)) {
-                state.sfx_edit.cursor_row = row;
-                state.sfx_edit.cursor_col = 4;
+                edit_state.sfx_edit.cursor_row = row;
+                edit_state.sfx_edit.cursor_col = 4;
             }
         }
     }
@@ -87,7 +87,7 @@ static void draw(void) {
     int x, y;
     scr_common(5);
 
-    sfx_t *sfx = &state.sfx[state.sfx_edit.sfx_idx];
+    sfx_t *sfx = &data_state.sfx[edit_state.sfx_edit.sfx_idx];
 
     // SFX
     int sfx_x = 2;
@@ -104,9 +104,9 @@ static void draw(void) {
             for (int i = 0; i < 4; i++) {
                 rect_t r = {x, y, x + 8, y + 6};
                 if (mouse_lclick(&r))
-                    state.sfx_edit.sfx_idx = nr;
+                    edit_state.sfx_edit.sfx_idx = nr;
 
-                fill_rect(&r, nr == state.sfx_edit.sfx_idx ? 7 : 13);
+                fill_rect(&r, nr == edit_state.sfx_edit.sfx_idx ? 7 : 13);
                 draw_char_altfont(x + 1, y + 1, '0' + (nr / 10), 5);
                 draw_char_altfont(x + 5, y + 1, '0' + (nr % 10), 5);
 
@@ -139,11 +139,11 @@ static void draw(void) {
             // Handle value changes
             if (mouse_hover(&r, MOUSE_SPR_HAND)) {
                 int new_val = sfx->speed;
-                if (state.mouse_ev.clicked_buttons == 1)
+                if (edit_state.mouse_ev.clicked_buttons == 1)
                     new_val++;
-                else if (state.mouse_ev.clicked_buttons == 2)
+                else if (edit_state.mouse_ev.clicked_buttons == 2)
                     new_val--;
-                new_val += state.mouse_ev.wheel;
+                new_val += edit_state.mouse_ev.wheel;
                 sfx->speed = clamp(new_val, 1, 255);
             }
         }
@@ -165,11 +165,11 @@ static void draw(void) {
                 // Handle value changes
                 if (mouse_hover(&r, MOUSE_SPR_HAND)) {
                     int new_val = sfx->loop_start;
-                    if (state.mouse_ev.clicked_buttons == 1)
+                    if (edit_state.mouse_ev.clicked_buttons == 1)
                         new_val++;
-                    else if (state.mouse_ev.clicked_buttons == 2)
+                    else if (edit_state.mouse_ev.clicked_buttons == 2)
                         new_val--;
-                    new_val += state.mouse_ev.wheel;
+                    new_val += edit_state.mouse_ev.wheel;
                     sfx->loop_start = clamp(new_val, 0, 63);
                 }
             }
@@ -186,11 +186,11 @@ static void draw(void) {
                 // Handle value changes
                 if (mouse_hover(&r, MOUSE_SPR_HAND)) {
                     int new_val = sfx->loop_end;
-                    if (state.mouse_ev.clicked_buttons == 1)
+                    if (edit_state.mouse_ev.clicked_buttons == 1)
                         new_val++;
-                    else if (state.mouse_ev.clicked_buttons == 2)
+                    else if (edit_state.mouse_ev.clicked_buttons == 2)
                         new_val--;
-                    new_val += state.mouse_ev.wheel;
+                    new_val += edit_state.mouse_ev.wheel;
                     sfx->loop_end = clamp(new_val, 0, 63);
                 }
             }
@@ -204,12 +204,12 @@ static void draw(void) {
             x += 13;
             for (int i = 0; i <= 4; i++) {
                 rect_t r = {x, y - 1, x + 4, y + 5};
-                fill_rect(&r, (state.sfx_edit.octave == i) ? 7 : 6);
+                fill_rect(&r, (edit_state.sfx_edit.octave == i) ? 7 : 6);
                 draw_char_altfont(x + 1, y, '0' + i, 5);
 
                 // Handle value changes
                 if (mouse_lclick(&r))
-                    state.sfx_edit.octave = i;
+                    edit_state.sfx_edit.octave = i;
 
                 x += 6;
             }
@@ -227,15 +227,15 @@ static void draw(void) {
 
                 // Black
                 if (i < 7)
-                    fill_rect(&(rect_t){x, y, x + 1, y + (6 - i)}, state.sfx_edit.volume == i ? 13 : 0);
+                    fill_rect(&(rect_t){x, y, x + 1, y + (6 - i)}, edit_state.sfx_edit.volume == i ? 13 : 0);
 
                 // White
                 if (i > 0)
-                    fill_rect(&(rect_t){x, y + (7 - i), x + 1, y + 6}, state.sfx_edit.volume == i ? 7 : 6);
+                    fill_rect(&(rect_t){x, y + (7 - i), x + 1, y + 6}, edit_state.sfx_edit.volume == i ? 7 : 6);
 
                 // Handle value changes
                 if (mouse_lclick(&r))
-                    state.sfx_edit.volume = i;
+                    edit_state.sfx_edit.volume = i;
 
                 x += 3;
             }
@@ -247,12 +247,12 @@ static void draw(void) {
             y = param_y + 10;
             for (int i = 0; i < 8; i++) {
                 rect_t r = {x, y, x + 7, y + 5};
-                fill_rect(&r, i == state.sfx_edit.waveform ? i + 8 : 6);
+                fill_rect(&r, i == edit_state.sfx_edit.waveform ? i + 8 : 6);
                 draw_icon(x, y, 48 + i, 7);
 
                 // Handle value changes
                 if (mouse_lclick(&r))
-                    state.sfx_edit.waveform = i;
+                    edit_state.sfx_edit.waveform = i;
 
                 x += 9;
             }
@@ -264,12 +264,12 @@ static void draw(void) {
             y = param_y + 20;
             for (int i = 0; i < 8; i++) {
                 rect_t r = {x, y, x + 7, y + 5};
-                fill_rect(&r, i == state.sfx_edit.effect ? 7 : 13);
+                fill_rect(&r, i == edit_state.sfx_edit.effect ? 7 : 13);
                 draw_icon(x, y, 64 + i, 5);
 
                 // Handle value changes
                 if (mouse_lclick(&r))
-                    state.sfx_edit.effect = i;
+                    edit_state.sfx_edit.effect = i;
 
                 x += 9;
             }
@@ -297,40 +297,42 @@ static void draw(void) {
 }
 
 static void on_key(uint16_t code) {
+    sfx_t *sfx = &data_state.sfx[edit_state.sfx_edit.sfx_idx];
+
     if ((code & KEY_IS_SCANCODE) == 0) {
         unsigned key = (code & (KEY_MODIFIERS | KEY_CODE_MASK));
 
         switch (key) {
-            case CH_UP: state.sfx_edit.cursor_row--; break;
-            case CH_UP | KEY_MOD_CTRL: state.sfx_edit.cursor_row -= 4; break;
-            case CH_DOWN: state.sfx_edit.cursor_row++; break;
-            case CH_DOWN | KEY_MOD_CTRL: state.sfx_edit.cursor_row += 4; break;
+            case CH_UP: edit_state.sfx_edit.cursor_row--; break;
+            case CH_UP | KEY_MOD_CTRL: edit_state.sfx_edit.cursor_row -= 4; break;
+            case CH_DOWN: edit_state.sfx_edit.cursor_row++; break;
+            case CH_DOWN | KEY_MOD_CTRL: edit_state.sfx_edit.cursor_row += 4; break;
             case CH_LEFT: {
-                if (state.sfx_edit.cursor_col == 0) {
-                    state.sfx_edit.cursor_col = 4;
-                    state.sfx_edit.cursor_row -= 8;
+                if (edit_state.sfx_edit.cursor_col == 0) {
+                    edit_state.sfx_edit.cursor_col = 4;
+                    edit_state.sfx_edit.cursor_row -= 8;
                 } else {
-                    state.sfx_edit.cursor_col--;
+                    edit_state.sfx_edit.cursor_col--;
                 }
                 break;
             }
-            case CH_LEFT | KEY_MOD_CTRL: state.sfx_edit.cursor_row -= 8; break;
+            case CH_LEFT | KEY_MOD_CTRL: edit_state.sfx_edit.cursor_row -= 8; break;
 
             case CH_RIGHT: {
-                if (state.sfx_edit.cursor_col == 4) {
-                    state.sfx_edit.cursor_col = 0;
-                    state.sfx_edit.cursor_row += 8;
+                if (edit_state.sfx_edit.cursor_col == 4) {
+                    edit_state.sfx_edit.cursor_col = 0;
+                    edit_state.sfx_edit.cursor_row += 8;
                 } else {
-                    state.sfx_edit.cursor_col++;
+                    edit_state.sfx_edit.cursor_col++;
                 }
                 break;
             }
-            case CH_RIGHT | KEY_MOD_CTRL: state.sfx_edit.cursor_row += 8; break;
+            case CH_RIGHT | KEY_MOD_CTRL: edit_state.sfx_edit.cursor_row += 8; break;
 
-            case CH_HOME: state.sfx_edit.cursor_row = 0; break;
-            case CH_END: state.sfx_edit.cursor_row = 31; break;
-            case CH_PAGEUP: state.sfx_edit.cursor_row -= 4; break;
-            case CH_PAGEDOWN: state.sfx_edit.cursor_row += 4; break;
+            case CH_HOME: edit_state.sfx_edit.cursor_row = 0; break;
+            case CH_END: edit_state.sfx_edit.cursor_row = 31; break;
+            case CH_PAGEUP: edit_state.sfx_edit.cursor_row -= 4; break;
+            case CH_PAGEDOWN: edit_state.sfx_edit.cursor_row += 4; break;
             case CH_DELETE: {
 
                 break;
@@ -338,7 +340,15 @@ static void on_key(uint16_t code) {
             default: break;
         }
 
-        state.sfx_edit.cursor_row &= 31;
+        switch (code & KEY_CODE_MASK) {
+            case ',': sfx->speed--; break;
+            case '.': sfx->speed++; break;
+            case '<': sfx->speed -= 4; break;
+            case '>': sfx->speed += 4; break;
+            default: break;
+        }
+
+        edit_state.sfx_edit.cursor_row &= 31;
     }
 }
 

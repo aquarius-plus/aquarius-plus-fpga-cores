@@ -59,7 +59,7 @@ void draw_sprite(unsigned spr, int x, int y) {
 }
 
 void draw_game_sprite(unsigned spr, int x, int y) {
-    const uint32_t *p = &state.sprites[(spr >> 4) * 128 + (spr & 15)];
+    const uint32_t *p = &data_state.sprites[(spr >> 4) * 128 + (spr & 15)];
 
     VIDEO->REMAP_T = 1;
     VIDEO->FLAGS   = 1;
@@ -84,7 +84,7 @@ void draw_pixel(int x, int y, unsigned color) {
 }
 
 int draw_char(int x, int y, uint8_t ch, unsigned color) {
-    if (ch < 32 || ch > 127)
+    if (ch <= 32 || ch > 127)
         return 6;
     ch -= 32;
 
@@ -104,7 +104,7 @@ int draw_char(int x, int y, uint8_t ch, unsigned color) {
 }
 
 int draw_char_altfont(int x, int y, uint8_t ch, unsigned color) {
-    if (ch < 32 || ch > 127)
+    if (ch <= 32 || ch > 127)
         return 4;
     ch -= 32;
 

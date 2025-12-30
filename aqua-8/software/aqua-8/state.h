@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "editbuf.h"
 
 enum {
     MODE_CODE = 0,
@@ -8,7 +9,6 @@ enum {
     MODE_MAP,
     MODE_SFX,
     MODE_MUSIC,
-    MODE_CONSOLE,
 };
 
 #define MOUSE_SPR_POINTER   0
@@ -63,16 +63,26 @@ typedef struct {
 } sfx_edit_t;
 
 typedef struct {
+    editbuf_t  editbuf;
+    location_t cursor;
+} code_edit_t;
+
+typedef struct {
+    bool          editing;
     uint8_t       mode;
     mouse_event_t mouse_ev;
     uint8_t       mouse_spr;
     char          status_text[40];
     uint16_t      modifiers;
-
     sprite_edit_t spr_edit;
-    uint32_t      sprites[16 * 16 * 8];
     sfx_edit_t    sfx_edit;
-    sfx_t         sfx[64];
-} state_t;
+    code_edit_t   code_edit;
+} edit_state_t;
 
-extern state_t state;
+typedef struct {
+    uint32_t sprites[16 * 16 * 8];
+    sfx_t    sfx[64];
+} data_state_t;
+
+extern edit_state_t edit_state;
+extern data_state_t data_state;

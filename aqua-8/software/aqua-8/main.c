@@ -78,25 +78,25 @@ static void handle_mouse(void) {
         // snprintf(bla, sizeof(bla), "%u %u %u %d", x, y, buttons, wheel);
         // draw_text(bla, 50, 70, 7, false);
 
-        state.mouse_spr = MOUSE_SPR_POINTER;
+        edit_state.mouse_spr = MOUSE_SPR_POINTER;
 
         uint8_t clicked_buttons = ~prev_buttons & buttons;
         prev_buttons            = buttons;
 
-        state.mouse_ev.x               = x;
-        state.mouse_ev.y               = y;
-        state.mouse_ev.buttons         = buttons;
-        state.mouse_ev.clicked_buttons = clicked_buttons;
-        state.mouse_ev.wheel           = wheel;
+        edit_state.mouse_ev.x               = x;
+        edit_state.mouse_ev.y               = y;
+        edit_state.mouse_ev.buttons         = buttons;
+        edit_state.mouse_ev.clicked_buttons = clicked_buttons;
+        edit_state.mouse_ev.wheel           = wheel;
     }
 }
 
 uint16_t lastKeys[16];
 
 static void draw_mouse_cursor(void) {
-    int sx = state.mouse_ev.x;
-    int sy = state.mouse_ev.y;
-    switch (state.mouse_spr) {
+    int sx = edit_state.mouse_ev.x;
+    int sy = edit_state.mouse_ev.y;
+    switch (edit_state.mouse_spr) {
         case MOUSE_SPR_POINTER:
             sx -= 1;
             sy -= 1;
@@ -115,7 +115,7 @@ static void draw_mouse_cursor(void) {
             break;
         default: break;
     }
-    draw_sprite(state.mouse_spr, sx, sy);
+    draw_sprite(edit_state.mouse_spr, sx, sy);
 }
 
 static void handle_keybuf(void) {
@@ -127,13 +127,15 @@ static void handle_keybuf(void) {
         for (int i = 0; i < 15; i++) {
             lastKeys[i] = lastKeys[i + 1];
         }
-        lastKeys[15]    = keybuf;
-        state.modifiers = keybuf & KEY_MODIFIERS;
+        lastKeys[15]         = keybuf;
+        edit_state.modifiers = keybuf & KEY_MODIFIERS;
         scr_key(keybuf);
 
         // last = keybuf;
     }
 }
+
+uint8_t code_buf[64 * 1024];
 
 int main(void) {
     esp_closeall();
@@ -143,6 +145,12 @@ int main(void) {
 
     __irq_enable();
     csr_write(mie, (1 << VBLANK_IRQn));
+
+    editbuf_init(&edit_state.code_edit.editbuf, code_buf, sizeof(code_buf));
+
+    if (editbuf_load(&edit_state.code_edit.editbuf, "/sdk/cb/projects/tetris/tetris.cb")) {
+        edit_state.mode = MODE_CODE;
+    }
 
     // uint16_t org1 = VIDEO->PALETTE[1];
 
@@ -154,12 +162,12 @@ int main(void) {
         handle_mouse();
         handle_keybuf();
 
-        state.status_text[0] = 0;
+        edit_state.status_text[0] = 0;
         scr_get_current()->draw();
         scr_draw_status();
         draw_mouse_cursor();
-        state.mouse_ev.clicked_buttons = 0;
-        state.mouse_ev.wheel           = 0;
+        edit_state.mouse_ev.clicked_buttons = 0;
+        edit_state.mouse_ev.wheel           = 0;
 
 #if 0
         for (int i = 0; i < 16; i++) {

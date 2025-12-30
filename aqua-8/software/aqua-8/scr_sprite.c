@@ -8,7 +8,7 @@ static void on_tool_click(unsigned tool) {
         case TOOL_DELETE: break;
 
         default:
-            state.spr_edit.tool = tool;
+            edit_state.spr_edit.tool = tool;
             break;
     }
 }
@@ -45,13 +45,13 @@ static void draw(void) {
         rect_shrink(&r, 1);
 
         if (mouse_hover(&r, MOUSE_SPR_HAND)) {
-            unsigned hover_color = ((state.mouse_ev.y - r.y0) / 8) * 8 +
-                                   ((state.mouse_ev.x - r.x0) / 8);
+            unsigned hover_color = ((edit_state.mouse_ev.y - r.y0) / 8) * 8 +
+                                   ((edit_state.mouse_ev.x - r.x0) / 8);
 
-            snprintf(state.status_text, sizeof(state.status_text), "Color %u", hover_color);
+            snprintf(edit_state.status_text, sizeof(edit_state.status_text), "Color %u", hover_color);
 
-            if (state.mouse_ev.buttons == 1)
-                state.spr_edit.color = hover_color;
+            if (edit_state.mouse_ev.buttons == 1)
+                edit_state.spr_edit.color = hover_color;
         }
 
         x += 1;
@@ -65,8 +65,8 @@ static void draw(void) {
         }
 
         rect_t r2;
-        r2.x0 = r.x0 + (state.spr_edit.color % 8) * 8 - 1;
-        r2.y0 = r.y0 + (state.spr_edit.color / 8) * 8 - 1;
+        r2.x0 = r.x0 + (edit_state.spr_edit.color % 8) * 8 - 1;
+        r2.y0 = r.y0 + (edit_state.spr_edit.color / 8) * 8 - 1;
         r2.x1 = r2.x0 + 9;
         r2.y1 = r2.y0 + 9;
         draw_rect(&r2, 7);
@@ -83,13 +83,13 @@ static void draw(void) {
         rect_t r = {x + 1, y + 1, x + 128, y + 128};
         if (mouse_hover(&r, MOUSE_SPR_HAND)) {
             unsigned hover_idx =
-                ((state.mouse_ev.y - r.y0) / 8) * 16 +
-                ((state.mouse_ev.x - r.x0) / 8);
+                ((edit_state.mouse_ev.y - r.y0) / 8) * 16 +
+                ((edit_state.mouse_ev.x - r.x0) / 8);
 
-            snprintf(state.status_text, sizeof(state.status_text), "Sprite %u", hover_idx);
+            snprintf(edit_state.status_text, sizeof(edit_state.status_text), "Sprite %u", hover_idx);
 
-            if (state.mouse_ev.buttons == 1)
-                state.spr_edit.spr_idx = hover_idx;
+            if (edit_state.mouse_ev.buttons == 1)
+                edit_state.spr_edit.spr_idx = hover_idx;
         }
 
         fill_rect(&r, 0);
@@ -104,8 +104,8 @@ static void draw(void) {
         }
 
         {
-            r.x0 += (state.spr_edit.spr_idx % 16) * 8;
-            r.y0 += (state.spr_edit.spr_idx / 16) * 8;
+            r.x0 += (edit_state.spr_edit.spr_idx % 16) * 8;
+            r.y0 += (edit_state.spr_edit.spr_idx / 16) * 8;
 
             r.x1 = r.x0 + 8;
             r.y1 = r.y0 + 8;
@@ -124,7 +124,7 @@ static void draw(void) {
         draw_rect(&r, 0);
         rect_shrink(&r, 1);
 
-        const uint32_t *spr = &state.sprites[(state.spr_edit.spr_idx >> 4) * 128 + (state.spr_edit.spr_idx & 15)];
+        const uint32_t *spr = &data_state.sprites[(edit_state.spr_edit.spr_idx >> 4) * 128 + (edit_state.spr_edit.spr_idx & 15)];
 
         for (int j = 0; j < 8; j++) {
             for (int i = 0; i < 8; i++) {
@@ -137,7 +137,7 @@ static void draw(void) {
                 unsigned col = (*spr >> (i * 4)) & 0xF;
 
                 if (mouse_hover(&r2, MOUSE_SPR_CROSSHAIR)) {
-                    col = state.spr_edit.color;
+                    col = edit_state.spr_edit.color;
                 }
 
                 fill_rect(&r2, col);
@@ -169,13 +169,13 @@ static void draw(void) {
                 // fill_rect(&r, 0);
 
                 if (mouse_hover(&r, MOUSE_SPR_HAND)) {
-                    strcpy(state.status_text, tool_status_text[tool]);
+                    strcpy(edit_state.status_text, tool_status_text[tool]);
 
                     col = color_hover;
-                    if (state.mouse_ev.clicked_buttons == 1 && state.mouse_ev.buttons == state.mouse_ev.clicked_buttons)
+                    if (edit_state.mouse_ev.clicked_buttons == 1 && edit_state.mouse_ev.buttons == edit_state.mouse_ev.clicked_buttons)
                         on_tool_click(tool);
                 }
-                if (tool == state.spr_edit.tool)
+                if (tool == edit_state.spr_edit.tool)
                     col = color_sel;
 
                 draw_icon(x + i * 10, y, (j + 1) * 16 + i, col);
