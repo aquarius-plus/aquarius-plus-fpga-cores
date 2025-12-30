@@ -122,14 +122,14 @@ static void on_key(uint16_t key) {
             bool       check_other     = false;
             location_t prev_loc_cursor = state->loc_cursor;
             switch (ch) {
-                case CH_UP: cursor_up(); break;
-                case CH_DOWN: cursor_down(); break;
-                case CH_LEFT: cursor_left(); break;
-                case CH_RIGHT: cursor_right(); break;
-                case CH_HOME: cursor_home((key & KEY_MOD_CTRL) != 0); break;
-                case CH_END: cursor_end((key & KEY_MOD_CTRL) != 0); break;
-                case CH_PAGEUP: cursor_page_up(); break;
-                case CH_PAGEDOWN: cursor_page_down(); break;
+                case CH_UP: op_cursor_up(); break;
+                case CH_DOWN: op_cursor_down(); break;
+                case CH_LEFT: op_cursor_left(); break;
+                case CH_RIGHT: op_cursor_right(); break;
+                case CH_HOME: op_cursor_home((key & KEY_MOD_CTRL) != 0); break;
+                case CH_END: op_cursor_end((key & KEY_MOD_CTRL) != 0); break;
+                case CH_PAGEUP: op_cursor_page_up(); break;
+                case CH_PAGEDOWN: op_cursor_page_down(); break;
                 default: check_other = true;
             }
 
@@ -142,13 +142,13 @@ static void on_key(uint16_t key) {
 
             if (check_other) {
                 switch (ch) {
-                    case CH_DELETE: do_delete(); break;
-                    case CH_BACKSPACE: do_backspace(); break;
-                    case CH_ENTER: do_enter(); break;
-                    case CH_TAB: keep_selection |= do_tab((key & KEY_MOD_SHIFT) != 0); break;
+                    case CH_DELETE: op_delete(); break;
+                    case CH_BACKSPACE: op_backspace(); break;
+                    case CH_ENTER: op_enter(); break;
+                    case CH_TAB: keep_selection |= op_tab((key & KEY_MOD_SHIFT) != 0); break;
                     default: {
                         if ((key & (KEY_MOD_GUI | KEY_MOD_ALT | KEY_MOD_CTRL)) == 0 && !is_cntrl(ch))
-                            insert_ch(ch);
+                            op_insert_ch(ch);
                         break;
                     }
                 }

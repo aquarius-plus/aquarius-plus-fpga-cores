@@ -1,6 +1,6 @@
 #include "edit_ops.h"
 
-void update_selection_range(void) {
+static void update_selection_range(void) {
     code_edit_t *state = &edit_state.code_edit;
 
     if (loc_lt(state->loc_cursor, state->loc_selection)) {
@@ -90,7 +90,7 @@ static void backward_delete(void) {
         forward_delete();
 }
 
-void insert_ch(uint8_t ch) {
+void op_insert_ch(uint8_t ch) {
     code_edit_t *state = &edit_state.code_edit;
 
     update_cursor_pos();
@@ -127,29 +127,29 @@ static int unindent_line(int line) {
     return count;
 }
 
-void cursor_up(void) {
+void op_cursor_up(void) {
     code_edit_t *state = &edit_state.code_edit;
     state->loc_cursor.line--;
 }
 
-void cursor_down(void) {
+void op_cursor_down(void) {
     code_edit_t *state = &edit_state.code_edit;
     state->loc_cursor.line++;
 }
 
-void cursor_left(void) {
+void op_cursor_left(void) {
     code_edit_t *state = &edit_state.code_edit;
     update_cursor_pos();
     loc_dec(&state->loc_cursor);
 }
 
-void cursor_right(void) {
+void op_cursor_right(void) {
     code_edit_t *state = &edit_state.code_edit;
     update_cursor_pos();
     loc_inc(&state->loc_cursor);
 }
 
-void cursor_home(bool ctrl_pressed) {
+void op_cursor_home(bool ctrl_pressed) {
     code_edit_t *state = &edit_state.code_edit;
     if (ctrl_pressed) {
         state->loc_cursor.line = 0;
@@ -160,24 +160,24 @@ void cursor_home(bool ctrl_pressed) {
     }
 }
 
-void cursor_end(bool ctrl_pressed) {
+void op_cursor_end(bool ctrl_pressed) {
     code_edit_t *state = &edit_state.code_edit;
     if (ctrl_pressed)
         state->loc_cursor.line = editbuf_get_line_count(state->editbuf) - 1;
     state->loc_cursor.pos = editbuf_get_line(state->editbuf, state->loc_cursor.line, NULL);
 }
 
-void cursor_page_up(void) {
+void op_cursor_page_up(void) {
     code_edit_t *state = &edit_state.code_edit;
     state->loc_cursor.line -= (EDITOR_ROWS - 1);
 }
 
-void cursor_page_down(void) {
+void op_cursor_page_down(void) {
     code_edit_t *state = &edit_state.code_edit;
     state->loc_cursor.line += (EDITOR_ROWS - 1);
 }
 
-void do_delete(void) {
+void op_delete(void) {
     update_cursor_pos();
     if (has_selection()) {
         delete_selection();
@@ -186,7 +186,7 @@ void do_delete(void) {
     }
 }
 
-void do_backspace(void) {
+void op_backspace(void) {
     code_edit_t *state = &edit_state.code_edit;
     update_cursor_pos();
     if (has_selection()) {
@@ -209,7 +209,7 @@ void do_backspace(void) {
     backward_delete();
 }
 
-void do_enter(void) {
+void op_enter(void) {
     code_edit_t *state = &edit_state.code_edit;
     update_cursor_pos();
     int leading_spaces = min(state->loc_cursor.pos, get_leading_spaces(state->loc_cursor.line));
@@ -220,12 +220,12 @@ void do_enter(void) {
         // Auto indent
         while (leading_spaces > 0) {
             leading_spaces--;
-            insert_ch(' ');
+            op_insert_ch(' ');
         }
     }
 }
 
-bool do_tab(bool shift_pressed) {
+bool op_tab(bool shift_pressed) {
     code_edit_t *state = &edit_state.code_edit;
 
     bool keep_selection = false;
@@ -253,7 +253,7 @@ bool do_tab(bool shift_pressed) {
 
             int count = pos - state->loc_cursor.pos;
             for (int i = 0; i < count; i++)
-                insert_ch(' ');
+                op_insert_ch(' ');
 
         } else {
             state->loc_cursor.pos -= unindent_line(state->loc_cursor.line);

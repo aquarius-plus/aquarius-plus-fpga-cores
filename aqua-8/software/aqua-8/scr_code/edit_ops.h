@@ -25,17 +25,16 @@ static inline void reset_state(void) {
 
 bool in_selection(location_t loc);
 
-void cursor_up(void);
-void cursor_down(void);
-void cursor_left(void);
-void cursor_right(void);
-void cursor_home(bool ctrl_pressed);
-void cursor_end(bool ctrl_pressed);
-void cursor_page_up(void);
-void cursor_page_down(void);
-
-void do_delete(void);
-void do_backspace(void);
-void do_enter(void);
-bool do_tab(bool shift_pressed);
-void insert_ch(uint8_t ch);
+void op_cursor_up(void);
+void op_cursor_down(void);
+void op_cursor_left(void);
+void op_cursor_right(void);
+void op_cursor_home(bool ctrl_pressed);
+void op_cursor_end(bool ctrl_pressed);
+void op_cursor_page_up(void);
+void op_cursor_page_down(void);
+void op_delete(void);
+void op_backspace(void);
+void op_enter(void);
+bool op_tab(bool shift_pressed);
+void op_insert_ch(uint8_t ch);
