@@ -11,9 +11,31 @@ screen_t *scr_get(unsigned mode) {
     }
 }
 
+#define MESSAGE_DURATION 150
+
+void scr_show_message(void) {
+    edit_state.message_tick = MESSAGE_DURATION;
+}
+
 void scr_draw_status(void) {
     fill_rect(&(rect_t){0, 159 - 6, 199, 159}, 2);
     draw_text(edit_state.status_text, 1, 154, 14, true);
+
+    if (edit_state.message_tick > 0) {
+        int y = 159 - 6;
+
+        if (edit_state.message_tick > MESSAGE_DURATION - 6) {
+            y += 6 - (MESSAGE_DURATION - edit_state.message_tick);
+        }
+
+        if (edit_state.message_tick < 6) {
+            y += 6 - edit_state.message_tick;
+        }
+
+        fill_rect(&(rect_t){0, y, 199, y + 6}, 8);
+        draw_text(edit_state.message, 1, y + 1, 15, true);
+        edit_state.message_tick--;
+    }
 }
 
 void scr_common(unsigned bg_col) {
@@ -66,37 +88,37 @@ void scr_key(uint16_t key) {
     // }
 
     // if (edit_state.editing) {
-        if (key == (KEY_MOD_ALT | CH_LEFT)) {
-            if (edit_state.mode == MODE_CODE) {
-                edit_state.mode = MODE_MUSIC;
-            } else {
-                edit_state.mode--;
-            }
-            return;
-        }
-        if (key == (KEY_MOD_ALT | CH_RIGHT)) {
-            if (edit_state.mode == MODE_MUSIC) {
-                edit_state.mode = MODE_CODE;
-            } else {
-                edit_state.mode++;
-            }
-            return;
-        }
-
-        if (key == CH_F1) {
-            edit_state.mode = MODE_CODE;
-        } else if (key == CH_F2) {
-            edit_state.mode = MODE_SPRITE;
-        } else if (key == CH_F3) {
-            edit_state.mode = MODE_MAP;
-        } else if (key == CH_F4) {
-            edit_state.mode = MODE_SFX;
-        } else if (key == CH_F5) {
+    if (key == (KEY_MOD_ALT | CH_LEFT)) {
+        if (edit_state.mode == MODE_CODE) {
             edit_state.mode = MODE_MUSIC;
         } else {
-            screen_t *scr = scr_get_current();
-            if (scr->on_key)
-                scr->on_key(key);
+            edit_state.mode--;
         }
+        return;
+    }
+    if (key == (KEY_MOD_ALT | CH_RIGHT)) {
+        if (edit_state.mode == MODE_MUSIC) {
+            edit_state.mode = MODE_CODE;
+        } else {
+            edit_state.mode++;
+        }
+        return;
+    }
+
+    if (key == CH_F1) {
+        edit_state.mode = MODE_CODE;
+    } else if (key == CH_F2) {
+        edit_state.mode = MODE_SPRITE;
+    } else if (key == CH_F3) {
+        edit_state.mode = MODE_MAP;
+    } else if (key == CH_F4) {
+        edit_state.mode = MODE_SFX;
+    } else if (key == CH_F5) {
+        edit_state.mode = MODE_MUSIC;
+    } else {
+        screen_t *scr = scr_get_current();
+        if (scr->on_key)
+            scr->on_key(key);
+    }
     // }
 }

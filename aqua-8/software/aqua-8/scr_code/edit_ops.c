@@ -1,6 +1,6 @@
 #include "edit_ops.h"
 
-static void update_selection_range(void) {
+void update_selection_range(void) {
     code_edit_t *state = &edit_state.code_edit;
 
     if (loc_lt(state->loc_cursor, state->loc_selection)) {

@@ -17,6 +17,7 @@ void scr_init(void);
 void scr_draw_status(void);
 void scr_common(unsigned bg_col);
 void scr_key(uint16_t code);
+void scr_show_message(void);
 
 static inline bool mouse_clicked(const rect_t *r, uint8_t button, uint8_t spr) {
     if (rect_contains(r, edit_state.mouse_ev.x, edit_state.mouse_ev.y)) {

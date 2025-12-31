@@ -3,6 +3,8 @@
 #include "common.h"
 #include "state.h"
 
+#define CLIPBOARD_PATH "/.editor-clipboard"
+
 #define EDITOR_ROWS    21
 #define EDITOR_COLUMNS 50
 #define TAB_SIZE       2
@@ -22,6 +24,8 @@ static inline void reset_state(void) {
     state->scr_first_line = 0;
     state->scr_first_pos  = 0;
 }
+
+void update_selection_range(void);
 
 bool in_selection(location_t loc);
 

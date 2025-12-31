@@ -420,6 +420,12 @@ bool editbuf_save(editbuf_t *eb, const char *path) {
     return true;
 }
 
+unsigned editbuf_get_size(editbuf_t *eb) {
+    unsigned size = (eb->p_split_start - eb->p_buf);
+    size += (eb->p_buf_end - eb->p_split_end);
+    return size;
+}
+
 bool editbuf_save_range(editbuf_t *eb, location_t from, location_t to, const char *path) {
     uint8_t *p_line_to   = move_split_after_line(eb, to.line);
     uint8_t *p_line_from = get_line_addr(eb, from.line);

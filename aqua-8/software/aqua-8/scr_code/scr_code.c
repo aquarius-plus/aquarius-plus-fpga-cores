@@ -3,6 +3,46 @@
 #include "colorize.h"
 #include "edit_ops.h"
 
+static void cmd_edit_cut(void) {
+    if (!has_selection())
+        return;
+
+    update_selection_range();
+    code_edit_t *state = &edit_state.code_edit;
+    if (editbuf_save_range(state->editbuf, state->loc_selection_from, state->loc_selection_to, CLIPBOARD_PATH)) {
+        editbuf_delete_range(state->editbuf, state->loc_selection_from, state->loc_selection_to);
+        clear_selection();
+    }
+}
+
+static void cmd_edit_copy(void) {
+    if (!has_selection())
+        return;
+
+    update_selection_range();
+    code_edit_t *state = &edit_state.code_edit;
+    editbuf_save_range(state->editbuf, state->loc_selection_from, state->loc_selection_to, CLIPBOARD_PATH);
+}
+
+static void cmd_edit_paste(void) {
+    code_edit_t *state = &edit_state.code_edit;
+
+    clear_selection();
+    update_cursor_pos();
+    editbuf_insert_from_file(state->editbuf, &state->loc_cursor, CLIPBOARD_PATH);
+}
+
+static void cmd_edit_select_all(void) {
+    code_edit_t *state        = &edit_state.code_edit;
+    state->loc_selection.line = 0;
+    state->loc_selection.pos  = 0;
+    state->loc_cursor.line    = editbuf_get_line_count(state->editbuf) - 1;
+    state->loc_cursor.pos     = editbuf_get_line(state->editbuf, state->loc_cursor.line, NULL);
+}
+
+#define COLOR_SELECTED 2
+// #define COLOR_SELECTED 5
+
 static void draw(void) {
     scr_common(1);
 
@@ -62,7 +102,7 @@ static void draw(void) {
                     r.y0 = y - 1;
                     r.x1 = x + 3;
                     r.y1 = y + 5;
-                    fill_rect(&r, 10);
+                    fill_rect(&r, COLOR_SELECTED);
                 }
 
                 if (i >= line_len)
@@ -79,7 +119,7 @@ static void draw(void) {
                 r.y0 = y - 1;
                 r.x1 = line_len * 4 + 3;
                 r.y1 = y + 5;
-                fill_rect(&r, 10);
+                fill_rect(&r, COLOR_SELECTED);
             }
 
             for (int i = 0; i < line_len; i++) {
@@ -97,9 +137,9 @@ static void draw(void) {
 
         snprintf(
             edit_state.status_text, sizeof(edit_state.status_text),
-            "Line %d/%d Col %d",
+            "Line %d/%d Col %d            %5u/65535",
             state->loc_cursor.line + 1, editbuf_get_line_count(state->editbuf),
-            cpos + 1);
+            cpos + 1, (uint16_t)editbuf_get_size(state->editbuf));
     }
 }
 
@@ -109,61 +149,60 @@ static void on_key(uint16_t key) {
     if ((key & KEY_IS_SCANCODE) == 0) {
         uint8_t ch = key & 0xFF;
 
-        // menu_handler_t handler = NULL;
-        // if ((key & (KEY_MOD_CTRL | KEY_MOD_ALT)) || is_cntrl(key)) {
-        //     uint16_t shortcut = (key & (KEY_MOD_CTRL | KEY_MOD_SHIFT | KEY_MOD_ALT)) | toupper(ch);
-        //     handler           = menubar_find_shortcut(menubar_menus, shortcut);
-        // }
-
-        // if (handler) {
-        //     handler();
-        // } else
-        {
-            bool       check_other     = false;
-            location_t prev_loc_cursor = state->loc_cursor;
-            switch (ch) {
-                case CH_UP: op_cursor_up(); break;
-                case CH_DOWN: op_cursor_down(); break;
-                case CH_LEFT: op_cursor_left(); break;
-                case CH_RIGHT: op_cursor_right(); break;
-                case CH_HOME: op_cursor_home((key & KEY_MOD_CTRL) != 0); break;
-                case CH_END: op_cursor_end((key & KEY_MOD_CTRL) != 0); break;
-                case CH_PAGEUP: op_cursor_page_up(); break;
-                case CH_PAGEDOWN: op_cursor_page_down(); break;
-                default: check_other = true;
-            }
-
-            // Start a new selection?
-            if (!check_other && !has_selection() && (key & KEY_MOD_SHIFT) != 0) {
-                state->loc_selection = prev_loc_cursor;
-            }
-
-            bool keep_selection = false;
-
-            if (check_other) {
+        uint16_t shortcut = (key & (KEY_MOD_CTRL | KEY_MOD_SHIFT | KEY_MOD_ALT)) | toupper(ch);
+        switch (shortcut) {
+            case (KEY_MOD_CTRL | 'C'): cmd_edit_copy(); break;
+            case (KEY_MOD_CTRL | 'X'): cmd_edit_cut(); break;
+            case (KEY_MOD_CTRL | 'V'): cmd_edit_paste(); break;
+            case (KEY_MOD_CTRL | 'A'): cmd_edit_select_all(); break;
+            default: {
+                bool       check_other     = false;
+                location_t prev_loc_cursor = state->loc_cursor;
                 switch (ch) {
-                    case CH_DELETE: op_delete(); break;
-                    case CH_BACKSPACE: op_backspace(); break;
-                    case CH_ENTER: op_enter(); break;
-                    case CH_TAB: keep_selection |= op_tab((key & KEY_MOD_SHIFT) != 0); break;
-                    default: {
-                        if ((key & (KEY_MOD_GUI | KEY_MOD_ALT | KEY_MOD_CTRL)) == 0 && !is_cntrl(ch))
-                            op_insert_ch(ch);
-                        break;
+                    case CH_UP: op_cursor_up(); break;
+                    case CH_DOWN: op_cursor_down(); break;
+                    case CH_LEFT: op_cursor_left(); break;
+                    case CH_RIGHT: op_cursor_right(); break;
+                    case CH_HOME: op_cursor_home((key & KEY_MOD_CTRL) != 0); break;
+                    case CH_END: op_cursor_end((key & KEY_MOD_CTRL) != 0); break;
+                    case CH_PAGEUP: op_cursor_page_up(); break;
+                    case CH_PAGEDOWN: op_cursor_page_down(); break;
+                    default: check_other = true;
+                }
+
+                // Start a new selection?
+                if (!check_other && !has_selection() && (key & KEY_MOD_SHIFT) != 0) {
+                    state->loc_selection = prev_loc_cursor;
+                }
+
+                bool keep_selection = false;
+
+                if (check_other) {
+                    switch (ch) {
+                        case CH_DELETE: op_delete(); break;
+                        case CH_BACKSPACE: op_backspace(); break;
+                        case CH_ENTER: op_enter(); break;
+                        case CH_TAB: keep_selection |= op_tab((key & KEY_MOD_SHIFT) != 0); break;
+                        default: {
+                            if ((key & (KEY_MOD_GUI | KEY_MOD_ALT | KEY_MOD_CTRL)) == 0 && !is_cntrl(ch))
+                                op_insert_ch(ch);
+                            break;
+                        }
                     }
                 }
-            }
 
-            // Clear existing selection?
-            if ((key & KEY_MOD_SHIFT) == 0 && !keep_selection) {
-                clear_selection();
+                // Clear existing selection?
+                if ((key & KEY_MOD_SHIFT) == 0 && !keep_selection) {
+                    clear_selection();
+                }
+                break;
             }
         }
     }
 }
 
 static editbuf_t editbuf;
-static uint8_t   code_buf[64 * 1024];
+static uint8_t   code_buf[64 * 1024 - 1];
 
 static void _init(void) {
     code_edit_t *state = &edit_state.code_edit;

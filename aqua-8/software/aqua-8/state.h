@@ -78,7 +78,9 @@ typedef struct {
     uint8_t       mode;
     mouse_event_t mouse_ev;
     uint8_t       mouse_spr;
-    char          status_text[40];
+    char          status_text[51];
+    char          message[51];
+    uint8_t       message_tick;
     uint16_t      modifiers;
     sprite_edit_t spr_edit;
     sfx_edit_t    sfx_edit;
