@@ -64,7 +64,6 @@ typedef struct {
 
 typedef struct {
     editbuf_t *editbuf;
-    char       filename[64];
     location_t loc_cursor;
     location_t loc_selection;
     int        scr_first_line;

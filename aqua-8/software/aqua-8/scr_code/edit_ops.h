@@ -18,7 +18,6 @@ static inline void reset_state(void) {
     code_edit_t *state = &edit_state.code_edit;
 
     editbuf_reset(state->editbuf);
-    state->filename[0]    = 0;
     state->loc_cursor     = (location_t){0, 0};
     state->loc_selection  = (location_t){-1, -1};
     state->scr_first_line = 0;

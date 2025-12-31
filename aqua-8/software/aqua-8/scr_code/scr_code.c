@@ -133,13 +133,20 @@ static void draw(void) {
     {
         const uint8_t *p;
         int            line_len = editbuf_get_line(state->editbuf, state->loc_cursor.line, &p);
-        int            cpos     = min(line_len, state->loc_cursor.pos);
+        uint16_t       cpos     = min(line_len, state->loc_cursor.pos);
 
+        // Cursor location
+        char left[32];
+        snprintf(
+            left, sizeof(left),
+            "line %u/%u col %u",
+            (uint16_t)(state->loc_cursor.line + 1), (uint16_t)editbuf_get_line_count(state->editbuf), cpos + 1);
+
+        // Bytes used
         snprintf(
             edit_state.status_text, sizeof(edit_state.status_text),
-            "Line %d/%d Col %d            %5u/65535",
-            state->loc_cursor.line + 1, editbuf_get_line_count(state->editbuf),
-            cpos + 1, (uint16_t)editbuf_get_size(state->editbuf));
+            "%-37s %5u/65535",
+            left, (uint16_t)editbuf_get_size(state->editbuf));
     }
 }
 
