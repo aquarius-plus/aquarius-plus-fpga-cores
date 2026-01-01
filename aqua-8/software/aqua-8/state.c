@@ -83,6 +83,7 @@ int state_load_cart(const char *path) {
     uint8_t       *p_spr     = (uint8_t *)data_state.sprites;
     const uint8_t *p_spr_end = p_spr + sizeof(data_state.sprites);
     unsigned       sfx_idx   = 0;
+    uint8_t       *p_code    = eb->p_buf;
 
     unsigned mode = LOADMODE_NONE;
 
@@ -154,19 +155,39 @@ int state_load_cart(const char *path) {
                     break;
                 }
                 case LOADMODE_LUA: {
+                    int remaining = eb->p_buf_end - p_code;
+                    if (remaining <= 1) {
+                        mode = LOADMODE_NONE;
+                        break;
+                    }
+                    if (len + 1 >= remaining) {
+                        len = remaining - 1;
+                    }
+                    memcpy(p_code, line, len);
+                    p_code += len;
+                    *(p_code++) = '\n';
                     break;
                 }
             }
         }
 
         if (mode != old_mode) {
-            console_printf("Changed mode to: %u\r\n", mode);
+            console_printf("Changed parsing mode to: %u\r\n", mode);
         }
 
         // console_putline(line);
     }
-
     esp_close(fd);
+
+    // Finalize code edit buffer
+    {
+        unsigned size   = p_code - eb->p_buf;
+        uint8_t *p_load = eb->p_buf_end - size;
+        memmove(p_load, eb->p_buf, size);
+        if (!editbuf_normalize(eb, p_load, eb->p_buf_end)) {
+            return -1;
+        }
+    }
 
     return editbuf_get_size(eb);
 }

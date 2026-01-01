@@ -34,3 +34,4 @@ bool     editbuf_save(editbuf_t *eb, const char *path);
 bool     editbuf_save_range(editbuf_t *eb, location_t from, location_t to, const char *path);
 bool     editbuf_insert_from_file(editbuf_t *eb, location_t *loc, const char *path);
 unsigned editbuf_get_size(editbuf_t *eb);
+bool     editbuf_normalize(editbuf_t *eb, const uint8_t *ps, const uint8_t *ps_end);

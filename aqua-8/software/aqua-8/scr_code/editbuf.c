@@ -310,7 +310,7 @@ bool editbuf_delete_range(editbuf_t *eb, location_t loc_from, location_t loc_to)
 }
 
 // Remove control characters, expand tabs to spaces, normalize line endings
-static bool normalize(editbuf_t *eb, const uint8_t *ps, const uint8_t *ps_end) {
+bool editbuf_normalize(editbuf_t *eb, const uint8_t *ps, const uint8_t *ps_end) {
     editbuf_reset(eb);
 
     uint8_t *pd     = eb->p_buf;
@@ -392,7 +392,7 @@ bool editbuf_load(editbuf_t *eb, const char *path) {
     fclose(f);
     f = NULL;
 
-    if (!normalize(eb, p_load, eb->p_buf_end))
+    if (!editbuf_normalize(eb, p_load, eb->p_buf_end))
         goto error;
 
     return true;
