@@ -91,5 +91,15 @@ typedef struct {
     sfx_t    sfx[64];
 } data_state_t;
 
+typedef struct {
+    int     x;
+    int     y;
+    uint8_t color;
+} game_state_t;
+
 extern edit_state_t edit_state;
 extern data_state_t data_state;
+extern game_state_t game_state;
+
+extern volatile bool frame60;
+extern volatile bool frame30;

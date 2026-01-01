@@ -1,8 +1,8 @@
 #include "state.h"
 
 edit_state_t edit_state = {
-    .editing = true,
-    .mode    = MODE_SPRITE,
+    .editing = false,
+    .mode    = MODE_CODE,
 
     .sfx_edit = {
         .sfx_idx    = 0,
@@ -35,3 +35,5 @@ data_state_t data_state = {
 #include "game_sprites.inl"
     },
 };
+
+game_state_t game_state;

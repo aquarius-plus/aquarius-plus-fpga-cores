@@ -31,7 +31,7 @@ void remap_reset(void) {
 void clear_screen(unsigned color) {
     VIDEO->COLOR = color;
     VIDEO->FLAGS = 2;
-    for (unsigned j = 0; j < 160; j++) {
+    for (unsigned j = 0; j < 161; j++) {
         VIDEO->POSX16 = 0;
         VIDEO->POSY16 = j;
         for (unsigned i = 0; i < 25; i++) {

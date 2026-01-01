@@ -46,9 +46,7 @@ target_link_options(${PROJECT_NAME} PRIVATE -Wl,-T${CMAKE_CURRENT_LIST_DIR}/defa
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE PROJECT_VERSION="${CMAKE_PROJECT_VERSION}")
 
-
 target_link_libraries(${PROJECT_NAME} PRIVATE m)
-
 
 add_custom_target(debug
     COMMAND riscv-none-elf-gdb --tui -q ${PROJECT_NAME}.elf -ex "target remote localhost:2331" -ex "load"
@@ -68,27 +66,29 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_sources(${PROJECT_NAME} PRIVATE
     main.c
 
+    state.c
     scr.c
-    scr_sprite.c
-    scr_map.c
-    scr_sfx.c
-    scr_music.c
+
+    draw/draw.c
+
+    scr_console/console.c
+    scr_console/readline.c
+
+    scr_gfx/scr_sprite.c
+    scr_gfx/scr_map.c
+
+    scr_snd/scr_sfx.c
+    scr_snd/scr_music.c
     
     scr_code/scr_code.c
     scr_code/editbuf.c
     scr_code/edit_ops.c
     scr_code/colorize.c
 
-    draw/draw.c
-
-    state.c
-
     lib/start.S
     lib/common.c
-    # lib/console.c
     lib/esp.c
     lib/malloc.c
-    lib/readline.c
     lib/syscalls.c
 
     # lua/lapi.c

@@ -167,7 +167,7 @@ module video(
 
             // Deny drawing outside visible area
             if (q_reg_posx >= 16'd200 && q_reg_posx <= 16'd65528) vram_wren = 0;
-            if (q_reg_posy >= 16'd160)                            vram_wren = 0;
+            if (q_reg_posy >= 16'd163)                            vram_wren = 0;
 
             // Left-side clipping
             if (lclip_result[15]) begin
@@ -217,7 +217,7 @@ module video(
             q_reg_color   <= 0;
             q_reg_remap_t <= 0;
             q_reg_page    <= 0;
-            q_reg_clip_y2 <= 8'd160;
+            q_reg_clip_y2 <= 8'd163;
             q_reg_clip_y1 <= 8'd0;
             q_reg_clip_x2 <= 8'd200;
             q_reg_clip_x1 <= 8'd0;
@@ -273,7 +273,7 @@ module video(
     assign irq_vblank = !q_vblank && vblank;
 
     //////////////////////////////////////////////////////////////////////////
-    // Video RAM (200x160)
+    // Video RAM (200x163) (only 200x160 shown)
     //////////////////////////////////////////////////////////////////////////
     reg  [14:0] q_line_addr     = 0;
     reg  [14:0] q_pixel_addr    = 0;

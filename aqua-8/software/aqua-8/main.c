@@ -1,5 +1,5 @@
 #include "common.h"
-#include "console.h"
+#include "scr_console/console.h"
 #include <sys/stat.h>
 #include <errno.h>
 
@@ -11,16 +11,17 @@
 
 int luaopen_base(lua_State *L);
 
+volatile bool frame60 = false;
 volatile bool frame30 = false;
 
 void vblank_handler(void) {
     static unsigned frame = 0;
     frame++;
 
-    // if (frame & 1)
-    {
+    if (frame & 1) {
         frame30 = true;
     }
+    frame60 = true;
 }
 
 void trap_handler(struct trap_regs *regs) {
@@ -29,34 +30,6 @@ void trap_handler(struct trap_regs *regs) {
         vblank_handler();
     }
 }
-
-// void draw_mouse_cursor(int x, int y) {
-//     int spr = 0;
-//     if (y < 7 && x >= 200 - 5 * 8) {
-//         spr = 1;
-//     } else if (y >= 7 && y < 160 - 7 && state.mode == MODE_CODE)
-//         spr = 2;
-
-//     int sx = x;
-//     int sy = y;
-//     switch (spr) {
-//         case 0: // Pointer
-//             sx -= 1;
-//             sy -= 1;
-//             break;
-//         case 1: // Hand
-//             sx -= 3;
-//             sy -= 1;
-//             break;
-//         case 2: // I-beam
-//             sx -= 1;
-//             sy -= 4;
-//             break;
-//         default: break;
-//     }
-
-//     draw_sprite(spr, sx, sy);
-// }
 
 static void handle_mouse(void) {
     static uint8_t prev_buttons = 0;
@@ -133,9 +106,9 @@ static void handle_keybuf(void) {
     }
 }
 
+
 int main(void) {
     esp_closeall();
-
     palette_init();
     remap_reset();
 
@@ -148,30 +121,34 @@ int main(void) {
             scr->init();
     }
 
-    // uint16_t org1 = VIDEO->PALETTE[1];
-
-    unsigned page = 1;
-    VIDEO->PAGE   = page;
-
     while (1) {
-        // VIDEO->PALETTE[1] = 0x222;
-        handle_mouse();
-        handle_keybuf();
+        if (!edit_state.editing) {
+            console_perform();
+        } else {
+            unsigned page = 2;
+            VIDEO->PAGE   = page;
 
-        edit_state.status_text[0] = 0;
-        scr_get_current()->draw();
-        scr_draw_status();
-        draw_mouse_cursor();
-        edit_state.mouse_ev.clicked_buttons = 0;
-        edit_state.mouse_ev.wheel           = 0;
+            while (edit_state.editing) {
+                // VIDEO->PALETTE[1] = 0x222;
+                handle_keybuf();
+                handle_mouse();
 
-        palette_init();
+                edit_state.status_text[0] = 0;
+                scr_get_current()->draw();
+                scr_draw_status();
+                draw_mouse_cursor();
+                edit_state.mouse_ev.clicked_buttons = 0;
+                edit_state.mouse_ev.wheel           = 0;
 
-        frame30 = false;
-        while (!frame30) {
+                palette_init();
+
+                frame60 = false;
+                while (!frame60) {
+                }
+                page ^= 3;
+                VIDEO->PAGE = page;
+            }
         }
-        page ^= 3;
-        VIDEO->PAGE = page;
     }
 
     return 0;

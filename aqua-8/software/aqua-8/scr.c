@@ -82,43 +82,43 @@ void scr_common(unsigned bg_col) {
 }
 
 void scr_key(uint16_t key) {
-    // if (key == 3) {
-    //     edit_state.editing = !edit_state.editing;
-    //     return;
-    // }
+    if (key == 3) {
+        edit_state.editing = !edit_state.editing;
+        return;
+    }
 
-    // if (edit_state.editing) {
-    if (key == (KEY_MOD_ALT | CH_LEFT)) {
-        if (edit_state.mode == MODE_CODE) {
+    if (edit_state.editing) {
+        if (key == (KEY_MOD_ALT | CH_LEFT)) {
+            if (edit_state.mode == MODE_CODE) {
+                edit_state.mode = MODE_MUSIC;
+            } else {
+                edit_state.mode--;
+            }
+            return;
+        }
+        if (key == (KEY_MOD_ALT | CH_RIGHT)) {
+            if (edit_state.mode == MODE_MUSIC) {
+                edit_state.mode = MODE_CODE;
+            } else {
+                edit_state.mode++;
+            }
+            return;
+        }
+
+        if (key == CH_F1) {
+            edit_state.mode = MODE_CODE;
+        } else if (key == CH_F2) {
+            edit_state.mode = MODE_SPRITE;
+        } else if (key == CH_F3) {
+            edit_state.mode = MODE_MAP;
+        } else if (key == CH_F4) {
+            edit_state.mode = MODE_SFX;
+        } else if (key == CH_F5) {
             edit_state.mode = MODE_MUSIC;
         } else {
-            edit_state.mode--;
+            screen_t *scr = scr_get_current();
+            if (scr->on_key)
+                scr->on_key(key);
         }
-        return;
     }
-    if (key == (KEY_MOD_ALT | CH_RIGHT)) {
-        if (edit_state.mode == MODE_MUSIC) {
-            edit_state.mode = MODE_CODE;
-        } else {
-            edit_state.mode++;
-        }
-        return;
-    }
-
-    if (key == CH_F1) {
-        edit_state.mode = MODE_CODE;
-    } else if (key == CH_F2) {
-        edit_state.mode = MODE_SPRITE;
-    } else if (key == CH_F3) {
-        edit_state.mode = MODE_MAP;
-    } else if (key == CH_F4) {
-        edit_state.mode = MODE_SFX;
-    } else if (key == CH_F5) {
-        edit_state.mode = MODE_MUSIC;
-    } else {
-        screen_t *scr = scr_get_current();
-        if (scr->on_key)
-            scr->on_key(key);
-    }
-    // }
 }

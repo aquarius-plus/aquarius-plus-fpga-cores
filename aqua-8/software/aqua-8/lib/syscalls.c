@@ -1,5 +1,4 @@
 #include "common.h"
-#include "console.h"
 #include <errno.h>
 #include <sys/stat.h>
 #include <fcntl.h>
