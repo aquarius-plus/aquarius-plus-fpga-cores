@@ -244,6 +244,8 @@ static const command_t commands[] = {
     {"ls", cmd_ls},
     {"dir", cmd_ls},
     {"cd", cmd_cd},
+    {"load", cmd_load},
+    {"save", cmd_save},
     {NULL, NULL},
 };
 
@@ -286,7 +288,7 @@ void console_perform(void) {
                 continue;
 
             int result = readline_process(&ctx, ch);
-            if (result > 0) {
+            if (result >= 0) {
                 console_puts("\r\n");
                 readline_done = true;
 
@@ -323,7 +325,7 @@ void console_perform(void) {
                 }
                 break;
             }
-            if (result < 0) {
+            if (result == -2) {
                 edit_state.editing = true;
                 save_vram();
                 return;

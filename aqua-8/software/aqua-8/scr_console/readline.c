@@ -98,12 +98,12 @@ int readline_process(readline_ctx_t *ctx, uint8_t ch) {
         //     return -1;
         // }
         case 27: // Escape
-            return -1;
+            return -2;
             break;
         default:
             if (ch >= ' ' && ch <= '~') //  !is_cntrl(ch))
                 insert_char(ctx, ch);
             break;
     }
-    return 0;
+    return -1;
 }

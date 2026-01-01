@@ -37,3 +37,11 @@ data_state_t data_state = {
 };
 
 game_state_t game_state;
+
+int state_load_cart(const char *path) {
+    return 0;
+}
+
+int state_save_cart(const char *path) {
+    return 0;
+}

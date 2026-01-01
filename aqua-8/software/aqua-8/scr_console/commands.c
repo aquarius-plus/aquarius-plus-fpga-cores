@@ -37,6 +37,8 @@ static void print_cwd(void) {
 
 void cmd_ls(const char *args) {
     (void)args;
+    bool list_all = (strcmp(args, "*") == 0);
+
     const char *path = "";
     int         dd   = esp_opendir(path);
     if (dd < 0) {
@@ -57,6 +59,17 @@ void cmd_ls(const char *args) {
         if (res < 0)
             break;
 
+        unsigned fnlen = strlen(fn);
+
+        bool hidden_file = true;
+        if (st.attr & DE_ATTR_DIR) {
+            hidden_file = false;
+        } else if (fnlen >= 5 && strcmp(&fn[fnlen - 4], ".aq8") == 0) {
+            hidden_file = false;
+        }
+        if (hidden_file && !list_all)
+            continue;
+
         console_printf("%02u-%02u-%02u %02u:%02u ", ((st.date >> 9) + 80) % 100, (st.date >> 5) & 15, st.date & 31, (st.time >> 11) & 31, (st.time >> 5) & 63);
         if (st.attr & DE_ATTR_DIR) {
             console_puts("<DIR> ");
@@ -72,6 +85,8 @@ void cmd_ls(const char *args) {
 
         if (st.attr & DE_ATTR_DIR) {
             console_puts("\fE");
+        } else if (hidden_file) {
+            console_puts("\f5");
         }
         console_putline(fn);
 
@@ -98,4 +113,55 @@ void cmd_cd(const char *path) {
         }
     }
     print_cwd();
+}
+
+void cmd_load(const char *path) {
+    unsigned path_len = strlen(path);
+    if (path_len == 0) {
+        console_putline("No name specified");
+        return;
+    }
+
+    // Check for correct extension
+    char tmp[256];
+    if (path_len >= 5 && strcmp(&path[path_len - 4], ".aq8") == 0) {
+        // Correct extension
+        snprintf(tmp, sizeof(tmp), "%s", path);
+    } else {
+        // Add path
+        snprintf(tmp, sizeof(tmp), "%s.aq8", path);
+    }
+
+    int result = state_load_cart(tmp);
+    if (result < 0) {
+        console_putline("Could not load");
+    } else {
+        console_printf("Loaded %s (%d chars)\r\n", tmp, result);
+    }
+}
+
+void cmd_save(const char *path) {
+    unsigned path_len = strlen(path);
+    if (path_len == 0) {
+        // Use existing name
+        console_putline("No name specified");
+        return;
+    }
+
+    // Check for correct extension
+    char tmp[256];
+    if (path_len >= 5 && strcmp(&path[path_len - 4], ".aq8") == 0) {
+        // Correct extension
+        snprintf(tmp, sizeof(tmp), "%s", path);
+    } else {
+        // Add path
+        snprintf(tmp, sizeof(tmp), "%s.aq8", path);
+    }
+
+    int result = state_save_cart(tmp);
+    if (result < 0) {
+        console_putline("Save failed");
+    } else {
+        console_printf("Saved %s\r\n", tmp);
+    }
 }
