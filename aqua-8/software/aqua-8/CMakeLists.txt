@@ -73,6 +73,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 
     scr_console/console.c
     scr_console/readline.c
+    scr_console/commands.c
 
     scr_gfx/scr_sprite.c
     scr_gfx/scr_map.c

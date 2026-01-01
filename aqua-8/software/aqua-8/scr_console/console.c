@@ -2,6 +2,8 @@
 #include "state.h"
 #include "draw/draw.h"
 #include "readline.h"
+#include "ctype2.h"
+#include "commands.h"
 
 static bool    cursor_visible = false;
 static uint8_t saved_cursor[4 * 6];
@@ -33,6 +35,8 @@ static void console_show_cursor(void) {
     }
 }
 
+static uint8_t putc_state = 0;
+
 void console_putc(char ch) {
     console_hide_cursor();
 
@@ -41,19 +45,35 @@ void console_putc(char ch) {
         case '\t': game_state.x = (game_state.x + 16) & 15; break;
         case '\n': game_state.y += 7; break;
         case '\r': game_state.x = 0; break;
+        case '\f': putc_state = '\f'; break;
         default: {
-            if (ch < ' ' || ch >= '~')
-                return;
+            if (putc_state != 0) {
+                switch (putc_state) {
+                    case '\f': {
+                        if (is_hexadecimal(ch)) {
+                            ch = to_upper(ch);
+                            if (is_decimal(ch))
+                                game_state.color = ch - '0';
+                            else
+                                game_state.color = ch - 'A' + 10;
+                        }
+                        break;
+                    }
+                }
+                putc_state = 0;
+                break;
 
-            rect_t r;
-            r.x0 = game_state.x;
-            r.y0 = game_state.y;
-            r.x1 = r.x0 + 3;
-            r.y1 = r.y0 + 6;
-            fill_rect(&r, 0);
+            } else if (ch >= ' ' && ch <= '~') {
+                rect_t r;
+                r.x0 = game_state.x;
+                r.y0 = game_state.y;
+                r.x1 = r.x0 + 3;
+                r.y1 = r.y0 + 6;
+                fill_rect(&r, 0);
 
-            draw_char_altfont(game_state.x, game_state.y, ch, game_state.color);
-            game_state.x += 4;
+                draw_char_altfont(game_state.x, game_state.y, ch, game_state.color);
+                game_state.x += 4;
+            }
             break;
         }
     }
@@ -91,6 +111,22 @@ void console_puts(const char *str) {
     while (*str) {
         console_putc(*(str++));
     }
+}
+
+void console_putline(const char *s) {
+    console_puts(s);
+    console_puts("\f6\r\n");
+}
+
+void console_printf(const char *fmt, ...) {
+    char tmp[64];
+
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(tmp, sizeof(tmp), fmt, ap);
+    va_end(ap);
+
+    console_puts(tmp);
 }
 
 uint8_t console_getc(void) {
@@ -197,6 +233,20 @@ static void restore_vram(void) {
     }
 }
 
+typedef struct {
+    const char *cmd;
+    void (*handler)(const char *args);
+} command_t;
+
+static const command_t commands[] = {
+    {"help", cmd_help},
+    {"man", cmd_help},
+    {"ls", cmd_ls},
+    {"dir", cmd_ls},
+    {"cd", cmd_cd},
+    {NULL, NULL},
+};
+
 void console_perform(void) {
     VIDEO->PAGE = 0;
     restore_vram();
@@ -212,24 +262,19 @@ void console_perform(void) {
         game_state.y = 21;
 
         game_state.color = 6;
-        console_puts("Aqua-8 0.0.1\r\n");
-        console_puts("(C) 2025 Frank van den Hoef\r\n");
-        console_puts("\r\n");
-        console_puts("Type ");
-        game_state.color = 7;
-        console_puts("help");
-        game_state.color = 6;
-        console_puts(" for help\r\n");
-        console_puts("\r\n");
-        game_state.color = 7;
-
-        readline_init(&ctx, line, sizeof(line));
+        console_putline("Aqua-8 0.0.1");
+        console_putline("(C) 2025 Frank van den Hoef");
+        console_putline("");
+        console_putline("Type \f7help\f6 for help");
+        console_putline("");
     }
 
     while (1) {
         if (readline_done) {
-            game_state.x = 0;
-            game_state.y = ((game_state.y + 6) / 7) * 7;
+            readline_init(&ctx, line, sizeof(line));
+            game_state.x     = 0;
+            game_state.y     = ((game_state.y + 6) / 7) * 7;
+            game_state.color = 7;
             console_putc('>');
             console_putc(' ');
         }
@@ -244,6 +289,38 @@ void console_perform(void) {
             if (result > 0) {
                 console_puts("\r\n");
                 readline_done = true;
+
+                // Get command from input
+                char        cmd_str[64];
+                const char *ps      = ctx.buf;
+                unsigned    cmd_len = 0;
+                while (*ps == ' ')
+                    ps++;
+                while (cmd_len < sizeof(cmd_str) - 1) {
+                    if (ps[0] == 0 || ps[0] == ' ')
+                        break;
+                    cmd_str[cmd_len++] = *(ps++);
+                }
+                cmd_str[cmd_len] = 0;
+                while (*ps == ' ')
+                    ps++;
+
+                if (cmd_str[0] == 0) {
+                    // Nothing entered
+                } else {
+                    const command_t *cmd = commands;
+                    while (cmd->cmd) {
+                        if (strcmp(cmd_str, cmd->cmd) == 0)
+                            break;
+                        cmd++;
+                    }
+
+                    if (cmd->handler) {
+                        cmd->handler(ps);
+                    } else {
+                        console_puts("Syntax error\r\n");
+                    }
+                }
                 break;
             }
             if (result < 0) {
