@@ -220,10 +220,30 @@ int state_save_cart(const char *path) {
 
     // Graphics
     {
-        console_printf("- Saving sprites\r\n");
-        fputs("__gfx__\n", f);
-        for (int j = 0; j < 128; j++) {
-            fwrite_hex_line(f, &data_state.sprites[j * 16], 64);
+        // Save sprites
+        {
+            // Determine lines of sprite data to save
+            int lines = 128;
+            while (lines > 0) {
+                bool empty = true;
+                for (int i = 0; i < 16; i++) {
+                    if (data_state.sprites[(lines - 1) * 16 + i])
+                        empty = false;
+                    break;
+                }
+                if (!empty)
+                    break;
+                lines--;
+            }
+
+            // Save sprite data
+            if (lines > 0) {
+                console_printf("- Saving sprites (%d lines)\r\n", lines);
+                fputs("__gfx__\n", f);
+                for (int j = 0; j < lines; j++) {
+                    fwrite_hex_line(f, &data_state.sprites[j * 16], 64);
+                }
+            }
         }
 
         console_printf("- Saving sprite flags\r\n");
@@ -235,41 +255,54 @@ int state_save_cart(const char *path) {
 
     // Sound
     {
-        console_printf("- Saving sound effects\r\n");
-        fputs("__sfx__\n", f);
-        for (int j = 0; j < 64; j++) {
-            const sfx_t *sfx = &data_state.sfx[j];
-
-            char  buf[168 + 2];
-            char *pd = buf;
-
-            uint8_t editor_mode = 0;
-
-            *(pd++) = hexlut[editor_mode >> 4];
-            *(pd++) = hexlut[editor_mode & 0xF];
-            *(pd++) = hexlut[sfx->speed >> 4];
-            *(pd++) = hexlut[sfx->speed & 0xF];
-            *(pd++) = hexlut[sfx->loop_start >> 4];
-            *(pd++) = hexlut[sfx->loop_start & 0xF];
-            *(pd++) = hexlut[sfx->loop_end >> 4];
-            *(pd++) = hexlut[sfx->loop_end & 0xF];
-
-            for (int i = 0; i < 32; i++) {
-                uint16_t note_code = sfx->notes[i];
-                unsigned pitch     = note_code & 63;
-                unsigned wf        = (note_code >> 6) & 7;
-                unsigned vol       = (note_code >> 9) & 7;
-                unsigned fx        = (note_code >> 12) & 7;
-
-                *(pd++) = hexlut[pitch >> 4];
-                *(pd++) = hexlut[pitch & 0xF];
-                *(pd++) = hexlut[wf];
-                *(pd++) = hexlut[vol];
-                *(pd++) = hexlut[fx];
+        // Sound effect
+        {
+            // Determine number of sound effects to save
+            int count = 64;
+            while (count > 0) {
+                if (!sfx_is_empty(&data_state.sfx[count - 1]))
+                    break;
+                count--;
             }
 
-            *(pd++) = '\n';
-            fwrite(buf, pd - buf, 1, f);
+            if (count > 0) {
+                console_printf("- Saving %d sound effects\r\n", count);
+                fputs("__sfx__\n", f);
+                for (int j = 0; j < count; j++) {
+                    const sfx_t *sfx = &data_state.sfx[j];
+
+                    char  buf[168 + 2];
+                    char *pd = buf;
+
+                    uint8_t editor_mode = 0;
+
+                    *(pd++) = hexlut[editor_mode >> 4];
+                    *(pd++) = hexlut[editor_mode & 0xF];
+                    *(pd++) = hexlut[sfx->speed >> 4];
+                    *(pd++) = hexlut[sfx->speed & 0xF];
+                    *(pd++) = hexlut[sfx->loop_start >> 4];
+                    *(pd++) = hexlut[sfx->loop_start & 0xF];
+                    *(pd++) = hexlut[sfx->loop_end >> 4];
+                    *(pd++) = hexlut[sfx->loop_end & 0xF];
+
+                    for (int i = 0; i < 32; i++) {
+                        uint16_t note_code = sfx->notes[i];
+                        unsigned pitch     = note_code & 63;
+                        unsigned wf        = (note_code >> 6) & 7;
+                        unsigned vol       = (note_code >> 9) & 7;
+                        unsigned fx        = (note_code >> 12) & 7;
+
+                        *(pd++) = hexlut[pitch >> 4];
+                        *(pd++) = hexlut[pitch & 0xF];
+                        *(pd++) = hexlut[wf];
+                        *(pd++) = hexlut[vol];
+                        *(pd++) = hexlut[fx];
+                    }
+
+                    *(pd++) = '\n';
+                    fwrite(buf, pd - buf, 1, f);
+                }
+            }
         }
 
         console_printf("- Saving music\r\n");

@@ -1,13 +1,5 @@
 #include "scr.h"
 
-static bool sfx_is_empty(const sfx_t *sfx) {
-    for (int i = 0; i < 32; i++) {
-        if (sfx->notes[i] & (7 << 9))
-            return false;
-    }
-    return true;
-}
-
 static void draw_note_row(int x, int y, int row) {
     uint16_t note_code = data_state.sfx[edit_state.sfx_edit.sfx_idx].notes[row];
     unsigned pitch     = note_code & 63;

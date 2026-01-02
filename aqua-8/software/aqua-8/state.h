@@ -107,3 +107,11 @@ extern unsigned      frame_cnt;
 
 int state_load_cart(const char *path);
 int state_save_cart(const char *path);
+
+static inline bool sfx_is_empty(const sfx_t *sfx) {
+    for (int i = 0; i < 32; i++) {
+        if (sfx->notes[i] & (7 << 9))
+            return false;
+    }
+    return true;
+}

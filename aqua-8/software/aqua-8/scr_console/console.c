@@ -246,6 +246,7 @@ static const command_t commands[] = {
     {"cd", cmd_cd},
     {"load", cmd_load},
     {"save", cmd_save},
+    {"reboot", cmd_reboot},
     {NULL, NULL},
 };
 
@@ -264,8 +265,8 @@ void console_perform(void) {
         game_state.y = 21;
 
         game_state.color = 6;
-        console_putline("Aqua-8 0.0.1");
-        console_putline("(C) 2025 Frank van den Hoef");
+        console_putline("Aqua-8 " PROJECT_VERSION);
+        console_putline("(C) 2026 Frank van den Hoef");
         console_putline("");
         console_putline("Type \f7help\f6 for help");
         console_putline("");

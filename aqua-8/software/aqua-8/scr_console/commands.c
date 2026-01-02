@@ -165,3 +165,10 @@ void cmd_save(const char *path) {
         console_printf("Saved %s\r\n", tmp);
     }
 }
+
+void cmd_reboot(const char *args) {
+    __irq_disable();
+    ((void (*)(void))0)();
+    while (1) {
+    }
+}
