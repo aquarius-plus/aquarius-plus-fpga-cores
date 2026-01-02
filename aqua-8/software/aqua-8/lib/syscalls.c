@@ -7,6 +7,7 @@
 #include <sys/time.h>
 #include "esp.h"
 #include "malloc.h"
+#include "scr_console/console.h"
 
 #define FD_ESP_START 10
 #define XFER_MAX     0xF000
@@ -124,7 +125,7 @@ int _write(int fd, const void *buf, size_t count) {
         if (result < 0)
             return esp_set_errno(result);
         return result;
-#if 0
+#if 1
     } else if (fd == STDOUT_FILENO || fd == STDERR_FILENO) {
         const uint8_t *p = buf;
         while (count--) {

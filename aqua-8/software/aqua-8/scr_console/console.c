@@ -247,6 +247,7 @@ static const command_t commands[] = {
     {"load", cmd_load},
     {"save", cmd_save},
     {"reboot", cmd_reboot},
+    {"run", cmd_run},
     {NULL, NULL},
 };
 

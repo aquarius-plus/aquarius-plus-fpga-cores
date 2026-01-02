@@ -60,7 +60,6 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE NO_LIB_INIT)
 target_include_directories(${PROJECT_NAME} PRIVATE
     .
     lib
-    lua
 )
 
 target_sources(${PROJECT_NAME} PRIVATE

@@ -172,3 +172,28 @@ void cmd_reboot(const char *args) {
     while (1) {
     }
 }
+
+// #define LUA_LIB
+// #include "lua.h"
+// #include "lauxlib.h"
+
+// int luaopen_base(lua_State *L);
+
+void cmd_run(const char *args) {
+    // lua_State *L = luaL_newstate(); // Create a new Lua state
+    // luaL_requiref(L, "_G", luaopen_base, 1);
+
+    // luai_writestring("Hello", 5);
+    // luai_writeline();
+
+    // luaL_loadstring(
+    //     L,
+    //     // //     // "a=2^3;\n"
+    //     "a=1\n"
+    //     // //     // "print(a)\n"
+    //     "print('Hello, World!')\n");
+    // // // );
+    // lua_pcall(L, 0, LUA_MULTRET, 0);
+
+    // lua_close(L); // Close the Lua state
+}

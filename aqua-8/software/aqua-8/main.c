@@ -3,13 +3,9 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-#include "lua.h"
-#include "lauxlib.h"
 #include "trap.h"
 #include "esp.h"
 #include "scr.h"
-
-int luaopen_base(lua_State *L);
 
 volatile bool frame60   = false;
 volatile bool frame30   = false;
