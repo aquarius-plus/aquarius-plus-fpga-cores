@@ -9,3 +9,5 @@ void cmd_load(const char *args);
 void cmd_save(const char *args);
 void cmd_reboot(const char *args);
 void cmd_run(const char *args);
+
+void do_lua(const char *line);

@@ -331,7 +331,7 @@ void console_perform(void) {
                     if (cmd->handler) {
                         cmd->handler(ps);
                     } else {
-                        console_puts("Syntax error\r\n");
+                        do_lua(ctx.buf);
                     }
                 }
                 break;

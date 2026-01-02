@@ -2,6 +2,7 @@
 #include "state.h"
 #include "esp.h"
 #include "console.h"
+#include "lua_aqua8/lua_aqua8.h"
 
 void cmd_help(const char *topic) {
     if (topic[0] == 0) {
@@ -173,57 +174,18 @@ void cmd_reboot(const char *args) {
     }
 }
 
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
-
-static void print_lua_error(const char *type, lua_State *L) {
-    printf("\fE%s\f6\n", type);
-
-    if (!lua_isnil(L, -1)) {
-        const char *msg = lua_tostring(L, -1);
-        if (msg == NULL)
-            msg = "(error object is not a string)";
-
-        if (memcmp(msg, "[string \"?\"]:", 13) == 0) {
-            msg += 13;
-            printf("Line %s\n", msg);
-        } else {
-            printf("%s\n", msg);
-        }
-
-        lua_pop(L, 1);
-
-        // force a complete garbage collection in case of errors
-        lua_gc(L, LUA_GCCOLLECT, 0);
-    }
-}
-
 void cmd_run(const char *args) {
     (void)args;
 
+    lua_shutdown();
+    lua_init();
+
     const uint8_t *buf;
     unsigned       size = editbuf_get_buf(edit_state.code_edit.editbuf, &buf);
+    lua_run("C", buf, size);
+}
 
-    lua_State *L = luaL_newstate();
-    if (L == NULL) {
-        printf("Error creating Lua state\n");
-        goto done;
-    }
-    luaL_openlibs(L);
-
-    int result = luaL_loadbufferx(L, (const char *)buf, size, NULL, "text");
-    if (result != LUA_OK) {
-        print_lua_error("Syntax error", L);
-        goto done;
-    }
-
-    result = lua_pcall(L, 0, LUA_MULTRET, 0);
-    if (result != LUA_OK) {
-        print_lua_error("Runtime error", L);
-        goto done;
-    }
-done:
-    if (L)
-        lua_close(L);
+void do_lua(const char *line) {
+    lua_init();
+    lua_run("I", line, strlen(line));
 }

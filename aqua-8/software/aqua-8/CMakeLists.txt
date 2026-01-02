@@ -92,62 +92,43 @@ target_sources(${PROJECT_NAME} PRIVATE
 
     lua-5.2.4/src/lapi.c
     lua-5.2.4/src/lauxlib.c
-    lua-5.2.4/src/lbaselib.c
-    lua-5.2.4/src/lbitlib.c
     lua-5.2.4/src/lcode.c
-    lua-5.2.4/src/lcorolib.c
     lua-5.2.4/src/lctype.c
-    lua-5.2.4/src/ldblib.c
     lua-5.2.4/src/ldebug.c
     lua-5.2.4/src/ldo.c
     lua-5.2.4/src/ldump.c
     lua-5.2.4/src/lfunc.c
     lua-5.2.4/src/lgc.c
-    lua-5.2.4/src/linit.c
-    lua-5.2.4/src/liolib.c
     lua-5.2.4/src/llex.c
-    lua-5.2.4/src/lmathlib.c
     lua-5.2.4/src/lmem.c
     lua-5.2.4/src/loadlib.c
     lua-5.2.4/src/lobject.c
     lua-5.2.4/src/lopcodes.c
-    lua-5.2.4/src/loslib.c
     lua-5.2.4/src/lparser.c
     lua-5.2.4/src/lstate.c
     lua-5.2.4/src/lstring.c
-    lua-5.2.4/src/lstrlib.c
     lua-5.2.4/src/ltable.c
-    lua-5.2.4/src/ltablib.c
     lua-5.2.4/src/ltm.c
-    # lua-5.2.4/src/lua.c
-    # lua-5.2.4/src/luac.c
     lua-5.2.4/src/lundump.c
     lua-5.2.4/src/lvm.c
     lua-5.2.4/src/lzio.c
 
+    lua_aqua8/lua_aqua8.c
+    
+    # lua-5.2.4/src/linit.c
+    # lua-5.2.4/src/lbaselib.c
+    # lua-5.2.4/src/lbitlib.c
+    # lua-5.2.4/src/lcorolib.c
+    # lua-5.2.4/src/ldblib.c
+    # lua-5.2.4/src/liolib.c
+    # lua-5.2.4/src/lmathlib.c
+    # lua-5.2.4/src/loslib.c
+    # lua-5.2.4/src/lstrlib.c
+    # lua-5.2.4/src/ltablib.c
 
-    # lua/lapi.c
-    # lua/lauxlib.c
-    # lua/lbaselib.c
-    # lua/lcode.c
-    # lua/lctype.c
-    # lua/ldebug.c
-    # lua/ldo.c
-    # lua/ldump.c
-    # lua/lfunc.c
-    # lua/lgc.c
-    # lua/llex.c
-    # lua/lmem.c
-    # lua/lobject.c
-    # lua/lopcodes.c
-    # lua/lparser.c
-    # lua/lstate.c
-    # lua/lstring.c
-    # lua/ltable.c
-    # lua/ltm.c
-    # lua/lundump.c
-    # lua/lvm.c
-    # lua/lzio.c
+    # lua-5.2.4/src/lua.c
+    # lua-5.2.4/src/luac.c
+
 
     # lua/mychanges.c
     # lua/myfuncs.c
