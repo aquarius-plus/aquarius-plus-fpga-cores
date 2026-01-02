@@ -1,4 +1,12 @@
-#pragma once
+/*
+** $Id: luaconf.h,v 1.176.1.2 2013/11/21 17:26:16 roberto Exp $
+** Configuration file for Lua
+** See Copyright Notice in lua.h
+*/
+
+
+#ifndef lconfig_h
+#define lconfig_h
 
 #include <limits.h>
 #include <stddef.h>
@@ -15,15 +23,17 @@
 @@ LUA_QL describes how error messages quote program elements.
 ** CHANGE it if you want a different appearance.
 */
-#define LUA_QL(x) "'" x "'"
-#define LUA_QS    LUA_QL("%s")
+#define LUA_QL(x)	"'" x "'"
+#define LUA_QS		LUA_QL("%s")
+
 
 /*
 @@ LUA_IDSIZE gives the maximum size for the description of the source
 @* of a function in debug information.
 ** CHANGE it if you want a different size.
 */
-#define LUA_IDSIZE 60
+#define LUA_IDSIZE	60
+
 
 /*
 @@ luai_writestring/luai_writeline define how 'print' prints its results.
@@ -32,16 +42,17 @@
 */
 #if defined(LUA_LIB) || defined(lua_c)
 #include <stdio.h>
-#define luai_writestring(s, l) fwrite((s), sizeof(char), (l), stdout)
-#define luai_writeline()       (luai_writestring("\n", 1), fflush(stdout))
+#define luai_writestring(s,l)	fwrite((s), sizeof(char), (l), stdout)
+#define luai_writeline()	(luai_writestring("\n", 1), fflush(stdout))
 #endif
 
 /*
 @@ luai_writestringerror defines how to print error messages.
 ** (A format string with one argument is enough for Lua...)
 */
-#define luai_writestringerror(s, p) \
-    (fprintf(stderr, (s), (p)), fflush(stderr))
+#define luai_writestringerror(s,p) \
+	(fprintf(stderr, (s), (p)), fflush(stderr))
+
 
 /*
 @@ LUAI_MAXSHORTLEN is the maximum length for short strings, that is,
@@ -49,9 +60,85 @@
 ** or tags for metamethods, as these strings must be internalized;
 ** #("function") = 8, #("__newindex") = 10.)
 */
-#define LUAI_MAXSHORTLEN 40
+#define LUAI_MAXSHORTLEN        40
+
+
+
+/*
+** {==================================================================
+** Compatibility with previous versions
+** ===================================================================
+*/
+
+/*
+@@ LUA_COMPAT_ALL controls all compatibility options.
+** You can define it to get all options, or change specific options
+** to fit your specific needs.
+*/
+#if defined(LUA_COMPAT_ALL)	/* { */
+
+/*
+@@ LUA_COMPAT_UNPACK controls the presence of global 'unpack'.
+** You can replace it with 'table.unpack'.
+*/
+#define LUA_COMPAT_UNPACK
+
+/*
+@@ LUA_COMPAT_LOADERS controls the presence of table 'package.loaders'.
+** You can replace it with 'package.searchers'.
+*/
+#define LUA_COMPAT_LOADERS
+
+/*
+@@ macro 'lua_cpcall' emulates deprecated function lua_cpcall.
+** You can call your C function directly (with light C functions).
+*/
+#define lua_cpcall(L,f,u)  \
+	(lua_pushcfunction(L, (f)), \
+	 lua_pushlightuserdata(L,(u)), \
+	 lua_pcall(L,1,0,0))
+
+
+/*
+@@ LUA_COMPAT_LOG10 defines the function 'log10' in the math library.
+** You can rewrite 'log10(x)' as 'log(x, 10)'.
+*/
+#define LUA_COMPAT_LOG10
+
+/*
+@@ LUA_COMPAT_LOADSTRING defines the function 'loadstring' in the base
+** library. You can rewrite 'loadstring(s)' as 'load(s)'.
+*/
+#define LUA_COMPAT_LOADSTRING
+
+/*
+@@ LUA_COMPAT_MAXN defines the function 'maxn' in the table library.
+*/
+#define LUA_COMPAT_MAXN
+
+/*
+@@ The following macros supply trivial compatibility for some
+** changes in the API. The macros themselves document how to
+** change your code to avoid using them.
+*/
+#define lua_strlen(L,i)		lua_rawlen(L, (i))
+
+#define lua_objlen(L,i)		lua_rawlen(L, (i))
+
+#define lua_equal(L,idx1,idx2)		lua_compare(L,(idx1),(idx2),LUA_OPEQ)
+#define lua_lessthan(L,idx1,idx2)	lua_compare(L,(idx1),(idx2),LUA_OPLT)
+
+/*
+@@ LUA_COMPAT_MODULE controls compatibility with previous
+** module functions 'module' (Lua) and 'luaL_register' (C).
+*/
+#define LUA_COMPAT_MODULE
+
+#endif				/* } */
 
 /* }================================================================== */
+
+
 
 /*
 @@ LUAI_BITSINT defines the number of bits in an int.
@@ -59,14 +146,15 @@
 ** your machine. Probably you do not need to change this.
 */
 /* avoid overflows in comparison */
-#if INT_MAX - 20 < 32760 /* { */
-#define LUAI_BITSINT 16
-#elif INT_MAX > 2147483640L /* }{ */
+#if INT_MAX-20 < 32760		/* { */
+#define LUAI_BITSINT	16
+#elif INT_MAX > 2147483640L	/* }{ */
 /* int has at least 32 bits */
-#define LUAI_BITSINT 32
-#else /* }{ */
+#define LUAI_BITSINT	32
+#else				/* }{ */
 #error "you must define LUA_BITSINT with number of bits in an integer"
-#endif /* } */
+#endif				/* } */
+
 
 /*
 @@ LUA_INT32 is a signed integer with exactly 32 bits.
@@ -78,16 +166,17 @@
 ** good enough for your machine. Probably you do not need to change
 ** this.
 */
-#if LUAI_BITSINT >= 32 /* { */
-#define LUA_INT32 int
-#define LUAI_UMEM size_t
-#define LUAI_MEM  ptrdiff_t
-#else /* }{ */
+#if LUAI_BITSINT >= 32		/* { */
+#define LUA_INT32	int
+#define LUAI_UMEM	size_t
+#define LUAI_MEM	ptrdiff_t
+#else				/* }{ */
 /* 16-bit ints */
-#define LUA_INT32 long
-#define LUAI_UMEM unsigned long
-#define LUAI_MEM  long
-#endif /* } */
+#define LUA_INT32	long
+#define LUAI_UMEM	unsigned long
+#define LUAI_MEM	long
+#endif				/* } */
+
 
 /*
 @@ LUAI_MAXSTACK limits the size of the Lua stack.
@@ -96,19 +185,25 @@
 ** space (and to reserve some numbers for pseudo-indices).
 */
 #if LUAI_BITSINT >= 32
-#define LUAI_MAXSTACK 1000000
+#define LUAI_MAXSTACK		1000000
 #else
-#define LUAI_MAXSTACK 15000
+#define LUAI_MAXSTACK		15000
 #endif
 
 /* reserve some space for error handling */
-#define LUAI_FIRSTPSEUDOIDX (-LUAI_MAXSTACK - 1000)
+#define LUAI_FIRSTPSEUDOIDX	(-LUAI_MAXSTACK - 1000)
+
+
+
 
 /*
 @@ LUAL_BUFFERSIZE is the buffer size used by the lauxlib buffer system.
 ** CHANGE it if it uses too much C-stack space.
 */
-#define LUAL_BUFFERSIZE BUFSIZ
+#define LUAL_BUFFERSIZE		BUFSIZ
+
+
+
 
 /*
 ** {==================================================================
@@ -127,7 +222,9 @@
 */
 #define LUAI_UACNUMBER int32_t
 
+
 /*
+@@ LUA_NUMBER_SCAN is the format for reading numbers.
 @@ LUA_NUMBER_FMT is the format for writing numbers.
 @@ lua_number2str converts a number to a string.
 @@ LUAI_MAXNUMBER2STR is maximum size of previous conversion.
@@ -148,7 +245,8 @@ extern int32_t my_numpow(int32_t a, int32_t b);
 /*
 @@ l_mathop allows the addition of an 'l' or 'f' to all math operations
 */
-#define l_mathop(x) (x)
+#define l_mathop(x)		(x)
+
 
 /*
 @@ lua_str2number converts a decimal numeric string to a number.
@@ -162,8 +260,9 @@ extern int32_t my_numpow(int32_t a, int32_t b);
 // #define lua_str2number(s, p) strtod((s), (p))
 
 #if defined(LUA_USE_STRTODHEX)
-#define lua_strx2number(s, p) strtod((s), (p))
+#define lua_strx2number(s,p)	strtod((s), (p))
 #endif
+
 
 /*
 @@ The luai_num* macros define the primitive operations over numbers.
@@ -184,15 +283,102 @@ extern int32_t my_numpow(int32_t a, int32_t b);
 #define luai_numisnan(L, a)  (0)
 #endif
 
+
+
 /*
 @@ LUA_INTEGER is the integral type used by lua_pushinteger/lua_tointeger.
 ** CHANGE that if ptrdiff_t is not adequate on your machine. (On most
 ** machines, ptrdiff_t gives a good choice between int or long.)
 */
-#define LUA_INTEGER ptrdiff_t
+#define LUA_INTEGER	ptrdiff_t
 
 /*
 @@ LUA_UNSIGNED is the integral type used by lua_pushunsigned/lua_tounsigned.
 ** It must have at least 32 bits.
 */
-#define LUA_UNSIGNED unsigned LUA_INT32
+#define LUA_UNSIGNED	unsigned LUA_INT32
+
+
+
+/*
+** Some tricks with doubles
+*/
+
+#if defined(LUA_NUMBER_DOUBLE) && !defined(LUA_ANSI)	/* { */
+/*
+** The next definitions activate some tricks to speed up the
+** conversion from doubles to integer types, mainly to LUA_UNSIGNED.
+**
+@@ LUA_MSASMTRICK uses Microsoft assembler to avoid clashes with a
+** DirectX idiosyncrasy.
+**
+@@ LUA_IEEE754TRICK uses a trick that should work on any machine
+** using IEEE754 with a 32-bit integer type.
+**
+@@ LUA_IEEELL extends the trick to LUA_INTEGER; should only be
+** defined when LUA_INTEGER is a 32-bit integer.
+**
+@@ LUA_IEEEENDIAN is the endianness of doubles in your machine
+** (0 for little endian, 1 for big endian); if not defined, Lua will
+** check it dynamically for LUA_IEEE754TRICK (but not for LUA_NANTRICK).
+**
+@@ LUA_NANTRICK controls the use of a trick to pack all types into
+** a single double value, using NaN values to represent non-number
+** values. The trick only works on 32-bit machines (ints and pointers
+** are 32-bit values) with numbers represented as IEEE 754-2008 doubles
+** with conventional endianess (12345678 or 87654321), in CPUs that do
+** not produce signaling NaN values (all NaNs are quiet).
+*/
+
+/* Microsoft compiler on a Pentium (32 bit) ? */
+#if defined(LUA_WIN) && defined(_MSC_VER) && defined(_M_IX86)	/* { */
+
+#define LUA_MSASMTRICK
+#define LUA_IEEEENDIAN		0
+#define LUA_NANTRICK
+
+
+/* pentium 32 bits? */
+#elif defined(__i386__) || defined(__i386) || defined(__X86__) /* }{ */
+
+#define LUA_IEEE754TRICK
+#define LUA_IEEELL
+#define LUA_IEEEENDIAN		0
+#define LUA_NANTRICK
+
+/* pentium 64 bits? */
+#elif defined(__x86_64)						/* }{ */
+
+#define LUA_IEEE754TRICK
+#define LUA_IEEEENDIAN		0
+
+#elif defined(__POWERPC__) || defined(__ppc__)			/* }{ */
+
+#define LUA_IEEE754TRICK
+#define LUA_IEEEENDIAN		1
+
+#else								/* }{ */
+
+/* assume IEEE754 and a 32-bit integer type */
+#define LUA_IEEE754TRICK
+
+#endif								/* } */
+
+#endif							/* } */
+
+/* }================================================================== */
+
+
+
+
+/* =================================================================== */
+
+/*
+** Local configuration. You can use this space to add your redefinitions
+** without modifying the main part of the file.
+*/
+
+
+
+#endif
+
