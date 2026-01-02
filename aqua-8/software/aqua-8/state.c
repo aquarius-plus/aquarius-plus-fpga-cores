@@ -311,24 +311,15 @@ int state_save_cart(const char *path) {
 
     // Source code
     {
-        console_printf("- Saving code\r\n");
-        fputs("__lua__\n", f);
-
-        editbuf_t *eb      = edit_state.code_edit.editbuf;
-        uint8_t    last_ch = 0;
-
-        unsigned size = (eb->p_split_start - eb->p_buf);
-        if (size) {
-            fwrite(eb->p_buf, size, 1, f);
-            last_ch = eb->p_buf[size - 1];
+        const uint8_t *buf;
+        unsigned       size = editbuf_get_buf(edit_state.code_edit.editbuf, &buf);
+        if (size > 0) {
+            console_printf("- Saving code\r\n");
+            fputs("__lua__\n", f);
+            fwrite(buf, size, 1, f);
+            if (buf[size - 1] != '\n')
+                fputc('\n', f);
         }
-        size = (eb->p_buf_end - eb->p_split_end);
-        if (size) {
-            fwrite(eb->p_split_end, size, 1, f);
-            last_ch = eb->p_split_end[size - 1];
-        }
-        if (last_ch != '\n')
-            fputc('\n', f);
     }
 
     fclose(f);

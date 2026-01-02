@@ -17,8 +17,7 @@ static const uint16_t palette[16] = {
     0x2AF,
     0x879,
     0xF7A,
-    0xFCA
-};
+    0xFCA};
 
 void hexdump(const void *buf, int length) {
     int            idx = 0;
@@ -26,20 +25,17 @@ void hexdump(const void *buf, int length) {
 
     while (length > 0) {
         int len = length;
-        if (len > 16) {
-            len = 16;
+        if (len > 8) {
+            len = 8;
         }
 
         printf("%08x  ", idx);
 
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < 8; i++) {
             if (i < len) {
                 printf("%02x ", p[i]);
             } else {
                 printf("   ");
-            }
-            if (i == 7) {
-                printf(" ");
             }
         }
         printf(" |");

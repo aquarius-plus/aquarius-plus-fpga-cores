@@ -480,3 +480,9 @@ bool editbuf_insert_from_file(editbuf_t *eb, location_t *loc, const char *path) 
 
     return true;
 }
+
+unsigned editbuf_get_buf(editbuf_t *eb, const uint8_t **p) {
+    move_split_after_line(eb, eb->line_count - 1);
+    *p = eb->p_buf;
+    return eb->p_split_start - eb->p_buf;
+}
