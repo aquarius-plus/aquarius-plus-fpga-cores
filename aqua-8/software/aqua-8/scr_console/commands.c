@@ -173,27 +173,32 @@ void cmd_reboot(const char *args) {
     }
 }
 
-// #define LUA_LIB
-// #include "lua.h"
-// #include "lauxlib.h"
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
 
 // int luaopen_base(lua_State *L);
 
+static int bla(void) {
+    lua_State *L;
+
+    L = luaL_newstate();
+    if (L == NULL) {
+        fprintf(stderr, "Lua: cannot initialize\n");
+        return -1;
+    }
+    luaL_openlibs(L);
+
+    bool ok = luaL_dostring(L, "print(1/3)");
+    if (ok) {
+        printf("Ugh!\n");
+    }
+
+    lua_close(L);
+
+    return 0;
+}
+
 void cmd_run(const char *args) {
-    // lua_State *L = luaL_newstate(); // Create a new Lua state
-    // luaL_requiref(L, "_G", luaopen_base, 1);
-
-    // luai_writestring("Hello", 5);
-    // luai_writeline();
-
-    // luaL_loadstring(
-    //     L,
-    //     // //     // "a=2^3;\n"
-    //     "a=1\n"
-    //     // //     // "print(a)\n"
-    //     "print('Hello, World!')\n");
-    // // // );
-    // lua_pcall(L, 0, LUA_MULTRET, 0);
-
-    // lua_close(L); // Close the Lua state
+    bla();
 }

@@ -21,6 +21,10 @@ void vblank_handler(void) {
 }
 
 void trap_handler(struct trap_regs *regs) {
+    if ((int)regs->cause >= 0) {
+        while (1);
+    }
+
     unsigned mip = csr_read_clear(mip, -1UL);
     if (mip & (1 << VBLANK_IRQn)) {
         vblank_handler();

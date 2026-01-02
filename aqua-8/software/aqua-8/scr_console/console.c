@@ -269,6 +269,14 @@ void console_perform(void) {
         console_putline("Aqua-8 " PROJECT_VERSION);
         console_putline("(C) 2026 Frank van den Hoef");
         console_putline("");
+
+        {
+            extern char _end;
+            extern char __stack_start;
+            console_printf("Total heap space: %u\r\n", &__stack_start - &_end);
+        }
+
+        console_putline("");
         console_putline("Type \f7help\f6 for help");
         console_putline("");
     }

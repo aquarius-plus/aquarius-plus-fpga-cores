@@ -42,7 +42,7 @@ static void *_realloc(void *p, size_t sz) {
 }
 static void _free(void *p) {
     assure_init();
-    return mspace_free(heap_space, p);
+    mspace_free(heap_space, p);
 }
 
 void *_malloc_r(struct _reent *, size_t sz) { return _malloc(sz); }
@@ -176,6 +176,10 @@ int _close(int fd) {
 }
 
 noreturn void _exit(int status) {
+    // Reboot
+    __irq_disable();
+    ((void (*)(void))0)();
+
     while (1);
 }
 
@@ -312,13 +316,9 @@ extern int main(int argc, char **argv);
 
 void _c_start(void) {
     // Disable buffering of stdio
-#ifndef NO_LIB_INIT
     setbuf(stdin, NULL);
     setbuf(stdout, NULL);
     setbuf(stderr, NULL);
-
-    console_init();
-#endif
 
     main(0, NULL);
     exit(0);

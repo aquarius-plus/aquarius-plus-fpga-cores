@@ -28,16 +28,16 @@ add_custom_command(
 
 target_compile_options(${PROJECT_NAME} PRIVATE -g)
 
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wshadow -Winit-self -Wfloat-conversion -Wdouble-promotion -Wmissing-include-dirs -Wlogical-op)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wshadow -Winit-self -Wmissing-include-dirs -Wlogical-op) # -Wfloat-conversion -Wdouble-promotion 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wno-unused-parameter -Wno-shadow)
 target_compile_options(${PROJECT_NAME} PRIVATE -fdata-sections -ffunction-sections -fno-strict-aliasing)
 target_compile_options(${PROJECT_NAME} PRIVATE -march=rv32im_zicsr -mabi=ilp32 -specs=nano.specs)
 
 target_link_options(${PROJECT_NAME} PRIVATE -march=rv32im -mabi=ilp32 -specs=nano.specs)
 
-if (PRINTF_FLOAT)
+# if (PRINTF_FLOAT)
 target_link_options(${PROJECT_NAME} PRIVATE -u _printf_float)
-endif()
+# endif()
 
 target_link_options(${PROJECT_NAME} PRIVATE -nostartfiles)
 target_link_options(${PROJECT_NAME} PRIVATE -Wl,--gc-sections)
@@ -55,11 +55,10 @@ add_custom_target(debug
     VERBATIM
 )
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE NO_LIB_INIT)
-
 target_include_directories(${PROJECT_NAME} PRIVATE
     .
     lib
+    lua-5.2.4/src
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
@@ -90,6 +89,42 @@ target_sources(${PROJECT_NAME} PRIVATE
     lib/esp.c
     lib/malloc.c
     lib/syscalls.c
+
+    lua-5.2.4/src/lapi.c
+    lua-5.2.4/src/lauxlib.c
+    lua-5.2.4/src/lbaselib.c
+    lua-5.2.4/src/lbitlib.c
+    lua-5.2.4/src/lcode.c
+    lua-5.2.4/src/lcorolib.c
+    lua-5.2.4/src/lctype.c
+    lua-5.2.4/src/ldblib.c
+    lua-5.2.4/src/ldebug.c
+    lua-5.2.4/src/ldo.c
+    lua-5.2.4/src/ldump.c
+    lua-5.2.4/src/lfunc.c
+    lua-5.2.4/src/lgc.c
+    lua-5.2.4/src/linit.c
+    lua-5.2.4/src/liolib.c
+    lua-5.2.4/src/llex.c
+    lua-5.2.4/src/lmathlib.c
+    lua-5.2.4/src/lmem.c
+    lua-5.2.4/src/loadlib.c
+    lua-5.2.4/src/lobject.c
+    lua-5.2.4/src/lopcodes.c
+    lua-5.2.4/src/loslib.c
+    lua-5.2.4/src/lparser.c
+    lua-5.2.4/src/lstate.c
+    lua-5.2.4/src/lstring.c
+    lua-5.2.4/src/lstrlib.c
+    lua-5.2.4/src/ltable.c
+    lua-5.2.4/src/ltablib.c
+    lua-5.2.4/src/ltm.c
+    # lua-5.2.4/src/lua.c
+    # lua-5.2.4/src/luac.c
+    lua-5.2.4/src/lundump.c
+    lua-5.2.4/src/lvm.c
+    lua-5.2.4/src/lzio.c
+
 
     # lua/lapi.c
     # lua/lauxlib.c
