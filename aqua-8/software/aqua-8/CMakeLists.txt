@@ -58,7 +58,8 @@ add_custom_target(debug
 target_include_directories(${PROJECT_NAME} PRIVATE
     .
     lib
-    lua-5.2.4/src
+    lua_aqua8
+    # lua-5.2.4/src
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
@@ -101,7 +102,6 @@ target_sources(${PROJECT_NAME} PRIVATE
     lua-5.2.4/src/lgc.c
     lua-5.2.4/src/llex.c
     lua-5.2.4/src/lmem.c
-    lua-5.2.4/src/loadlib.c
     lua-5.2.4/src/lobject.c
     lua-5.2.4/src/lopcodes.c
     lua-5.2.4/src/lparser.c
@@ -115,6 +115,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 
     lua_aqua8/lua_aqua8.c
     
+    # lua-5.2.4/src/loadlib.c
     # lua-5.2.4/src/linit.c
     # lua-5.2.4/src/lbaselib.c
     # lua-5.2.4/src/lbitlib.c

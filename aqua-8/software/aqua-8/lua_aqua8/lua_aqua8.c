@@ -93,6 +93,7 @@ static int my_print(lua_State *L) {
         luai_writestring(s, l);
         lua_pop(L, 1); // pop result
     }
+
     luai_writeline();
     return 0;
 }
@@ -122,7 +123,29 @@ static int my_tostring(lua_State *L) {
     return 1;
 }
 
+int my_cls(lua_State *L) {
+    int n = lua_gettop(L); /* number of arguments */
+
+    int color_idx = 0;
+    if (n > 0) {
+        if (!lua_isnumber(L, 1)) {
+            lua_pushstring(L, "incorrect argument");
+            lua_error(L);
+        }
+        color_idx = 0; //(lua_tonumber(L, 1) >> 16) & 15;
+    }
+
+    printf("cls(%d)\n", color_idx);
+    // printf("cls! n=%d\n", n);
+
+    // // lua_pushnumber(L, 123 << 16);
+    // lua_pushstring(L, "dinges");
+    // lua_pushinteger(L, 123 << 16);
+    return 0;
+}
+
 static const luaL_Reg funcs[] = {
+    {"cls", my_cls},
     {"print", my_print},
     {"tostring", my_tostring},
 };
@@ -132,8 +155,6 @@ void mylib_register(lua_State *L) {
     lua_pushglobaltable(L);
     lua_setfield(L, -2, "_G");
     luaL_setfuncs(L, funcs, 0);
-    lua_pushliteral(L, LUA_VERSION);
-    lua_setfield(L, -2, "_VERSION"); /* set global _VERSION */
 }
 
 int my_number2str(char *s, int32_t n) {
