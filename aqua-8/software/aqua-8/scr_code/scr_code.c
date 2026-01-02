@@ -212,15 +212,11 @@ static editbuf_t editbuf;
 static uint8_t   code_buf[64 * 1024 - 1];
 
 static void _init(void) {
-    code_edit_t *state = &edit_state.code_edit;
-
-    reset_state();
-
     editbuf_init(&editbuf, code_buf, sizeof(code_buf));
-    if (editbuf_load(&editbuf, "/test.lua")) {
-        edit_state.mode = MODE_CODE;
-    }
-    state->editbuf = &editbuf;
+    code_edit_t *state = &edit_state.code_edit;
+    state->editbuf     = &editbuf;
+
+    code_edit_reset_state();
 }
 
 screen_t scr_code = {

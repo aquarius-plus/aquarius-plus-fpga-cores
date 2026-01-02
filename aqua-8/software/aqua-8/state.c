@@ -1,6 +1,6 @@
 #include "state.h"
-#include "esp.h"
 #include "ctype2.h"
+#include "scr_code/edit_ops.h"
 
 static const char *hexlut = "0123456789abcdef";
 
@@ -14,32 +14,16 @@ edit_state_t edit_state = {
         .volume     = 5,
         .waveform   = 0,
         .effect     = 0,
-        .cursor_row = 1,
-        .cursor_col = 1,
+        .cursor_row = 0,
+        .cursor_col = 0,
     },
 
     .spr_edit = {
-        .color = 15,
+        .color = 6,
     },
 };
 
-data_state_t data_state = {
-
-    .sfx = {
-        {
-            .speed      = 16,
-            .loop_start = 0,
-            .loop_end   = 0,
-            .notes      = {0xFFC0, 0xFFC1, 0xFFC2, 0xFFC3, 0xFFC4, 0xFFC5, 0xFFC6, 0xFFC7, 0xFFC8, 0xFFC9, 0xFFCA, 0xFFCB, 0xFFCC, 0xFFCD, 0xFFCE, 0xFFCF, 0xFFC9, 0x0FFF},
-        },
-
-    },
-
-    .sprites = {
-#include "game_sprites.inl"
-    },
-};
-
+data_state_t data_state = {};
 game_state_t game_state;
 
 #include "scr_console/console.h"
@@ -66,18 +50,19 @@ static unsigned get_nibble(char ch) {
 int state_load_cart(const char *path) {
     char line[260];
 
-    int fd = esp_open(path, FO_RDONLY);
-    if (fd < 0)
-        return fd;
+    unsigned t0 = frame_cnt;
 
-    int len = esp_readline(fd, line, sizeof(line));
-    if (len < 0 || strncmp(line, "aqua-8 cartridge", 16) != 0) {
-        esp_close(fd);
+    FILE *f = fopen(path, "r");
+    if (!f) {
         return -1;
     }
+    if (fgets(line, sizeof(line), f) == NULL || strncmp(line, "aqua-8 cartridge", 16) != 0) {
+        fclose(f);
+        return 0;
+    }
 
+    code_edit_reset_state();
     editbuf_t *eb = edit_state.code_edit.editbuf;
-    editbuf_reset(eb);
     memset(&data_state, 0, sizeof(data_state));
 
     uint8_t       *p_spr     = (uint8_t *)data_state.sprites;
@@ -88,31 +73,31 @@ int state_load_cart(const char *path) {
     unsigned mode = LOADMODE_NONE;
 
     while (1) {
-        int len = esp_readline(fd, line, sizeof(line));
-        if (len < 0)
+        if (fgets(line, sizeof(line), f) == NULL)
             break;
 
+        unsigned len      = strlen(line);
         unsigned old_mode = mode;
 
-        if (strcmp(line, "__gfx__") == 0)
+        if (strcmp(line, "__gfx__\n") == 0)
             mode = LOADMODE_GFX;
-        else if (strcmp(line, "__gff__") == 0)
+        else if (strcmp(line, "__gff__\n") == 0)
             mode = LOADMODE_GFF;
-        else if (strcmp(line, "__map__") == 0)
+        else if (strcmp(line, "__map__\n") == 0)
             mode = LOADMODE_MAP;
-        else if (strcmp(line, "__sfx__") == 0)
+        else if (strcmp(line, "__sfx__\n") == 0)
             mode = LOADMODE_SFX;
-        else if (strcmp(line, "__music__") == 0)
+        else if (strcmp(line, "__music__\n") == 0)
             mode = LOADMODE_MUSIC;
-        else if (strcmp(line, "__lua__") == 0)
+        else if (strcmp(line, "__lua__\n") == 0)
             mode = LOADMODE_LUA;
         else {
             switch (mode) {
                 case LOADMODE_GFX: {
-                    if (len != 128)
+                    if (len != 129)
                         break;
 
-                    for (int i = 0; i < len; i += 2) {
+                    for (int i = 0; i < 128; i += 2) {
                         if (p_spr >= p_spr_end)
                             break;
 
@@ -127,7 +112,7 @@ int state_load_cart(const char *path) {
                     break;
                 }
                 case LOADMODE_SFX: {
-                    if (len != 168 || sfx_idx >= 64)
+                    if (len != 169 || sfx_idx >= 64)
                         break;
                     sfx_t      *sfx = &data_state.sfx[sfx_idx++];
                     const char *ps  = line;
@@ -155,7 +140,7 @@ int state_load_cart(const char *path) {
                     break;
                 }
                 case LOADMODE_LUA: {
-                    int remaining = eb->p_buf_end - p_code;
+                    unsigned remaining = eb->p_buf_end - p_code;
                     if (remaining <= 1) {
                         mode = LOADMODE_NONE;
                         break;
@@ -165,19 +150,29 @@ int state_load_cart(const char *path) {
                     }
                     memcpy(p_code, line, len);
                     p_code += len;
-                    *(p_code++) = '\n';
                     break;
                 }
             }
         }
 
         if (mode != old_mode) {
-            console_printf("Changed parsing mode to: %u\r\n", mode);
+            const char *mode_str;
+            switch (mode) {
+                case LOADMODE_GFX: mode_str = "sprites"; break;
+                case LOADMODE_GFF: mode_str = "sprite flags"; break;
+                case LOADMODE_MAP: mode_str = "map data"; break;
+                case LOADMODE_SFX: mode_str = "sound effects"; break;
+                case LOADMODE_MUSIC: mode_str = "music"; break;
+                case LOADMODE_LUA: mode_str = "code"; break;
+                default: break;
+            }
+            if (mode != LOADMODE_NONE)
+                console_printf("- Loading %s\r\n", mode_str);
         }
 
         // console_putline(line);
     }
-    esp_close(fd);
+    fclose(f);
 
     // Finalize code edit buffer
     {
@@ -189,14 +184,13 @@ int state_load_cart(const char *path) {
         }
     }
 
+    unsigned t = frame_cnt - t0;
+    console_printf("%u frames\r\n", t);
+
     return editbuf_get_size(eb);
 }
 
-static int esp_write_str(int fd, const char *str) {
-    return esp_write(fd, str, strlen(str));
-}
-
-static int esp_write_hex_line(int fd, const void *buf, size_t len) {
+static int fwrite_hex_line(FILE *f, const void *buf, size_t len) {
     if (len > 128)
         return -1;
 
@@ -210,31 +204,39 @@ static int esp_write_hex_line(int fd, const void *buf, size_t len) {
         ps++;
     }
     *(pd++) = '\n';
-    return esp_write(fd, tmp, pd - tmp);
+    return fwrite(tmp, pd - tmp, 1, f);
 }
 
 int state_save_cart(const char *path) {
-    int fd = esp_open(path, FO_WRONLY);
-    if (fd < 0)
-        return fd;
+    unsigned t0 = frame_cnt;
 
-    esp_write_str(fd, "aqua-8 cartridge\n");
-    esp_write_str(fd, "version 1\n");
+    FILE *f = fopen(path, "w");
+    if (!f) {
+        return -1;
+    }
+
+    fputs("aqua-8 cartridge\n", f);
+    fputs("version 1\n", f);
 
     // Graphics
     {
-        esp_write_str(fd, "__gfx__\n");
+        console_printf("- Saving sprites\r\n");
+        fputs("__gfx__\n", f);
         for (int j = 0; j < 128; j++) {
-            esp_write_hex_line(fd, &data_state.sprites[j * 16], 64);
+            fwrite_hex_line(f, &data_state.sprites[j * 16], 64);
         }
 
-        esp_write_str(fd, "__gff__\n");
-        esp_write_str(fd, "__map__\n");
+        console_printf("- Saving sprite flags\r\n");
+        fputs("__gff__\n", f);
+
+        console_printf("- Saving map data\r\n");
+        fputs("__map__\n", f);
     }
 
     // Sound
     {
-        esp_write_str(fd, "__sfx__\n");
+        console_printf("- Saving sound effects\r\n");
+        fputs("__sfx__\n", f);
         for (int j = 0; j < 64; j++) {
             const sfx_t *sfx = &data_state.sfx[j];
 
@@ -267,26 +269,39 @@ int state_save_cart(const char *path) {
             }
 
             *(pd++) = '\n';
-            esp_write(fd, buf, pd - buf);
+            fwrite(buf, pd - buf, 1, f);
         }
 
-        esp_write_str(fd, "__music__\n");
+        console_printf("- Saving music\r\n");
+        fputs("__music__\n", f);
     }
 
     // Source code
     {
-        editbuf_t *eb = edit_state.code_edit.editbuf;
-        esp_write_str(fd, "__lua__\n");
+        console_printf("- Saving code\r\n");
+        fputs("__lua__\n", f);
+
+        editbuf_t *eb      = edit_state.code_edit.editbuf;
+        uint8_t    last_ch = 0;
+
         unsigned size = (eb->p_split_start - eb->p_buf);
-        if (size)
-            esp_write(fd, eb->p_buf, size);
+        if (size) {
+            fwrite(eb->p_buf, size, 1, f);
+            last_ch = eb->p_buf[size - 1];
+        }
         size = (eb->p_buf_end - eb->p_split_end);
-        if (size)
-            esp_write(fd, eb->p_split_end, size);
-        esp_write_str(fd, "\n");
+        if (size) {
+            fwrite(eb->p_split_end, size, 1, f);
+            last_ch = eb->p_split_end[size - 1];
+        }
+        if (last_ch != '\n')
+            fputc('\n', f);
     }
 
-    esp_close(fd);
+    fclose(f);
+
+    unsigned t = frame_cnt - t0;
+    console_printf("%u frames\r\n", t);
 
     return 0;
 }

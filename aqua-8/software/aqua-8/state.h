@@ -103,6 +103,7 @@ extern game_state_t game_state;
 
 extern volatile bool frame60;
 extern volatile bool frame30;
+extern unsigned      frame_cnt;
 
 int state_load_cart(const char *path);
 int state_save_cart(const char *path);

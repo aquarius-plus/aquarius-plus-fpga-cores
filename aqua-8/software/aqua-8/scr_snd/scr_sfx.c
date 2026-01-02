@@ -1,5 +1,13 @@
 #include "scr.h"
 
+static bool sfx_is_empty(const sfx_t *sfx) {
+    for (int i = 0; i < 32; i++) {
+        if (sfx->notes[i] & (7 << 9))
+            return false;
+    }
+    return true;
+}
+
 static void draw_note_row(int x, int y, int row) {
     uint16_t note_code = data_state.sfx[edit_state.sfx_edit.sfx_idx].notes[row];
     unsigned pitch     = note_code & 63;
@@ -106,7 +114,7 @@ static void draw(void) {
                 if (mouse_lclick(&r))
                     edit_state.sfx_edit.sfx_idx = nr;
 
-                fill_rect(&r, nr == edit_state.sfx_edit.sfx_idx ? 7 : 13);
+                fill_rect(&r, nr == edit_state.sfx_edit.sfx_idx ? 7 : (sfx_is_empty(&data_state.sfx[nr]) ? 13 : 12));
                 draw_char_altfont(x + 1, y + 1, '0' + (nr / 10), 5);
                 draw_char_altfont(x + 5, y + 1, '0' + (nr % 10), 5);
 

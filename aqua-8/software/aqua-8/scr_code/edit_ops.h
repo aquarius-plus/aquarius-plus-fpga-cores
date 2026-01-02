@@ -14,7 +14,7 @@ static inline void clear_selection(void) { edit_state.code_edit.loc_selection = 
 static inline int  get_cursor_pos(void) { return min(edit_state.code_edit.loc_cursor.pos, max(0, editbuf_get_line(edit_state.code_edit.editbuf, edit_state.code_edit.loc_cursor.line, NULL))); }
 static inline void update_cursor_pos(void) { edit_state.code_edit.loc_cursor.pos = get_cursor_pos(); }
 
-static inline void reset_state(void) {
+static inline void code_edit_reset_state(void) {
     code_edit_t *state = &edit_state.code_edit;
 
     editbuf_reset(state->editbuf);

@@ -290,7 +290,8 @@ void console_perform(void) {
             int result = readline_process(&ctx, ch);
             if (result >= 0) {
                 console_puts("\r\n");
-                readline_done = true;
+                readline_done    = true;
+                game_state.color = 6;
 
                 // Get command from input
                 char        cmd_str[64];

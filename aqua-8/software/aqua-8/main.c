@@ -11,14 +11,14 @@
 
 int luaopen_base(lua_State *L);
 
-volatile bool frame60 = false;
-volatile bool frame30 = false;
+volatile bool frame60   = false;
+volatile bool frame30   = false;
+unsigned      frame_cnt = 0;
 
 void vblank_handler(void) {
-    static unsigned frame = 0;
-    frame++;
+    frame_cnt++;
 
-    if (frame & 1) {
+    if (frame_cnt & 1) {
         frame30 = true;
     }
     frame60 = true;
@@ -105,7 +105,6 @@ static void handle_keybuf(void) {
         // last = keybuf;
     }
 }
-
 
 int main(void) {
     esp_closeall();
