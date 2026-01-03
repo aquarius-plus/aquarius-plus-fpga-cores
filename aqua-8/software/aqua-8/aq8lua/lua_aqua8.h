@@ -1,9 +1,9 @@
 #pragma once
 
 #include "common.h"
-#include "lua-5.2.4/src/lua.h"
-#include "lua-5.2.4/src/lauxlib.h"
-#include "lua-5.2.4/src/lualib.h"
+#include "z8lua/lua.h"
+#include "z8lua/lauxlib.h"
+#include "z8lua/lualib.h"
 
 void lua_shutdown(void);
 void lua_init(void);
