@@ -1,24 +1,6 @@
 #include "common.h"
 #include "esp.h"
 
-static const uint16_t palette[16] = {
-    0x000,
-    0x125,
-    0x725,
-    0x085,
-    0xA53,
-    0x554,
-    0xCCC,
-    0xFFE,
-    0xF04,
-    0xFA0,
-    0xFF2,
-    0x0E5,
-    0x2AF,
-    0x879,
-    0xF7A,
-    0xFCA};
-
 void hexdump(const void *buf, int length) {
     int            idx = 0;
     const uint8_t *p   = (const uint8_t *)buf;

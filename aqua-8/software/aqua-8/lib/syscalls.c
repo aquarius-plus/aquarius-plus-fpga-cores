@@ -178,7 +178,7 @@ int _close(int fd) {
 noreturn void _exit(int status) {
     // Reboot
     __irq_disable();
-    ((void (*)(void))0)();
+    // ((void (*)(void))0)();
 
     while (1);
 }

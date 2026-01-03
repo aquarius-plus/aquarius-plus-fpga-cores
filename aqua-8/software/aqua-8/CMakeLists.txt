@@ -28,7 +28,7 @@ add_custom_command(
 
 target_compile_options(${PROJECT_NAME} PRIVATE -g)
 
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wshadow -Winit-self -Wmissing-include-dirs -Wlogical-op) # -Wfloat-conversion -Wdouble-promotion 
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wshadow -Winit-self -Wmissing-include-dirs -Wlogical-op) # -Wfloat-conversion -Wdouble-promotion
 target_compile_options(${PROJECT_NAME} PRIVATE -Wno-unused-parameter -Wno-shadow)
 target_compile_options(${PROJECT_NAME} PRIVATE -fdata-sections -ffunction-sections -fno-strict-aliasing)
 target_compile_options(${PROJECT_NAME} PRIVATE -march=rv32im_zicsr -mabi=ilp32 -specs=nano.specs)
@@ -58,7 +58,7 @@ add_custom_target(debug
 target_include_directories(${PROJECT_NAME} PRIVATE
     .
     lib
-    lua_aqua8
+    # lua_aqua8
     # lua-5.2.4/src
 )
 
@@ -79,7 +79,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 
     scr_snd/scr_sfx.c
     scr_snd/scr_music.c
-    
+
     scr_code/scr_code.c
     scr_code/editbuf.c
     scr_code/edit_ops.c
@@ -91,46 +91,47 @@ target_sources(${PROJECT_NAME} PRIVATE
     lib/malloc.c
     lib/syscalls.c
 
-    lua-5.2.4/src/lapi.c
-    lua-5.2.4/src/lauxlib.c
-    lua-5.2.4/src/lcode.c
-    lua-5.2.4/src/lctype.c
-    lua-5.2.4/src/ldebug.c
-    lua-5.2.4/src/ldo.c
-    lua-5.2.4/src/ldump.c
-    lua-5.2.4/src/lfunc.c
-    lua-5.2.4/src/lgc.c
-    lua-5.2.4/src/llex.c
-    lua-5.2.4/src/lmem.c
-    lua-5.2.4/src/lobject.c
-    lua-5.2.4/src/lopcodes.c
-    lua-5.2.4/src/lparser.c
-    lua-5.2.4/src/lstate.c
-    lua-5.2.4/src/lstring.c
-    lua-5.2.4/src/ltable.c
-    lua-5.2.4/src/ltm.c
-    lua-5.2.4/src/lundump.c
-    lua-5.2.4/src/lvm.c
-    lua-5.2.4/src/lzio.c
+    z8lua/lapi.cpp
+    z8lua/lauxlib.cpp
+    z8lua/lbaselib.cpp
+    z8lua/lcode.cpp
+    z8lua/lcorolib.cpp
+    z8lua/lctype.cpp
+    z8lua/ldblib.cpp
+    z8lua/ldebug.cpp
+    z8lua/ldo.cpp
+    z8lua/ldump.cpp
+    z8lua/lfunc.cpp
+    z8lua/lgc.cpp
+    z8lua/linit.cpp
+    z8lua/llex.cpp
+    z8lua/lmem.cpp
+    z8lua/lobject.cpp
+    z8lua/lopcodes.cpp
+    z8lua/lparser.cpp
+    z8lua/lpico8lib.cpp
+    z8lua/lstate.cpp
+    z8lua/lstring.cpp
+    z8lua/lstrlib.cpp
+    z8lua/ltable.cpp
+    z8lua/ltablib.cpp
+    z8lua/ltm.cpp
+    # z8lua/lua.cpp
+    z8lua/lundump.cpp
+    z8lua/lvm.cpp
+    z8lua/lzio.cpp
 
-    lua_aqua8/lua_aqua8.c
-    
-    # lua-5.2.4/src/loadlib.c
-    # lua-5.2.4/src/linit.c
-    # lua-5.2.4/src/lbaselib.c
-    # lua-5.2.4/src/lbitlib.c
-    # lua-5.2.4/src/lcorolib.c
-    # lua-5.2.4/src/ldblib.c
-    # lua-5.2.4/src/liolib.c
-    # lua-5.2.4/src/lmathlib.c
-    # lua-5.2.4/src/loslib.c
-    # lua-5.2.4/src/lstrlib.c
-    # lua-5.2.4/src/ltablib.c
-
-    # lua-5.2.4/src/lua.c
-    # lua-5.2.4/src/luac.c
-
+    # lua_aqua8/lua_aqua8.c
+    # lua_aqua8/func_fixed.c
+    # lua_aqua8/func_gfx.c
 
     # lua/mychanges.c
     # lua/myfuncs.c
 )
+
+# Suppress fall-through warnings for a few files
+set_source_files_properties(z8lua/lgc.cpp PROPERTIES COMPILE_FLAGS "-std=c++17 -Wno-implicit-fallthrough")
+set_source_files_properties(z8lua/llex.cpp PROPERTIES COMPILE_FLAGS "-std=c++17 -Wno-implicit-fallthrough")
+set_source_files_properties(z8lua/lstrlib.cpp PROPERTIES COMPILE_FLAGS "-std=c++17 -Wno-implicit-fallthrough")
+set_source_files_properties(z8lua/ltable.cpp PROPERTIES COMPILE_FLAGS "-std=c++17 -Wno-implicit-fallthrough")
+set_source_files_properties(z8lua/lvm.cpp PROPERTIES COMPILE_FLAGS "-std=c++17 -Wno-implicit-fallthrough")
