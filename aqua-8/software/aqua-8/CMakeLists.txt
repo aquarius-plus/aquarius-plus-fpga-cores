@@ -91,6 +91,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     lib/malloc.c
     lib/syscalls.c
 
+    aq8lua/aq8lua.cpp
+
     z8lua/lapi.cpp
     z8lua/lauxlib.cpp
     z8lua/lbaselib.cpp

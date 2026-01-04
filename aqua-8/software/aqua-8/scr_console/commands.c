@@ -2,7 +2,7 @@
 #include "state.h"
 #include "esp.h"
 #include "console.h"
-// #include "lua_aqua8/lua_aqua8.h"
+#include "aq8lua/aq8lua.h"
 
 void cmd_help(const char *topic) {
     if (topic[0] == 0) {
@@ -177,19 +177,17 @@ void cmd_reboot(const char *args) {
 void cmd_run(const char *args) {
     (void)args;
 
-#if 0
-    lua_shutdown();
-    lua_init();
+    aq8lua_shutdown();
+    aq8lua_init();
 
     const uint8_t *buf;
     unsigned       size = editbuf_get_buf(edit_state.code_edit.editbuf, &buf);
-    lua_run("C", buf, size);
-#endif
+    if (aq8lua_run("C", buf, size)) {
+        aq8lua_gameloop();
+    }
 }
 
 void do_lua(const char *line) {
-#if 0
-    lua_init();
-    lua_run("I", line, strlen(line));
-#endif
+    aq8lua_init();
+    aq8lua_run("I", line, strlen(line));
 }

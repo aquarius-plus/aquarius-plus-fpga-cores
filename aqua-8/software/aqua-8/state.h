@@ -2,7 +2,7 @@
 
 #include "common.h"
 #include "scr_code/editbuf.h"
-// #include "lua_aqua8/lua_aqua8.h"
+#include "aq8lua/aq8lua.h"
 
 enum {
     MODE_CODE = 0,
@@ -93,10 +93,12 @@ typedef struct {
 } data_state_t;
 
 typedef struct {
-    int        x;
-    int        y;
-    uint8_t    color;
-    // lua_State *L;
+    int     x;
+    int     y;
+    uint8_t color;
+    void   *lua_state;
+    int16_t camera_x;
+    int16_t camera_y;
 } game_state_t;
 
 extern edit_state_t edit_state;
