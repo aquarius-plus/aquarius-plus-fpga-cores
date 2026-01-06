@@ -75,6 +75,7 @@ _load_program_entry:
 
     // Read file into memory
     li      t2, LOADADDR
+    li      t4, LOADADDR
 
 2:  li      a0, ESPCMD_READ     // Command
     call    _esp_cmd
@@ -102,6 +103,11 @@ _load_program_entry:
     j       2b
 
 4:
+    // Flush memory
+    cbo.flush 0(t4)
+    addi    t4, t4, 4
+    blt     t4, t2, 4b
+
     // Close all files
     li      a0, ESPCMD_CLOSEALL
     call    _esp_cmd

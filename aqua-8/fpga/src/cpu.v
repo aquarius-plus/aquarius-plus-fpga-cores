@@ -14,6 +14,7 @@ module cpu #(
     output wire [31:0] bus_wrdata,
     output wire  [3:0] bus_bytesel,
     output wire        bus_wren,
+    output wire        bus_flush,
     output wire        bus_strobe,
     input  wire        bus_wait,
     input  wire [31:0] bus_rddata,
@@ -43,6 +44,7 @@ module cpu #(
     reg [31:0] d_wrdata,        q_wrdata;
     reg  [3:0] d_bytesel,       q_bytesel;
     reg        d_wren,          q_wren;
+    reg        d_flush,         q_flush;
     reg        d_stb,           q_stb;
 
     // CSRs
@@ -61,6 +63,7 @@ module cpu #(
     assign bus_wrdata   = q_wrdata;
     assign bus_bytesel  = q_bytesel;
     assign bus_wren     = q_wren;
+    assign bus_flush    = q_flush;
     assign bus_strobe   = q_stb;
 
     //////////////////////////////////////////////////////////////////////////
@@ -90,6 +93,7 @@ module cpu #(
     wire is_alu_reg = (opcode == 7'b0110011); // regfile[rd_idx] = regfile[rs1_idx] <alu_op> regfile[rs2_idx]
     wire is_system  = (opcode == 7'b1110011); // ECALL/EBREAK
     wire is_fence   = (opcode == 7'b0001111 && funct3 == 3'b000); // FENCE/PAUSE
+    wire is_cbo     = (opcode == 7'b0001111 && funct3 == 3'b010 && rd_idx == 5'd0); // CBO
 
     wire is_ecall   = is_system && d_instr[31:7] == 25'b0000000_00000_00000_000_00000;
     wire is_ebreak  = is_system && d_instr[31:7] == 25'b0000000_00001_00000_000_00000;
@@ -107,6 +111,7 @@ module cpu #(
         is_alu_imm ||
         is_alu_reg ||
         is_fence   ||
+        is_cbo     ||
         is_system  ||
         is_ecall   ||
         is_ebreak;
@@ -462,6 +467,7 @@ module cpu #(
             d_addr       = {newpc[31:2], 2'b00};
             d_bytesel    = 4'b1111;
             d_wren       = 0;
+            d_flush      = 0;
             d_stb        = 1;
         end
     endtask
@@ -475,6 +481,7 @@ module cpu #(
         d_bytesel      = q_bytesel;
         d_wren         = q_wren;
         d_stb          = q_stb;
+        d_flush        = q_flush;
         d_mstatus_mie  = q_mstatus_mie;
         d_mstatus_mpie = q_mstatus_mpie;
         d_mie          = q_mie;
@@ -496,6 +503,7 @@ module cpu #(
             StFetch: begin
                 if (!bus_wait) begin
                     d_wren     = 0;
+                    d_flush    = 0;
                     d_stb      = 0;
 
                     if (irq_pending && q_mstatus_mie) begin
@@ -532,6 +540,7 @@ module cpu #(
                                 d_state = is_load ? StMemRd : StMemWr;
                                 d_addr  = load_store_addr;
                                 d_wren  = is_store;
+                                d_flush = 0;
                                 d_stb   = 1;
 
                                 if      (funct3[1]) d_wrdata = rs2_data;                                                     // SW
@@ -552,6 +561,13 @@ module cpu #(
                                         endcase
                                     end
                                 end
+
+                            end else if (is_cbo) begin
+                                d_state      = StMemRd;
+                                d_addr       = rs1_data;
+                                d_wren       = 0;
+                                d_flush      = 1;
+                                d_stb        = 1;
 
                             end else begin
                                 if (is_lui || is_auipc || is_jal || is_jalr || is_alu_imm || is_alu_reg || is_system)
@@ -598,6 +614,7 @@ module cpu #(
             StMemRd: begin
                 if (!bus_wait) begin
                     d_wren     = 0;
+                    d_flush    = 0;
                     d_stb      = 0;
                     rd_wr      = 1;
                     fetch(pc_plus4);
@@ -607,6 +624,7 @@ module cpu #(
             StMemWr: begin
                 if (!bus_wait) begin
                     d_wren     = 0;
+                    d_flush    = 0;
                     d_stb      = 0;
                     fetch(pc_plus4);
                 end
@@ -639,6 +657,7 @@ module cpu #(
             q_wrdata       <= 0;
             q_bytesel      <= 4'b1111;
             q_wren         <= 0;
+            q_flush        <= 0;
             q_stb          <= 1;
             q_mstatus_mie  <= 0;
             q_mstatus_mpie <= 0;
@@ -659,6 +678,7 @@ module cpu #(
             q_wrdata       <= d_wrdata;
             q_bytesel      <= d_bytesel;
             q_wren         <= d_wren;
+            q_flush        <= d_flush;
             q_stb          <= d_stb;
             q_mstatus_mie  <= d_mstatus_mie;
             q_mstatus_mpie <= d_mstatus_mpie;

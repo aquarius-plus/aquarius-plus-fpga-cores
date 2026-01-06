@@ -10,6 +10,7 @@ module sram_cache(
     input  wire [31:0] s_wrdata,
     input  wire  [3:0] s_bytesel,
     input  wire        s_wren,
+    input  wire        s_flush,
     input  wire        s_strobe,
     output reg         s_wait,
     output reg  [31:0] s_rddata,
@@ -41,7 +42,6 @@ module sram_cache(
     //     [38] -
     //  [37:32] Tag (s_addr[16:11])
     //////////////////////////////////////////////////////////////////////////
-    reg  [10:0] cram_addr;
     reg  [40:0] cram_wrdata;
     reg   [3:0] cram_bytesel;
     reg         cram_wren;
@@ -52,8 +52,8 @@ module sram_cache(
     wire  [5:0] tag       = cram_rddata[37:32];
     wire        needs_wb  = tag_valid && tag_dirty;
 
-    cache_ram  cache_ram( .clk(clk), .addr(cram_addr), .wrdata(cram_wrdata[31:0]), .wrsel(cram_bytesel), .wren(cram_wren), .rddata(cram_rddata[31: 0]));
-    cache_tags cache_tags(.clk(clk), .addr(cram_addr), .wrdata(cram_wrdata[40:32]),                      .wren(cram_wren), .rddata(cram_rddata[40:32]));
+    cache_ram  cache_ram (.clk(clk), .addr(s_addr[10:0]), .wrdata(cram_wrdata[31:0]), .wrsel(cram_bytesel), .wren(cram_wren), .rddata(cram_rddata[31: 0]));
+    cache_tags cache_tags(.clk(clk), .addr(s_addr[10:0]), .wrdata(cram_wrdata[40:32]),                      .wren(cram_wren), .rddata(cram_rddata[40:32]));
 
     //////////////////////////////////////////////////////////////////////////
     // Slave side state machine
@@ -82,20 +82,19 @@ module sram_cache(
     assign m_wrdata = cram_rddata[31:0];
 
     always @* begin
-        cram_addr    = s_addr[10:0];
-        cram_wrdata  = {3'b110, s_addr[16:11], s_wrdata};
+        cram_wrdata  = {(s_flush ? 2'b00 : 2'b11), 1'b0, s_addr[16:11], s_wrdata};
         cram_bytesel = s_bytesel;
         cram_wren    = 0;
         s_rddata     = cram_rddata[31:0];
         s_wait       = 1;
 
-        d_state   = q_state;
-        dm_addr   = qm_addr;
-        dm_wren   = qm_wren;
-        dm_strobe = qm_strobe;
+        d_state      = q_state;
+        dm_addr      = qm_addr;
+        dm_wren      = qm_wren;
+        dm_strobe    = qm_strobe;
 
-        do_access = 0;
-        do_fetch  = 0;
+        do_access    = 0;
+        do_fetch     = 0;
 
         case (q_state)
             StIdle: begin
@@ -104,7 +103,24 @@ module sram_cache(
             end
 
             StCheckTag: begin
-                if (cache_line_valid || wr_without_fetch) begin
+                if (s_flush) begin
+                    if (!cache_line_valid) begin
+                        s_wait    = 0;
+                        d_state   = StIdle;
+                    end else if (needs_wb) begin
+                        // Perform writeback
+                        dm_addr   = {tag, s_addr[10:0]};
+                        dm_wren   = 1;
+                        dm_strobe = 1;
+                        d_state   = StWaitWriteback;
+
+                    end else begin
+                        cram_wren = 1;
+                        s_wait    = 0;
+                        d_state   = StIdle;
+                    end
+                    
+                end else if (cache_line_valid || wr_without_fetch) begin
                     // Cache line valid, perform read/write on cache line
                     do_access = 1;
 
@@ -125,7 +141,11 @@ module sram_cache(
                 if (!m_wait) begin
                     dm_strobe = 0;
 
-                    if (wr_without_fetch) begin
+                    if (s_flush) begin
+                        cram_wren = 1;
+                        s_wait    = 0;
+                        d_state   = StIdle;
+                    end else if (wr_without_fetch) begin
                         do_access = 1;
                     end else begin
                         do_fetch = 1;
@@ -134,7 +154,7 @@ module sram_cache(
             end
 
             StWaitLoad: begin
-                cram_wrdata[40:38] = 3'b100;
+                cram_wrdata[40:39] = 2'b10;
                 cram_wrdata[31:0]  = m_rddata;
                 cram_bytesel       = 4'b1111;
                 s_rddata           = m_rddata;

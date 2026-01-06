@@ -86,6 +86,7 @@ module fpga_core(
     wire [31:0] cpu_wrdata;
     wire  [3:0] cpu_bytesel;
     wire        cpu_wren;
+    wire        cpu_flush;
     wire        cpu_strobe;
     reg         cpu_wait;
     reg  [31:0] cpu_rddata;
@@ -111,6 +112,7 @@ module fpga_core(
         .bus_wrdata(cpu_wrdata),
         .bus_bytesel(cpu_bytesel),
         .bus_wren(cpu_wren),
+        .bus_flush(cpu_flush),
         .bus_strobe(cpu_strobe),
         .bus_wait(cpu_wait),
         .bus_rddata(cpu_rddata),
@@ -172,6 +174,7 @@ module fpga_core(
         .s_wrdata(cpu_wrdata),
         .s_bytesel(cpu_bytesel),
         .s_wren(cpu_wren),
+        .s_flush(cpu_flush),
         .s_strobe(sram_strobe),
         .s_wait(sram_wait),
         .s_rddata(sram_rddata),

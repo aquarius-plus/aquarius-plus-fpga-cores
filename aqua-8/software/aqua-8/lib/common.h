@@ -76,6 +76,10 @@ static inline void __membar(void) {
     __asm__ __volatile__("" ::: "memory");
 }
 
+static inline void flush_cache(void *addr) {
+    __asm__ __volatile__("cbo.flush 0(%0)" ::"r"(addr) : "memory");
+}
+
 #ifdef __cplusplus
 }
 #endif
