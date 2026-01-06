@@ -82,14 +82,15 @@ module fpga_core(
     wire        irq_keybuf;
     wire        irq_vblank;
 
-    wire [31:0] cpu_addr;
-    wire [31:0] cpu_wrdata;
-    wire  [3:0] cpu_bytesel;
-    wire        cpu_wren;
-    wire        cpu_flush;
-    wire        cpu_strobe;
-    reg         cpu_wait;
-    reg  [31:0] cpu_rddata;
+    wire [31:0] cpu_d_addr;
+    wire [31:0] cpu_d_wrdata;
+    wire  [3:0] cpu_d_bytesel;
+    wire        cpu_d_wren;
+    wire        cpu_d_flush;
+    wire        cpu_d_strobe;
+    reg         cpu_d_wait;
+    reg  [31:0] cpu_d_rddata;
+
     reg  [31:0] cpu_irq;
 
     always @* begin
@@ -108,14 +109,14 @@ module fpga_core(
         .reset(reset),
 
         // Bus interface
-        .bus_addr(cpu_addr),
-        .bus_wrdata(cpu_wrdata),
-        .bus_bytesel(cpu_bytesel),
-        .bus_wren(cpu_wren),
-        .bus_flush(cpu_flush),
-        .bus_strobe(cpu_strobe),
-        .bus_wait(cpu_wait),
-        .bus_rddata(cpu_rddata),
+        .bus_d_addr(cpu_d_addr),
+        .bus_d_wrdata(cpu_d_wrdata),
+        .bus_d_bytesel(cpu_d_bytesel),
+        .bus_d_wren(cpu_d_wren),
+        .bus_d_flush(cpu_d_flush),
+        .bus_d_strobe(cpu_d_strobe),
+        .bus_d_wait(cpu_d_wait),
+        .bus_d_rddata(cpu_d_rddata),
 
         // Interrupt input
         .irq(cpu_irq));
@@ -127,7 +128,7 @@ module fpga_core(
 
     bootrom bootrom(
         .clk(clk),
-        .addr(cpu_addr[10:2]),
+        .addr(cpu_d_addr[10:2]),
         .rddata(bootrom_rddata));
 
     //////////////////////////////////////////////////////////////////////////
@@ -145,6 +146,12 @@ module fpga_core(
     wire [31:0] sram_m_rddata;
 
     wire [18:0] ebus_sram_a;
+
+    wire [16:0] cpu_i_addr = 0;
+    wire        cpu_i_flush = 0;
+    wire        cpu_i_strobe = 0;
+    wire        cpu_i_wait;
+    wire [31:0] cpu_i_rddata;
 
     sram_ctrl sram_ctrl(
         .clk(clk),
@@ -165,19 +172,25 @@ module fpga_core(
         .sram_we_n(sram_we_n),
         .sram_dq(sram_dq));
 
-    dcache dcache(
+    cache cache(
         .clk(clk),
         .reset(reset),
 
         // Slave bus interface (from CPU)
-        .s_addr(cpu_addr[18:2]),
-        .s_wrdata(cpu_wrdata),
-        .s_bytesel(cpu_bytesel),
-        .s_wren(cpu_wren),
-        .s_flush(cpu_flush),
-        .s_strobe(sram_strobe),
-        .s_wait(sram_wait),
-        .s_rddata(sram_rddata),
+        .s_i_addr(cpu_i_addr),
+        .s_i_flush(cpu_i_flush),
+        .s_i_strobe(cpu_i_strobe),
+        .s_i_wait(cpu_i_wait),
+        .s_i_rddata(cpu_i_rddata),
+
+        .s_d_addr(cpu_d_addr[18:2]),
+        .s_d_wrdata(cpu_d_wrdata),
+        .s_d_bytesel(cpu_d_bytesel),
+        .s_d_wren(cpu_d_wren),
+        .s_d_flush(cpu_d_flush),
+        .s_d_strobe(sram_strobe),
+        .s_d_wait(sram_wait),
+        .s_d_rddata(sram_rddata),
 
         // Memory command interface
         .m_addr(sram_m_addr),
@@ -191,17 +204,17 @@ module fpga_core(
     // ESP32 UART
     //////////////////////////////////////////////////////////////////////////
     wire   reg_esp_data_strobe;
-    assign uart_txfifo_data = cpu_wrdata[8:0];
-    assign uart_txfifo_wren =  cpu_wren && reg_esp_data_strobe;
-    assign uart_rxfifo_rden = !cpu_wren && reg_esp_data_strobe;
+    assign uart_txfifo_data = cpu_d_wrdata[8:0];
+    assign uart_txfifo_wren =  cpu_d_wren && reg_esp_data_strobe;
+    assign uart_rxfifo_rden = !cpu_d_wren && reg_esp_data_strobe;
     assign irq_uart         = !uart_rxfifo_empty;
 
     //////////////////////////////////////////////////////////////////////////
     // Keyboard buffer
     //////////////////////////////////////////////////////////////////////////
     wire        reg_keybuf_strobe;
-    wire        kbbuf_rst  = (cpu_wren && reg_keybuf_strobe) || reset;
-    wire        kbbuf_rden = !cpu_wren && reg_keybuf_strobe;
+    wire        kbbuf_rst  = (cpu_d_wren && reg_keybuf_strobe) || reset;
+    wire        kbbuf_rden = !cpu_d_wren && reg_keybuf_strobe;
     wire [15:0] kbbuf_rddata;
     wire        kbbuf_empty;
 
@@ -231,10 +244,10 @@ module fpga_core(
 
         .irq_vblank(irq_vblank),
 
-        .bus_addr(cpu_addr[16:0]),
-        .bus_wrdata(cpu_wrdata),
-        .bus_bytesel(cpu_bytesel),
-        .bus_wren(cpu_wren),
+        .bus_addr(cpu_d_addr[16:0]),
+        .bus_wrdata(cpu_d_wrdata),
+        .bus_bytesel(cpu_d_bytesel),
+        .bus_wren(cpu_d_wren),
         .bus_strobe(video_strobe),
         .bus_wait(video_wait),
         .bus_rddata(video_rddata),
@@ -250,46 +263,46 @@ module fpga_core(
     //////////////////////////////////////////////////////////////////////////
     // CPU bus interconnect
     //////////////////////////////////////////////////////////////////////////
-    wire   bootrom_strobe        = cpu_strobe && {cpu_addr[31:11], 11'b0} == 32'h00000;
-    wire   reg_esp_status_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02000;
-    assign reg_esp_data_strobe   = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02004;
-    assign reg_keybuf_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02010;
-    wire   reg_hctrl_strobe      = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02014;
-    wire   reg_keys_l_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02018;
-    wire   reg_keys_h_strobe     = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0201C;
-    wire   reg_gamepad1_l_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02020;
-    wire   reg_gamepad1_h_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02024;
-    wire   reg_gamepad2_l_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h02028;
-    wire   reg_gamepad2_h_strobe = cpu_strobe && {cpu_addr[31: 2],  2'b0} == 32'h0202C;
-    assign video_strobe          = cpu_strobe && {cpu_addr[31:17], 17'b0} == 32'h20000;
-    assign sram_strobe           = cpu_strobe && {cpu_addr[31:19], 19'b0} == 32'h80000;
+    wire   bootrom_strobe        = cpu_d_strobe && {cpu_d_addr[31:11], 11'b0} == 32'h00000;
+    wire   reg_esp_status_strobe = cpu_d_strobe && {cpu_d_addr[31: 2],  2'b0} == 32'h02000;
+    assign reg_esp_data_strobe   = cpu_d_strobe && {cpu_d_addr[31: 2],  2'b0} == 32'h02004;
+    assign reg_keybuf_strobe     = cpu_d_strobe && {cpu_d_addr[31: 2],  2'b0} == 32'h02010;
+    wire   reg_hctrl_strobe      = cpu_d_strobe && {cpu_d_addr[31: 2],  2'b0} == 32'h02014;
+    wire   reg_keys_l_strobe     = cpu_d_strobe && {cpu_d_addr[31: 2],  2'b0} == 32'h02018;
+    wire   reg_keys_h_strobe     = cpu_d_strobe && {cpu_d_addr[31: 2],  2'b0} == 32'h0201C;
+    wire   reg_gamepad1_l_strobe = cpu_d_strobe && {cpu_d_addr[31: 2],  2'b0} == 32'h02020;
+    wire   reg_gamepad1_h_strobe = cpu_d_strobe && {cpu_d_addr[31: 2],  2'b0} == 32'h02024;
+    wire   reg_gamepad2_l_strobe = cpu_d_strobe && {cpu_d_addr[31: 2],  2'b0} == 32'h02028;
+    wire   reg_gamepad2_h_strobe = cpu_d_strobe && {cpu_d_addr[31: 2],  2'b0} == 32'h0202C;
+    assign video_strobe          = cpu_d_strobe && {cpu_d_addr[31:17], 17'b0} == 32'h20000;
+    assign sram_strobe           = cpu_d_strobe && {cpu_d_addr[31:19], 19'b0} == 32'h80000;
 
     reg [31:0] q_cpu_addr;
-    always @(posedge clk) q_cpu_addr <= cpu_addr;
-    wire common_wait = !cpu_wren && (q_cpu_addr != cpu_addr);
+    always @(posedge clk) q_cpu_addr <= cpu_d_addr;
+    wire common_wait = !cpu_d_wren && (q_cpu_addr != cpu_d_addr);
 
     always @* begin
-        cpu_wait = 0;
-        if (bootrom_strobe) cpu_wait = common_wait;
-        if (video_strobe)   cpu_wait = video_wait;
-        if (sram_strobe)    cpu_wait = sram_wait;
+        cpu_d_wait = 0;
+        if (bootrom_strobe) cpu_d_wait = common_wait;
+        if (video_strobe)   cpu_d_wait = video_wait;
+        if (sram_strobe)    cpu_d_wait = sram_wait;
     end
 
     always @* begin
-        cpu_rddata = 0;
-        if (bootrom_strobe)        cpu_rddata = bootrom_rddata;
-        if (reg_esp_status_strobe) cpu_rddata = {30'b0, uart_txfifo_full, !uart_rxfifo_empty};
-        if (reg_esp_data_strobe)   cpu_rddata = {23'b0, uart_rxfifo_data};
-        if (reg_keybuf_strobe)     cpu_rddata = {kbbuf_empty, 15'b0, kbbuf_rddata};
-        if (reg_hctrl_strobe)      cpu_rddata = {16'b0, hctrl2, hctrl1};
-        if (reg_keys_l_strobe)     cpu_rddata = keys[31:0];
-        if (reg_keys_h_strobe)     cpu_rddata = keys[63:32];
-        if (reg_gamepad1_l_strobe) cpu_rddata = gamepad1[31:0];
-        if (reg_gamepad1_h_strobe) cpu_rddata = gamepad1[63:32];
-        if (reg_gamepad2_l_strobe) cpu_rddata = gamepad2[31:0];
-        if (reg_gamepad2_h_strobe) cpu_rddata = gamepad2[63:32];
-        if (video_strobe)          cpu_rddata = video_rddata;
-        if (sram_strobe)           cpu_rddata = sram_rddata;
+        cpu_d_rddata = 0;
+        if (bootrom_strobe)        cpu_d_rddata = bootrom_rddata;
+        if (reg_esp_status_strobe) cpu_d_rddata = {30'b0, uart_txfifo_full, !uart_rxfifo_empty};
+        if (reg_esp_data_strobe)   cpu_d_rddata = {23'b0, uart_rxfifo_data};
+        if (reg_keybuf_strobe)     cpu_d_rddata = {kbbuf_empty, 15'b0, kbbuf_rddata};
+        if (reg_hctrl_strobe)      cpu_d_rddata = {16'b0, hctrl2, hctrl1};
+        if (reg_keys_l_strobe)     cpu_d_rddata = keys[31:0];
+        if (reg_keys_h_strobe)     cpu_d_rddata = keys[63:32];
+        if (reg_gamepad1_l_strobe) cpu_d_rddata = gamepad1[31:0];
+        if (reg_gamepad1_h_strobe) cpu_d_rddata = gamepad1[63:32];
+        if (reg_gamepad2_l_strobe) cpu_d_rddata = gamepad2[31:0];
+        if (reg_gamepad2_h_strobe) cpu_d_rddata = gamepad2[63:32];
+        if (video_strobe)          cpu_d_rddata = video_rddata;
+        if (sram_strobe)           cpu_d_rddata = sram_rddata;
     end
 
 endmodule

@@ -10,14 +10,14 @@ module cpu #(
     input  wire        reset,
 
     // Bus interface
-    output wire [31:0] bus_addr,
-    output wire [31:0] bus_wrdata,
-    output wire  [3:0] bus_bytesel,
-    output wire        bus_wren,
-    output wire        bus_flush,
-    output wire        bus_strobe,
-    input  wire        bus_wait,
-    input  wire [31:0] bus_rddata,
+    output wire [31:0] bus_d_addr,
+    output wire [31:0] bus_d_wrdata,
+    output wire  [3:0] bus_d_bytesel,
+    output wire        bus_d_wren,
+    output wire        bus_d_flush,
+    output wire        bus_d_strobe,
+    input  wire        bus_d_wait,
+    input  wire [31:0] bus_d_rddata,
 
     // Interrupt input
     input  wire [31:0] irq);
@@ -59,12 +59,12 @@ module cpu #(
     reg [31:0] d_mtval,         q_mtval;        // 0x343 Machine bad address or instruction
     reg [31:0] d_mip,           q_mip;          // 0x344 Machine interrupt-pending register
 
-    assign bus_addr     = q_addr;
-    assign bus_wrdata   = q_wrdata;
-    assign bus_bytesel  = q_bytesel;
-    assign bus_wren     = q_wren;
-    assign bus_flush    = q_flush;
-    assign bus_strobe   = q_stb;
+    assign bus_d_addr     = q_addr;
+    assign bus_d_wrdata   = q_wrdata;
+    assign bus_d_bytesel  = q_bytesel;
+    assign bus_d_wren     = q_wren;
+    assign bus_d_flush    = q_flush;
+    assign bus_d_strobe   = q_stb;
 
     //////////////////////////////////////////////////////////////////////////
     // Instruction decoding
@@ -316,22 +316,22 @@ module cpu #(
     //////////////////////////////////////////////////////////////////////////
     reg [7:0] lb_data;
     always @* case (load_store_addr[1:0])
-        2'b00: lb_data = bus_rddata[7:0];
-        2'b01: lb_data = bus_rddata[15:8];
-        2'b10: lb_data = bus_rddata[23:16];
-        2'b11: lb_data = bus_rddata[31:24];
+        2'b00: lb_data = bus_d_rddata[7:0];
+        2'b01: lb_data = bus_d_rddata[15:8];
+        2'b10: lb_data = bus_d_rddata[23:16];
+        2'b11: lb_data = bus_d_rddata[31:24];
     endcase
 
-    wire [15:0] lh_data = load_store_addr[1] ? bus_rddata[31:16] : bus_rddata[15:0];
+    wire [15:0] lh_data = load_store_addr[1] ? bus_d_rddata[31:16] : bus_d_rddata[15:0];
 
     reg [31:0] load_data;
     always @* begin
-        if      (funct3[1]) load_data = bus_rddata;                                                  // LW
+        if      (funct3[1]) load_data = bus_d_rddata;                                                  // LW
         else if (funct3[0]) load_data = funct3[2] ? {16'b0, lh_data} : {{16{lh_data[15]}}, lh_data}; // LH/LHU
         else                load_data = funct3[2] ? {24'b0, lb_data} : {{24{lb_data[ 7]}}, lb_data}; // LB/LBU
     end
 
-    wire signed [31:0] bus_rddata_s = bus_rddata;
+    wire signed [31:0] bus_rddata_s = bus_d_rddata;
 
     //////////////////////////////////////////////////////////////////////////
     // CSR
@@ -501,7 +501,7 @@ module cpu #(
 
         case (q_state)
             StFetch: begin
-                if (!bus_wait) begin
+                if (!bus_d_wait) begin
                     d_wren     = 0;
                     d_flush    = 0;
                     d_stb      = 0;
@@ -510,7 +510,7 @@ module cpu #(
                         trap(1, irq_code, 0);
 
                     end else begin
-                        d_instr = bus_rddata;
+                        d_instr = bus_d_rddata;
 
                         begin
                             if (!is_valid_instruction) begin
@@ -612,7 +612,7 @@ module cpu #(
             end
 
             StMemRd: begin
-                if (!bus_wait) begin
+                if (!bus_d_wait) begin
                     d_wren     = 0;
                     d_flush    = 0;
                     d_stb      = 0;
@@ -622,7 +622,7 @@ module cpu #(
             end
 
             StMemWr: begin
-                if (!bus_wait) begin
+                if (!bus_d_wait) begin
                     d_wren     = 0;
                     d_flush    = 0;
                     d_stb      = 0;
