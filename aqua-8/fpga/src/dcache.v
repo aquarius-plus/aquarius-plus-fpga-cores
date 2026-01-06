@@ -1,7 +1,7 @@
 `default_nettype none
 `timescale 1 ns / 1 ps
 
-module sram_cache(
+module dcache(
     input  wire        clk,
     input  wire        reset,
 

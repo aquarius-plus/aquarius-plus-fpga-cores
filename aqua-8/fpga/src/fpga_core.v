@@ -165,7 +165,7 @@ module fpga_core(
         .sram_we_n(sram_we_n),
         .sram_dq(sram_dq));
 
-    sram_cache sram_cache(
+    dcache dcache(
         .clk(clk),
         .reset(reset),
 

@@ -25,7 +25,7 @@ module tb_sram_ctrl;
     wire        sram_m_wait;
     wire [31:0] sram_m_rddata;
 
-    sram_cache sram_cache(
+    dcache dcache(
         .clk(clk),
         .reset(reset),
 
