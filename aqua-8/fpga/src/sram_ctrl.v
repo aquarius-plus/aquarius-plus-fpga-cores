@@ -8,7 +8,6 @@ module sram_ctrl(
     // Command interface
     input  wire [16:0] bus_addr,
     input  wire [31:0] bus_wrdata,
-    input  wire  [3:0] bus_bytesel,
     input  wire        bus_wren,
     input  wire        bus_strobe,
     output wire        bus_wait,
@@ -33,8 +32,7 @@ module sram_ctrl(
     reg  [7:0] d_dq_wrdata,  q_dq_wrdata;
     reg        d_dq_oe,      q_dq_oe;
 
-    assign sram_dq = q_dq_oe ? q_dq_wrdata : 8'bZ;
-
+    assign sram_dq    = q_dq_oe ? q_dq_wrdata : 8'bZ;
     assign bus_wait   = q_bus_wait;
     assign bus_rddata = q_bus_rddata;
 
@@ -94,19 +92,15 @@ module sram_ctrl(
             StWrite: begin
                 d_sram_a[1:0] = q_sram_a[1:0] + 2'd1;
                 d_dq_oe       = 1;
-                case (d_sram_a[1:0])
-                    2'd0: begin d_dq_wrdata = bus_wrdata[ 7: 0]; d_sram_we_n = !bus_bytesel[0]; end
-                    2'd1: begin d_dq_wrdata = bus_wrdata[15: 8]; d_sram_we_n = !bus_bytesel[1]; end
-                    2'd2: begin d_dq_wrdata = bus_wrdata[23:16]; d_sram_we_n = !bus_bytesel[2]; end
-                    2'd3: begin d_dq_wrdata = bus_wrdata[31:24]; d_sram_we_n = !bus_bytesel[3]; end
-                endcase
+                d_sram_we_n   = 0;
+                d_state       = StWrite2;
 
-                if (!d_sram_we_n)
-                    d_state = StWrite2;
-                else if (d_sram_a[1:0] == 2'd3) begin
-                    d_bus_wait = 0;
-                    d_state    = StIdle;
-                end
+                case (d_sram_a[1:0])
+                    2'd0: begin d_dq_wrdata = bus_wrdata[ 7: 0]; end
+                    2'd1: begin d_dq_wrdata = bus_wrdata[15: 8]; end
+                    2'd2: begin d_dq_wrdata = bus_wrdata[23:16]; end
+                    2'd3: begin d_dq_wrdata = bus_wrdata[31:24]; end
+                endcase
             end
 
             StWrite2: begin

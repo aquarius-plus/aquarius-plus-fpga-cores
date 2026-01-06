@@ -76,12 +76,21 @@ module fpga_top(
     //////////////////////////////////////////////////////////////////////////
     wire spi_reset_req;
 
+`ifdef MODEL_TECH
+    reg [4:0] q_reset_cnt = 0;
+    always @(posedge clk_25_175)
+        if      (spi_reset_req)   q_reset_cnt <= 0;
+        else if (!q_reset_cnt[4]) q_reset_cnt <= q_reset_cnt + 20'd1;
+
+    wire reset_25_175 = !q_reset_cnt[4];
+`else
     reg [19:0] q_reset_cnt = 0;
     always @(posedge clk_25_175)
         if      (spi_reset_req)    q_reset_cnt <= 0;
         else if (!q_reset_cnt[19]) q_reset_cnt <= q_reset_cnt + 20'd1;
 
     wire reset_25_175 = !q_reset_cnt[19];
+`endif
 
     //////////////////////////////////////////////////////////////////////////
     // Handle unused external Z80 and peripherals

@@ -96,7 +96,7 @@ module tb();
 
     always @(posedge ebus_phi) ebus_busack_n <= ebus_busreq_n;
 
-    aq32_top top_inst(
+    fpga_top fpga_top(
         .sysclk(sysclk),
 
         // Z80 bus interface

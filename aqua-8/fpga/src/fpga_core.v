@@ -80,6 +80,7 @@ module fpga_core(
     //////////////////////////////////////////////////////////////////////////
     wire        irq_uart;
     wire        irq_keybuf;
+    wire        irq_vblank;
 
     wire [31:0] cpu_addr;
     wire [31:0] cpu_wrdata;
@@ -136,7 +137,6 @@ module fpga_core(
 
     wire [16:0] sram_m_addr;
     wire [31:0] sram_m_wrdata;
-    wire  [3:0] sram_m_bytesel;
     wire        sram_m_wren;
     wire        sram_m_strobe;
     wire        sram_m_wait;
@@ -151,7 +151,6 @@ module fpga_core(
         // Command interface
         .bus_addr(sram_m_addr),
         .bus_wrdata(sram_m_wrdata),
-        .bus_bytesel(sram_m_bytesel),
         .bus_wren(sram_m_wren),
         .bus_strobe(sram_m_strobe),
         .bus_wait(sram_m_wait),
@@ -163,10 +162,6 @@ module fpga_core(
         .sram_oe_n(sram_oe_n),
         .sram_we_n(sram_we_n),
         .sram_dq(sram_dq));
-
-`define USE_CACHE
-`ifdef USE_CACHE
-    assign sram_m_bytesel = 4'b1111;
 
     sram_cache sram_cache(
         .clk(clk),
@@ -188,16 +183,6 @@ module fpga_core(
         .m_strobe(sram_m_strobe),
         .m_wait(sram_m_wait),
         .m_rddata(sram_m_rddata));
-
-`else
-    assign sram_m_addr    = cpu_addr[18:2];
-    assign sram_m_wrdata  = cpu_wrdata;
-    assign sram_m_bytesel = cpu_bytesel;
-    assign sram_m_wren    = cpu_wren;
-    assign sram_m_strobe  = sram_strobe;
-    assign sram_wait      = sram_m_wait;
-    assign sram_rddata    = sram_m_rddata;
-`endif
 
     //////////////////////////////////////////////////////////////////////////
     // ESP32 UART
@@ -233,7 +218,6 @@ module fpga_core(
     //////////////////////////////////////////////////////////////////////////
     // Video
     //////////////////////////////////////////////////////////////////////////
-    wire        irq_vblank;
     wire        video_strobe;
     wire        video_wait;
     wire [31:0] video_rddata;
