@@ -13,13 +13,13 @@ module t80(
     output wire        bus_iorq,
 
     input  wire        bus_wait,
+    input  wire  [7:0] bus_rddata,
+
     input  wire        irq,
     input  wire  [7:0] irq_vector,
     input  wire        nmi,
     output wire        bus_no_read,
 
-    input  wire  [7:0] DInst,
-    input  wire  [7:0] DI,
     output wire  [2:0] mcycle,
     output wire  [2:0] tstate,
     output wire        irq_cycle);
@@ -118,8 +118,10 @@ module t80(
     reg   [4:0] q_read_to_reg;
     reg         q_xy_ind;
 
-    wire  [7:0] DI_Reg;
     wire [15:0] incdec16_result;
+
+    reg  [7:0] q_di;
+    always @(posedge clk) if (clk_en && tstate == 3'd2) q_di <= bus_rddata;
 
     //------------------------------------------------------------------------
     // Instruction decoder and sequencer
@@ -2027,11 +2029,11 @@ module t80(
     wire       really_wait      = bus_wait & (dec_write | ~dec_no_read);
     wire       t_reset          = q_tstate == dec_tstates;
     wire       next_is_xy_fetch = q_xy_state != 2'b00 && !q_xy_ind && (dec_set_addr_to == aXY || (q_mcycle == 3'd1 && q_instruction == 8'hcb) || (q_mcycle == 3'd1 && q_instruction == 8'h36));
-    wire [7:0] save_mux         = dec_exchange_rp ? bus_b : !q_save_alu ? DI_Reg : alu_result;
+    wire [7:0] save_mux         = dec_exchange_rp ? bus_b : !q_save_alu ? q_di : alu_result;
 
     reg        q_is_rld_rrd;
 
-    wire [8:0] ioq1   = {1'b0, DI_Reg} + {1'b0, incdec16_result[7:0]};
+    wire [8:0] ioq1   = {1'b0, q_di} + {1'b0, incdec16_result[7:0]};
     wire [8:0] ioq2   = (ioq1 & 9'b000000111) ^ {1'b0, bus_a};
     wire [7:0] temp_n = alu_result - {7'b0, d_reg_f[Flag_H]};
 
@@ -2091,7 +2093,7 @@ module t80(
                         else if (q_halt || (q_irq_cycle && q_im == 2'b10) || q_nmi_cycle)
                             q_instruction <= 8'h00;
                         else
-                            q_instruction <= DInst;
+                            q_instruction <= bus_rddata;
                         
                         if (q_irq_cycle && q_im == 2'b10)   // IM2 vector address low byte from bus
                             q_memptr[7:0] <= irq_vector;
@@ -2123,8 +2125,8 @@ module t80(
                     if (t_reset) begin
                         q_btr <= (dec_is_bt | dec_is_bc | dec_is_btr) & ~q_no_btr;
                         if (dec_jump) begin
-                            q_bus_addr <= {DI_Reg, q_memptr[7:0]};
-                            q_reg_pc   <= {DI_Reg, q_memptr[7:0]};
+                            q_bus_addr <= {q_di, q_memptr[7:0]};
+                            q_reg_pc   <= {q_di, q_memptr[7:0]};
 
                         end else if (dec_is_jp_ind_hl) begin
                             q_bus_addr <= reg_bus_c;
@@ -2151,8 +2153,8 @@ module t80(
                                         q_bus_addr <= next_is_xy_fetch ? q_reg_pc : q_memptr;
                                 end
                                 aIOA: begin
-                                    q_bus_addr <= {q_reg_a, DI_Reg};
-                                    q_memptr   <= {q_reg_a, DI_Reg} + 16'd1;
+                                    q_bus_addr <= {q_reg_a, q_di};
+                                    q_memptr   <= {q_reg_a, q_di} + 16'd1;
                                 end
                                 aSP: begin
                                     q_bus_addr <= q_reg_sp;
@@ -2178,7 +2180,7 @@ module t80(
                                     if (dec_inc_memptr) begin
                                         q_bus_addr <= q_memptr + 16'd1;
                                     end else begin
-                                        q_bus_addr <= {DI_Reg, q_memptr[7:0]};
+                                        q_bus_addr <= {q_di, q_memptr[7:0]};
                                         if (dec_set_sw == 2'b10) begin
                                             q_memptr[15:8] <= q_reg_a;
                                             q_memptr[7:0]  <= q_memptr[7:0] + 1'b1;
@@ -2229,7 +2231,7 @@ module t80(
                     end
 
                     if ((q_tstate == 2 && !really_wait && dec_is_btr && q_instruction[0]) || (q_tstate == 1 && dec_is_btr && !q_instruction[0])) begin
-                        q_reg_f[Flag_N] <= DI_Reg[7];
+                        q_reg_f[Flag_N] <= q_di[7];
                         q_reg_f[Flag_C] <= ioq1[8];
                         q_reg_f[Flag_H] <= ioq1[8];
                         q_reg_f[Flag_P] <= ~(ioq2[0] ^ ioq2[1] ^ ioq2[2] ^ ioq2[3] ^ ioq2[4] ^ ioq2[5] ^ ioq2[6] ^ ioq2[7]);
@@ -2237,11 +2239,11 @@ module t80(
 
                     if (q_tstate == 2 && !really_wait) begin
                         if (q_prefix == PrefixCB && q_mcycle == 3'd7)
-                            q_instruction <= DInst;
+                            q_instruction <= bus_rddata;
 
                         if (dec_jump_e) begin
-                            q_reg_pc <= q_reg_pc + {{8{DI_Reg[7]}}, DI_Reg};
-                            q_memptr <= q_reg_pc + {{8{DI_Reg[7]}}, DI_Reg};
+                            q_reg_pc <= q_reg_pc + {{8{q_di[7]}}, q_di};
+                            q_memptr <= q_reg_pc + {{8{q_di[7]}}, q_di};
                         end else if (dec_inc_pc) begin
                             q_reg_pc <= q_reg_pc + 16'd1;
                         end
@@ -2254,7 +2256,7 @@ module t80(
                     end
 
                     if (q_tstate == 3 && q_mcycle == 3'd6)
-                        q_memptr <= reg_bus_c + {{8{DI_Reg[7]}}, DI_Reg};
+                        q_memptr <= reg_bus_c + {{8{q_di[7]}}, q_di};
 
                     if ((dec_is_bt || dec_is_bc) && q_mcycle == 3'd3 && q_tstate == 4 && !q_no_btr)
                         q_memptr <= q_reg_pc - 16'd1;
@@ -2277,8 +2279,8 @@ module t80(
                 end
 
                 if (q_tstate == 3) begin
-                    if (dec_ldz) q_memptr[7:0]  <= DI_Reg;
-                    if (dec_ldw) q_memptr[15:8] <= DI_Reg;
+                    if (dec_ldz) q_memptr[7:0]  <= q_di;
+                    if (dec_ldw) q_memptr[15:8] <= q_di;
 
                     if (dec_special_ld[2]) begin
                         case (dec_special_ld[1:0])
@@ -2320,11 +2322,11 @@ module t80(
                 if (t_reset && dec_is_inrc) begin
                     q_reg_f[Flag_H] <= 0;
                     q_reg_f[Flag_N] <= 0;
-                    q_reg_f[Flag_X] <= DI_Reg[3];
-                    q_reg_f[Flag_Y] <= DI_Reg[5];
-                    q_reg_f[Flag_Z] <= (DI_Reg[7:0] == 8'h00);
-                    q_reg_f[Flag_S] <= DI_Reg[7];
-                    q_reg_f[Flag_P] <= ~(DI_Reg[0] ^ DI_Reg[1] ^ DI_Reg[2] ^ DI_Reg[3] ^ DI_Reg[4] ^ DI_Reg[5] ^ DI_Reg[6] ^ DI_Reg[7]);
+                    q_reg_f[Flag_X] <= q_di[3];
+                    q_reg_f[Flag_Y] <= q_di[5];
+                    q_reg_f[Flag_Z] <= (q_di[7:0] == 8'h00);
+                    q_reg_f[Flag_S] <= q_di[7];
+                    q_reg_f[Flag_P] <= ~(q_di[0] ^ q_di[1] ^ q_di[2] ^ q_di[3] ^ q_di[4] ^ q_di[5] ^ q_di[6] ^ q_di[7]);
                 end
 
                 if (q_tstate == 1 && !q_auto_wait) begin
@@ -2501,7 +2503,7 @@ module t80(
                 4'b0011,
                 4'b0100,
                 4'b0101: bus_b <= dec_set_bus_b_to[0] ? reg_bus_b[7:0] : reg_bus_b[15:8];
-                4'b0110: bus_b <= DI_Reg;
+                4'b0110: bus_b <= q_di;
                 4'b1000: bus_b <= q_reg_sp[7:0];
                 4'b1001: bus_b <= q_reg_sp[15:8];
                 4'b1010: bus_b <= 8'h01;
@@ -2520,7 +2522,7 @@ module t80(
                 4'b0011,
                 4'b0100,
                 4'b0101: bus_a <= dec_set_bus_a_to[0] ? reg_bus_a[7:0] : reg_bus_a[15:8];
-                4'b0110: bus_a <= DI_Reg;
+                4'b0110: bus_a <= q_di;
                 4'b1000: bus_a <= q_reg_sp[7:0];
                 4'b1001: bus_a <= q_reg_sp[15:8];
                 4'b1010: bus_a <= 8'h00;
@@ -2528,8 +2530,8 @@ module t80(
             endcase
 
             if (dec_xybit_undoc) begin
-                bus_a <= DI_Reg;
-                bus_b <= DI_Reg;
+                bus_a <= q_di;
+                bus_b <= q_di;
             end
         end
     end
@@ -2545,8 +2547,6 @@ module t80(
     assign mcycle      = q_mcycle;
     assign tstate      = q_tstate;
     assign irq_cycle   = q_irq_cycle;
-
-    assign DI_Reg     = DI;
 
     //------------------------------------------------------------------------
     // Main state machine

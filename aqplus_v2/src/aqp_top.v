@@ -89,21 +89,36 @@ module aqp_top(
     // Clock synthesizer
     //////////////////////////////////////////////////////////////////////////
     wire clk;
+    wire clk_locked;
     aqp_clkctrl clkctrl(
-        .clk_in(sysclk),        // 14.31818MHz
-        .clk_out(clk)           // 25.175MHz
+        .clk_in     ( sysclk     ),     // 14.31818MHz
+        .clk_out    ( clk        ),     // 25.175MHz
+        .clk_locked ( clk_locked )
     );
 
     wire reset_req;
-    reg  [4:0] q_reset_cnt = 0;
+    wire reset_req2;
+    reset_sync reset_sync(
+        .rst_in  ( reset_req || !clk_locked ),
+        .clk     ( clk                      ),
+        .rst_out ( reset_req2               )
+    );
+
+`ifdef MODEL_TECH
+    localparam RESET_BITS = 5;
+`else
+    localparam RESET_BITS = 23;
+`endif
+
+    reg  [RESET_BITS-1:0] q_reset_cnt = 0;
     always @(posedge sysclk) begin
-        if (!q_reset_cnt[4])
-            q_reset_cnt <= q_reset_cnt + 5'b1;
-        if (reset_req)
-            q_reset_cnt <= 5'b0;
+        if (!q_reset_cnt[RESET_BITS-1])
+            q_reset_cnt <= q_reset_cnt + 1;
+        if (reset_req2)
+            q_reset_cnt <= 0;
     end
 
-    wire reset = !q_reset_cnt[4];
+    wire reset = !q_reset_cnt[RESET_BITS-1];
 
     //////////////////////////////////////////////////////////////////////////
     // CPU
@@ -113,8 +128,6 @@ module aqp_top(
     wire        cpu_irq;
     wire        cpu_nmi = 1'b0;
 
-`define USE_T80
-`ifdef USE_T80
     aqp_t80 aqp_t80(
         .clk(clk),
         .reset(reset),
@@ -130,23 +143,6 @@ module aqp_top(
         .irq(cpu_irq),
         .nmi(cpu_nmi)
     );
-`else
-    fast80 cpu(
-        .clk(clk),
-        .reset(reset),
-
-        .bus_addr(cpu_addr),
-        .bus_wrdata(cpu_wrdata),
-        .bus_wren(cpu_wren),
-        .bus_iorq(cpu_iorq),
-        .bus_strobe(cpu_strobe),
-        .bus_wait(cpu_wait),
-        .bus_rddata(cpu_rddata),
-
-        .irq(cpu_irq),
-        .nmi(cpu_nmi)
-    );
-`endif
 
     //////////////////////////////////////////////////////////////////////////
     // Boot ROM
@@ -617,28 +613,28 @@ module aqp_top(
     assign bus_addr = {reg_bank_page, cpu_addr[13:0]};
 
     // Memory space decoding
-    assign sel_mem_tram    = !cpu_iorq && reg_bank_overlay && bus_addr[13:11] == 3'b110;   // $3000-$37FF
-    wire sel_mem_sysram    = !cpu_iorq && reg_bank_overlay && bus_addr[13:11] == 3'b111;   // $3800-$3FFF
-    assign sel_mem_vram    = !cpu_iorq && reg_bank_page == 6'd20;                          // Page 20
-    assign sel_mem_chram   = !cpu_iorq && reg_bank_page == 6'd21;                          // Page 21
-    wire sel_mem_rom       = !cpu_iorq && reg_bank_page <= 6'd3;                           // Page 0-3
+    assign sel_mem_tram   = !cpu_iorq && reg_bank_overlay && bus_addr[13:11] == 3'b110;   // $3000-$37FF
+    wire   sel_mem_sysram = !cpu_iorq && reg_bank_overlay && bus_addr[13:11] == 3'b111;   // $3800-$3FFF
+    assign sel_mem_vram   = !cpu_iorq && reg_bank_page == 6'd20;                          // Page 20
+    assign sel_mem_chram  = !cpu_iorq && reg_bank_page == 6'd21;                          // Page 21
+    wire   sel_mem_rom    = !cpu_iorq && reg_bank_page <= 6'd3;                           // Page 0-3
 
     // IO space decoding
-    assign sel_io_video    = cpu_iorq &&  bus_addr[7:4] == 4'hE;
-    wire sel_io_audio_dac  = cpu_iorq &&  bus_addr[7:0] == 8'hEC;
-    wire sel_io_bank0      = cpu_iorq &&  bus_addr[7:0] == 8'hF0;
-    wire sel_io_bank1      = cpu_iorq &&  bus_addr[7:0] == 8'hF1;
-    wire sel_io_bank2      = cpu_iorq &&  bus_addr[7:0] == 8'hF2;
-    wire sel_io_bank3      = cpu_iorq &&  bus_addr[7:0] == 8'hF3;
-    assign sel_io_espctrl  = cpu_iorq &&  bus_addr[7:0] == 8'hF4;
-    assign sel_io_espdata  = cpu_iorq &&  bus_addr[7:0] == 8'hF5;
-    assign sel_io_ay8910   = cpu_iorq && (bus_addr[7:0] == 8'hF6 || bus_addr[7:0] == 8'hF7);
-    assign sel_io_ay8910_2 = cpu_iorq && (bus_addr[7:0] == 8'hF8 || bus_addr[7:0] == 8'hF9);
-    assign sel_io_kbbuf    = cpu_iorq &&  bus_addr[7:0] == 8'hFA;
-    wire sel_io_sysctrl    = cpu_iorq &&  bus_addr[7:0] == 8'hFB;
-    wire sel_io_cassette   = cpu_iorq &&  bus_addr[7:0] == 8'hFC;
-    wire sel_io_vsync      = cpu_iorq &&  bus_addr[7:0] == 8'hFD;
-    wire sel_io_keyb       = cpu_iorq &&  bus_addr[7:0] == 8'hFF;
+    assign sel_io_video     = cpu_iorq &&  bus_addr[7:4] == 4'hE;
+    wire   sel_io_audio_dac = cpu_iorq &&  bus_addr[7:0] == 8'hEC;
+    wire   sel_io_bank0     = cpu_iorq &&  bus_addr[7:0] == 8'hF0;
+    wire   sel_io_bank1     = cpu_iorq &&  bus_addr[7:0] == 8'hF1;
+    wire   sel_io_bank2     = cpu_iorq &&  bus_addr[7:0] == 8'hF2;
+    wire   sel_io_bank3     = cpu_iorq &&  bus_addr[7:0] == 8'hF3;
+    assign sel_io_espctrl   = cpu_iorq &&  bus_addr[7:0] == 8'hF4;
+    assign sel_io_espdata   = cpu_iorq &&  bus_addr[7:0] == 8'hF5;
+    assign sel_io_ay8910    = cpu_iorq && (bus_addr[7:0] == 8'hF6 || bus_addr[7:0] == 8'hF7);
+    assign sel_io_ay8910_2  = cpu_iorq && (bus_addr[7:0] == 8'hF8 || bus_addr[7:0] == 8'hF9);
+    assign sel_io_kbbuf     = cpu_iorq &&  bus_addr[7:0] == 8'hFA;
+    wire   sel_io_sysctrl   = cpu_iorq &&  bus_addr[7:0] == 8'hFB;
+    wire   sel_io_cassette  = cpu_iorq &&  bus_addr[7:0] == 8'hFC;
+    wire   sel_io_vsync     = cpu_iorq &&  bus_addr[7:0] == 8'hFD;
+    wire   sel_io_keyb      = cpu_iorq &&  bus_addr[7:0] == 8'hFF;
 
     wire sel_internal =
         sel_mem_tram | sel_mem_vram | sel_mem_chram | sel_mem_rom |
@@ -660,7 +656,7 @@ module aqp_top(
 
     always @* begin
         cpu_wait = 0;
-        if (sram_strobe)     cpu_wait = sram_wait;
+        if (sram_strobe) cpu_wait = sram_wait;
     end
 
     always @* begin

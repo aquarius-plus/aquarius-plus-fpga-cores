@@ -3,6 +3,8 @@ quietly WaveActivateNextPane {} 0
 add wave -noupdate /tb/top_inst/cpu_wrdata
 add wave -noupdate /tb/top_inst/cpu_rddata
 add wave -noupdate /tb/top_inst/aqp_t80/my_strobe
+add wave -noupdate /tb/top_inst/clkctrl/dcm_locked
+add wave -noupdate /tb/top_inst/clkctrl/clk_locked
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/clk
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/reset
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/clk_en
@@ -12,8 +14,6 @@ add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/t
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/bus_iorq
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/bus_no_read
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/bus_addr
-add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/DInst
-add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/DI
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/bus_wrdata
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/mcycle
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_if /tb/top_inst/aqp_t80/t80/tstate
@@ -62,7 +62,6 @@ add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_int /tb/
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_int /tb/top_inst/aqp_t80/t80/q_nmi_cycle
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_int /tb/top_inst/aqp_t80/t80/q_read_to_reg
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_int /tb/top_inst/aqp_t80/t80/q_xy_ind
-add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_int /tb/top_inst/aqp_t80/t80/DI_Reg
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_int /tb/top_inst/aqp_t80/t80/incdec16_result
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_int /tb/top_inst/aqp_t80/t80/cc_is_true
 add wave -noupdate -expand -group aqp_t80 -expand -group t80 -group t80_int /tb/top_inst/aqp_t80/t80/ir_ddd
@@ -171,7 +170,6 @@ add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/phi_falling
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_noread
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_mcycle
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_tstate
-add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/q_t80_di
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/t80_irq_cycle
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/clk_en
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/q_wr_t2
@@ -179,8 +177,6 @@ add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/q_req_inhibit
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/q_mreq_inhibit
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/q_read
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/q_mreq
-add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/q_iorq_int
-add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/q_iorq_int_inhibit
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/q_iorq_t1
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/q_iorq_t2
 add wave -noupdate -expand -group aqp_t80 /tb/top_inst/aqp_t80/mreq_rw
@@ -231,5 +227,5 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {87531250 ps} {100614517 ps}
+WaveRestoreZoom {87531250 ps} {109180081 ps}
 bookmark add wave bookmark0 {{0 ps} {212100032 ps}} 0

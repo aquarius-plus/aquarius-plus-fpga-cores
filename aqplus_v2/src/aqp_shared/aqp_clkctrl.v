@@ -3,7 +3,8 @@
 
 module aqp_clkctrl(
     input  wire clk_in,
-    output wire clk_out
+    output wire clk_out,
+    output wire clk_locked
 );
 
     wire clk0;
@@ -105,5 +106,7 @@ module aqp_clkctrl(
     );
 
     BUFG bufg_25(.I(clk25), .O(clk_out));
+
+    assign clk_locked = dcm_locked && pll_locked;
 
 endmodule

@@ -27,7 +27,6 @@ module aqp_t80(
     wire       t80_noread;
     wire [2:0] t80_mcycle;
     wire [2:0] t80_tstate;
-    reg  [7:0] q_t80_di;
     wire       t80_irq_cycle;
 
     wire   clk_en = phi_rising;
@@ -35,31 +34,28 @@ module aqp_t80(
     t80 #(
         .Mode(0)
     ) t80(
-        .clk(clk),
-        .reset(reset),
+        .clk         ( clk           ),
+        .reset       ( reset         ),
 
-        .clk_en(clk_en),
+        .clk_en      ( clk_en        ),
 
-        .bus_addr(bus_addr),
-        .bus_wrdata(bus_wrdata),
-        .bus_wren(bus_wren),
-        .bus_iorq(bus_iorq),
+        .bus_addr    ( bus_addr      ),
+        .bus_wrdata  ( bus_wrdata    ),
+        .bus_wren    ( bus_wren      ),
+        .bus_iorq    ( bus_iorq      ),
 
-        .bus_wait(bus_wait),
+        .bus_wait    ( bus_wait      ),
+        .bus_rddata  ( bus_rddata    ),
 
-        .irq(irq),
-        .irq_vector(8'h00),
-        .nmi(nmi),
-        .bus_no_read(t80_noread),
+        .irq         ( irq           ),
+        .irq_vector  ( 8'h00         ),
+        .nmi         ( nmi           ),
+        .bus_no_read ( t80_noread    ),
 
-        .DInst(bus_rddata),
-        .DI(q_t80_di),
-        .mcycle(t80_mcycle),
-        .tstate(t80_tstate),
-        .irq_cycle(t80_irq_cycle)
+        .mcycle      ( t80_mcycle    ),
+        .tstate      ( t80_tstate    ),
+        .irq_cycle   ( t80_irq_cycle )
     );
-
-    always @(posedge clk) if (clk_en && t80_tstate == 3'd2) q_t80_di <= bus_rddata;
 
     reg       q_wr_t2;
     reg       q_req_inhibit;
