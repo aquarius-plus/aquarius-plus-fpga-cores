@@ -48,7 +48,7 @@ module ay8910(
 
     wire eashape_wr = wren && !a0 && q_reg_addr == 4'hD;
 
-    always @(posedge clk or posedge reset)
+    always @(posedge clk)
         if (reset) begin
             q_a_period           <= 12'b0;
             q_b_period           <= 12'b0;
@@ -127,7 +127,7 @@ module ay8910(
     reg [11:0] q_a_count,  q_b_count,  q_c_count;
     reg        q_a_output, q_b_output, q_c_output;
 
-    always @(posedge clk or posedge reset)
+    always @(posedge clk)
         if (reset) begin
             q_a_count  <= 12'b0;
             q_b_count  <= 12'b0;
@@ -170,7 +170,7 @@ module ay8910(
     reg [16:0] q_lfsr;
     wire       noise_val = q_lfsr[0];
 
-    always @(posedge clk or posedge reset)
+    always @(posedge clk)
         if (reset) begin
             q_noise_count    <= 5'd0;
             q_prescale_noise <= 1'b0;
@@ -201,7 +201,7 @@ module ay8910(
     reg [16:0] q_envelope_period_cnt;
     wire       envelope_period_done = q_envelope_period_cnt >= {q_envelope_period, 1'b0};
 
-    always @(posedge clk or posedge reset)
+    always @(posedge clk)
         if (reset)
             q_envelope_period_cnt <= 17'd0;
         else if (tick)
@@ -214,7 +214,7 @@ module ay8910(
     reg  [3:0] q_envelope_volume;
     reg        q_envelope_stop;
 
-    always @(posedge clk or posedge reset)
+    always @(posedge clk)
         if (reset) begin
             q_envelope_cnt     <= 4'd0;
             q_envelope_updated <= 1'b0;

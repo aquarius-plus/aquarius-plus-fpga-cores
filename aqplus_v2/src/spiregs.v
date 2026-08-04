@@ -43,21 +43,21 @@ module spiregs(
     end
 
     // 10h: Set keyboard matrix
-    always @(posedge clk or posedge reset)
+    always @(posedge clk)
         if (reset)
             keys <= 64'hFFFFFFFFFFFFFFFF;
         else if (spi_cmd == CMD_SET_KEYB_MATRIX && spi_msg_end)
             keys <= spi_rxdata;
 
     // 11h: Set handcontrollers
-    always @(posedge clk or posedge reset)
+    always @(posedge clk)
         if (reset)
             {hctrl2, hctrl1} <= 16'hFFFF;
         else if (spi_cmd == CMD_SET_HCTRL && spi_msg_end)
             {hctrl2, hctrl1} <= spi_rxdata[63:48];
 
     // 12h: Write keyboard buffer
-    always @(posedge clk or posedge reset)
+    always @(posedge clk)
         if (reset) begin
             kbbuf_data <= 8'h00;
             kbbuf_wren <= 1'b0;

@@ -2035,7 +2035,7 @@ module t80(
     wire [8:0] ioq2   = (ioq1 & 9'b000000111) ^ {1'b0, bus_a};
     wire [7:0] temp_n = alu_result - {7'b0, d_reg_f[Flag_H]};
 
-    always @(posedge clk or posedge reset) begin
+    always @(posedge clk) begin
         if (reset) begin
             q_reg_pc           <= 0;
             q_reg_a            <= 8'hFF;
@@ -2556,7 +2556,7 @@ module t80(
     reg       q2_auto_wait;
     reg [2:0] q_pre_xy_f_m;
 
-    always @(posedge clk or posedge reset) begin
+    always @(posedge clk) begin
         if (reset) begin
             q_mcycle      <= 3'd1;
             q_tstate      <= 3'd0;

@@ -110,7 +110,7 @@ module renderer(
             d_wren = 0;
     end
 
-    always @(posedge clk or posedge reset) begin
+    always @(posedge clk) begin
         if (reset) begin
             q_render_data <= 0;
             q_palette     <= 0;

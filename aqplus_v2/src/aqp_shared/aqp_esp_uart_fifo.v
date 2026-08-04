@@ -26,7 +26,7 @@ module aqp_esp_uart_fifo(
     assign full        = d_wridx == q_rdidx;
     assign almost_full = count >= 4'd8;
 
-    always @(posedge clk or posedge reset) begin
+    always @(posedge clk) begin
         if (reset) begin
             q_wridx <= 4'd0;
             q_rdidx <= 4'd0;

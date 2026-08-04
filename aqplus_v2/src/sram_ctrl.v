@@ -97,7 +97,7 @@ module sram_ctrl(
         endcase
     end
 
-    always @(posedge clk or posedge reset)
+    always @(posedge clk)
         if (reset) begin
             q_state      <= StIdle;
             q_sram_a     <= 0;

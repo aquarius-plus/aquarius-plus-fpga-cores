@@ -30,7 +30,7 @@ module aqp_esp_uart_rx(
     // Receive logic
     reg [3:0] q_bit_cnt;
     reg [7:0] q_shift;
-    always @(posedge clk or posedge reset)
+    always @(posedge clk)
         if (reset) begin
             q_started       <= 1'b0;
             rx_valid        <= 1'b0;

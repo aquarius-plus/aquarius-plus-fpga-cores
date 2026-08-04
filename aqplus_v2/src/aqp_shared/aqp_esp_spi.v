@@ -123,7 +123,7 @@ module aqp_esp_spi(
         CMD_GET_NAME1   = 8'hF9,
         CMD_GET_NAME2   = 8'hFA;
 
-    always @(posedge clk or posedge reset) begin
+    always @(posedge clk) begin
         if (reset) begin
             q_status   <= 8'h00;
             q_txdata   <= 64'b0;

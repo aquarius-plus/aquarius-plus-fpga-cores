@@ -107,7 +107,7 @@ module video(
         if (sel_io_irqstat)  io_rddata = {6'b0, q_irqstat_line, q_irqstat_vblank}; // IO $EF
     end
 
-    always @(posedge clk or posedge reset)
+    always @(posedge clk)
         if (reset) begin
             q_vctrl_tram_page      <= 0;
             q_vctrl_80_columns     <= 0;

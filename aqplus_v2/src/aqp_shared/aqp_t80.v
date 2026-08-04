@@ -18,7 +18,7 @@ module aqp_t80(
 );
 
     reg q_phi;
-    always @(posedge clk or posedge reset)
+    always @(posedge clk)
         if (reset) q_phi <= 0;
         else       q_phi <= !q_phi;
 
@@ -80,7 +80,7 @@ module aqp_t80(
             my_strobe = 1;
     end
 
-    always @(posedge clk or posedge reset)
+    always @(posedge clk)
         if (reset) begin
             q_wr_t2            <= 0;
             q_req_inhibit      <= 1;

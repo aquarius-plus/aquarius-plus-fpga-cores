@@ -43,7 +43,7 @@ module fast80(
         d_stb    = q_stb;
     end
 
-    always @(posedge clk or posedge reset)
+    always @(posedge clk)
         if (reset) begin
             q_pc     <= 0;
             q_addr   <= 0;

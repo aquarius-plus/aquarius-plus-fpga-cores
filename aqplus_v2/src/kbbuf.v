@@ -20,7 +20,7 @@ module kbbuf(
     wire empty = q_wridx == q_rdidx;
     wire full  = d_wridx == q_rdidx;
 
-    always @(posedge clk or posedge rst) begin
+    always @(posedge clk) begin
         if (rst) begin
             q_wridx <= 4'd0;
             q_rdidx <= 4'd0;

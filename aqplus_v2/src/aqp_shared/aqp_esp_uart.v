@@ -59,7 +59,7 @@ module aqp_esp_uart(
         .almost_full(txfifo_almost_full));
 
     // State machine to send escaped data
-    always @(posedge clk or posedge reset) begin
+    always @(posedge clk) begin
         if (reset) begin
             q_tx_state <= 2'b00;
             q_tx_start <= 1'b0;
@@ -136,7 +136,7 @@ module aqp_esp_uart(
     reg       q_rx_escape;
 
     // State machine to receive escaped data
-    always @(posedge clk or posedge reset) begin
+    always @(posedge clk) begin
         if (reset) begin
             q_rx_escape     <= 1'b0;
             q_rxfifo_wrdata <= 9'h000;

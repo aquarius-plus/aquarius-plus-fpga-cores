@@ -27,7 +27,7 @@ module aqp_esp_uart_tx(
     reg       q_busy;
     reg       q_uart_txd;
 
-    always @(posedge clk or posedge reset) begin
+    always @(posedge clk) begin
         if (reset) begin
             q_uart_txd <= 1'b1;
             q_busy     <= 1'b0;
