@@ -11,20 +11,36 @@ module t80(
     output wire  [7:0] bus_wrdata,
     output wire        bus_wren,
     output wire        bus_iorq,
-
+    output wire        bus_strobe,
     input  wire        bus_wait,
     input  wire  [7:0] bus_rddata,
 
     input  wire        irq,
     input  wire  [7:0] irq_vector,
-    input  wire        nmi,
-    output wire        bus_no_read,
-
-    output wire  [2:0] mcycle,
-    output wire  [2:0] tstate,
-    output wire        irq_cycle);
+    input  wire        nmi);
 
     parameter [31:0] Mode = 0;  // 0 => Z80, 1 => Fast Z80
+
+`ifdef MODEL_TECH
+    initial begin
+        forever begin
+            @(posedge clk);
+            if (bus_strobe && !bus_wait) begin
+                if (bus_iorq) begin
+                    if (bus_wren)
+                        $display("%0t IO  WR   %02h=%02h", $time, bus_addr[7:0], bus_wrdata);
+                    else
+                        $display("%0t IO  RD   %02h:%02h", $time, bus_addr[7:0], bus_rddata);
+                end else begin
+                    if (bus_wren)
+                        $display("%0t MEM WR %04h=%02h", $time, bus_addr, bus_wrdata);
+                    else
+                        $display("%0t MEM RD %04h:%02h", $time, bus_addr, bus_rddata);
+                end
+            end
+        end
+    end
+`endif
 
     localparam
         Flag_C = 0,
@@ -122,6 +138,34 @@ module t80(
 
     reg  [7:0] q_di;
     always @(posedge clk) if (clk_en && q_tstate == 3'd2) q_di <= bus_rddata;
+
+    //------------------------------------------------------------------------
+    // Bus strobe
+    //------------------------------------------------------------------------
+    reg t80_wait;
+    reg d_strobe, q_strobe;
+    always @* begin
+        d_strobe = q_strobe;
+        t80_wait = 1;
+
+        if ((!bus_wren && q_tstate == 3'd1 && !dec_no_read) ||
+            ( bus_wren && q_tstate == 3'd2))
+            d_strobe = 1;
+
+        if (q_strobe && !bus_wait) begin
+            t80_wait = 0;
+            d_strobe = 0;
+        end
+    end
+
+    always @(posedge clk)
+        if (reset) begin
+            q_strobe <= 0;
+        end else begin
+            q_strobe <= d_strobe;
+        end
+
+    assign bus_strobe = q_strobe;
 
     //------------------------------------------------------------------------
     // Instruction decoder and sequencer
@@ -2026,7 +2070,7 @@ module t80(
 
     //------------------------------------------------------------------------
 
-    wire       really_wait      = bus_wait & (dec_write | ~dec_no_read);
+    wire       really_wait      = t80_wait & (dec_write | ~dec_no_read);
     wire       t_reset          = q_tstate == dec_tstates;
     wire       next_is_xy_fetch = q_xy_state != 2'b00 && !q_xy_ind && (dec_set_addr_to == aXY || (q_mcycle == 3'd1 && q_instruction == 8'hcb) || (q_mcycle == 3'd1 && q_instruction == 8'h36));
     wire [7:0] save_mux         = dec_exchange_rp ? bus_b : !q_save_alu ? q_di : alu_result;
@@ -2081,7 +2125,7 @@ module t80(
                 q_z16         <= (q_prefix == PrefixED && !dec_alu_op[2] && dec_alu_op[0] && q_mcycle == 3'd3);
 
                 if (q_mcycle == 3'd1 && !q_tstate[2]) begin
-                    if (q_tstate == 2 && !bus_wait) begin
+                    if (q_tstate == 2 && !t80_wait) begin
                         q_bus_addr <= {q_reg_i, q_reg_r};
                         q_reg_r[6:0]  <= q_reg_r[6:0] + 7'd1;
                         if (!dec_jump && !dec_call && !q_nmi_cycle && !q_irq_cycle && !(q_halt || dec_is_halt)) begin
@@ -2543,10 +2587,6 @@ module t80(
     assign bus_wrdata  = q_bus_wrdata;
     assign bus_wren    = dec_write;
     assign bus_iorq    = dec_iorq;
-    assign bus_no_read = dec_no_read;
-    assign mcycle      = q_mcycle;
-    assign tstate      = q_tstate;
-    assign irq_cycle   = q_irq_cycle;
 
     //------------------------------------------------------------------------
     // Main state machine

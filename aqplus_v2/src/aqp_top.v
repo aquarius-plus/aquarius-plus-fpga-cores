@@ -128,20 +128,25 @@ module aqp_top(
     wire        cpu_irq;
     wire        cpu_nmi = 0;
 
-    aqp_t80 aqp_t80(
-        .clk        ( clk        ),
-        .reset      ( reset      ),
+    t80 #(
+        .Mode(0)
+    ) t80(
+        .clk         ( clk           ),
+        .reset       ( reset         ),
 
-        .bus_addr   ( cpu_addr   ),
-        .bus_wrdata ( cpu_wrdata ),
-        .bus_wren   ( cpu_wren   ),
-        .bus_iorq   ( cpu_iorq   ),
-        .bus_strobe ( cpu_strobe ),
-        .bus_wait   ( cpu_wait   ),
-        .bus_rddata ( cpu_rddata ),
+        .clk_en      ( 1'b1          ),
 
-        .irq        ( cpu_irq    ),
-        .nmi        ( cpu_nmi    )
+        .bus_addr    ( cpu_addr      ),
+        .bus_wrdata  ( cpu_wrdata    ),
+        .bus_wren    ( cpu_wren      ),
+        .bus_iorq    ( cpu_iorq      ),
+        .bus_strobe  ( cpu_strobe    ),
+        .bus_wait    ( cpu_wait      ),
+        .bus_rddata  ( cpu_rddata    ),
+
+        .irq         ( cpu_irq       ),
+        .irq_vector  ( 8'h00         ),
+        .nmi         ( cpu_nmi       )
     );
 
     //////////////////////////////////////////////////////////////////////////
