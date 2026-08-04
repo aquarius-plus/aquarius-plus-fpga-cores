@@ -29,14 +29,6 @@ BOOTSTUB_ADDR       equ $3880
     ld      a, 1
     out     (IO_VCTRL), a
 
-    ld      b,0
-    ld      hl,blaat_palette
-    call    .set_palette
-
-.bla:
-    jp      .bla
-
-
     ; Disable video
     xor     a
     out     (IO_VCTRL), a

@@ -121,7 +121,7 @@ module t80(
     wire [15:0] incdec16_result;
 
     reg  [7:0] q_di;
-    always @(posedge clk) if (clk_en && tstate == 3'd2) q_di <= bus_rddata;
+    always @(posedge clk) if (clk_en && q_tstate == 3'd2) q_di <= bus_rddata;
 
     //------------------------------------------------------------------------
     // Instruction decoder and sequencer

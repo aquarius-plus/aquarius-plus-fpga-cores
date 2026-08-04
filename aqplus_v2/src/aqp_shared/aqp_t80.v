@@ -17,19 +17,12 @@ module aqp_t80(
     input  wire        nmi
 );
 
-    reg q_phi;
-    always @(posedge clk)
-        if (reset) q_phi <= 0;
-        else       q_phi <= !q_phi;
-
-    wire       phi_rising  = !q_phi;
-    wire       phi_falling =  q_phi;
     wire       t80_noread;
     wire [2:0] t80_mcycle;
     wire [2:0] t80_tstate;
     wire       t80_irq_cycle;
 
-    wire   clk_en = phi_rising;
+    reg t80_wait;
 
     t80 #(
         .Mode(0)
@@ -37,14 +30,14 @@ module aqp_t80(
         .clk         ( clk           ),
         .reset       ( reset         ),
 
-        .clk_en      ( clk_en        ),
+        .clk_en      ( 1'b1          ),
 
         .bus_addr    ( bus_addr      ),
         .bus_wrdata  ( bus_wrdata    ),
         .bus_wren    ( bus_wren      ),
         .bus_iorq    ( bus_iorq      ),
 
-        .bus_wait    ( bus_wait      ),
+        .bus_wait    ( t80_wait      ),
         .bus_rddata  ( bus_rddata    ),
 
         .irq         ( irq           ),
@@ -57,81 +50,49 @@ module aqp_t80(
         .irq_cycle   ( t80_irq_cycle )
     );
 
-    reg       q_wr_t2;
-    reg       q_req_inhibit;
-    reg       q_mreq_inhibit;
-    reg       q_read;
-    reg       q_mreq;
-    reg       q_iorq_t1;
-    reg       q_iorq_t2;
-
-    reg  my_strobe;
+    reg d_strobe, q_strobe;
     always @* begin
-        my_strobe = 0;
+        d_strobe = q_strobe;
+        t80_wait = 1;
 
-        if (!bus_wren && !t80_noread && t80_tstate == 3'd1)
-            my_strobe = 1;
+        if ((!bus_wren && t80_tstate == 3'd1 && !t80_noread) ||
+            ( bus_wren && t80_tstate == 3'd2))
+            d_strobe = 1;
 
-        if (bus_wren && t80_tstate == 3'd2)
-            my_strobe = 1;
+        if (q_strobe && !bus_wait) begin
+            t80_wait = 0;
+            d_strobe = 0;
+        end
     end
-
     always @(posedge clk)
         if (reset) begin
-            q_wr_t2            <= 0;
-            q_req_inhibit      <= 1;
-            q_mreq_inhibit     <= 1;
-            q_read             <= 0;
-            q_mreq             <= 0;
-            q_iorq_t1          <= 1;
-            q_iorq_t2          <= 1;
-
+            q_strobe <= 0;
         end else begin
-            if (phi_falling) begin
-                if (t80_tstate == 3'd2 && t80_mcycle != 3'd1) q_wr_t2 <= bus_wren;
-                if (t80_tstate == 3'd3)                       q_wr_t2 <= 1'b0;
-
-                q_mreq_inhibit <= !(t80_mcycle == 3'd1 && t80_tstate == 3'd2);
-
-                if (t80_mcycle == 3'd1) begin
-                    if (t80_tstate == 3'd1) q_read <= !t80_irq_cycle;
-                    if (t80_tstate == 3'd1) q_mreq <= !t80_irq_cycle;
-
-                    if (t80_tstate == 3'd3) q_read <= 0;
-                    if (t80_tstate == 3'd3) q_mreq <= 1;
-
-                    if (t80_tstate == 3'd4) q_mreq <= 0;
-
-                end else begin
-                    if (t80_tstate == 3'd1) q_read <= !bus_wren && !t80_noread;
-                    if (t80_tstate == 3'd1) q_mreq <= !bus_iorq && !t80_noread;
-
-                    if (t80_tstate == 3'd3) q_read <= 0;
-                    if (t80_tstate == 3'd3) q_mreq <= 0;
-                end
-
-                if (t80_tstate == 3'd1) q_iorq_t1 <= 0; // t80_irq_cycle;
-                if (t80_tstate == 3'd3) q_iorq_t1 <= 1;
-            end
-
-            if (clk_en) begin
-                q_req_inhibit <= !(t80_mcycle == 3'd1 && t80_tstate == 3'd2);
-
-                q_iorq_t2 <= q_iorq_t1;
-            end
+            q_strobe <= d_strobe;
         end
 
-    wire mreq_rw = q_mreq   && (q_req_inhibit || q_mreq_inhibit);
-    wire iorq_rw = bus_iorq && !(q_iorq_t1 || q_iorq_t2);
+    assign bus_strobe = q_strobe;
 
-    wire bus_rd = q_read && (mreq_rw || iorq_rw);
-    wire bus_wr = bus_wren && ((q_wr_t2 && mreq_rw) || iorq_rw);
+`ifdef MODEL_TECH
+    initial begin
+        forever begin
+            @(posedge clk);
+            if (bus_strobe && !bus_wait) begin
+                if (bus_iorq) begin
+                    if (bus_wren)
+                        $display("%0t IO  WR   %02h=%02h", $time, bus_addr[7:0], bus_wrdata);
+                    else
+                        $display("%0t IO  RD   %02h:%02h", $time, bus_addr[7:0], bus_rddata);
+                end else begin
+                    if (bus_wren)
+                        $display("%0t MEM WR %04h=%02h", $time, bus_addr, bus_wrdata);
+                    else
+                        $display("%0t MEM RD %04h:%02h", $time, bus_addr, bus_rddata);
+                end
+            end
+        end
+    end
+`endif
 
-    reg q_bus_rd;
-    reg q_bus_wr;
-    always @(posedge clk) q_bus_rd <= bus_rd;
-    always @(posedge clk) q_bus_wr <= bus_wr;
-
-    assign bus_strobe = (bus_rd & !q_bus_rd) || (bus_wr & !q_bus_wr);
 
 endmodule
