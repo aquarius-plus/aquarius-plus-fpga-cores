@@ -63,11 +63,11 @@ module sram_ctrl(
                     if (bus_wren) begin
                         d_state     = StWrite;
                         d_sram_a    = bus_addr;
-                        d_sram_oe_n = 1;
+                        d_dq_wrdata = bus_wrdata;
+                        d_bus_wait  = 0;
                     end else begin
                         d_state     = StRead;
                         d_sram_a    = bus_addr;
-                        d_sram_we_n = 1;
                         d_sram_oe_n = 0;
                     end
                 end
@@ -82,15 +82,13 @@ module sram_ctrl(
 
             StWrite: begin
                 d_dq_oe     = 1;
-                d_dq_wrdata = bus_wrdata[ 7: 0];
                 d_sram_we_n = 0;
                 d_state     = StWrite2;
             end
 
             StWrite2: begin
                 d_sram_we_n = 1;
-                d_bus_wait = 0;
-                d_state    = StIdle;
+                d_state     = StIdle;
             end
 
             default: d_state = StIdle;

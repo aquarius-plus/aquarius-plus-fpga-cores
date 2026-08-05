@@ -19,8 +19,6 @@ module t80(
     input  wire  [7:0] irq_vector,
     input  wire        nmi);
 
-    parameter [31:0] Mode = 0;  // 0 => Z80, 1 => Fast Z80
-
 `ifdef MODEL_TECH
     initial begin
         forever begin
@@ -139,6 +137,8 @@ module t80(
     reg  [7:0] q_di;
     always @(posedge clk) if (clk_en && q_tstate == 3'd2) q_di <= bus_rddata;
 
+    reg       dec_no_read;
+
     //------------------------------------------------------------------------
     // Bus strobe
     //------------------------------------------------------------------------
@@ -219,7 +219,6 @@ module t80(
     reg       dec_ldw;
     reg       dec_ldz;
     reg       dec_no_pc;
-    reg       dec_no_read;
     reg       dec_preserve_c;
     reg       dec_read_to_acc;
     reg       dec_read_to_reg;
@@ -1846,17 +1845,8 @@ module t80(
             end
         endcase
 
-        if (Mode == 1 && q_mcycle != 3'd1)
-            dec_tstates = 3'd3;
-
         if (q_mcycle == 3'd6) begin
             dec_inc_pc = 1;
-            if (Mode == 1) begin
-                dec_set_addr_to  = aXY;
-                dec_tstates      = 3'd4;
-                dec_set_bus_b_to = {1'b0, ir_sss};
-            end
-
             if (q_instruction == 8'h36 || q_instruction == 8'hcb)
                 dec_set_addr_to = aNone;
 
@@ -1865,8 +1855,7 @@ module t80(
         end
 
         if (q_mcycle == 3'd7) begin
-            if (Mode == 0)
-                dec_tstates = 3'd5;
+            dec_tstates = 3'd5;
 
             if (q_prefix != PrefixCB)
                 dec_set_addr_to = aXY;
@@ -2662,9 +2651,9 @@ module t80(
 
                     if (next_is_xy_fetch) begin
                         q_mcycle     <= 3'd6;
-                        q_pre_xy_f_m <= (q_instruction == 8'h36 && Mode == 0) ? 3'd2 : q_mcycle;
+                        q_pre_xy_f_m <= q_instruction == 8'h36 ? 3'd2 : q_mcycle;
 
-                    end else if (q_mcycle == 3'd7 || (q_mcycle == 3'd6 && Mode == 1 && q_prefix != PrefixCB)) begin
+                    end else if (q_mcycle == 3'd7) begin
                         q_mcycle <= q_pre_xy_f_m + 3'd1;
 
                     end else if (q_mcycle == q_mcycles || q_no_btr || (q_mcycle == 3'd2 && dec_is_djnz && q_inc_dec_is_zero)) begin
