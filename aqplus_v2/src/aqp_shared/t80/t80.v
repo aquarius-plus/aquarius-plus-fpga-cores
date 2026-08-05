@@ -135,36 +135,68 @@ module t80(
     wire [15:0] incdec16_result;
 
     reg  [7:0] q_di;
-    always @(posedge clk) if (clk_en && q_tstate == 3'd2) q_di <= bus_rddata;
 
     reg       dec_no_read;
+    reg       dec_write;
+    reg       dec_iorq;
 
     //------------------------------------------------------------------------
     // Bus strobe
     //------------------------------------------------------------------------
-    reg t80_wait;
-    reg d_strobe, q_strobe;
-    always @* begin
-        d_strobe = q_strobe;
-        t80_wait = 1;
+    reg       t80_wait;
+    reg       d_strobe, q_strobe;
+    reg       d_wren,   q_wren;
+    reg       d_iorq,   q_iorq;
+    reg [7:0] d_rddata, q_rddata;
 
-        if ((!bus_wren && q_tstate == 3'd1 && !dec_no_read) ||
-            ( bus_wren && q_tstate == 3'd2))
-            d_strobe = 1;
+    always @* begin
+        t80_wait = 1;
+        d_strobe = q_strobe;
+        d_rddata = q_rddata;
+        d_wren   = q_wren;
+        d_iorq   = q_iorq;
 
         if (q_strobe && !bus_wait) begin
-            t80_wait = 0;
             d_strobe = 0;
+            t80_wait = 0;
+            d_rddata = bus_rddata;
+        end
+
+        if (q_mcycle == 1) begin
+            d_wren   = 0;
+            d_iorq   = 0;
+
+            if (q_tstate == 1 && !q_irq_cycle) begin
+                d_strobe = 1;
+            end
+        end else begin
+            d_wren   = dec_write;
+            d_iorq   = dec_iorq;
+
+            if (q_tstate == 1 && (dec_write || (!dec_write && !dec_no_read))) begin
+                d_strobe = 1;
+            end
+        end
+
+    end
+
+    always @(posedge clk) begin
+        q_strobe <= d_strobe;
+        q_wren   <= d_wren;
+        q_iorq   <= d_iorq;
+        q_rddata <= d_rddata;
+
+        if (clk_en && q_tstate == 3'd2) q_di <= d_rddata;
+
+        if (reset) begin
+            q_strobe <= 0;
         end
     end
 
-    always @(posedge clk)
-        if (reset) begin
-            q_strobe <= 0;
-        end else begin
-            q_strobe <= d_strobe;
-        end
-
+    assign bus_addr   = q_bus_addr;
+    assign bus_wrdata = q_bus_wrdata;
+    assign bus_wren   = q_wren;
+    assign bus_iorq   = q_iorq;
     assign bus_strobe = q_strobe;
 
     //------------------------------------------------------------------------
@@ -194,7 +226,6 @@ module t80(
     reg       dec_exchange_wh;
     reg       dec_inc_memptr;
     reg       dec_inc_pc;
-    reg       dec_iorq;
     reg       dec_is_bc;
     reg       dec_is_bt;
     reg       dec_is_btr;
@@ -224,7 +255,6 @@ module t80(
     reg       dec_read_to_reg;
     reg       dec_rst_p;
     reg       dec_save_alu;
-    reg       dec_write;
     reg       dec_xybit_undoc;
     reg [1:0] dec_im;
     reg [1:0] dec_prefix;
@@ -2126,7 +2156,7 @@ module t80(
                         else if (q_halt || (q_irq_cycle && q_im == 2'b10) || q_nmi_cycle)
                             q_instruction <= 8'h00;
                         else
-                            q_instruction <= bus_rddata;
+                            q_instruction <= d_rddata;
                         
                         if (q_irq_cycle && q_im == 2'b10)   // IM2 vector address low byte from bus
                             q_memptr[7:0] <= irq_vector;
@@ -2272,7 +2302,7 @@ module t80(
 
                     if (q_tstate == 2 && !really_wait) begin
                         if (q_prefix == PrefixCB && q_mcycle == 3'd7)
-                            q_instruction <= bus_rddata;
+                            q_instruction <= d_rddata;
 
                         if (dec_jump_e) begin
                             q_reg_pc <= q_reg_pc + {{8{q_di[7]}}, q_di};
@@ -2568,14 +2598,6 @@ module t80(
             end
         end
     end
-
-    //------------------------------------------------------------------------
-    // Generate external control signals
-    //------------------------------------------------------------------------
-    assign bus_addr    = q_bus_addr;
-    assign bus_wrdata  = q_bus_wrdata;
-    assign bus_wren    = dec_write;
-    assign bus_iorq    = dec_iorq;
 
     //------------------------------------------------------------------------
     // Main state machine

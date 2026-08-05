@@ -666,17 +666,19 @@ module aqp_top(
 
     assign sram_strobe = sel_mem_ram && cpu_strobe;
 
-    reg [15:0] q_cpu_addr;
-    always @(posedge clk) q_cpu_addr <= cpu_addr;
+    reg q_cpu_strobe;
+    always @(posedge clk) q_cpu_strobe <= cpu_strobe;
 
     always @* begin
         cpu_wait = 0;
-        if (cpu_strobe && !cpu_wren && (
-            sel_mem_rom | sel_mem_tram | sel_mem_vram | sel_mem_chram))
-            cpu_wait = (q_cpu_addr != cpu_addr);
+        if (sel_mem_rom)    cpu_wait = !cpu_wren && !q_cpu_strobe;
+        if (sel_mem_tram)   cpu_wait = !cpu_wren && !q_cpu_strobe;
+        if (sel_mem_vram)   cpu_wait = !cpu_wren && !q_cpu_strobe;
+        if (sel_mem_chram)  cpu_wait = !cpu_wren && !q_cpu_strobe;
+        if (sel_mem_ram)    cpu_wait = sram_wait;
 
-        if (sram_strobe) cpu_wait = sram_wait;
-        if (esp_rx_rd)   cpu_wait = !q_esp_rx_rd;
+        if (sel_io_espdata) cpu_wait = !cpu_wren && !q_cpu_strobe;  //q_esp_rx_rd;
+        if (sel_io_kbbuf)   cpu_wait = !cpu_wren && !q_cpu_strobe;
     end
 
     always @* begin

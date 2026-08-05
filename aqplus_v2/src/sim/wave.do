@@ -85,6 +85,20 @@ add wave -noupdate -group SRAM /tb/sram/IO
 add wave -noupdate -group SRAM /tb/sram/CE_n
 add wave -noupdate -group SRAM /tb/sram/OE_n
 add wave -noupdate -group SRAM /tb/sram/WE_n
+add wave -noupdate /tb/top_inst/t80/t80_wait
+add wave -noupdate /tb/top_inst/t80/d_strobe
+add wave -noupdate /tb/top_inst/t80/q_strobe
+add wave -noupdate /tb/top_inst/t80/d_wren
+add wave -noupdate /tb/top_inst/t80/q_wren
+add wave -noupdate /tb/top_inst/t80/d_iorq
+add wave -noupdate /tb/top_inst/t80/q_iorq
+add wave -noupdate /tb/top_inst/t80/d_rddata
+add wave -noupdate /tb/top_inst/t80/q_rddata
+add wave -noupdate /tb/top_inst/t80/q_instruction
+add wave -noupdate /tb/top_inst/t80/q_di
+add wave -noupdate /tb/top_inst/t80/q_mcycle
+add wave -noupdate /tb/top_inst/t80/q_tstate
+add wave -noupdate /tb/top_inst/t80/t80_wait
 add wave -noupdate -expand -group T80 /tb/top_inst/t80/clk
 add wave -noupdate -expand -group T80 /tb/top_inst/t80/reset
 add wave -noupdate -expand -group T80 /tb/top_inst/t80/clk_en
@@ -234,7 +248,7 @@ add wave -noupdate -expand -group T80 /tb/top_inst/t80/q_nmi_pending
 add wave -noupdate -expand -group T80 /tb/top_inst/t80/q2_auto_wait
 add wave -noupdate -expand -group T80 /tb/top_inst/t80/q_pre_xy_f_m
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {1093588436 ps} 0} {{Cursor 2} {89445774 ps} 0}
+WaveRestoreCursors {{Cursor 1} {1093588436 ps} 0} {{Cursor 2} {4923772 ps} 0}
 quietly wave cursor active 2
 configure wave -namecolwidth 364
 configure wave -valuecolwidth 100
@@ -250,5 +264,5 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ps
 update
-WaveRestoreZoom {88625461 ps} {90266087 ps}
+WaveRestoreZoom {3986602 ps} {5627228 ps}
 bookmark add wave bookmark0 {{0 ps} {212100032 ps}} 0
