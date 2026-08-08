@@ -71,11 +71,18 @@ module aqp_top(
     wire [19:0] bus_addr;
     reg         sel_mem_ram;
 
+    wire        use_t80;
+    wire        force_turbo;
+
+
     //////////////////////////////////////////////////////////////////////////
     // Clock synthesizer
     //////////////////////////////////////////////////////////////////////////
     wire clk;
     wire clk_locked;
+    wire video_clk;
+    wire video_mode;
+
     aqp_clkctrl clkctrl(
         .clk_in     ( sysclk     ),     // 14.31818MHz
         .clk_out    ( clk        ),     // 25.175MHz
@@ -85,9 +92,9 @@ module aqp_top(
     wire reset_req;
     wire reset_req2;
     reset_sync reset_sync(
-        .rst_in  ( reset_req || !clk_locked ),
-        .clk     ( clk                      ),
-        .rst_out ( reset_req2               )
+        .async_rst_in ( reset_req || !clk_locked ),
+        .clk          ( clk                      ),
+        .reset_out    ( reset_req2               )
     );
 
 `ifdef MODEL_TECH
@@ -181,32 +188,33 @@ module aqp_top(
     wire sel_io_espctrl;
     wire sel_io_espdata;
 
-    wire  [8:0] esp_tx_data = sel_io_espctrl ? 9'b100000000 : {1'b0, t80_wrdata};
-    wire        esp_tx_wr   = t80_wr    && (sel_io_espdata || (sel_io_espctrl && t80_wrdata[7]));
-    wire        esp_rx_rd   = t80_t1_rd &&  sel_io_espdata;
-    wire        esp_tx_fifo_full;
-    wire  [8:0] esp_rx_data;
-    wire        esp_rx_empty;
-
-    reg q_esp_rx_rd;
-    always @(posedge clk) q_esp_rx_rd <= esp_rx_rd;
+    wire [8:0] esp_tx_data = sel_io_espctrl ? 9'b100000000 : {1'b0, t80_wrdata};
+    wire       esp_tx_wr   = t80_wr    && (sel_io_espdata || (sel_io_espctrl && t80_wrdata[7]));
+    wire       esp_rx_rd   = t80_t1_rd &&  sel_io_espdata;
+    wire       esp_tx_fifo_full;
+    wire [8:0] esp_rx_data;
+    wire       esp_rx_empty;
+    wire       esp_rx_fifo_overflow;
+    wire       esp_rx_framing_error;
 
     aqp_esp_uart esp_uart(
-        .clk          ( clk              ),
-        .reset        ( reset            ),
+        .clk              ( clk                  ),
+        .reset            ( reset                ),
 
-        .txfifo_data  ( esp_tx_data      ),
-        .txfifo_wr    ( esp_tx_wr        ),
-        .txfifo_full  ( esp_tx_fifo_full ),
+        .txfifo_data      ( esp_tx_data          ),
+        .txfifo_wr        ( esp_tx_wr            ),
+        .txfifo_full      ( esp_tx_fifo_full     ),
 
-        .rxfifo_data  ( esp_rx_data      ),
-        .rxfifo_rd    ( esp_rx_rd && !q_esp_rx_rd ),
-        .rxfifo_empty ( esp_rx_empty     ),
+        .rxfifo_data      ( esp_rx_data          ),
+        .rxfifo_rd        ( esp_rx_rd            ),
+        .rxfifo_empty     ( esp_rx_empty         ),
+        .rxfifo_overflow  ( esp_rx_fifo_overflow ),
+        .rx_framing_error ( esp_rx_framing_error ),
 
-        .esp_rx       ( esp_rx           ),
-        .esp_tx       ( esp_tx           ),
-        .esp_cts      ( esp_cts          ),
-        .esp_rts      ( esp_rts          )
+        .esp_rx           ( esp_rx               ),
+        .esp_tx           ( esp_tx               ),
+        .esp_cts          ( esp_cts              ),
+        .esp_rts          ( esp_rts              )
     );
 
     wire [7:0] espctrl_rddata = {5'b0, esp_rx_data[8], esp_tx_fifo_full, !esp_rx_empty};
@@ -332,7 +340,12 @@ module aqp_top(
         .hctrl2           ( spi_hctrl2       ),
 
         .kbbuf_data       ( kbbuf_data       ),
-        .kbbuf_wren       ( kbbuf_wren       )
+        .kbbuf_wren       ( kbbuf_wren       ),
+
+        .use_t80          ( use_t80          ),
+        .has_z80          ( has_z80          ),
+        .force_turbo      ( force_turbo      ),
+        .video_mode       ( video_mode       )
     );
 
     //////////////////////////////////////////////////////////////////////////
@@ -504,6 +517,9 @@ module aqp_top(
         .clk            ( clk             ),
         .reset          ( reset           ),
 
+        .vclk           ( clk             ),
+        .video_mode     ( 1'b1            ),
+
         .io_addr        ( bus_addr[3:0]   ),
         .io_rddata      ( rddata_io_video ),
         .io_wrdata      ( t80_wrdata      ),
@@ -671,7 +687,7 @@ module aqp_top(
         if (sel_io_keyb)     t80_rddata = rddata_keyboard;             // IO $FF
     end
 
-    always @(posedge clk)
+    always @(posedge clk or posedge reset)
         if (reset) begin
             q_audio_dac <= 8'b0;
             q_reg_bank0 <= {2'b00, 6'd0};

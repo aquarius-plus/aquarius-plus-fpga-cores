@@ -12,6 +12,8 @@ module aqp_esp_uart(
     output wire  [8:0] rxfifo_data,   // if bit8 set: received start-of-frame, other data bits will be 0
     input  wire        rxfifo_rd,
     output wire        rxfifo_empty,
+    output wire        rxfifo_overflow,
+    output wire        rx_framing_error,
 
     // ESP UART interface
     output wire        esp_tx,
@@ -59,7 +61,7 @@ module aqp_esp_uart(
         .almost_full(txfifo_almost_full));
 
     // State machine to send escaped data
-    always @(posedge clk) begin
+    always @(posedge clk or posedge reset) begin
         if (reset) begin
             q_tx_state <= 2'b00;
             q_tx_start <= 1'b0;
@@ -123,20 +125,26 @@ module aqp_esp_uart(
     wire       rxfifo_almost_full;
 
     assign esp_rts = rxfifo_almost_full;
+    wire overflow = rx_valid & rxfifo_full;
+    wire framing_error;
+
+    assign rxfifo_overflow = overflow;
+    assign rx_framing_error = framing_error;
 
     aqp_esp_uart_rx esp_uart_rx(
         .clk(clk),
         .reset(reset),
         .uart_rxd(esp_rx),
         .rx_data(rx_data),
-        .rx_valid(rx_valid));
+        .rx_valid(rx_valid),
+        .framing_error(framing_error));
 
     reg [8:0] q_rxfifo_wrdata;
     reg       q_rxfifo_wr;
     reg       q_rx_escape;
 
     // State machine to receive escaped data
-    always @(posedge clk) begin
+    always @(posedge clk or posedge reset) begin
         if (reset) begin
             q_rx_escape     <= 1'b0;
             q_rxfifo_wrdata <= 9'h000;

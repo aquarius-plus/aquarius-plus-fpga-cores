@@ -77,15 +77,16 @@ module aqp_top(
     //////////////////////////////////////////////////////////////////////////
     // Clock synthesizer
     //////////////////////////////////////////////////////////////////////////
-    wire clk, video_clk;
+    wire clk;
+    wire video_clk;
     wire video_mode;
 
     aqp_clkctrl clkctrl(
-        .clk_in(sysclk),    // 14.31818MHz
-        .clk_out(clk),      // 28.63636MHz
+        .clk_in     ( sysclk     ),     // 14.31818MHz
+        .clk_out    ( clk        ),     // 28.63636MHz
 
-        .video_clk(video_clk),
-        .video_mode(video_mode)
+        .video_clk  ( video_clk  ),
+        .video_mode ( video_mode )
     );
 
     //////////////////////////////////////////////////////////////////////////
@@ -143,23 +144,24 @@ module aqp_top(
     wire       esp_rx_framing_error;
 
     aqp_esp_uart esp_uart(
-        .clk(clk),
-        .reset(reset),
+        .clk              ( clk                  ),
+        .reset            ( reset                ),
 
-        .txfifo_data(esp_tx_data),
-        .txfifo_wr(esp_tx_wr),
-        .txfifo_full(esp_tx_fifo_full),
+        .txfifo_data      ( esp_tx_data          ),
+        .txfifo_wr        ( esp_tx_wr            ),
+        .txfifo_full      ( esp_tx_fifo_full     ),
 
-        .rxfifo_data(esp_rx_data),
-        .rxfifo_rd(esp_rx_rd),
-        .rxfifo_empty(esp_rx_empty),
-        .rxfifo_overflow(esp_rx_fifo_overflow),
-        .rx_framing_error(esp_rx_framing_error),
+        .rxfifo_data      ( esp_rx_data          ),
+        .rxfifo_rd        ( esp_rx_rd            ),
+        .rxfifo_empty     ( esp_rx_empty         ),
+        .rxfifo_overflow  ( esp_rx_fifo_overflow ),
+        .rx_framing_error ( esp_rx_framing_error ),
 
-        .esp_rx(esp_rx),
-        .esp_tx(esp_tx),
-        .esp_cts(esp_cts),
-        .esp_rts(esp_rts));
+        .esp_rx           ( esp_rx               ),
+        .esp_tx           ( esp_tx               ),
+        .esp_cts          ( esp_cts              ),
+        .esp_rts          ( esp_rts              )
+    );
 
     //////////////////////////////////////////////////////////////////////////
     // Hand controller interface
@@ -202,12 +204,12 @@ module aqp_top(
     wire        ovl_palette_wr;
 
     aqp_esp_spi esp_spi(
-        .clk(clk),
-        .reset(reset),
+        .clk                   ( clk                ),
+        .reset                 ( reset              ),
 
         // System information
-        .sysinfo_core_type(8'h01),
-        .sysinfo_flags({
+        .sysinfo_core_type     ( 8'h01              ),
+        .sysinfo_flags         ({
             1'b0,       // Core type 01 specific: unused
             1'b0,       // Core type 01 specific: unused
             1'b0,       // Core type 01 specific: unused
@@ -217,50 +219,51 @@ module aqp_top(
             1'b1,       // Core type 01 specific: show mouse support
             has_z80     // Z80 present
         }),
-        .sysinfo_version_major(8'h01),
-        .sysinfo_version_minor(8'h00),
+        .sysinfo_version_major ( 8'h01              ),
+        .sysinfo_version_minor ( 8'h00              ),
 
-        .core_name("Aquarius+       "),
+        .core_name             ( "Aquarius+       " ),
 
         // Bus master interface
-        .ebus_phi(ebus_phi),
+        .ebus_phi              ( ebus_phi           ),
 
-        .spibm_a(spibm_a),
-        .spibm_rddata(ebus_d),
-        .spibm_wrdata(spibm_wrdata),
-        .spibm_wrdata_en(spibm_wrdata_en),
-        .spibm_rd_n(spibm_rd_n),
-        .spibm_wr_n(spibm_wr_n),
-        .spibm_mreq_n(spibm_mreq_n),
-        .spibm_iorq_n(spibm_iorq_n),
-        .spibm_busreq_n(spibm_busreq_n),
+        .spibm_a               ( spibm_a            ),
+        .spibm_rddata          ( ebus_d             ),
+        .spibm_wrdata          ( spibm_wrdata       ),
+        .spibm_wrdata_en       ( spibm_wrdata_en    ),
+        .spibm_rd_n            ( spibm_rd_n         ),
+        .spibm_wr_n            ( spibm_wr_n         ),
+        .spibm_mreq_n          ( spibm_mreq_n       ),
+        .spibm_iorq_n          ( spibm_iorq_n       ),
+        .spibm_busreq_n        ( spibm_busreq_n     ),
 
         // Interface for core specific messages
-        .spi_msg_end(spi_msg_end),
-        .spi_cmd(spi_cmd),
-        .spi_rxdata(spi_rxdata),
-        .spi_txdata(spi_txdata),
-        .spi_txdata_valid(spi_txdata_valid),
+        .spi_msg_end           ( spi_msg_end        ),
+        .spi_cmd               ( spi_cmd            ),
+        .spi_rxdata            ( spi_rxdata         ),
+        .spi_txdata            ( spi_txdata         ),
+        .spi_txdata_valid      ( spi_txdata_valid   ),
 
         // Display overlay interface
-        .ovl_text_addr(ovl_text_addr),
-        .ovl_text_wrdata(ovl_text_wrdata),
-        .ovl_text_wr(ovl_text_wr),
+        .ovl_text_addr         ( ovl_text_addr      ),
+        .ovl_text_wrdata       ( ovl_text_wrdata    ),
+        .ovl_text_wr           ( ovl_text_wr        ),
 
-        .ovl_font_addr(ovl_font_addr),
-        .ovl_font_wrdata(ovl_font_wrdata),
-        .ovl_font_wr(ovl_font_wr),
+        .ovl_font_addr         ( ovl_font_addr      ),
+        .ovl_font_wrdata       ( ovl_font_wrdata    ),
+        .ovl_font_wr           ( ovl_font_wr        ),
 
-        .ovl_palette_addr(ovl_palette_addr),
-        .ovl_palette_wrdata(ovl_palette_wrdata),
-        .ovl_palette_wr(ovl_palette_wr),
+        .ovl_palette_addr      ( ovl_palette_addr   ),
+        .ovl_palette_wrdata    ( ovl_palette_wrdata ),
+        .ovl_palette_wr        ( ovl_palette_wr     ),
 
         // ESP SPI slave interface
-        .esp_ssel_n(esp_ssel_n),
-        .esp_sclk(esp_sclk),
-        .esp_mosi(esp_mosi),
-        .esp_miso(esp_miso),
-        .esp_notify(esp_notify));
+        .esp_ssel_n            ( esp_ssel_n         ),
+        .esp_sclk              ( esp_sclk           ),
+        .esp_mosi              ( esp_mosi           ),
+        .esp_miso              ( esp_miso           ),
+        .esp_notify            ( esp_notify         )
+    );
 
     //////////////////////////////////////////////////////////////////////////
     // PWM DAC
@@ -528,43 +531,44 @@ module aqp_top(
     wire io_video_wren = sel_io_video  && bus_write2;
 
     video video(
-        .clk(clk),
-        .reset(reset),
+        .clk          ( clk             ),
+        .reset        ( reset           ),
 
-        .vclk(video_clk),
-        .video_mode(video_mode),
+        .vclk         ( video_clk       ),
+        .video_mode   ( video_mode      ),
 
-        .io_addr(ebus_a[3:0]),
-        .io_rddata(rddata_io_video),
-        .io_wrdata(wrdata),
-        .io_wren(io_video_wren),
-        .irq(video_irq),
+        .io_addr      ( ebus_a[3:0]     ),
+        .io_rddata    ( rddata_io_video ),
+        .io_wrdata    ( wrdata          ),
+        .io_wren      ( io_video_wren   ),
+        .irq          ( video_irq       ),
 
-        .tram_addr(ebus_a[10:0]),
-        .tram_rddata(rddata_tram),
-        .tram_wrdata(wrdata),
-        .tram_wren(tram_wren),
+        .tram_addr    ( ebus_a[10:0]    ),
+        .tram_rddata  ( rddata_tram     ),
+        .tram_wrdata  ( wrdata          ),
+        .tram_wren    ( tram_wren       ),
 
-        .chram_addr(ebus_a[10:0]),
-        .chram_rddata(rddata_chram),
-        .chram_wrdata(wrdata),
-        .chram_wren(chram_wren),
+        .chram_addr   ( ebus_a[10:0]    ),
+        .chram_rddata ( rddata_chram    ),
+        .chram_wrdata ( wrdata          ),
+        .chram_wren   ( chram_wren      ),
 
-        .vram_addr(ebus_a[13:0]),
-        .vram_rddata(rddata_vram),
-        .vram_wrdata(wrdata),
-        .vram_wren(vram_wren),
+        .vram_addr    ( ebus_a[13:0]    ),
+        .vram_rddata  ( rddata_vram     ),
+        .vram_wrdata  ( wrdata          ),
+        .vram_wren    ( vram_wren       ),
 
-        .video_r(video_r),
-        .video_g(video_g),
-        .video_b(video_b),
-        .video_de(video_de),
-        .video_hsync(video_hsync),
-        .video_vsync(video_vsync),
-        .video_newframe(video_newframe),
-        .video_oddline(video_oddline),
+        .video_r      ( video_r         ),
+        .video_g      ( video_g         ),
+        .video_b      ( video_b         ),
+        .video_de     ( video_de        ),
+        .video_hsync  ( video_hsync     ),
+        .video_vsync  ( video_vsync     ),
+        .video_newfra ( video_newframe  ),
+        .video_oddlin ( video_oddline   ),
 
-        .reg_fd_val(reg_fd_val));
+        .reg_fd_val   ( reg_fd_val      )
+    );
 
     //////////////////////////////////////////////////////////////////////////
     // Hand controller interface
@@ -595,28 +599,29 @@ module aqp_top(
     wire        kbbuf_wren;
 
     spiregs spiregs(
-        .clk(clk),
-        .reset(reset),
+        .clk              ( clk              ),
+        .reset            ( reset            ),
 
-        .spi_msg_end(spi_msg_end),
-        .spi_cmd(spi_cmd),
-        .spi_rxdata(spi_rxdata),
-        .spi_txdata(spi_txdata),
-        .spi_txdata_valid(spi_txdata_valid),
+        .spi_msg_end      ( spi_msg_end      ),
+        .spi_cmd          ( spi_cmd          ),
+        .spi_rxdata       ( spi_rxdata       ),
+        .spi_txdata       ( spi_txdata       ),
+        .spi_txdata_valid ( spi_txdata_valid ),
 
-        .reset_req(spi_reset_req),
-        .reset_req_cold(reset_req_cold),
-        .keys(keys),
-        .hctrl1(spi_hctrl1),
-        .hctrl2(spi_hctrl2),
+        .reset_req        ( spi_reset_req    ),
+        .reset_req_cold   ( reset_req_cold   ),
+        .keys             ( keys             ),
+        .hctrl1           ( spi_hctrl1       ),
+        .hctrl2           ( spi_hctrl2       ),
 
-        .kbbuf_data(kbbuf_data),
-        .kbbuf_wren(kbbuf_wren),
+        .kbbuf_data       ( kbbuf_data       ),
+        .kbbuf_wren       ( kbbuf_wren       ),
 
-        .use_t80(use_t80),
-        .has_z80(has_z80),
-        .force_turbo(force_turbo),
-        .video_mode(video_mode));
+        .use_t80          ( use_t80          ),
+        .has_z80          ( has_z80          ),
+        .force_turbo      ( force_turbo      ),
+        .video_mode       ( video_mode       )
+    );
 
     //////////////////////////////////////////////////////////////////////////
     // Keyboard
@@ -639,14 +644,14 @@ module aqp_top(
     wire       kbbuf_rst  = (sel_io_kbbuf && bus_write2) || reset;
 
     kbbuf kbbuf(
-        .clk(clk),
-        .rst(kbbuf_rst),
+        .clk    ( clk          ),
+        .rst    ( kbbuf_rst    ),
 
-        .wrdata(kbbuf_data),
-        .wr_en(kbbuf_wren),
+        .wrdata ( kbbuf_data   ),
+        .wr_en  ( kbbuf_wren   ),
 
-        .rddata(rddata_kbbuf),
-        .rd_en(kbbuf_rden)
+        .rddata ( rddata_kbbuf ),
+        .rd_en  ( kbbuf_rden   )
     );
 
     //////////////////////////////////////////////////////////////////////////
@@ -665,46 +670,48 @@ module aqp_top(
     wire       ay8190_2_iob_oe;
 
     ay8910 ay8910(
-        .clk(clk),
-        .reset(reset),
+        .clk          ( clk                   ),
+        .reset        ( reset                 ),
 
-        .a0(ebus_a[0]),
-        .wren(ay8910_wren),
-        .wrdata(wrdata),
-        .rddata(rddata_ay8910),
+        .a0           ( ebus_a[0]             ),
+        .wren         ( ay8910_wren           ),
+        .wrdata       ( wrdata                ),
+        .rddata       ( rddata_ay8910         ),
 
-        .ioa_in_data(hctrl1_data),
-        .ioa_out_data(hc1_out),
-        .ioa_oe(hc1_oe),
+        .ioa_in_data  ( hctrl1_data           ),
+        .ioa_out_data ( hc1_out               ),
+        .ioa_oe       ( hc1_oe                ),
 
-        .iob_in_data(hctrl2_data),
-        .iob_out_data(hc2_out),
-        .iob_oe(hc2_oe),
+        .iob_in_data  ( hctrl2_data           ),
+        .iob_out_data ( hc2_out               ),
+        .iob_oe       ( hc2_oe                ),
 
-        .ch_a(ay8910_ch_a),
-        .ch_b(ay8910_ch_b),
-        .ch_c(ay8910_ch_c));
+        .ch_a         ( ay8910_ch_a           ),
+        .ch_b         ( ay8910_ch_b           ),
+        .ch_c         ( ay8910_ch_c           )
+    );
 
     ay8910 ay8910_2(
-        .clk(clk),
-        .reset(reset),
+        .clk          ( clk                   ),
+        .reset        ( reset                 ),
 
-        .a0(ebus_a[0]),
-        .wren(ay8910_2_wren),
-        .wrdata(wrdata),
-        .rddata(rddata_ay8910_2),
+        .a0           ( ebus_a[0]             ),
+        .wren         ( ay8910_2_wren         ),
+        .wrdata       ( wrdata                ),
+        .rddata       ( rddata_ay8910_2       ),
 
-        .ioa_in_data(8'h00),
-        .ioa_out_data(ay8190_2_ioa_out_data),
-        .ioa_oe(ay8190_2_ioa_oe),
+        .ioa_in_data  ( 8'h00                 ),
+        .ioa_out_data ( ay8190_2_ioa_out_data ),
+        .ioa_oe       ( ay8190_2_ioa_oe       ),
 
-        .iob_in_data(8'h00),
-        .iob_out_data(ay8190_2_iob_out_data),
-        .iob_oe(ay8190_2_iob_oe),
+        .iob_in_data  ( 8'h00                 ),
+        .iob_out_data ( ay8190_2_iob_out_data ),
+        .iob_oe       ( ay8190_2_iob_oe       ),
 
-        .ch_a(ay8910_2_ch_a),
-        .ch_b(ay8910_2_ch_b),
-        .ch_c(ay8910_2_ch_c));
+        .ch_a         ( ay8910_2_ch_a         ),
+        .ch_b         ( ay8910_2_ch_b         ),
+        .ch_c         ( ay8910_2_ch_c         )
+    );
 
     // Create stereo mix of output channels and system beep (cassette output)
     wire [13:0] mix_l =
@@ -725,38 +732,38 @@ module aqp_top(
     //////////////////////////////////////////////////////////////////////////
     aqp_overlay overlay(
         // Core video interface
-        .video_clk(video_clk),
-        .video_r(video_r),
-        .video_g(video_g),
-        .video_b(video_b),
-        .video_de(video_de),
-        .video_hsync(video_hsync),
-        .video_vsync(video_vsync),
-        .video_newframe(video_newframe),
-        .video_oddline(video_oddline),
-        .video_mode(video_mode),
+        .video_clk          ( video_clk          ),
+        .video_r            ( video_r            ),
+        .video_g            ( video_g            ),
+        .video_b            ( video_b            ),
+        .video_de           ( video_de           ),
+        .video_hsync        ( video_hsync        ),
+        .video_vsync        ( video_vsync        ),
+        .video_newframe     ( video_newframe     ),
+        .video_oddline      ( video_oddline      ),
+        .video_mode         ( video_mode         ),
 
         // Overlay interface
-        .ovl_clk(clk),
+        .ovl_clk            ( clk                ),
 
-        .ovl_text_addr(ovl_text_addr),
-        .ovl_text_wrdata(ovl_text_wrdata),
-        .ovl_text_wr(ovl_text_wr),
+        .ovl_text_addr      ( ovl_text_addr      ),
+        .ovl_text_wrdata    ( ovl_text_wrdata    ),
+        .ovl_text_wr        ( ovl_text_wr        ),
 
-        .ovl_font_addr(ovl_font_addr),
-        .ovl_font_wrdata(ovl_font_wrdata),
-        .ovl_font_wr(ovl_font_wr),
+        .ovl_font_addr      ( ovl_font_addr      ),
+        .ovl_font_wrdata    ( ovl_font_wrdata    ),
+        .ovl_font_wr        ( ovl_font_wr        ),
 
-        .ovl_palette_addr(ovl_palette_addr),
-        .ovl_palette_wrdata(ovl_palette_wrdata),
-        .ovl_palette_wr(ovl_palette_wr),
+        .ovl_palette_addr   ( ovl_palette_addr   ),
+        .ovl_palette_wrdata ( ovl_palette_wrdata ),
+        .ovl_palette_wr     ( ovl_palette_wr     ),
 
         // VGA signals
-        .vga_r(vga_r),
-        .vga_g(vga_g),
-        .vga_b(vga_b),
-        .vga_hsync(vga_hsync),
-        .vga_vsync(vga_vsync)
+        .vga_r              ( vga_r              ),
+        .vga_g              ( vga_g              ),
+        .vga_b              ( vga_b              ),
+        .vga_hsync          ( vga_hsync          ),
+        .vga_vsync          ( vga_vsync          )
     );
 
     //////////////////////////////////////////////////////////////////////////

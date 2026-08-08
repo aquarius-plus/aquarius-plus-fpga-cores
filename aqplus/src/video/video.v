@@ -115,21 +115,21 @@ module video(
 
     always @(posedge clk or posedge reset)
         if (reset) begin
-            q_vctrl_tram_page      <= 1'b0;
-            q_vctrl_80_columns     <= 1'b0;
-            q_vctrl_border_remap   <= 1'b0;
-            q_vctrl_text_priority  <= 1'b0;
-            q_vctrl_sprites_enable <= 1'b0;
-            q_vctrl_gfx_mode       <= 2'b0;
-            q_vctrl_text_enable    <= 1'b0;
-            q_vscrx                <= 9'b0;
-            q_vscry                <= 8'b0;
-            q_vpalsel              <= 7'b0;
-            q_virqline             <= 8'b0;
-            q_irqmask_line         <= 1'b0;
-            q_irqmask_vblank       <= 1'b0;
-            q_irqstat_line         <= 1'b0;
-            q_irqstat_vblank       <= 1'b0;
+            q_vctrl_tram_page      <= 0;
+            q_vctrl_80_columns     <= 0;
+            q_vctrl_border_remap   <= 0;
+            q_vctrl_text_priority  <= 0;
+            q_vctrl_sprites_enable <= 0;
+            q_vctrl_gfx_mode       <= 0;
+            q_vctrl_text_enable    <= 0;
+            q_vscrx                <= 0;
+            q_vscry                <= 0;
+            q_vpalsel              <= 0;
+            q_virqline             <= 0;
+            q_irqmask_line         <= 0;
+            q_irqmask_vblank       <= 0;
+            q_irqstat_line         <= 0;
+            q_irqstat_vblank       <= 0;
 
         end else begin
             if (io_wren) begin

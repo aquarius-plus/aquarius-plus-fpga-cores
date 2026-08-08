@@ -26,13 +26,13 @@ module T80 #(
     output wire   [2:0] MC,
     output wire   [2:0] TS,
     output wire         IntCycle_n,
-    // output wire         IntE,
-    // output wire         Stop,
-    // input  wire         R800_mode,
-    input  wire         out0
-    // output wire [211:0] REG,
-    // input  wire         DIRSet,
-    // input  wire [211:0] DIR
+    output wire         IntE,
+    output wire         Stop,
+    input  wire         R800_mode,
+    input  wire         out0,
+    output wire [211:0] REG,
+    input  wire         DIRSet,
+    input  wire [211:0] DIR
 );
 
 endmodule

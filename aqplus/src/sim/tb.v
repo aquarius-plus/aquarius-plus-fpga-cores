@@ -18,7 +18,7 @@ module tb();
     reg         q_ebus_mreq_n = 1'b1;
     reg         q_ebus_iorq_n = 1'b1;
 
-    reg         ebus_busack_n = 1'bZ;
+    reg         ebus_busack_n = 0;
 
     wire        ebus_phi;
     wire        ebus_reset_n;
@@ -344,6 +344,33 @@ module tb();
         end
     endtask
 
+    task uart_tx;
+        input [7:0] data;
+
+        begin
+            esp_rx = 0;
+            #238;
+            esp_rx = data[7];
+            #238;
+            esp_rx = data[6];
+            #238;
+            esp_rx = data[5];
+            #238;
+            esp_rx = data[4];
+            #238;
+            esp_rx = data[3];
+            #238;
+            esp_rx = data[2];
+            #238;
+            esp_rx = data[1];
+            #238;
+            esp_rx = data[0];
+            #238;
+            esp_rx = 1;
+            #238;
+        end
+    endtask
+
     initial begin
         #2500
         // esp_ssel_n <= 1'b0;
@@ -370,6 +397,10 @@ module tb();
     end
 
     initial begin
+        #110000;
+        uart_tx(8'h5A);
+
+
         // #2500;
         // @(posedge ebus_phi);
         // @(posedge ebus_phi);

@@ -60,7 +60,7 @@ module sprattr(
         default: io_rddata = 8'h00;
     endcase
 
-    always @(posedge clk)
+    always @(posedge clk or posedge reset)
         if (reset)
             q_sprsel <= 6'b0;
         else if (io_wren && io_addr == 4'h4)

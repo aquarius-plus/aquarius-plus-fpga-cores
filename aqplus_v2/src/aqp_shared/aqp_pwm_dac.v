@@ -26,7 +26,7 @@ module aqp_pwm_dac(
     end
 
     // PWM output
-    reg [16:0] q_pwmacc_left = 0;
+    reg [16:0] q_pwmacc_left  = 0;
     reg [16:0] q_pwmacc_right = 0;
 
     always @(posedge clk) begin

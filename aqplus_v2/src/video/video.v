@@ -5,6 +5,9 @@ module video(
     input  wire        clk,
     input  wire        reset,
 
+    input  wire        vclk,            // 28.63636MHz (video_mode = 0) or 25.175MHz (video_mode = 1)
+    input  wire        video_mode,
+
     // IO register interface
     input  wire  [3:0] io_addr,
     output reg   [7:0] io_rddata,
@@ -43,6 +46,16 @@ module video(
     // Register $FD value
     output wire        reg_fd_val);
 
+    // Sync reset to vclk domain
+    wire vclk_reset;
+    reset_sync ressync_vclk(.async_rst_in(reset), .clk(vclk), .reset_out(vclk_reset));
+
+    wire [7:0] vpos;
+    wire       vblank;
+
+    reg q_vblank;
+    always @(posedge vclk) q_vblank <= vblank;
+
     wire [7:0] rddata_vpaldata;
     wire [7:0] rddata_sprattr;
 
@@ -62,20 +75,13 @@ module video(
     reg        q_irqstat_line;          // IO $EF [0]
     reg        q_irqstat_vblank;        // IO $EF [1]
 
-    // Line match interrupt
-    wire [7:0] vpos;
-    wire       irqline_match = (vpos == q_virqline);
-    reg        q_irqline_match;
-    wire       irq_line = !q_irqline_match && irqline_match;
+    wire irqline_match = (vpos == q_virqline);
+    reg q_irqline_match;
+    always @(posedge vclk) q_irqline_match <= irqline_match;
 
-    always @(posedge clk) q_irqline_match <= irqline_match;
-
-    // V-blank interrupt
-    wire vblank;
-    reg  q_vblank;
-    wire irq_vblank = !q_vblank && vblank;
-
-    always @(posedge clk) q_vblank <= vblank;
+    wire irq_line, irq_vblank;
+    pulse2pulse p2p_irq_line(  .in_clk(vclk), .in_pulse(!q_irqline_match && irqline_match), .out_clk(clk), .out_pulse(irq_line));
+    pulse2pulse p2p_irq_vblank(.in_clk(vclk), .in_pulse(!q_vblank        && vblank),        .out_clk(clk), .out_pulse(irq_vblank));
 
     assign irq = ({q_irqstat_line, q_irqstat_vblank} & {q_irqmask_line, q_irqmask_vblank}) != 2'b00;
 
@@ -107,7 +113,7 @@ module video(
         if (sel_io_irqstat)  io_rddata = {6'b0, q_irqstat_line, q_irqstat_vblank}; // IO $EF
     end
 
-    always @(posedge clk)
+    always @(posedge clk or posedge reset)
         if (reset) begin
             q_vctrl_tram_page      <= 0;
             q_vctrl_80_columns     <= 0;
@@ -165,8 +171,8 @@ module video(
     wire       blank;
 
     aqp_video_timing video_timing(
-        .clk(clk),
-        .mode(1'b1),
+        .clk(vclk),
+        .mode(video_mode),
 
         .hpos(hpos),
         .hsync(hsync),
@@ -181,26 +187,26 @@ module video(
 
         .blank(blank));
 
-    always @(posedge clk) video_oddline <= vpos10[0];
+    always @(posedge vclk) video_oddline <= vpos10[0];
 
     assign vpos = vpos10[9] ? 8'd255 : vpos10[8:1];
 
-    wire hborder = blank;
+    wire hborder = video_mode ? blank : (hpos < 10'd32 || hpos >= 10'd672);
     wire vborder = vpos < 8'd16 || vpos >= 8'd216;
 
     reg [9:0] q_hpos, q2_hpos;
-    always @(posedge clk) q_hpos  <= hpos;
-    always @(posedge clk) q2_hpos <= q_hpos;
+    always @(posedge vclk) q_hpos  <= hpos;
+    always @(posedge vclk) q2_hpos <= q_hpos;
 
     reg q_blank, q_hsync, q_vsync;
-    always @(posedge clk) q_blank <= blank;
-    always @(posedge clk) q_hsync <= hsync;
-    always @(posedge clk) q_vsync <= vsync;
+    always @(posedge vclk) q_blank <= blank;
+    always @(posedge vclk) q_hsync <= hsync;
+    always @(posedge vclk) q_vsync <= vsync;
 
     reg q2_blank, q2_hsync, q2_vsync;
-    always @(posedge clk) q2_blank <= q_blank;
-    always @(posedge clk) q2_hsync <= q_hsync;
-    always @(posedge clk) q2_vsync <= q_vsync;
+    always @(posedge vclk) q2_blank <= q_blank;
+    always @(posedge vclk) q2_hsync <= q_hsync;
+    always @(posedge vclk) q2_vsync <= q_vsync;
 
     //////////////////////////////////////////////////////////////////////////
     // Character address
@@ -214,7 +220,7 @@ module video(
     wire [10:0] d_row_addr       = q_row_addr + (q_mode80 ? 11'd80 : 11'd40);
     wire [10:0] border_char_addr = q_vctrl_border_remap ? (q_mode80 ? 11'h7FF : 11'h3FF) : 11'h0;
 
-    always @(posedge(clk))
+    always @(posedge(vclk))
         if (vblank) begin
             q_mode80   <= q_vctrl_80_columns;
             q_row_addr <= 11'd0;
@@ -226,7 +232,7 @@ module video(
 
     wire border = vborder || hborder;
     reg q_border;
-    always @(posedge clk) q_border <= border;
+    always @(posedge vclk) q_border <= border;
 
     wire start_active = q_border && !border;
 
@@ -244,7 +250,7 @@ module video(
             d_char_addr[10] = q_vctrl_tram_page;
     end
 
-    always @(posedge(clk)) q_char_addr <= d_char_addr;
+    always @(posedge(vclk)) q_char_addr <= d_char_addr;
 
     //////////////////////////////////////////////////////////////////////////
     // Text RAM
@@ -261,7 +267,7 @@ module video(
         .p1_wren(tram_wren),
 
         // Second port - Video access
-        .p2_clk(clk),
+        .p2_clk(vclk),
         .p2_addr(d_char_addr),
         .p2_rddata(textram_rddata));
 
@@ -269,7 +275,7 @@ module video(
     wire [7:0] color_data = textram_rddata[15:8];
 
     reg [7:0] q_color_data;
-    always @(posedge clk) q_color_data <= color_data;
+    always @(posedge vclk) q_color_data <= color_data;
 
     //////////////////////////////////////////////////////////////////////////
     // Character RAM
@@ -284,7 +290,7 @@ module video(
         .wrdata1(chram_wrdata),
         .wren1(chram_wren),
 
-        .clk2(clk),
+        .clk2(vclk),
         .addr2(charram_addr),
         .rddata2(charram_data));
 
@@ -343,7 +349,7 @@ module video(
         .p1_wren(vram_wren),
 
         // Second port - Video access
-        .p2_clk(clk),
+        .p2_clk(vclk),
         .p2_addr(vram_addr2),
         .p2_rddata(vram_rddata2));
 
@@ -353,18 +359,18 @@ module video(
     wire [5:0] linebuf_data;
     reg  [8:0] q_linebuf_rdidx;
 
-    always @(posedge clk) q_linebuf_rdidx <= hpos[9:1];
+    always @(posedge vclk) q_linebuf_rdidx <= video_mode ? hpos[9:1] : (hpos[9:1] - 9'd16);
 
     reg q_hborder, q2_hborder;
-    always @(posedge clk) q_hborder  <= hborder;
-    always @(posedge clk) q2_hborder <= q_hborder;
+    always @(posedge vclk) q_hborder  <= hborder;
+    always @(posedge vclk) q2_hborder <= q_hborder;
 
     reg q_gfx_start;
-    always @(posedge clk) q_gfx_start <= vnext;
+    always @(posedge vclk) q_gfx_start <= vnext;
 
     gfx gfx(
-        .clk(clk),
-        .reset(reset),
+        .clk(vclk),
+        .reset(vclk_reset),
 
         // Register values
         .gfx_mode(q_vctrl_gfx_mode),
@@ -440,7 +446,7 @@ module video(
     //////////////////////////////////////////////////////////////////////////
     // Output registers
     //////////////////////////////////////////////////////////////////////////
-    always @(posedge(clk))
+    always @(posedge(vclk))
         if (q2_blank) begin
             video_r  <= 4'b0;
             video_g  <= 4'b0;
@@ -454,7 +460,7 @@ module video(
             video_de <= 1'b1;
         end
 
-    always @(posedge clk) video_hsync <= q2_hsync;
-    always @(posedge clk) video_vsync <= q2_vsync;
+    always @(posedge vclk) video_hsync <= q2_hsync;
+    always @(posedge vclk) video_vsync <= q2_vsync;
 
 endmodule
