@@ -65,13 +65,11 @@ module aqp_top(
     wire [15:0] spibm_a;
     wire  [7:0] spibm_wrdata;
     wire        spibm_wrdata_en;
-    wire        spibm_en;
     wire        spibm_rd_n, spibm_wr_n, spibm_mreq_n, spibm_iorq_n;
     wire        spibm_busreq_n;
 
-    wire  [7:0] ebus_d_out;
-    wire        ebus_d_oe;
-
+    wire        iorq;
+    wire        mreq;
     wire        use_t80;
 
     //////////////////////////////////////////////////////////////////////////
@@ -99,47 +97,21 @@ module aqp_top(
     wire reset;
 
     aqp_sysctrl sysctrl(
-        .sysclk(clk),
-        .ebus_reset_n(ebus_reset_n),
-        .reset_req(reset_req),
+        .sysclk          ( clk                        ),
+        .ebus_reset_n    ( ebus_reset_n               ),
+        .reset_req       ( reset_req                  ),
 
-        .turbo_mode(turbo),
-        .turbo_unlimited(turbo_unlimited && use_t80),
+        .turbo_mode      ( turbo                      ),
+        .turbo_unlimited ( turbo_unlimited && use_t80 ),
 
-        .ebus_phi(ebus_phi),
-        .ebus_phi_clken(ebus_phi_clken),
-        .reset(reset));
-
-    //////////////////////////////////////////////////////////////////////////
-    // Bus interface
-    //////////////////////////////////////////////////////////////////////////
-    wire ebus_int_n_pushpull;
-
-    assign ebus_int_n = !ebus_int_n_pushpull ? 1'b0 : 1'bZ;
-
-    // Register data from external bus
-    reg [7:0] ebus_d_in;
-    always @(posedge clk) if (!ebus_wr_n) ebus_d_in <= ebus_d;
-
-    // Synchronize RD#/WR# signals for when using external Z80
-    reg [2:0] q_ebus_wr_n;
-    reg [2:0] q_ebus_rd_n;
-    always @(posedge clk) q_ebus_wr_n <= {q_ebus_wr_n[1:0], ebus_wr_n};
-    always @(posedge clk) q_ebus_rd_n <= {q_ebus_rd_n[1:0], ebus_rd_n};
-
-    wire bus_read  = (use_t80 ? q_ebus_rd_n[1:0] : q_ebus_rd_n[2:1]) == 2'b10;
-    wire bus_write = (use_t80 ? q_ebus_wr_n[1:0] : q_ebus_wr_n[2:1]) == 2'b10;
-    wire ebus_stb  = (bus_read || bus_write);
-
-    wire iorq = !ebus_iorq_n;
-    wire mreq = !ebus_mreq_n;
+        .ebus_phi        ( ebus_phi                   ),
+        .ebus_phi_clken  ( ebus_phi_clken             ),
+        .reset           ( reset                      )
+    );
 
     //////////////////////////////////////////////////////////////////////////
     // ESP SPI slave interface
     //////////////////////////////////////////////////////////////////////////
-    assign spibm_en      = !spibm_busreq_n && (!ebus_busack_n || !has_z80);
-    assign ebus_busreq_n = !(use_t80 || !spibm_busreq_n);
-
     wire        spi_msg_end;
     wire  [7:0] spi_cmd;
     wire [63:0] spi_rxdata;
@@ -320,10 +292,10 @@ module aqp_top(
     wire       reg_bank_ro      = reg_bank[7];
     wire       reg_bank_overlay = reg_bank[6];
 
-    wire [7:0] wrdata = ebus_d_in;
+    wire [7:0] wrdata;
 
-    wire bus_read2  = !ebus_rd_n && ebus_stb;    //  q_ebus_rd_n[2:1] == 2'b10;
-    wire bus_write2 = !ebus_wr_n && ebus_stb;    //  q_ebus_wr_n[2:1] == 2'b10;
+    wire bus_read2;
+    wire bus_write2;
 
     // Memory space decoding
     wire sel_mem_tram    = mreq && reg_bank_overlay && ebus_a[13:11] == 3'b110;   // $3000-$37FF
@@ -359,12 +331,8 @@ module aqp_top(
         sel_io_espctrl | sel_io_espdata | sel_io_ay8910 | sel_io_ay8910_2 | sel_io_kbbuf | sel_io_sysctrl |
         sel_io_cassette | sel_io_vsync_r_cpm_w | sel_io_printer | sel_io_keyb_r_scramble_w;
 
-    wire sel_mem_cart    = mreq && !sel_internal && reg_bank_page[5:2] == 4'b0100;          // Page 16-19
-    wire sel_mem_ram     = mreq && !sel_internal && reg_bank_page[5];                       // Page 32-63
-
-    assign ebus_ram_we_n  = !(sel_mem_ram && !ebus_wr_n && (!reg_bank_ro || sel_mem_sysram));
-    assign ebus_ram_ce_n  = !sel_mem_ram;
-    assign ebus_cart_ce_n = !sel_mem_cart;
+    wire sel_mem_cart    = mreq && !sel_internal && reg_bank_page[5:2] == 4'b0100; // Page 16-19
+    wire sel_mem_ram     = mreq && !sel_internal && reg_bank_page[5];              // Page 32-63
 
     reg [7:0] rddata;
     always @* begin
@@ -391,12 +359,7 @@ module aqp_top(
         if (sel_io_keyb_r_scramble_w) rddata = rddata_keyboard;                                // IO $FF
     end
 
-    assign ebus_d_oe  = !ebus_rd_n && sel_internal;
-    assign ebus_d_out = rddata;
-
     wire video_irq;
-
-    assign ebus_int_n_pushpull = video_irq ? 1'b0 : 1'b1;
 
     always @(posedge clk or posedge reset)
         if (reset) begin
@@ -774,46 +737,77 @@ module aqp_top(
     wire        t80_busrq_n = spibm_busreq_n;
     wire        t80_busak_n;
 
-    wire        t80_int_n = ebus_int_n_pushpull;
+    wire        t80_int_n;
     wire        t80_nmi_n = 1'b1;
 
     aqp_t80 aqp_t80(
-        .clk(clk),
-        .reset(reset || !use_t80),
-        .clken(ebus_phi_clken),
-        .phi(ebus_phi),
+        .clk     ( clk               ),
+        .reset   ( reset || !use_t80 ),
+        .clken   ( ebus_phi_clken    ),
+        .phi     ( ebus_phi          ),
 
-        .addr(t80_addr),        // should tristate when busak_n == 0
-        .dq_out(t80_dq_out),
-        .dq_in(t80_dq_in),
-        .dq_oe(t80_dq_oe),
+        .addr    ( t80_addr          ),        // should tristate when busak_n == 0
+        .dq_out  ( t80_dq_out        ),
+        .dq_in   ( t80_dq_in         ),
+        .dq_oe   ( t80_dq_oe         ),
 
-        .mreq_n(t80_mreq_n),    // should tristate when busak_n == 0
-        .iorq_n(t80_iorq_n),    // should tristate when busak_n == 0
-        .rd_n(t80_rd_n),        // should tristate when busak_n == 0
-        .wr_n(t80_wr_n),        // should tristate when busak_n == 0
-        .wait_n(t80_wait_n),
+        .mreq_n  ( t80_mreq_n        ),    // should tristate when busak_n == 0
+        .iorq_n  ( t80_iorq_n        ),    // should tristate when busak_n == 0
+        .rd_n    ( t80_rd_n          ),        // should tristate when busak_n == 0
+        .wr_n    ( t80_wr_n          ),        // should tristate when busak_n == 0
+        .wait_n  ( t80_wait_n        ),
 
-        .busrq_n(t80_busrq_n),
-        .busak_n(t80_busak_n),
+        .busrq_n ( t80_busrq_n       ),
+        .busak_n ( t80_busak_n       ),
 
-        .int_n(t80_int_n),
-        .nmi_n(t80_nmi_n)
+        .int_n   ( t80_int_n         ),
+        .nmi_n   ( t80_nmi_n         )
     );
 
     //////////////////////////////////////////////////////////////////////////
     // Bus logic
     //////////////////////////////////////////////////////////////////////////
-    assign ebus_a      = spibm_en ? spibm_a      : (use_t80 ? t80_addr   : 16'bZ);
-    assign ebus_rd_n   = spibm_en ? spibm_rd_n   : (use_t80 ? t80_rd_n   : 1'bZ);
-    assign ebus_wr_n   = spibm_en ? spibm_wr_n   : (use_t80 ? t80_wr_n   : 1'bZ);
-    assign ebus_mreq_n = spibm_en ? spibm_mreq_n : (use_t80 ? t80_mreq_n : 1'bZ);
-    assign ebus_iorq_n = spibm_en ? spibm_iorq_n : (use_t80 ? t80_iorq_n : 1'bZ);
+    wire   spibm_en = !spibm_busreq_n && (!ebus_busack_n || !has_z80);
 
+    assign ebus_a = spibm_en ? spibm_a : (use_t80 ? t80_addr : 16'bZ);
     assign ebus_d =
         (spibm_en && spibm_wrdata_en) ? spibm_wrdata :
         (use_t80 && t80_dq_oe         ? t80_dq_out   :
-        (ebus_d_oe                    ? ebus_d_out   :
+        (!ebus_rd_n && sel_internal   ? rddata       :
                                         8'bZ));
+    assign ebus_rd_n      = spibm_en ? spibm_rd_n   : (use_t80 ? t80_rd_n   : 1'bZ);
+    assign ebus_wr_n      = spibm_en ? spibm_wr_n   : (use_t80 ? t80_wr_n   : 1'bZ);
+    assign ebus_mreq_n    = spibm_en ? spibm_mreq_n : (use_t80 ? t80_mreq_n : 1'bZ);
+    assign ebus_iorq_n    = spibm_en ? spibm_iorq_n : (use_t80 ? t80_iorq_n : 1'bZ);
+    assign ebus_busreq_n  = !(use_t80 || !spibm_busreq_n);
+    assign ebus_ram_ce_n  = !sel_mem_ram;
+    assign ebus_cart_ce_n = !sel_mem_cart;
+    assign ebus_ram_we_n  = !(sel_mem_ram && !ebus_wr_n && (!reg_bank_ro || sel_mem_sysram));
+
+    wire   ebus_int_n_pushpull = video_irq ? 1'b0 : 1'b1;
+    assign ebus_int_n = !ebus_int_n_pushpull ? 1'b0 : 1'bZ;
+
+    assign t80_int_n = ebus_int_n_pushpull;
+
+    // Synchronize RD#/WR# signals for when using external Z80
+    reg [2:0] q_ebus_wr_n;
+    reg [2:0] q_ebus_rd_n;
+    always @(posedge clk) q_ebus_wr_n <= {q_ebus_wr_n[1:0], ebus_wr_n};
+    always @(posedge clk) q_ebus_rd_n <= {q_ebus_rd_n[1:0], ebus_rd_n};
+
+    // Register data from external bus
+    reg [7:0] ebus_d_in;
+    always @(posedge clk) if (!ebus_wr_n) ebus_d_in <= ebus_d;
+
+    wire   ebus_stb   = (bus_read || bus_write);
+    wire   bus_read   = (use_t80 ? q_ebus_rd_n[1:0] : q_ebus_rd_n[2:1]) == 2'b10;
+    wire   bus_write  = (use_t80 ? q_ebus_wr_n[1:0] : q_ebus_wr_n[2:1]) == 2'b10;
+
+    assign wrdata     = ebus_d_in;
+    assign bus_read2  = !ebus_rd_n && ebus_stb;    //  q_ebus_rd_n[2:1] == 2'b10;
+    assign bus_write2 = !ebus_wr_n && ebus_stb;    //  q_ebus_wr_n[2:1] == 2'b10;
+    assign iorq       = !ebus_iorq_n;
+    assign mreq       = !ebus_mreq_n;
+
 
 endmodule

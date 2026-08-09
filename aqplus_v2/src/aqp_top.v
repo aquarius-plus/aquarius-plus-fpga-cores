@@ -5,7 +5,7 @@ module aqp_top(
     input  wire        sysclk,          // 14.31818MHz
 
     // Z80 bus interface
-    output wire        ebus_reset_n,
+    inout  wire        ebus_reset_n,
     output wire        ebus_phi,        // 3.579545MHz
     output wire [15:0] ebus_a,
     inout  wire  [7:0] ebus_d,
@@ -68,7 +68,9 @@ module aqp_top(
     wire        spibm_rd_n, spibm_wr_n, spibm_mreq_n, spibm_iorq_n;
     wire        spibm_busreq_n;
 
-    wire        use_t80 = 1;
+    wire        iorq;
+    wire        mreq;
+    wire        use_t80;
 
     //////////////////////////////////////////////////////////////////////////
     // Clock synthesizer
@@ -90,68 +92,21 @@ module aqp_top(
     wire reset_req;
     wire turbo;
     wire turbo_unlimited;
-    wire reset_req2;
-    reset_sync reset_sync(
-        .async_rst_in ( reset_req || !clk_locked ),
-        .clk          ( clk                      ),
-        .reset_out    ( reset_req2               )
+    wire ebus_phi_clken;
+    wire reset;
+
+    aqp_sysctrl sysctrl(
+        .sysclk          ( clk                        ),
+        .ebus_reset_n    ( ebus_reset_n               ),
+        .reset_req       ( reset_req                  ),
+
+        .turbo_mode      ( turbo                      ),
+        .turbo_unlimited ( turbo_unlimited && use_t80 ),
+
+        .ebus_phi        ( ebus_phi                   ),
+        .ebus_phi_clken  ( ebus_phi_clken             ),
+        .reset           ( reset                      )
     );
-
-`ifdef MODEL_TECH
-    localparam RESET_BITS = 5;
-`else
-    localparam RESET_BITS = 23;
-`endif
-
-    reg  [RESET_BITS-1:0] q_reset_cnt = 0;
-    always @(posedge sysclk) begin
-        if (!q_reset_cnt[RESET_BITS-1])
-            q_reset_cnt <= q_reset_cnt + 1;
-        if (reset_req2)
-            q_reset_cnt <= 0;
-    end
-
-    wire reset = !q_reset_cnt[RESET_BITS-1];
-
-    //////////////////////////////////////////////////////////////////////////
-    // Bus interface
-    //////////////////////////////////////////////////////////////////////////
-    reg         sel_mem_ram;
-
-    wire [15:0] t80_addr;
-    wire  [7:0] t80_wrdata;
-    wire        t80_rd;
-    wire        t80_t1_rd;
-    wire        t80_wr;
-    wire        t80_wr_d;
-    wire        t80_wrcycle;
-    wire        t80_iorq;
-    wire        t80_wait = 0;
-    wire  [7:0] t80_rddata;
-    wire        t80_int = video_irq;
-
-    wire        mreq = !t80_iorq;
-    wire        iorq =  t80_iorq;
-
-    assign ebus_reset_n   = 1'bZ;
-    assign ebus_phi       = 0;
-    assign ebus_a         = t80_addr;
-    assign ebus_d         = t80_wrcycle ? t80_wrdata : 8'bZZZZZZZZ;
-    assign ebus_rd_n      = t80_wrcycle;
-    assign ebus_wr_n      = 1;
-    assign ebus_mreq_n    = 1;
-    assign ebus_iorq_n    = 1;
-    assign ebus_int_n     = 1'bZ;
-    assign ebus_busreq_n  = 0;
-    assign ebus_ram_ce_n  = !sel_mem_ram;
-    assign ebus_cart_ce_n = 1;
-
-    reg q_ram_we_n;
-    always @(posedge clk) q_ram_we_n <= !(sel_mem_ram && t80_wr_d);
-
-    wire ram_we_n = !(sel_mem_ram && bus_write2);
-
-    assign ebus_ram_we_n = q_ram_we_n;
 
     //////////////////////////////////////////////////////////////////////////
     // ESP SPI slave interface
@@ -184,7 +139,7 @@ module aqp_top(
             1'b0,       // Core type 01 specific: unused
             1'b0,       // Core type 01 specific: unused
             1'b1,       // Core type 01 specific: alternate baud rate
-            1'b0,       // Core type 01 specific: show force turbo mode
+            1'b1,       // Core type 01 specific: show force turbo mode
             1'b1,       // Core type 01 specific: show Aquarius+ options
             1'b1,       // Core type 01 specific: show video timing switch
             1'b1,       // Core type 01 specific: show mouse support
@@ -336,10 +291,10 @@ module aqp_top(
     wire       reg_bank_ro      = reg_bank[7];
     wire       reg_bank_overlay = reg_bank[6];
 
-    wire [7:0] wrdata = t80_wrdata;
+    wire [7:0] wrdata;
 
-    wire bus_read2  = t80_t1_rd;
-    wire bus_write2 = t80_wr;
+    wire bus_read2;
+    wire bus_write2;
 
     // Memory space decoding
     wire sel_mem_tram    = mreq && reg_bank_overlay && ebus_a[13:11] == 3'b110;   // $3000-$37FF
@@ -375,13 +330,8 @@ module aqp_top(
         sel_io_espctrl | sel_io_espdata | sel_io_ay8910 | sel_io_ay8910_2 | sel_io_kbbuf | sel_io_sysctrl |
         sel_io_cassette | sel_io_vsync_r_cpm_w | sel_io_printer | sel_io_keyb_r_scramble_w;
 
-    always @* begin
-        sel_mem_ram = mreq && !sel_internal && reg_bank_page[5];  // Page 32-63
-
-        // Disallow writes to memory if bank is read only        
-        if (t80_wr && reg_bank_ro && !sel_mem_sysram)
-            sel_mem_ram = 0;
-    end
+    wire sel_mem_cart    = mreq && !sel_internal && reg_bank_page[5:2] == 4'b0100; // Page 16-19
+    wire sel_mem_ram     = mreq && !sel_internal && reg_bank_page[5];              // Page 32-63
 
     reg [7:0] rddata;
     always @* begin
@@ -603,6 +553,8 @@ module aqp_top(
     wire        kbbuf_wren;
     wire        use_t80_unused;
 
+    assign use_t80 = 1;
+
     spiregs spiregs(
         .clk              ( clk              ),
         .reset            ( reset            ),
@@ -774,6 +726,18 @@ module aqp_top(
     //////////////////////////////////////////////////////////////////////////
     // T80 core
     //////////////////////////////////////////////////////////////////////////
+    wire [15:0] t80_addr;
+    wire  [7:0] t80_wrdata;
+    wire        t80_rd;
+    wire        t80_t1_rd;
+    wire        t80_wr;
+    wire        t80_wr_d;
+    wire        t80_wrcycle;
+    wire        t80_iorq;
+    wire        t80_wait = 0;
+    wire  [7:0] t80_rddata;
+    wire        t80_int = video_irq;
+
     assign t80_rddata = rddata;
 
     t80s t80(
@@ -793,5 +757,29 @@ module aqp_top(
         .bus_int     ( t80_int     ),
         .bus_nmi     ( 1'b1        )
     );
+
+    //////////////////////////////////////////////////////////////////////////
+    // Bus logic
+    //////////////////////////////////////////////////////////////////////////
+    assign ebus_a         = t80_addr;
+    assign ebus_d         = t80_wrcycle ? t80_wrdata : 8'bZZZZZZZZ;
+    assign ebus_rd_n      = t80_wrcycle;
+    assign ebus_wr_n      = 1;
+    assign ebus_mreq_n    = 1;
+    assign ebus_iorq_n    = 1;
+    assign ebus_int_n     = 1'bZ;
+    assign ebus_busreq_n  = 0;
+    assign ebus_ram_ce_n  = !sel_mem_ram;
+    assign ebus_cart_ce_n = 1;
+
+    reg q_ram_we_n;
+    always @(posedge clk) q_ram_we_n <= !(sel_mem_ram && t80_wr_d && (!reg_bank_ro || sel_mem_sysram));
+    assign ebus_ram_we_n = q_ram_we_n;
+
+    assign wrdata     = t80_wrdata;
+    assign bus_read2  = t80_t1_rd;
+    assign bus_write2 = t80_wr;
+    assign mreq       = !t80_iorq;
+    assign iorq       =  t80_iorq;
 
 endmodule
