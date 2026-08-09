@@ -4,11 +4,14 @@
 module aqp_clkctrl(
     input  wire clk_in,
     output wire clk_out,
-    output wire clk_locked
+
+    output wire video_clk,
+    input  wire video_mode
 );
 
     wire clk0;
     wire clk28;
+    assign clk_out = clk28;
 
     wire clk180, clk270, clk2x180, clk90, clkdv, clkfx, clkfx180, dcm_locked, psdone;    // unused
     wire [7:0] status;  // unused
@@ -105,8 +108,15 @@ module aqp_clkctrl(
         .RST(1'b0)
     );
 
-    BUFG bufg_25(.I(clk25), .O(clk_out));
-
-    assign clk_locked = dcm_locked && pll_locked;
+    // Clock buffer to switch without glitches between 28.63636MHz and 25.175MHz clock
+    BUFGMUX #(
+        .CLK_SEL_TYPE("SYNC")
+    )
+    clksel(
+        .O(video_clk),
+        .I0(clk28),
+        .I1(clk25),
+        .S(video_mode)
+    );
 
 endmodule

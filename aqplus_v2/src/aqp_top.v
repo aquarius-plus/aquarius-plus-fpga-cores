@@ -76,14 +76,15 @@ module aqp_top(
     // Clock synthesizer
     //////////////////////////////////////////////////////////////////////////
     wire clk;
-    wire clk_locked;
-    wire video_clk = clk;
+    wire video_clk;
     wire video_mode;
 
     aqp_clkctrl clkctrl(
         .clk_in     ( sysclk     ),     // 14.31818MHz
-        .clk_out    ( clk        ),     // 25.175MHz
-        .clk_locked ( clk_locked )
+        .clk_out    ( clk        ),     // 28.63636MHz
+
+        .video_clk  ( video_clk  ),
+        .video_mode ( video_mode )
     );
 
     //////////////////////////////////////////////////////////////////////////
@@ -138,7 +139,7 @@ module aqp_top(
         .sysinfo_flags         ({
             1'b0,       // Core type 01 specific: unused
             1'b0,       // Core type 01 specific: unused
-            1'b1,       // Core type 01 specific: alternate baud rate
+            1'b0,       // Core type 01 specific: alternate baud rate
             1'b1,       // Core type 01 specific: show force turbo mode
             1'b1,       // Core type 01 specific: show Aquarius+ options
             1'b1,       // Core type 01 specific: show video timing switch
