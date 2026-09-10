@@ -11,7 +11,8 @@ module aqp_clkctrl(
 
     wire clk0;
     wire clk28;
-    assign clk_out = clk28;
+    wire clk57;
+    assign clk_out = clk57;
 
     wire clk180, clk270, clk2x180, clk90, clkdv, clkfx, clkfx180, dcm_locked, psdone;    // unused
     wire [7:0] status;  // unused
@@ -26,7 +27,7 @@ module aqp_clkctrl(
         .CLKIN_PERIOD(69.841274),
         .CLKOUT_PHASE_SHIFT("NONE"),
         .CLK_FEEDBACK("1X"),
-        .DESKEW_ADJUST("SYSTEM_SYNCHRONOUS"), 
+        .DESKEW_ADJUST("SYSTEM_SYNCHRONOUS"),
         .DFS_FREQUENCY_MODE("LOW"),
         .DLL_FREQUENCY_MODE("LOW"),
         .DSS_MODE("NONE"),
@@ -53,10 +54,11 @@ module aqp_clkctrl(
         .DSSEN(1'b0),
         .PSCLK(1'b0),
         .PSEN(1'b0),
-        .PSINCDEC(1'b0), 
+        .PSINCDEC(1'b0),
         .RST(1'b0)
     );
     BUFG bufg_28(.I(clk2x), .O(clk28));
+    BUFG bufg_57(.I(clkfx), .O(clk57));
 
     wire clk25;
     wire pllfb;

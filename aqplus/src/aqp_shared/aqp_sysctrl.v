@@ -21,7 +21,7 @@ module aqp_sysctrl(
 `ifdef MODEL_TECH
     localparam RESET_BITS = 5;  // Simulation: only have a short reset duration
 `else
-    localparam RESET_BITS = 23; // Synthesis: reset duration ~146ms
+    localparam RESET_BITS = 24; // Synthesis: reset duration ~146ms
 `endif
 
     reg [RESET_BITS-1:0] q_ext_reset_cnt = 0;
@@ -32,7 +32,7 @@ module aqp_sysctrl(
             q_ext_reset_cnt <= 0;
     end
 
-    assign ext_reset = !q_ext_reset_cnt[22];
+    assign ext_reset = !q_ext_reset_cnt[RESET_BITS - 1];
 
     // Tristate reset output
     assign ebus_reset_n = ext_reset ? 1'b0 : 1'bZ;
@@ -62,24 +62,23 @@ module aqp_sysctrl(
     //////////////////////////////////////////////////////////////////////////
     reg       q_phi     = 1'b0;
     reg       q2_phi    = 1'b0;
-    reg [1:0] q_phi_div = 2'd0;
+    reg [2:0] q_phi_div = 3'd0;
 
-    wire [1:0] toggle_val = turbo_mode ? (turbo_unlimited ? 2'd0 : 2'd1) : 2'd3;
+    wire [2:0] toggle_val = turbo_mode ? (turbo_unlimited ? 3'd0 : 3'd3) : 3'd7;
 
     assign ebus_phi = q2_phi;
-    
+
     always @(posedge sysclk) begin
-        ebus_phi_clken <= 1'b0;
-        q2_phi <= q_phi;
+        ebus_phi_clken <= 0;
+        q2_phi         <= q_phi;
 
         if (q_phi_div == toggle_val) begin
-            q_phi     <= !q_phi;
-            q_phi_div <= 2'd0;
-
-            ebus_phi_clken <= 1'b1;
+            q_phi          <= !q_phi;
+            q_phi_div      <= 0;
+            ebus_phi_clken <= 1;
 
         end else begin
-            q_phi_div <= q_phi_div + 2'd1;
+            q_phi_div <= q_phi_div + 3'd1;
         end
     end
 

@@ -81,7 +81,7 @@ module aqp_top(
 
     aqp_clkctrl clkctrl(
         .clk_in     ( sysclk     ),     // 14.31818MHz
-        .clk_out    ( clk        ),     // 28.63636MHz
+        .clk_out    ( clk        ),     // 57.27272MHz
 
         .video_clk  ( video_clk  ),
         .video_mode ( video_mode )
@@ -146,7 +146,7 @@ module aqp_top(
             1'b1,       // Core type 01 specific: show mouse support
             has_z80     // Z80 present
         }),
-        .sysinfo_version_major ( 8'h01              ),
+        .sysinfo_version_major ( 8'h02              ),
         .sysinfo_version_minor ( 8'h00              ),
 
         .core_name             ( "Aquarius+       " ),
@@ -200,10 +200,8 @@ module aqp_top(
 
     aqp_pwm_dac pwm_dac(
         .clk         ( clk            ),
-        .reset       ( reset          ),
 
         // Sample input
-        .next_sample ( 1'b1           ),
         .left_data   ( common_audio_l ),
         .right_data  ( common_audio_r ),
 
@@ -669,13 +667,13 @@ module aqp_top(
 
     // Create stereo mix of output channels and system beep (cassette output)
     wire [13:0] mix_l =
-        {2'b0, ay8910_ch_a,   1'b0} + {2'b0, ay8910_ch_b,   1'b0} + {4'b0, ay8910_ch_c  } +
-        {2'b0, ay8910_2_ch_a, 1'b0} + {2'b0, ay8910_2_ch_b, 1'b0} + {4'b0, ay8910_2_ch_c} +
+        {3'b0, ay8910_ch_a,   1'b0} + {3'b0, ay8910_ch_b,   1'b0} + {4'b0, ay8910_ch_c  } +
+        {3'b0, ay8910_2_ch_a, 1'b0} + {3'b0, ay8910_2_ch_b, 1'b0} + {4'b0, ay8910_2_ch_c} +
         {2'b0, q_audio_dac,   4'b0} + {4'b0, beep};
 
     wire [13:0] mix_r =
-        {4'b0, ay8910_ch_a  }     + {2'b0, ay8910_ch_b,   1'b0} + {2'b0, ay8910_ch_c,   1'b0} +
-        {4'b0, ay8910_2_ch_a}     + {2'b0, ay8910_2_ch_b, 1'b0} + {2'b0, ay8910_2_ch_c, 1'b0} +
+        {4'b0, ay8910_ch_a  }     + {3'b0, ay8910_ch_b,   1'b0} + {3'b0, ay8910_ch_c,   1'b0} +
+        {4'b0, ay8910_2_ch_a}     + {3'b0, ay8910_2_ch_b, 1'b0} + {3'b0, ay8910_2_ch_c, 1'b0} +
         {2'b0, q_audio_dac, 4'b0} + {4'b0, beep};
 
     always @(posedge clk) common_audio_l <= {~mix_l[13], mix_l[12:0], 2'b0};
@@ -723,15 +721,15 @@ module aqp_top(
     //////////////////////////////////////////////////////////////////////////
     // T80 core
     //////////////////////////////////////////////////////////////////////////
-    wire [15:0] t80_addr;        // should tristate when busak_n == 0
+    wire [15:0] t80_addr;
     wire  [7:0] t80_dq_out;
     wire  [7:0] t80_dq_in = ebus_d;
     wire        t80_dq_oe;
 
-    wire        t80_mreq_n;      // should tristate when busak_n == 0
-    wire        t80_iorq_n;      // should tristate when busak_n == 0
-    wire        t80_rd_n;        // should tristate when busak_n == 0
-    wire        t80_wr_n;        // should tristate when busak_n == 0
+    wire        t80_mreq_n;
+    wire        t80_iorq_n;
+    wire        t80_rd_n;
+    wire        t80_wr_n;
     wire        t80_wait_n = 1'b1;
 
     wire        t80_busrq_n = spibm_busreq_n;
@@ -746,15 +744,15 @@ module aqp_top(
         .clken   ( ebus_phi_clken    ),
         .phi     ( ebus_phi          ),
 
-        .addr    ( t80_addr          ),        // should tristate when busak_n == 0
+        .addr    ( t80_addr          ),
         .dq_out  ( t80_dq_out        ),
         .dq_in   ( t80_dq_in         ),
         .dq_oe   ( t80_dq_oe         ),
 
-        .mreq_n  ( t80_mreq_n        ),    // should tristate when busak_n == 0
-        .iorq_n  ( t80_iorq_n        ),    // should tristate when busak_n == 0
-        .rd_n    ( t80_rd_n          ),        // should tristate when busak_n == 0
-        .wr_n    ( t80_wr_n          ),        // should tristate when busak_n == 0
+        .mreq_n  ( t80_mreq_n        ),
+        .iorq_n  ( t80_iorq_n        ),
+        .rd_n    ( t80_rd_n          ),
+        .wr_n    ( t80_wr_n          ),
         .wait_n  ( t80_wait_n        ),
 
         .busrq_n ( t80_busrq_n       ),
@@ -799,15 +797,14 @@ module aqp_top(
     reg [7:0] ebus_d_in;
     always @(posedge clk) if (!ebus_wr_n) ebus_d_in <= ebus_d;
 
-    wire   ebus_stb   = (bus_read || bus_write);
     wire   bus_read   = (use_t80 ? q_ebus_rd_n[1:0] : q_ebus_rd_n[2:1]) == 2'b10;
     wire   bus_write  = (use_t80 ? q_ebus_wr_n[1:0] : q_ebus_wr_n[2:1]) == 2'b10;
+    wire   ebus_stb   = (bus_read || bus_write);
 
     assign wrdata     = ebus_d_in;
     assign bus_read2  = !ebus_rd_n && ebus_stb;    //  q_ebus_rd_n[2:1] == 2'b10;
     assign bus_write2 = !ebus_wr_n && ebus_stb;    //  q_ebus_wr_n[2:1] == 2'b10;
     assign iorq       = !ebus_iorq_n;
     assign mreq       = !ebus_mreq_n;
-
 
 endmodule

@@ -115,11 +115,11 @@ module ay8910(
         endcase
 
     //////////////////////////////////////////////////////////////////////////
-    // Clock divider (/128)
+    // Clock divider (/256)
     //////////////////////////////////////////////////////////////////////////
-    reg [6:0] q_div = 7'b0;
-    always @(posedge clk) q_div <= q_div + 7'b1;
-    wire tick = (q_div == 7'b0);
+    reg [7:0] q_div = 8'b0;
+    always @(posedge clk) q_div <= q_div + 8'd1;
+    wire tick = (q_div == 8'd0);
 
     //////////////////////////////////////////////////////////////////////////
     // Tone generators
