@@ -146,8 +146,8 @@ module aqp_top(
             1'b1,       // Core type 01 specific: show mouse support
             has_z80     // Z80 present
         }),
-        .sysinfo_version_major ( 8'h02              ),
-        .sysinfo_version_minor ( 8'h00              ),
+        .sysinfo_version_major ( 8'h01              ),
+        .sysinfo_version_minor ( 8'h01              ),
 
         .core_name             ( "Aquarius+       " ),
 
